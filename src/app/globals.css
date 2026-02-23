@@ -70,15 +70,23 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 0;
+    margin: 0 !important;
   }
   body {
     background: white !important;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .no-print {
     display: none !important;
+  }
+  .pdf-a4 {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
   }
 }
 
@@ -95,16 +103,17 @@
   height: 148.5mm;
   width: 100%;
   padding: 10mm;
-  overflow: hidden;
   box-sizing: border-box;
   position: relative;
+  overflow: hidden;
 }
 
 .cutting-line {
-  border-top: 1px dashed #999;
+  border-top: 1px dashed #666;
   width: 100%;
   height: 1px;
   position: absolute;
   top: 148.5mm;
   left: 0;
+  z-index: 50;
 }

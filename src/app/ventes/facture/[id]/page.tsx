@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -34,93 +33,102 @@ export default function InvoicePrintPage() {
   };
 
   const InvoiceCopy = () => (
-    <div className="pdf-a5-section flex flex-col h-[148.5mm] overflow-hidden p-[10mm] relative bg-white border-b border-transparent">
+    <div className="pdf-a5-section flex flex-col h-[148.5mm] overflow-hidden p-[8mm] relative bg-white border-b border-transparent">
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex items-start gap-4">
-          <div className="h-16 w-16 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase shrink-0">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-start gap-3">
+          <div className="h-14 w-14 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center text-[9px] text-slate-400 font-bold uppercase shrink-0">
             LOGO
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-xl font-bold text-primary leading-tight">{shop.name}</h2>
-            <p className="text-[10px] text-slate-600 max-w-[250px] leading-tight">{shop.address}</p>
-            <p className="text-[10px] text-slate-600">Tél: {shop.phone}</p>
-            <p className="text-[10px] font-bold text-slate-800">ICE: {shop.icePatent}</p>
+            <h2 className="text-lg font-bold text-primary leading-tight">{shop.name}</h2>
+            <p className="text-[9px] text-slate-600 max-w-[220px] leading-tight">{shop.address}</p>
+            <p className="text-[9px] text-slate-600">Tél: {shop.phone}</p>
+            <p className="text-[9px] font-bold text-slate-800">ICE: {shop.icePatent}</p>
           </div>
         </div>
         <div className="text-right">
-          <h1 className="text-xl font-black uppercase tracking-tighter mb-1 border-b-2 border-primary inline-block">Facture</h1>
-          <p className="text-[12px] font-bold text-slate-900 mt-1">N°: {invoiceNo}</p>
-          <p className="text-[10px] text-slate-600">Date: {date}</p>
+          <h1 className="text-lg font-black uppercase tracking-tighter mb-0.5 border-b-2 border-primary inline-block">Facture</h1>
+          <p className="text-[11px] font-bold text-slate-900 mt-1">N°: {invoiceNo}</p>
+          <p className="text-[9px] text-slate-600">Date: {date}</p>
         </div>
       </div>
 
       {/* Client Info Grid */}
-      <div className="grid grid-cols-2 gap-8 mb-6 border-t border-slate-100 pt-4">
+      <div className="grid grid-cols-3 gap-4 mb-4 border-t border-slate-100 pt-3">
         <div>
-          <p className="text-[9px] uppercase text-slate-500 font-bold mb-1">Client</p>
-          <p className="text-[13px] font-bold text-slate-900">{clientName}</p>
-          {clientPhone !== "---" && <p className="text-[11px] text-slate-600 mt-0.5">{clientPhone}</p>}
+          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Client</p>
+          <p className="text-[12px] font-bold text-slate-900 truncate">{clientName}</p>
         </div>
         <div>
-          <p className="text-[9px] uppercase text-slate-500 font-bold mb-1">Mutuelle</p>
-          <p className="text-[13px] font-bold text-slate-900">{mutuelle}</p>
+          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Téléphone</p>
+          <p className="text-[12px] font-bold text-slate-900">{clientPhone}</p>
+        </div>
+        <div>
+          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Mutuelle</p>
+          <p className="text-[12px] font-bold text-slate-900">{mutuelle}</p>
         </div>
       </div>
 
       {/* Prescription Grid */}
-      <div className="mb-8">
-        <h3 className="text-[10px] font-bold uppercase mb-2 text-slate-800">Prescription (Correction)</h3>
-        <table className="w-full text-[11px] border-collapse">
+      <div className="mb-4">
+        <h3 className="text-[9px] font-bold uppercase mb-1.5 text-slate-800">Prescription (Correction)</h3>
+        <table className="w-full text-[10px] border-collapse">
           <thead>
             <tr className="bg-slate-50">
-              <th className="border border-slate-300 p-2 text-left text-[9px] uppercase text-slate-600">Oeil</th>
-              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Sphère</th>
-              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Cylindre</th>
-              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Axe</th>
+              <th className="border border-slate-300 p-1.5 text-left text-[8px] uppercase text-slate-600">Oeil</th>
+              <th className="border border-slate-300 p-1.5 text-center text-[8px] uppercase text-slate-600 w-20">Sphère</th>
+              <th className="border border-slate-300 p-1.5 text-center text-[8px] uppercase text-slate-600 w-20">Cylindre</th>
+              <th className="border border-slate-300 p-1.5 text-center text-[8px] uppercase text-slate-600 w-20">Axe</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-300 p-2 font-bold bg-white text-[10px]">Oeil Droit (OD)</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{od.sph}</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{od.cyl}</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{od.axe}</td>
+              <td className="border border-slate-300 p-1.5 font-bold bg-white text-[9px]">Oeil Droit (OD)</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{od.sph}</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{od.cyl}</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{od.axe}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 p-2 font-bold bg-white text-[10px]">Oeil Gauche (OG)</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{og.sph}</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{og.cyl}</td>
-              <td className="border border-slate-300 p-2 text-center bg-white">{og.axe}</td>
+              <td className="border border-slate-300 p-1.5 font-bold bg-white text-[9px]">Oeil Gauche (OG)</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{og.sph}</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{og.cyl}</td>
+              <td className="border border-slate-300 p-1.5 text-center bg-white">{og.axe}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Financials & Signature Footer */}
-      <div className="flex justify-between items-start mt-auto">
-        <div className="w-1/2 space-y-1.5">
-          <div className="flex justify-between text-[11px] text-slate-600 pr-8">
-            <span>Total Vente:</span>
-            <span className="font-medium tabular-nums">{formatCurrency(total)}</span>
+      {/* Financials & Footer Section */}
+      <div className="flex flex-col gap-4 mt-auto">
+        <div className="flex justify-between items-end border-t border-slate-100 pt-4">
+          <div className="w-1/2 space-y-1">
+            <div className="flex justify-between text-[10px] text-slate-600 pr-8">
+              <span>Total Vente:</span>
+              <span className="font-medium tabular-nums">{formatCurrency(total)}</span>
+            </div>
+            <div className="flex justify-between text-[10px] text-green-700 pr-8 font-medium">
+              <span>Avance:</span>
+              <span className="tabular-nums">{formatCurrency(avance)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-slate-200 mt-1 pr-8">
+              <span className="text-[11px] font-black uppercase text-slate-900">Reste à payer:</span>
+              <span className="text-[16px] font-black text-primary tabular-nums tracking-tighter">{formatCurrency(reste)}</span>
+            </div>
           </div>
-          <div className="flex justify-between text-[11px] text-green-700 pr-8 font-medium">
-            <span>Avance:</span>
-            <span className="tabular-nums">{formatCurrency(avance)}</span>
-          </div>
-          <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2 pr-8">
-            <span className="text-[12px] font-black uppercase text-slate-900">Reste à payer:</span>
-            <span className="text-[18px] font-black text-primary tabular-nums tracking-tighter">{formatCurrency(reste)}</span>
+          
+          <div className="flex flex-col items-center">
+            <div className="w-[40mm] h-[22mm] border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center relative bg-slate-50/30 overflow-hidden mb-1">
+              <span className="text-[8px] uppercase text-slate-300 font-bold rotate-[-15deg] text-center px-2 opacity-50">
+                CACHET DU MAGASIN
+              </span>
+            </div>
           </div>
         </div>
         
-        <div className="flex flex-col items-center">
-          <div className="w-[45mm] h-[25mm] border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center relative bg-slate-50/30 overflow-hidden">
-            <span className="text-[10px] uppercase text-slate-300 font-bold rotate-[-15deg] text-center px-2 opacity-50">
-              CACHET DU MAGASIN
-            </span>
-          </div>
-          <p className="text-[9px] font-bold text-slate-500 mt-2 uppercase tracking-widest italic">Signature & Cachet</p>
+        <div className="flex justify-between px-4 pb-2">
+           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">Signature Client</p>
+           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">Signature & Cachet Magasin</p>
         </div>
       </div>
     </div>
@@ -143,12 +151,12 @@ export default function InvoicePrintPage() {
       </div>
 
       {/* Actual A4 Page */}
-      <div className="pdf-a4 shadow-[0_0_50px_rgba(0,0,0,0.1)] overflow-hidden print:shadow-none bg-white">
+      <div className="pdf-a4 shadow-[0_0_50px_rgba(0,0,0,0.1)] overflow-hidden print:shadow-none bg-white print:m-0">
         <InvoiceCopy />
         
         {/* Real Central Dashed Line for cutting */}
-        <div className="relative h-0 no-print">
-          <div className="absolute top-0 left-0 w-full border-t-[1px] border-dashed border-slate-300 z-10" />
+        <div className="relative h-0">
+          <div className="absolute top-0 left-0 w-full border-t-[1px] border-dashed border-slate-400 z-20" />
         </div>
         
         <InvoiceCopy />
@@ -156,7 +164,7 @@ export default function InvoicePrintPage() {
 
       <div className="no-print mt-6 text-slate-500 text-xs flex items-center gap-2">
         <Eye className="h-4 w-4" />
-        Format A4 Portrait : 2 exemplaires par page.
+        Format A4 Portrait : 2 exemplaires par page. Si le bas est coupé, vérifiez les marges de votre imprimante (choisir "Aucune" ou "Par défaut").
       </div>
     </div>
   );
