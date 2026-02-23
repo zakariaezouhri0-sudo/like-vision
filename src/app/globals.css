@@ -66,23 +66,45 @@
   }
 }
 
+/* Print Specific Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
 .pdf-a4 {
   width: 210mm;
   height: 297mm;
   margin: 0 auto;
   background: white;
-  padding: 10mm;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .pdf-a5-section {
-  height: 138.5mm;
-  padding: 5mm;
+  height: 148.5mm;
+  width: 100%;
+  padding: 10mm;
   overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .cutting-line {
-  border-top: 1px dashed #ccc;
+  border-top: 1px dashed #999;
   width: 100%;
   height: 1px;
-  margin: 5mm 0;
+  position: absolute;
+  top: 148.5mm;
+  left: 0;
 }

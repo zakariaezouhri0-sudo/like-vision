@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function NewSalePage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [mutuelle, setMutuelle] = useState("Aucun");
+  const [clientName, setClientName] = useState("");
+  const [total, setTotal] = useState(1500);
+  const [avance, setAvance] = useState(500);
+  
   const [prescription, setPrescription] = useState({
     od: { sph: "", cyl: "", axe: "" },
     og: { sph: "", cyl: "", axe: "" }
@@ -38,6 +44,22 @@ export default function NewSalePage() {
     });
   };
 
+  const handlePrint = () => {
+    const params = new URLSearchParams({
+      client: clientName,
+      mutuelle,
+      total: total.toString(),
+      avance: avance.toString(),
+      od_sph: prescription.od.sph,
+      od_cyl: prescription.od.cyl,
+      od_axe: prescription.od.axe,
+      og_sph: prescription.og.sph,
+      og_cyl: prescription.og.cyl,
+      og_axe: prescription.og.axe,
+    });
+    router.push(`/ventes/facture/OPT-2024-124?${params.toString()}`);
+  };
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
@@ -46,7 +68,7 @@ export default function NewSalePage() {
           <p className="text-muted-foreground">Saisissez les informations du client et de l'ordonnance.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => window.print()}>
+          <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Imprimer Facture
           </Button>
@@ -70,7 +92,12 @@ export default function NewSalePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="clientName">Nom complet</Label>
-                  <Input id="clientName" placeholder="M. Mohamed Alami" />
+                  <Input 
+                    id="clientName" 
+                    placeholder="M. Mohamed Alami" 
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="clientPhone">Téléphone</Label>
@@ -147,16 +174,28 @@ export default function NewSalePage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <Label>Total TTC (DH)</Label>
-                  <Input className="w-32 text-right font-bold" type="number" defaultValue="1500" />
+                  <Input 
+                    className="w-32 text-right font-bold" 
+                    type="number" 
+                    value={total} 
+                    onChange={(e) => setTotal(Number(e.target.value))}
+                  />
                 </div>
                 <div className="flex justify-between items-center">
                   <Label>Avance (DH)</Label>
-                  <Input className="w-32 text-right text-green-600 font-medium" type="number" defaultValue="500" />
+                  <Input 
+                    className="w-32 text-right text-green-600 font-medium" 
+                    type="number" 
+                    value={avance} 
+                    onChange={(e) => setAvance(Number(e.target.value))}
+                  />
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold text-lg">Reste à Payer</span>
-                  <span className="font-bold text-lg text-destructive">1 000,00 DH</span>
+                  <span className="font-bold text-lg text-destructive">
+                    {(total - avance).toLocaleString('fr-FR')} DH
+                  </span>
                 </div>
               </div>
 
