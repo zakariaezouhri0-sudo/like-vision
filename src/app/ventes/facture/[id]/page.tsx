@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -5,7 +6,7 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Eye } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 export default function InvoicePrintPage() {
   const params = useParams();
@@ -33,131 +34,129 @@ export default function InvoicePrintPage() {
   };
 
   const InvoiceCopy = () => (
-    <div className="pdf-a5-section flex flex-col h-[148.5mm] overflow-hidden p-[8mm] relative bg-white">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-start gap-3">
-          <div className="h-12 w-12 bg-slate-100 border rounded-lg flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
+    <div className="pdf-a5-section flex flex-col h-[148.5mm] overflow-hidden p-[10mm] relative bg-white border-b border-transparent">
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex items-start gap-4">
+          <div className="h-16 w-16 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase shrink-0">
             LOGO
           </div>
-          <div>
-            <h2 className="text-base font-bold text-primary leading-tight">{shop.name}</h2>
-            <p className="text-[9px] text-slate-600 max-w-[200px] leading-tight">{shop.address}</p>
-            <p className="text-[9px] text-slate-600">Tél: {shop.phone}</p>
-            <p className="text-[9px] font-bold mt-0.5 text-primary">ICE: {shop.icePatent}</p>
+          <div className="space-y-0.5">
+            <h2 className="text-xl font-bold text-primary leading-tight">{shop.name}</h2>
+            <p className="text-[10px] text-slate-600 max-w-[250px] leading-tight">{shop.address}</p>
+            <p className="text-[10px] text-slate-600">Tél: {shop.phone}</p>
+            <p className="text-[10px] font-bold text-slate-800">ICE: {shop.icePatent}</p>
           </div>
         </div>
         <div className="text-right">
-          <h1 className="text-sm font-black uppercase underline tracking-tighter mb-0.5">Facture / Bon de Commande</h1>
-          <p className="text-[11px] font-bold bg-slate-100 px-2 py-0.5 rounded inline-block">N°: {invoiceNo}</p>
-          <p className="text-[9px] text-slate-600 mt-0.5">Date: {date}</p>
+          <h1 className="text-xl font-black uppercase tracking-tighter mb-1 border-b-2 border-primary inline-block">Facture</h1>
+          <p className="text-[12px] font-bold text-slate-900 mt-1">N°: {invoiceNo}</p>
+          <p className="text-[10px] text-slate-600">Date: {date}</p>
         </div>
       </div>
 
-      {/* Client Info */}
-      <div className="grid grid-cols-3 gap-2 mb-3 border-y border-slate-200 py-1.5">
+      {/* Client Info Grid */}
+      <div className="grid grid-cols-2 gap-8 mb-6 border-t border-slate-100 pt-4">
         <div>
-          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Client</p>
-          <p className="text-[10px] font-bold truncate">{clientName}</p>
+          <p className="text-[9px] uppercase text-slate-500 font-bold mb-1">Client</p>
+          <p className="text-[13px] font-bold text-slate-900">{clientName}</p>
+          {clientPhone !== "---" && <p className="text-[11px] text-slate-600 mt-0.5">{clientPhone}</p>}
         </div>
         <div>
-          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Téléphone</p>
-          <p className="text-[10px] font-bold">{clientPhone}</p>
-        </div>
-        <div>
-          <p className="text-[8px] uppercase text-slate-500 font-bold mb-0.5">Mutuelle</p>
-          <p className="text-[10px] font-bold">{mutuelle}</p>
+          <p className="text-[9px] uppercase text-slate-500 font-bold mb-1">Mutuelle</p>
+          <p className="text-[13px] font-bold text-slate-900">{mutuelle}</p>
         </div>
       </div>
 
       {/* Prescription Grid */}
-      <div className="mb-3">
-        <h3 className="text-[8px] font-bold uppercase mb-1 text-slate-500">Détails de la Prescription</h3>
-        <table className="w-full text-[10px] border-collapse">
+      <div className="mb-8">
+        <h3 className="text-[10px] font-bold uppercase mb-2 text-slate-800">Prescription (Correction)</h3>
+        <table className="w-full text-[11px] border-collapse">
           <thead>
             <tr className="bg-slate-50">
-              <th className="border border-slate-300 p-1 text-left text-[8px] uppercase">Oeil</th>
-              <th className="border border-slate-300 p-1 text-center text-[8px] uppercase">Sphère</th>
-              <th className="border border-slate-300 p-1 text-center text-[8px] uppercase">Cylindre</th>
-              <th className="border border-slate-300 p-1 text-center text-[8px] uppercase">Axe</th>
+              <th className="border border-slate-300 p-2 text-left text-[9px] uppercase text-slate-600">Oeil</th>
+              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Sphère</th>
+              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Cylindre</th>
+              <th className="border border-slate-300 p-2 text-center text-[9px] uppercase text-slate-600 w-24">Axe</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-300 p-1 font-bold text-[9px]">Oeil Droit (OD)</td>
-              <td className="border border-slate-300 p-1 text-center">{od.sph}</td>
-              <td className="border border-slate-300 p-1 text-center">{od.cyl}</td>
-              <td className="border border-slate-300 p-1 text-center">{od.axe}</td>
+              <td className="border border-slate-300 p-2 font-bold bg-white text-[10px]">Oeil Droit (OD)</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{od.sph}</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{od.cyl}</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{od.axe}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 p-1 font-bold text-[9px]">Oeil Gauche (OG)</td>
-              <td className="border border-slate-300 p-1 text-center">{og.sph}</td>
-              <td className="border border-slate-300 p-1 text-center">{og.cyl}</td>
-              <td className="border border-slate-300 p-1 text-center">{og.axe}</td>
+              <td className="border border-slate-300 p-2 font-bold bg-white text-[10px]">Oeil Gauche (OG)</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{og.sph}</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{og.cyl}</td>
+              <td className="border border-slate-300 p-2 text-center bg-white">{og.axe}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Financials & Footer */}
-      <div className="flex justify-between items-end mt-auto pt-2">
-        {/* Left Side: Financials */}
-        <div className="w-1/2 space-y-0.5">
-          <div className="flex justify-between text-[9px] text-slate-600">
-            <span>Total TTC:</span>
-            <span>{formatCurrency(total)}</span>
+      {/* Financials & Signature Footer */}
+      <div className="flex justify-between items-start mt-auto">
+        <div className="w-1/2 space-y-1.5">
+          <div className="flex justify-between text-[11px] text-slate-600 pr-8">
+            <span>Total Vente:</span>
+            <span className="font-medium tabular-nums">{formatCurrency(total)}</span>
           </div>
-          <div className="flex justify-between text-[9px] text-green-700">
-            <span>Acompte:</span>
-            <span>{formatCurrency(avance)}</span>
+          <div className="flex justify-between text-[11px] text-green-700 pr-8 font-medium">
+            <span>Avance:</span>
+            <span className="tabular-nums">{formatCurrency(avance)}</span>
           </div>
-          <div className="flex justify-between items-center pt-1 border-t border-slate-200 mt-0.5">
-            <span className="text-[10px] font-black uppercase">Reste à payer:</span>
-            <span className="text-sm font-black text-primary">{formatCurrency(reste)}</span>
-          </div>
-          <div className="mt-4">
-            <p className="text-[8px] font-bold underline mb-3">Signature Client :</p>
+          <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2 pr-8">
+            <span className="text-[12px] font-black uppercase text-slate-900">Reste à payer:</span>
+            <span className="text-[18px] font-black text-primary tabular-nums tracking-tighter">{formatCurrency(reste)}</span>
           </div>
         </div>
         
-        {/* Right Side: Stamp */}
-        <div className="w-1/3 flex flex-col items-center">
-          <div className="w-full h-16 border-2 border-primary/20 rounded-md flex items-center justify-center relative bg-slate-50/50">
-            <span className="text-[8px] uppercase text-slate-300 font-bold rotate-[-12deg] text-center px-4">Cachet du Magasin</span>
+        <div className="flex flex-col items-center">
+          <div className="w-[45mm] h-[25mm] border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center relative bg-slate-50/30 overflow-hidden">
+            <span className="text-[10px] uppercase text-slate-300 font-bold rotate-[-15deg] text-center px-2 opacity-50">
+              CACHET DU MAGASIN
+            </span>
           </div>
+          <p className="text-[9px] font-bold text-slate-500 mt-2 uppercase tracking-widest italic">Signature & Cachet</p>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col items-center py-8">
-      {/* Controls */}
-      <div className="no-print w-[210mm] flex justify-between mb-4">
-        <Button variant="outline" asChild className="bg-white">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
+      {/* Controls Overlay */}
+      <div className="no-print w-[210mm] flex justify-between mb-6">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50">
           <Link href="/ventes/nouvelle">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Link>
         </Button>
-        <Button onClick={() => window.print()} className="bg-primary shadow-lg">
+        <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90">
           <Printer className="mr-2 h-4 w-4" />
-          Imprimer (A4 Portrait)
+          Lancer l'impression (A4)
         </Button>
       </div>
 
-      {/* Page Content (A4 Portrait) */}
-      <div className="pdf-a4 shadow-2xl overflow-hidden print:shadow-none bg-white">
+      {/* Actual A4 Page */}
+      <div className="pdf-a4 shadow-[0_0_50px_rgba(0,0,0,0.1)] overflow-hidden print:shadow-none bg-white">
         <InvoiceCopy />
-        <div className="relative h-0">
-          <div className="absolute top-0 left-0 w-full border-t border-dashed border-slate-400 z-10" />
+        
+        {/* Real Central Dashed Line for cutting */}
+        <div className="relative h-0 no-print">
+          <div className="absolute top-0 left-0 w-full border-t-[1px] border-dashed border-slate-300 z-10" />
         </div>
+        
         <InvoiceCopy />
       </div>
 
-      <div className="no-print mt-8 text-slate-600 text-sm flex items-center gap-2 font-medium">
+      <div className="no-print mt-6 text-slate-500 text-xs flex items-center gap-2">
         <Eye className="h-4 w-4" />
-        Note : 2 exemplaires sur une page A4.
+        Format A4 Portrait : 2 exemplaires par page.
       </div>
     </div>
   );
