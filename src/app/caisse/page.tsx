@@ -21,7 +21,6 @@ export default function CaissePage() {
   const [isSessionOpen, setIsSessionOpen] = useState(true);
   const [soldeInitial, setSoldeInitial] = useState(500);
   
-  // Détail du comptage
   const [denoms, setDenoms] = useState<Record<number, number>>({
     200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0
   });
@@ -56,7 +55,6 @@ export default function CaissePage() {
       reel: soldeReel.toString(),
     });
     
-    // Ajouter les dénominations aux paramètres
     Object.entries(denoms).forEach(([val, qty]) => {
       params.append(`d${val}`, qty.toString());
     });
@@ -110,62 +108,66 @@ export default function CaissePage() {
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2 border-b pb-2">
                       <Coins className="h-4 w-4" />
                       Détail des Espèces
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
                       {DENOMINATIONS.map(val => (
-                        <div key={val} className="flex items-center gap-2">
-                          <div className="w-16 text-right font-medium text-xs">{val} DH x</div>
+                        <div key={val} className="flex items-center gap-3">
+                          <div className="w-16 text-right font-bold text-xs">{val} DH</div>
+                          <div className="text-muted-foreground text-xs">x</div>
                           <Input 
                             type="number" 
-                            className="h-8 w-20 text-center" 
+                            className="h-8 w-24 text-center" 
                             value={denoms[val]}
                             onChange={(e) => handleUpdateDenom(val, e.target.value)}
                             min="0"
                           />
+                          <div className="flex-1 text-right text-xs font-medium">
+                            {formatCurrency(val * (denoms[val] || 0))}
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <div className="pt-4 border-t bg-muted/30 p-4 rounded-lg">
+                    <div className="pt-4 border-t bg-primary/5 p-4 rounded-lg">
                       <div className="flex justify-between items-center">
-                        <span className="font-bold">TOTAL COMPTÉ :</span>
+                        <span className="font-bold text-sm">TOTAL COMPTÉ :</span>
                         <span className="text-xl font-black text-primary">{formatCurrency(soldeReel)}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-4 border-l pl-8">
-                    <h3 className="text-sm font-bold uppercase text-muted-foreground">Résumé Comptable</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Solde Initial:</span>
-                        <span>{formatCurrency(soldeInitial)}</span>
+                    <h3 className="text-sm font-bold uppercase text-muted-foreground border-b pb-2">Résumé Comptable</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Solde Initial:</span>
+                        <span className="font-medium">{formatCurrency(soldeInitial)}</span>
                       </div>
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between items-center text-green-600">
                         <span>Total Ventes:</span>
-                        <span>+{formatCurrency(totalVentes)}</span>
+                        <span className="font-bold">+{formatCurrency(totalVentes)}</span>
                       </div>
-                      <div className="flex justify-between text-destructive">
+                      <div className="flex justify-between items-center text-destructive">
                         <span>Total Dépenses:</span>
-                        <span>-{formatCurrency(totalDepenses)}</span>
+                        <span className="font-bold">-{formatCurrency(totalDepenses)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Total Apports:</span>
-                        <span>+{formatCurrency(totalApports)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Total Apports:</span>
+                        <span className="font-medium">+{formatCurrency(totalApports)}</span>
                       </div>
-                      <div className="pt-2 border-t font-bold text-primary flex justify-between">
-                        <span>Solde Théorique:</span>
+                      <div className="pt-3 border-t font-black text-primary flex justify-between items-center">
+                        <span>SOLDE THÉORIQUE:</span>
                         <span>{formatCurrency(soldeTheorique)}</span>
                       </div>
                     </div>
 
                     <div className={cn(
-                      "mt-6 p-4 rounded-lg border-2 text-center",
+                      "mt-8 p-4 rounded-lg border-2 text-center",
                       soldeReel - soldeTheorique === 0 ? "border-green-200 bg-green-50" : "border-destructive/20 bg-destructive/5"
                     )}>
-                      <p className="text-xs uppercase font-bold text-muted-foreground mb-1">Écart de Caisse</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Écart de Caisse</p>
                       <p className={cn("text-2xl font-black", soldeReel - soldeTheorique >= 0 ? "text-green-600" : "text-destructive")}>
                         {soldeReel - soldeTheorique >= 0 ? "+" : ""}{formatCurrency(soldeReel - soldeTheorique)}
                       </p>
@@ -173,7 +175,7 @@ export default function CaissePage() {
                   </div>
                 </div>
                 <DialogFooter className="flex gap-2 sm:gap-0 border-t pt-4">
-                  <Button variant="destructive" onClick={() => setIsSessionOpen(false)}>Clôturer sans Impression</Button>
+                  <Button variant="ghost" className="text-muted-foreground" onClick={() => setIsSessionOpen(false)}>Fermer sans enregistrer</Button>
                   <Button className="bg-primary" onClick={handleCloturerEtImprimer}>
                     <Printer className="mr-2 h-4 w-4" />
                     Valider & Imprimer Rapport

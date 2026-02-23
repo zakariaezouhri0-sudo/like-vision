@@ -14,7 +14,6 @@ export default function CashClosurePrintPage() {
   const searchParams = useSearchParams();
   const shop = DEFAULT_SHOP_SETTINGS;
 
-  // Récupération des données passées en paramètres
   const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const initial = Number(searchParams.get("initial")) || 0;
   const ventes = Number(searchParams.get("ventes")) || 0;
@@ -25,11 +24,10 @@ export default function CashClosurePrintPage() {
   const theorique = initial + ventes + apports - depenses;
   const ecart = reel - theorique;
 
-  // Récupération du détail des espèces
   const cashDetail = DENOMINATIONS.map(val => ({
     val,
     qty: Number(searchParams.get(`d${val}`)) || 0
-  })).filter(item => item.qty > 0);
+  })).filter(item => item.qty >= 0);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8">
@@ -62,7 +60,7 @@ export default function CashClosurePrintPage() {
           </div>
           <div className="text-right flex flex-col items-end">
             <div className="bg-primary text-primary-foreground px-4 py-2 rounded mb-2">
-              <h2 className="text-lg font-bold uppercase tracking-widest">Rapport de Clôture</h2>
+              <h2 className="text-lg font-bold uppercase tracking-widest text-white">Rapport de Clôture</h2>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <Calendar className="h-4 w-4" />
@@ -79,29 +77,29 @@ export default function CashClosurePrintPage() {
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div className="space-y-4">
             <h3 className="text-sm font-black uppercase text-slate-400 border-b pb-1">Résumé des Flux</h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Solde Initial :</span>
-                <span className="font-medium">{formatCurrency(initial)}</span>
+                <span className="font-bold">{formatCurrency(initial)}</span>
               </div>
               <div className="flex justify-between text-sm text-green-600">
                 <span>Total Entrées (Ventes + Apports) :</span>
-                <span className="font-medium">+{formatCurrency(ventes + apports)}</span>
+                <span className="font-bold">+{formatCurrency(ventes + apports)}</span>
               </div>
               <div className="flex justify-between text-sm text-destructive">
                 <span>Total Sorties (Dépenses) :</span>
-                <span className="font-medium">-{formatCurrency(depenses)}</span>
+                <span className="font-bold">-{formatCurrency(depenses)}</span>
               </div>
-              <div className="pt-2 border-t flex justify-between font-bold text-base">
-                <span>Solde Théorique :</span>
+              <div className="pt-2 border-t flex justify-between font-black text-base">
+                <span className="text-slate-900">Solde Théorique :</span>
                 <span className="text-primary">{formatCurrency(theorique)}</span>
               </div>
             </div>
 
             {/* Écart de Caisse Visuel */}
-            <div className={`mt-4 p-4 rounded border-2 text-center ${ecart === 0 ? 'border-green-100 bg-green-50' : 'border-destructive/10 bg-destructive/5'}`}>
-              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Écart de Caisse Final</p>
-              <p className={`text-xl font-black ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+            <div className={`mt-6 p-4 rounded border-2 text-center ${ecart === 0 ? 'border-green-100 bg-green-50' : 'border-destructive/10 bg-destructive/5'}`}>
+              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Constat d'Écart Final</p>
+              <p className={`text-2xl font-black ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                 {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
               </p>
             </div>
@@ -115,46 +113,48 @@ export default function CashClosurePrintPage() {
             <div className="space-y-1">
               {cashDetail.length > 0 ? (
                 cashDetail.map(item => (
-                  <div key={item.val} className="flex justify-between text-xs border-b border-slate-100 py-1 last:border-0">
-                    <span>{item.val} DH x {item.qty}</span>
-                    <span className="font-medium">{formatCurrency(item.val * item.qty)}</span>
+                  <div key={item.val} className="grid grid-cols-[3fr_1fr_2fr_3fr] gap-1 text-[11px] border-b border-slate-100 py-1.5 last:border-0 items-center">
+                    <span className="font-bold text-slate-700 text-right pr-2">{item.val} DH</span>
+                    <span className="text-slate-300 text-center">x</span>
+                    <span className="font-medium text-slate-900 text-left pl-2">{item.qty}</span>
+                    <span className="font-bold text-slate-900 text-right">{formatCurrency(item.val * item.qty)}</span>
                   </div>
                 ))
               ) : (
                 <p className="text-xs text-slate-400 italic">Aucun détail saisi.</p>
               )}
-              <div className="flex justify-between items-center pt-3 border-t mt-3">
-                <span className="text-sm font-bold">Total Compté :</span>
-                <span className="text-lg font-black text-primary">{formatCurrency(reel)}</span>
+              <div className="flex justify-between items-center pt-4 border-t-2 border-slate-200 mt-4">
+                <span className="text-sm font-black uppercase">Total Compté :</span>
+                <span className="text-xl font-black text-primary">{formatCurrency(reel)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Transactions Table */}
+        {/* Transactions Summary Table */}
         <div className="mb-12">
           <h3 className="text-sm font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Détail des Postes de Caisse
+            Récapitulatif des Postes
           </h3>
-          <Table className="border">
+          <Table className="border rounded-lg overflow-hidden">
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="font-bold text-slate-900">Description</TableHead>
-                <TableHead className="text-right font-bold text-slate-900">Montant (DH)</TableHead>
+                <TableHead className="font-bold text-slate-900 h-10">Description du Flux</TableHead>
+                <TableHead className="text-right font-bold text-slate-900 h-10">Montant (DH)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell>Total des Ventes (Comptant + Avances)</TableCell>
+              <TableRow className="h-10">
+                <TableCell className="font-medium">Total des Ventes (Espèces & Avances)</TableCell>
                 <TableCell className="text-right font-bold text-green-600">+{formatCurrency(ventes)}</TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell>Apports de fonds / Versements</TableCell>
-                <TableCell className="text-right font-bold">+{formatCurrency(apports)}</TableCell>
+              <TableRow className="h-10">
+                <TableCell className="font-medium">Apports externes / Versements de fonds</TableCell>
+                <TableCell className="text-right font-bold text-blue-600">+{formatCurrency(apports)}</TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell>Dépenses Magasin (Petite caisse)</TableCell>
+              <TableRow className="h-10">
+                <TableCell className="font-medium">Dépenses magasin & Sorties diverses</TableCell>
                 <TableCell className="text-right font-bold text-destructive">-{formatCurrency(depenses)}</TableCell>
               </TableRow>
             </TableBody>
@@ -169,14 +169,14 @@ export default function CashClosurePrintPage() {
           </div>
           <div className="space-y-16 text-right flex flex-col items-end">
             <p className="text-xs font-bold uppercase text-slate-400">Cachet & Validation Direction</p>
-            <div className="w-[50mm] h-[30mm] border-2 border-dashed border-slate-200 rounded flex items-center justify-center bg-slate-50/50">
-              <span className="text-[10px] text-slate-300 font-bold rotate-[-15deg] uppercase">Espace Cachet</span>
+            <div className="w-[60mm] h-[35mm] border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center bg-slate-50/50">
+              <span className="text-[10px] text-slate-300 font-bold rotate-[-15deg] uppercase tracking-widest">Espace Cachet Officiel</span>
             </div>
           </div>
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-[10px] text-slate-400 italic">VisionGere Optique Pro - Système de Gestion Certifié v1.0</p>
+          <p className="text-[10px] text-slate-400 font-medium italic">VisionGere Optique Pro - Système de Gestion Certifié v1.0.4</p>
         </div>
       </div>
     </div>
