@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "shop-logo",
+      "description": "Logo de VisionGere",
+      "imageUrl": "https://picsum.photos/seed/visiongere-logo/200/200",
+      "imageHint": "optical logo"
+    },
+    {
+      "id": "hero-optical",
+      "description": "Intérieur d'un magasin d'optique moderne",
+      "imageUrl": "https://picsum.photos/seed/optical-shop/1200/600",
+      "imageHint": "optical shop"
+    }
+  ]
+}
