@@ -23,19 +23,19 @@ export default function ReportsPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-headline font-bold text-primary">Rapports & Analyses</h1>
             <p className="text-muted-foreground">Outils d'analyse de performance et suivi des marges.</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline">
+          <div className="flex gap-3 w-full md:w-auto">
+            <Button variant="outline" className="flex-1 md:flex-none">
               <Filter className="mr-2 h-4 w-4" />
               Filtrer
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700">
+            <Button className="bg-green-600 hover:bg-green-700 flex-1 md:flex-none">
               <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Exporter vers Excel
+              Exporter
             </Button>
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function ReportsPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Chiffre d'Affaires Période</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalVentes)}</div>
+              <div className="text-2xl font-bold whitespace-nowrap">{formatCurrency(totalVentes)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -54,7 +54,7 @@ export default function ReportsPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Marge Brute Totale</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{formatCurrency(totalMarges)}</div>
+              <div className="text-2xl font-bold text-accent whitespace-nowrap">{formatCurrency(totalMarges)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -71,35 +71,41 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Tableau de Marge par Client</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Mutuelle</TableHead>
-                  <TableHead className="text-right">Prix Vente</TableHead>
-                  <TableHead className="text-right">Prix Achat</TableHead>
-                  <TableHead className="text-right">Marge Brute</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {marginData.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell className="font-medium">{row.client}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{row.mutuelle}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(row.vente)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatCurrency(row.achat)}</TableCell>
-                    <TableCell className="text-right font-bold text-accent">
-                      {formatCurrency(row.marge)}
-                    </TableCell>
+          <CardContent className="p-0 sm:p-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Date</TableHead>
+                    <TableHead className="whitespace-nowrap">Client</TableHead>
+                    <TableHead className="whitespace-nowrap">Mutuelle</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Prix Vente</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Prix Achat</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Marge Brute</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {marginData.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="whitespace-nowrap">{row.date}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{row.client}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline">{row.mutuelle}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap font-medium">
+                        {formatCurrency(row.vente)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                        {formatCurrency(row.achat)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-accent whitespace-nowrap">
+                        {formatCurrency(row.marge)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
