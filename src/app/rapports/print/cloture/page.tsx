@@ -3,10 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, FileText, Calendar, User } from "lucide-react";
+import { Printer, ArrowLeft, FileText, Calendar, User, Coins } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
 export default function CashClosurePrintPage() {
   const searchParams = useSearchParams();
@@ -23,12 +25,11 @@ export default function CashClosurePrintPage() {
   const theorique = initial + ventes + apports - depenses;
   const ecart = reel - theorique;
 
-  // Mock des transactions pour le rapport
-  const transactions = [
-    { id: 1, type: "VENTE", label: "Total Ventes Journée", montant: ventes },
-    { id: 2, type: "DEPENSE", label: "Total Dépenses Sorties", montant: -depenses },
-    { id: 3, type: "APPORT", label: "Total Apports / Fonds", montant: apports },
-  ];
+  // Récupération du détail des espèces
+  const cashDetail = DENOMINATIONS.map(val => ({
+    val,
+    qty: Number(searchParams.get(`d${val}`)) || 0
+  })).filter(item => item.qty > 0);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8">
@@ -96,24 +97,36 @@ export default function CashClosurePrintPage() {
                 <span className="text-primary">{formatCurrency(theorique)}</span>
               </div>
             </div>
+
+            {/* Écart de Caisse Visuel */}
+            <div className={`mt-4 p-4 rounded border-2 text-center ${ecart === 0 ? 'border-green-100 bg-green-50' : 'border-destructive/10 bg-destructive/5'}`}>
+              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Écart de Caisse Final</p>
+              <p className={`text-xl font-black ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
+              </p>
+            </div>
           </div>
 
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
-            <h3 className="text-sm font-black uppercase text-slate-400 border-b pb-1">Constat de Caisse</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Solde Réel Constaté :</span>
-                <span className="text-lg font-bold">{formatCurrency(reel)}</span>
+            <h3 className="text-sm font-black uppercase text-slate-400 border-b pb-1 flex items-center gap-2">
+              <Coins className="h-4 w-4" />
+              Détail des Espèces
+            </h3>
+            <div className="space-y-1">
+              {cashDetail.length > 0 ? (
+                cashDetail.map(item => (
+                  <div key={item.val} className="flex justify-between text-xs border-b border-slate-100 py-1 last:border-0">
+                    <span>{item.val} DH x {item.qty}</span>
+                    <span className="font-medium">{formatCurrency(item.val * item.qty)}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 italic">Aucun détail saisi.</p>
+              )}
+              <div className="flex justify-between items-center pt-3 border-t mt-3">
+                <span className="text-sm font-bold">Total Compté :</span>
+                <span className="text-lg font-black text-primary">{formatCurrency(reel)}</span>
               </div>
-              <div className="flex justify-between items-center pt-3 border-t">
-                <span className="text-sm font-bold">Écart de Caisse :</span>
-                <span className={`text-lg font-black ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                  {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 italic text-center mt-2">
-                {ecart === 0 ? "Caisse équilibrée." : ecart > 0 ? "Excédent de caisse détecté." : "Manquant de caisse détecté."}
-              </p>
             </div>
           </div>
         </div>
