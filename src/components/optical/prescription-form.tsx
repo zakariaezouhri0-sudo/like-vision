@@ -15,29 +15,34 @@ interface PrescriptionFieldProps {
 
 function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-card shadow-sm">
-      <h3 className="font-semibold text-primary border-b pb-2 mb-4">{side === "OD" ? "Oeil Droit (OD)" : "Oeil Gauche (OG)"}</h3>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-2">
-          <Label className="text-xs">Sphère</Label>
+    <div className="space-y-2 p-3 border rounded-md bg-card shadow-sm">
+      <h3 className="text-xs font-black text-primary border-b pb-1 mb-2 uppercase tracking-wider">
+        {side === "OD" ? "Oeil Droit (OD)" : "Oeil Gauche (OG)"}
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Sphère</Label>
           <Input 
             placeholder="+0.00" 
+            className="h-8 text-xs px-2"
             value={values.sph} 
             onChange={(e) => onChange(side, "sph", e.target.value)} 
           />
         </div>
-        <div className="space-y-2">
-          <Label className="text-xs">Cylindre</Label>
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Cylindre</Label>
           <Input 
             placeholder="-0.00" 
+            className="h-8 text-xs px-2"
             value={values.cyl} 
             onChange={(e) => onChange(side, "cyl", e.target.value)} 
           />
         </div>
-        <div className="space-y-2">
-          <Label className="text-xs">Axe</Label>
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Axe</Label>
           <Input 
             placeholder="0°" 
+            className="h-8 text-xs px-2"
             value={values.axe} 
             onChange={(e) => onChange(side, "axe", e.target.value)} 
           />
@@ -57,7 +62,7 @@ export function PrescriptionForm({
   onChange: (side: "OD" | "OG", field: string, value: string) => void 
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <PrescriptionSide side="OD" values={od} onChange={onChange} />
       <PrescriptionSide side="OG" values={og} onChange={onChange} />
     </div>

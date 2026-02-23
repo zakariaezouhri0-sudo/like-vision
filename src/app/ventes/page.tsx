@@ -6,10 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Printer, Eye } from "lucide-react";
+import { Search, Printer, Eye, Plus } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 const MOCK_SALES = [
   { id: "OPT-2024-001", date: "10/05/2024", client: "Ahmed Mansour", mutuelle: "CNSS", total: 1200, avance: 1200, reste: 0, statut: "Payé" },
@@ -28,59 +28,60 @@ export default function SalesHistoryPage() {
 
   return (
     <AppShell>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-headline font-bold text-primary">Historique des Ventes</h1>
-            <p className="text-muted-foreground">Consultez et gérez toutes les transactions passées.</p>
+            <h1 className="text-2xl font-bold text-primary">Historique des Ventes</h1>
+            <p className="text-sm text-muted-foreground">Suivi des factures et paiements clients.</p>
           </div>
-          <Button asChild>
-            <Link href="/ventes/nouvelle">Nouvelle Vente</Link>
+          <Button asChild size="sm" className="w-full sm:w-auto">
+            <Link href="/ventes/nouvelle">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle Vente
+            </Link>
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Rechercher par client ou N° facture..." 
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+        <Card className="shadow-sm">
+          <CardHeader className="py-4 px-6 border-b">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Client ou N° facture..." 
+                className="pl-10 h-9 text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="whitespace-nowrap">Facture</TableHead>
-                    <TableHead className="whitespace-nowrap">Date</TableHead>
-                    <TableHead className="whitespace-nowrap">Client</TableHead>
-                    <TableHead className="whitespace-nowrap">Total</TableHead>
-                    <TableHead className="whitespace-nowrap">Avance</TableHead>
-                    <TableHead className="whitespace-nowrap">Reste</TableHead>
-                    <TableHead className="whitespace-nowrap">Statut</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Facture</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Date</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Client</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Total</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Avance</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Reste</TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-center">Statut</TableHead>
+                    <TableHead className="text-right whitespace-nowrap font-bold text-xs uppercase">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell className="font-medium whitespace-nowrap">{sale.id}</TableCell>
-                      <TableCell className="whitespace-nowrap">{sale.date}</TableCell>
-                      <TableCell className="whitespace-nowrap">{sale.client}</TableCell>
-                      <TableCell className="whitespace-nowrap font-medium">{formatCurrency(sale.total)}</TableCell>
-                      <TableCell className="text-green-600 font-bold whitespace-nowrap">{formatCurrency(sale.avance)}</TableCell>
-                      <TableCell className={cn("whitespace-nowrap", sale.reste > 0 ? "text-destructive font-black" : "")}>
+                    <TableRow key={sale.id} className="hover:bg-muted/30">
+                      <TableCell className="font-bold whitespace-nowrap text-primary">{sale.id}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{sale.date}</TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">{sale.client}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right font-medium">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className="text-green-600 font-bold whitespace-nowrap text-right">{formatCurrency(sale.avance)}</TableCell>
+                      <TableCell className={cn("whitespace-nowrap text-right font-black", sale.reste > 0 ? "text-destructive" : "text-muted-foreground opacity-30")}>
                         {formatCurrency(sale.reste)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant={
+                      <TableCell className="whitespace-nowrap text-center">
+                        <Badge className="text-[10px] px-2 py-0 h-5" variant={
                           sale.statut === "Payé" ? "default" : 
                           sale.statut === "Partiel" ? "secondary" : "outline"
                         }>
@@ -88,11 +89,11 @@ export default function SalesHistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" title="Voir détails">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Voir détails">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" title="Imprimer">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimer">
                             <Printer className="h-4 w-4" />
                           </Button>
                         </div>
