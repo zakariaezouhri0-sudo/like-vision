@@ -23,12 +23,16 @@ export default function NewSalePage() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [total, setTotal] = useState(1500);
+  const [remise, setRemise] = useState(0);
   const [avance, setAvance] = useState(500);
   
   const [prescription, setPrescription] = useState({
     od: { sph: "", cyl: "", axe: "" },
     og: { sph: "", cyl: "", axe: "" }
   });
+
+  const totalNet = total - remise;
+  const resteAPayer = totalNet - avance;
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({
@@ -53,6 +57,7 @@ export default function NewSalePage() {
       phone: clientPhone,
       mutuelle,
       total: total.toString(),
+      remise: remise.toString(),
       avance: avance.toString(),
       od_sph: prescription.od.sph,
       od_cyl: prescription.od.cyl,
@@ -176,25 +181,39 @@ export default function NewSalePage() {
           </div>
 
           <div className="space-y-8">
-            <Card className="sticky top-8">
+            <Card className="sticky top-8 shadow-md border-primary/20">
               <CardHeader>
                 <CardTitle>Détail Facturation</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <Label>Total TTC (DH)</Label>
+                    <Label>Total Brut (DH)</Label>
                     <Input 
-                      className="w-32 text-right font-bold" 
+                      className="w-32 text-right font-medium" 
                       type="number" 
                       value={total} 
                       onChange={(e) => setTotal(Number(e.target.value))}
                     />
                   </div>
                   <div className="flex justify-between items-center">
-                    <Label>Avance (DH)</Label>
+                    <Label className="text-destructive font-semibold">Remise (DH)</Label>
                     <Input 
-                      className="w-32 text-right text-green-600 font-medium" 
+                      className="w-32 text-right text-destructive font-bold" 
+                      type="number" 
+                      value={remise} 
+                      onChange={(e) => setRemise(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center bg-muted/50 p-2 rounded">
+                    <Label className="font-bold">Total Net (DH)</Label>
+                    <span className="font-bold">{formatCurrency(totalNet)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <Label className="text-green-600 font-semibold">Avance (DH)</Label>
+                    <Input 
+                      className="w-32 text-right text-green-700 font-bold" 
                       type="number" 
                       value={avance} 
                       onChange={(e) => setAvance(Number(e.target.value))}
@@ -202,23 +221,22 @@ export default function NewSalePage() {
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center pt-2">
-                    <span className="font-bold text-lg">Reste à Payer</span>
-                    <span className="font-bold text-lg text-destructive">
-                      {formatCurrency(total - avance)}
+                    <span className="font-black text-xl uppercase tracking-tighter">Reste à Payer</span>
+                    <span className="font-black text-2xl text-primary underline decoration-accent decoration-4 underline-offset-4">
+                      {formatCurrency(resteAPayer)}
                     </span>
                   </div>
                 </div>
 
-                {/* Admin Only Margin Input */}
                 <div className="pt-6 border-t">
-                  <div className="bg-muted p-4 rounded-lg space-y-3">
-                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Section Administrative</h4>
+                  <div className="bg-muted/30 p-4 rounded-lg space-y-3 border border-dashed">
+                    <h4 className="text-[10px] font-black uppercase text-muted-foreground mb-2">Section Administrative (Achat)</h4>
                     <div className="flex justify-between items-center">
-                      <Label className="text-xs">Prix Achat Verres</Label>
+                      <Label className="text-xs">Achat Verres</Label>
                       <Input className="h-8 w-24 text-right text-xs" type="number" placeholder="0.00" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <Label className="text-xs">Prix Achat Monture</Label>
+                      <Label className="text-xs">Achat Monture</Label>
                       <Input className="h-8 w-24 text-right text-xs" type="number" placeholder="0.00" />
                     </div>
                   </div>
