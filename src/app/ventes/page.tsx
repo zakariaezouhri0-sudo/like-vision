@@ -6,8 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText, Printer, Eye } from "lucide-react";
+import { Search, Printer, Eye } from "lucide-react";
 import Link from "next/link";
+import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency } from "@/lib/utils";
 
 const MOCK_SALES = [
@@ -26,80 +27,82 @@ export default function SalesHistoryPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-headline font-bold text-primary">Historique des Ventes</h1>
-          <p className="text-muted-foreground">Consultez et gérez toutes les transactions passées.</p>
-        </div>
-        <Button asChild>
-          <Link href="/ventes/nouvelle">Nouvelle Vente</Link>
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Rechercher par client ou N° facture..." 
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+    <AppShell>
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-headline font-bold text-primary">Historique des Ventes</h1>
+            <p className="text-muted-foreground">Consultez et gérez toutes les transactions passées.</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Facture</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Avance</TableHead>
-                <TableHead>Reste</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSales.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell className="font-medium">{sale.id}</TableCell>
-                  <TableCell>{sale.date}</TableCell>
-                  <TableCell>{sale.client}</TableCell>
-                  <TableCell>{formatCurrency(sale.total)}</TableCell>
-                  <TableCell className="text-green-600 font-medium">{formatCurrency(sale.avance)}</TableCell>
-                  <TableCell className={sale.reste > 0 ? "text-destructive font-bold" : ""}>
-                    {formatCurrency(sale.reste)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      sale.statut === "Payé" ? "default" : 
-                      sale.statut === "Partiel" ? "secondary" : "outline"
-                    }>
-                      {sale.statut}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" title="Voir détails">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Imprimer">
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <Button asChild>
+            <Link href="/ventes/nouvelle">Nouvelle Vente</Link>
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Rechercher par client ou N° facture..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Facture</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Avance</TableHead>
+                  <TableHead>Reste</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+              </TableHeader>
+              <TableBody>
+                {filteredSales.map((sale) => (
+                  <TableRow key={sale.id}>
+                    <TableCell className="font-medium">{sale.id}</TableCell>
+                    <TableCell>{sale.date}</TableCell>
+                    <TableCell>{sale.client}</TableCell>
+                    <TableCell>{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-green-600 font-medium">{formatCurrency(sale.avance)}</TableCell>
+                    <TableCell className={sale.reste > 0 ? "text-destructive font-bold" : ""}>
+                      {formatCurrency(sale.reste)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        sale.statut === "Payé" ? "default" : 
+                        sale.statut === "Partiel" ? "secondary" : "outline"
+                      }>
+                        {sale.statut}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" title="Voir détails">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" title="Imprimer">
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
   );
 }
