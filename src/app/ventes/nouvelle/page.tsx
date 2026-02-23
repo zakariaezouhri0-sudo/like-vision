@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ShoppingBag, Save, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default function NewSalePage() {
   const { toast } = useToast();
@@ -64,152 +65,153 @@ export default function NewSalePage() {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-headline font-bold text-primary">Nouvelle Vente</h1>
-          <p className="text-muted-foreground">Saisissez les informations du client et de l'ordonnance.</p>
+    <AppShell>
+      <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-headline font-bold text-primary">Nouvelle Vente</h1>
+            <p className="text-muted-foreground">Saisissez les informations du client et de l'ordonnance.</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimer Facture
+            </Button>
+            <Button onClick={handleSave}>
+              <Save className="mr-2 h-4 w-4" />
+              Enregistrer Vente
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimer Facture
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
-            Enregistrer Vente
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-accent" />
-                Informations Client
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Nom complet</Label>
-                  <Input 
-                    id="clientName" 
-                    placeholder="M. Mohamed Alami" 
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientPhone">Téléphone</Label>
-                  <Input 
-                    id="clientPhone" 
-                    placeholder="06 00 00 00 00" 
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Mutuelle</Label>
-                  <Select onValueChange={setMutuelle} defaultValue="Aucun">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MUTUELLES.map(m => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {mutuelle === "Autre" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5 text-accent" />
+                  Informations Client
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="autreMutuelle">Nom de la Mutuelle</Label>
-                    <Input id="autreMutuelle" placeholder="Spécifiez..." />
+                    <Label htmlFor="clientName">Nom complet</Label>
+                    <Input 
+                      id="clientName" 
+                      placeholder="M. Mohamed Alami" 
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                    />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="clientPhone">Téléphone</Label>
+                    <Input 
+                      id="clientPhone" 
+                      placeholder="06 00 00 00 00" 
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mutuelle</Label>
+                    <Select onValueChange={setMutuelle} defaultValue="Aucun">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MUTUELLES.map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {mutuelle === "Autre" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="autreMutuelle">Nom de la Mutuelle</Label>
+                      <Input id="autreMutuelle" placeholder="Spécifiez..." />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Prescription (ODOG)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PrescriptionForm 
-                od={prescription.od} 
-                og={prescription.og} 
-                onChange={handlePrescriptionChange} 
-              />
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Prescription (ODOG)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PrescriptionForm 
+                  od={prescription.od} 
+                  og={prescription.og} 
+                  onChange={handlePrescriptionChange} 
+                />
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Détails Monture & Verres</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Détails Monture & Verres</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Monture</Label>
+                    <Input placeholder="Modèle, Marque, Couleur..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Type de Verres</Label>
+                    <Input placeholder="Progressifs, Antireflet, etc." />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label>Monture</Label>
-                  <Input placeholder="Modèle, Marque, Couleur..." />
+                  <Label>Notes Additionnelles</Label>
+                  <Textarea placeholder="Instructions de montage ou observations..." />
                 </div>
-                <div className="space-y-2">
-                  <Label>Type de Verres</Label>
-                  <Input placeholder="Progressifs, Antireflet, etc." />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Notes Additionnelles</Label>
-                <Textarea placeholder="Instructions de montage ou observations..." />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        <div className="space-y-8">
-          <Card className="sticky top-8">
-            <CardHeader>
-              <CardTitle>Détail Facturation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <Label>Total TTC (DH)</Label>
-                  <Input 
-                    className="w-32 text-right font-bold" 
-                    type="number" 
-                    value={total} 
-                    onChange={(e) => setTotal(Number(e.target.value))}
-                  />
+          <div className="space-y-8">
+            <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle>Détail Facturation</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Total TTC (DH)</Label>
+                    <Input 
+                      className="w-32 text-right font-bold" 
+                      type="number" 
+                      value={total} 
+                      onChange={(e) => setTotal(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <Label>Avance (DH)</Label>
+                    <Input 
+                      className="w-32 text-right text-green-600 font-medium" 
+                      type="number" 
+                      value={avance} 
+                      onChange={(e) => setAvance(Number(e.target.value))}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="font-bold text-lg">Reste à Payer</span>
+                    <span className="font-bold text-lg text-destructive">
+                      {formatCurrency(total - avance)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <Label>Avance (DH)</Label>
-                  <Input 
-                    className="w-32 text-right text-green-600 font-medium" 
-                    type="number" 
-                    value={avance} 
-                    onChange={(e) => setAvance(Number(e.target.value))}
-                  />
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center pt-2">
-                  <span className="font-bold text-lg">Reste à Payer</span>
-                  <span className="font-bold text-lg text-destructive">
-                    {formatCurrency(total - avance)}
-                  </span>
-                </div>
-              </div>
 
-              {/* Admin Only Margin Input */}
-              <div className="pt-6 border-t">
-                 <div className="bg-muted p-4 rounded-lg space-y-3">
+                {/* Admin Only Margin Input */}
+                <div className="pt-6 border-t">
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
                     <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Section Administrative</h4>
                     <div className="flex justify-between items-center">
                       <Label className="text-xs">Prix Achat Verres</Label>
@@ -219,12 +221,13 @@ export default function NewSalePage() {
                       <Label className="text-xs">Prix Achat Monture</Label>
                       <Input className="h-8 w-24 text-right text-xs" type="number" placeholder="0.00" />
                     </div>
-                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
