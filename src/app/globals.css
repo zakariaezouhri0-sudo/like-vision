@@ -66,10 +66,10 @@
   }
 }
 
-/* Print Specific Styles - Optimized for side-by-side A5 on A4 Landscape */
+/* Print Specific Styles */
 @media print {
   @page {
-    size: A4 landscape;
+    size: auto;
     margin: 0 !important;
   }
   body {
@@ -82,14 +82,22 @@
   .no-print {
     display: none !important;
   }
-  .pdf-a4-landscape {
-    box-shadow: none !important;
-    margin: 0 !important;
-    width: 297mm !important;
-    height: 210mm !important;
-    display: flex !important;
-    flex-direction: row !important;
+  .print-only {
+    display: block !important;
   }
+}
+
+.print-only {
+  display: none;
+}
+
+.pdf-a4-portrait {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: white;
+  padding: 15mm;
+  box-sizing: border-box;
 }
 
 .pdf-a4-landscape {
@@ -106,7 +114,7 @@
 .pdf-a5-portrait {
   width: 148.5mm;
   height: 210mm;
-  padding: 10mm 12mm;
+  padding: 8mm 10mm;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +10,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export default function CaissePage() {
+  const router = useRouter();
   const [isSessionOpen, setIsSessionOpen] = useState(true);
   const [soldeInitial, setSoldeInitial] = useState(500);
+  const [soldeReel, setSoldeReel] = useState<number>(0);
   
   const [transactions] = useState([
     { id: 1, type: "VENTE", label: "Vente OPT-2024-001", montant: 1200, date: "10:30" },
@@ -28,6 +31,18 @@ export default function CaissePage() {
   const totalDepenses = transactions.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
   const totalApports = transactions.filter(t => t.type === "APPORT").reduce((acc, t) => acc + t.montant, 0);
   const soldeTheorique = soldeInitial + totalVentes + totalApports - totalDepenses;
+
+  const handleCloturerEtImprimer = () => {
+    const params = new URLSearchParams({
+      date: new Date().toLocaleDateString("fr-FR"),
+      initial: soldeInitial.toString(),
+      ventes: totalVentes.toString(),
+      depenses: totalDepenses.toString(),
+      apports: totalApports.toString(),
+      reel: soldeReel.toString(),
+    });
+    router.push(`/rapports/print/cloture?${params.toString()}`);
+  };
 
   return (
     <AppShell>
@@ -88,11 +103,20 @@ export default function CaissePage() {
                   </div>
                   <div className="space-y-2 mt-4">
                     <Label>Solde Réel Constaté (DH)</Label>
-                    <Input type="number" placeholder="Entrez le montant en caisse" />
+                    <Input 
+                      type="number" 
+                      placeholder="Entrez le montant en caisse" 
+                      value={soldeReel}
+                      onChange={(e) => setSoldeReel(Number(e.target.value))}
+                    />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="destructive" onClick={() => setIsSessionOpen(false)}>Clôturer Définitivement</Button>
+                <DialogFooter className="flex gap-2 sm:gap-0">
+                  <Button variant="destructive" onClick={() => setIsSessionOpen(false)}>Clôturer</Button>
+                  <Button className="bg-primary" onClick={handleCloturerEtImprimer}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Clôturer & Imprimer Rapport
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
