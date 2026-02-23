@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Lock, User } from "lucide-react";
+import { Glasses, ThumbsUp, Lock, User } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 
 export default function LoginPage() {
@@ -27,7 +27,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg transform rotate-3 mb-4">
-            <Eye className="h-10 w-10" />
+            <div className="relative">
+              <Glasses className="h-10 w-10" />
+              <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full" />
+            </div>
           </div>
           <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{APP_NAME}</h1>
           <p className="text-muted-foreground font-medium">Gestion Optique & Facturation</p>

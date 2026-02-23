@@ -12,7 +12,7 @@ export const MUTUELLES = [
   'Autre',
 ];
 
-export const APP_NAME = 'VisionGere';
+export const APP_NAME = 'Like Vision';
 
 export interface ShopSettings {
   name: string;
@@ -23,9 +23,9 @@ export interface ShopSettings {
 }
 
 export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
-  name: 'VisionGere Optique',
+  name: 'Like Vision Optique',
   address: '123 Rue de la Lumière, Paris, France',
   phone: '+33 1 23 45 67 89',
   icePatent: 'ICE-987654321',
-  logoUrl: 'https://picsum.photos/seed/visiongere-logo/200/200',
+  logoUrl: 'https://picsum.photos/seed/likevision-logo/200/200',
 };

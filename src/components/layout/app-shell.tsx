@@ -4,7 +4,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Eye, Menu } from "lucide-react";
+import { LogOut, Glasses, ThumbsUp, Menu } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -26,7 +26,10 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
           className="h-16 border-b flex items-center px-6 gap-2 hover:bg-accent/5 transition-all group"
         >
           <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm group-hover:scale-105 transition-transform">
-            <Eye className="h-5 w-5" />
+             <div className="relative">
+              <Glasses className="h-5 w-5" />
+              <ThumbsUp className="h-2.5 w-2.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
+            </div>
           </div>
           <span className="font-headline font-bold text-xl tracking-tight text-primary">{APP_NAME}</span>
         </Link>
@@ -61,7 +64,10 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
                 <SheetHeader className="p-6 border-b text-left">
                   <SheetTitle className="flex items-center gap-2">
                     <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                      <Eye className="h-5 w-5" />
+                       <div className="relative">
+                        <Glasses className="h-5 w-5" />
+                        <ThumbsUp className="h-2.5 w-2.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
+                      </div>
                     </div>
                     <span className="font-headline font-bold text-xl text-primary">{APP_NAME}</span>
                   </SheetTitle>
@@ -74,7 +80,10 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
 
             <Link href="/dashboard" className="flex items-center gap-2 group">
               <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground md:hidden">
-                <Eye className="h-5 w-5" />
+                <div className="relative">
+                  <Glasses className="h-5 w-5" />
+                  <ThumbsUp className="h-2.5 w-2.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
+                </div>
               </div>
               <h2 className="text-sm font-bold text-primary md:text-muted-foreground md:font-medium">
                 {APP_NAME} <span className="hidden md:inline">Optique Pro</span>

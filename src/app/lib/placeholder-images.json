@@ -1,15 +1,14 @@
-
 {
   "placeholderImages": [
     {
       "id": "shop-logo",
-      "description": "Logo de VisionGere",
-      "imageUrl": "https://picsum.photos/seed/visiongere-logo/200/200",
-      "imageHint": "optical logo"
+      "description": "Logo de Like Vision",
+      "imageUrl": "https://picsum.photos/seed/likevision-logo/200/200",
+      "imageHint": "optical glasses thumb up"
     },
     {
       "id": "hero-optical",
-      "description": "Intérieur d'un magasin d'optique moderne",
+      "description": "Intérieur d'un magasin d'optique Like Vision",
       "imageUrl": "https://picsum.photos/seed/optical-shop/1200/600",
       "imageHint": "optical shop"
     }

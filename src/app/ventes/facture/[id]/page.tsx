@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
-import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
+import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Eye, Phone, User, ShieldCheck } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 
@@ -38,132 +37,138 @@ export default function InvoicePrintPage() {
   };
 
   const InvoiceCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm]">
-      {/* Header Section - More Structured */}
-      <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-primary/20">
-        <div className="flex gap-4">
-          <div className="h-14 w-14 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
-            <Eye className="h-8 w-8" />
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[6mm] relative">
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-primary/20">
+        <div className="flex gap-3">
+          <div className="h-12 w-12 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
+            <div className="relative">
+              <Glasses className="h-7 w-7" />
+              <ThumbsUp className="h-3.5 w-3.5 absolute -top-1.5 -right-1.5 bg-primary p-0.5 rounded-full" />
+            </div>
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-base font-black text-primary leading-tight uppercase tracking-tighter">{shop.name}</h2>
-            <p className="text-[9px] text-slate-500 max-w-[180px] leading-tight font-medium">{shop.address}</p>
-            <p className="text-[9px] font-bold text-slate-700">Tél: {shop.phone}</p>
-            <p className="text-[9px] font-black text-primary">ICE: {shop.icePatent}</p>
+            <h2 className="text-sm font-black text-primary leading-tight uppercase tracking-tighter">{APP_NAME}</h2>
+            <p className="text-[8px] text-slate-500 max-w-[150px] leading-tight font-medium">{shop.address}</p>
+            <p className="text-[8px] font-bold text-slate-700">Tél: {shop.phone}</p>
+            <p className="text-[8px] font-black text-primary">ICE: {shop.icePatent}</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-primary text-white px-3 py-1 rounded-sm inline-block mb-1">
-            <h1 className="text-sm font-black uppercase tracking-widest">Facture</h1>
+          <div className="bg-primary text-white px-2 py-0.5 rounded-sm inline-block mb-1">
+            <h1 className="text-[10px] font-black uppercase tracking-widest">Facture</h1>
           </div>
-          <p className="text-[10px] font-black text-slate-900 mt-1">N°: {invoiceNo}</p>
-          <p className="text-[9px] text-slate-500 font-bold italic">Date: {date}</p>
+          <p className="text-[9px] font-black text-slate-900 mt-0.5">N°: {invoiceNo}</p>
+          <p className="text-[8px] text-slate-500 font-bold italic">Date: {date}</p>
         </div>
       </div>
 
-      {/* Client Information - Grid to fill space */}
-      <div className="grid grid-cols-3 gap-4 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-100">
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 text-[8px] font-black text-primary uppercase opacity-60">
-            <User className="h-2.5 w-2.5" /> Client
+      {/* Client Information */}
+      <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1 text-[7px] font-black text-primary uppercase opacity-60">
+            <User className="h-2 w-2" /> Client
           </div>
-          <p className="text-[11px] font-bold text-slate-900 leading-none">{clientName}</p>
+          <p className="text-[10px] font-bold text-slate-900 leading-none truncate">{clientName}</p>
         </div>
-        <div className="space-y-1 border-x border-slate-200 px-4">
-          <div className="flex items-center gap-1.5 text-[8px] font-black text-primary uppercase opacity-60">
-            <Phone className="h-2.5 w-2.5" /> Téléphone
+        <div className="space-y-0.5 border-x border-slate-200 px-2">
+          <div className="flex items-center gap-1 text-[7px] font-black text-primary uppercase opacity-60">
+            <Phone className="h-2 w-2" /> Téléphone
           </div>
-          <p className="text-[11px] font-bold text-slate-900 leading-none">{clientPhone}</p>
+          <p className="text-[10px] font-bold text-slate-900 leading-none">{clientPhone}</p>
         </div>
-        <div className="space-y-1 text-right">
-          <div className="flex items-center justify-end gap-1.5 text-[8px] font-black text-primary uppercase opacity-60">
-            <ShieldCheck className="h-2.5 w-2.5" /> Mutuelle
+        <div className="space-y-0.5 text-right">
+          <div className="flex items-center justify-end gap-1 text-[7px] font-black text-primary uppercase opacity-60">
+            <ShieldCheck className="h-2 w-2" /> Mutuelle
           </div>
-          <p className="text-[11px] font-bold text-primary leading-none">{mutuelle}</p>
+          <p className="text-[10px] font-bold text-primary leading-none">{mutuelle}</p>
         </div>
       </div>
 
-      {/* Prescription - Clean Table */}
-      <div className="mb-6">
-        <h3 className="text-[9px] font-black uppercase mb-2 text-primary tracking-widest flex items-center gap-2">
-          <div className="h-1 w-4 bg-primary/30 rounded-full" />
+      {/* Prescription */}
+      <div className="mb-4">
+        <h3 className="text-[8px] font-black uppercase mb-1.5 text-primary tracking-widest flex items-center gap-2">
+          <div className="h-0.5 w-3 bg-primary/30 rounded-full" />
           Prescription Optique
         </h3>
-        <table className="w-full text-[11px] border-collapse shadow-sm">
+        <table className="w-full text-[10px] border-collapse">
           <thead>
             <tr className="bg-primary text-white">
-              <th className="border border-primary p-2 text-left text-[8px] uppercase font-black">Oeil</th>
-              <th className="border border-primary p-2 text-center text-[8px] uppercase font-black">Sphère</th>
-              <th className="border border-primary p-2 text-center text-[8px] uppercase font-black">Cylindre</th>
-              <th className="border border-primary p-2 text-center text-[8px] uppercase font-black">Axe</th>
+              <th className="border border-primary p-1 text-left text-[7px] uppercase font-black">Oeil</th>
+              <th className="border border-primary p-1 text-center text-[7px] uppercase font-black">Sphère</th>
+              <th className="border border-primary p-1 text-center text-[7px] uppercase font-black">Cylindre</th>
+              <th className="border border-primary p-1 text-center text-[7px] uppercase font-black">Axe</th>
             </tr>
           </thead>
           <tbody>
             <tr className="bg-white">
-              <td className="border border-slate-200 p-2 font-black text-slate-700 bg-slate-50/50">Droit (OD)</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{od.sph}</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{od.cyl}</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{od.axe}</td>
+              <td className="border border-slate-200 p-1 font-black text-slate-700 bg-slate-50/50">Droit (OD)</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.sph}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.cyl}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.axe}</td>
             </tr>
             <tr className="bg-white">
-              <td className="border border-slate-200 p-2 font-black text-slate-700 bg-slate-50/50">Gauche (OG)</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{og.sph}</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{og.cyl}</td>
-              <td className="border border-slate-200 p-2 text-center font-bold">{og.axe}</td>
+              <td className="border border-slate-200 p-1 font-black text-slate-700 bg-slate-50/50">Gauche (OG)</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.sph}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.cyl}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.axe}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Financials & Signatures - Pushed to bottom but tight */}
+      {/* Financials & Signatures */}
       <div className="mt-auto">
-        <div className="flex justify-between items-end gap-6 border-t-2 border-slate-100 pt-4">
+        <div className="flex justify-between items-end gap-4 border-t-2 border-slate-100 pt-3">
           {/* Detailed Totals */}
-          <div className="flex-1 space-y-1.5 bg-slate-50/50 p-3 rounded-lg">
-            <div className="flex justify-between text-[10px] text-slate-500 font-medium">
+          <div className="flex-1 space-y-1 bg-slate-50/50 p-2 rounded-lg">
+            <div className="flex justify-between text-[9px] text-slate-500 font-medium">
               <span>Total Brut :</span>
               <span>{formatCurrency(total)}</span>
             </div>
             {remise > 0 && (
-              <div className="flex justify-between text-[10px] text-destructive font-black italic">
+              <div className="flex justify-between text-[9px] text-destructive font-black italic">
                 <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
                 <span>-{formatCurrency(remise)}</span>
               </div>
             )}
-            <div className="flex justify-between text-[10px] text-slate-900 font-black border-t border-slate-200 pt-1.5">
+            <div className="flex justify-between text-[9px] text-slate-900 font-black border-t border-slate-200 pt-1">
               <span>Total Net :</span>
               <span>{formatCurrency(totalNet)}</span>
             </div>
-            <div className="flex justify-between text-[10px] text-green-700 font-black">
+            <div className="flex justify-between text-[9px] text-green-700 font-black">
               <span>Avance payée :</span>
               <span>{formatCurrency(avance)}</span>
             </div>
             
-            <div className="flex justify-between items-center pt-2 border-t-2 border-primary mt-2">
-              <span className="text-[10px] font-black uppercase text-primary tracking-tighter">Reste à régler</span>
-              <span className="text-xl font-black text-primary tracking-tighter decoration-4">
+            <div className="flex justify-between items-center pt-1 border-t-2 border-primary mt-1">
+              <span className="text-[9px] font-black uppercase text-primary tracking-tighter">Reste à régler</span>
+              <span className="text-lg font-black text-primary tracking-tighter decoration-4">
                 {formatCurrency(reste)}
               </span>
             </div>
           </div>
           
-          {/* Stamp Area - Better balanced */}
-          <div className="flex flex-col items-center w-36">
-            <div className="w-full h-24 border-2 border-dashed border-primary/20 rounded-xl flex items-center justify-center relative bg-primary/5 overflow-hidden mb-2">
-              <span className="text-[8px] uppercase text-primary/30 font-black rotate-[-15deg] text-center px-2 leading-tight select-none">
+          {/* Stamp Area */}
+          <div className="flex flex-col items-center w-28">
+            <div className="w-full h-16 border-2 border-dashed border-primary/20 rounded-xl flex items-center justify-center relative bg-primary/5 overflow-hidden mb-1">
+              <span className="text-[7px] uppercase text-primary/30 font-black rotate-[-15deg] text-center px-1 leading-tight select-none">
                 CACHET & SIGNATURE<br/>OFFICIELS DU MAGASIN
               </span>
             </div>
-            <p className="text-[8px] font-black text-slate-400 uppercase italic tracking-widest">Validé par Direction</p>
+            <p className="text-[7px] font-black text-slate-400 uppercase italic tracking-widest">Validé par Direction</p>
           </div>
         </div>
         
-        {/* Footer - Final touches */}
-        <div className="flex justify-between items-center px-2 mt-6 border-t border-slate-100 pt-3">
-           <p className="text-[9px] font-black text-slate-400 uppercase italic">Signature Client : ............................</p>
+        {/* Footer */}
+        <div className="flex justify-between items-center px-1 mt-3 border-t border-slate-100 pt-2">
+           <p className="text-[8px] font-black text-slate-400 uppercase italic">Signature Client : ............................</p>
            <div className="flex items-center gap-1 opacity-20">
-             <Eye className="h-3 w-3" />
-             <p className="text-[8px] font-black uppercase tracking-[0.2em]">VisionGere Optique Pro</p>
+             <div className="relative">
+              <Glasses className="h-2.5 w-2.5" />
+              <ThumbsUp className="h-1 w-1 absolute -top-0.5 -right-0.5" />
+            </div>
+             <p className="text-[7px] font-black uppercase tracking-[0.2em]">{APP_NAME} Optique Pro</p>
            </div>
         </div>
       </div>
@@ -203,7 +208,10 @@ export default function InvoicePrintPage() {
       </div>
 
       <div className="no-print mt-8 text-slate-500 text-[11px] font-bold flex items-center gap-3 bg-white/90 px-6 py-3 rounded-full border border-primary/10 shadow-lg">
-        <Eye className="h-4 w-4 text-primary" />
+        <div className="relative">
+          <Glasses className="h-4 w-4 text-primary" />
+          <ThumbsUp className="h-2 w-2 absolute -top-1 -right-1 text-primary" />
+        </div>
         Conseil : Désactivez les en-têtes/pieds de page dans les options d'impression de votre navigateur.
       </div>
     </div>

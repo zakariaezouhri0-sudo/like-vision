@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'VisionGere - Gestion Optique Professionnelle',
+  title: 'Like Vision - Gestion Optique Professionnelle',
   description: 'Système complet de gestion et de facturation pour magasins d\'optique.',
 };
 
