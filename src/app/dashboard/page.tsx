@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, TrendingUp, Users, Wallet } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import { 
   Bar, 
   BarChart, 
@@ -49,7 +50,7 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">15 450,00 DH</div>
+            <div className="text-2xl font-bold">{formatCurrency(15450)}</div>
             <p className="text-xs text-muted-foreground">+12% par rapport au mois dernier</p>
           </CardContent>
         </Card>
@@ -69,7 +70,7 @@ export default function DashboardPage() {
             <Wallet className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">2 150,00 DH</div>
+            <div className="text-2xl font-bold text-destructive">{formatCurrency(2150)}</div>
             <p className="text-xs text-muted-foreground">Reste à recouvrer</p>
           </CardContent>
         </Card>
@@ -98,6 +99,7 @@ export default function DashboardPage() {
                 <Tooltip 
                   cursor={{fill: 'hsl(var(--muted))'}}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [formatCurrency(value), 'Total']}
                 />
                 <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>

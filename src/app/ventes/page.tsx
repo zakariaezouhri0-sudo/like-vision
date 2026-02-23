@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, FileText, Printer, Eye } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
 
 const MOCK_SALES = [
   { id: "OPT-2024-001", date: "10/05/2024", client: "Ahmed Mansour", mutuelle: "CNSS", total: 1200, avance: 1200, reste: 0, statut: "Payé" },
@@ -70,10 +71,10 @@ export default function SalesHistoryPage() {
                   <TableCell className="font-medium">{sale.id}</TableCell>
                   <TableCell>{sale.date}</TableCell>
                   <TableCell>{sale.client}</TableCell>
-                  <TableCell>{sale.total.toLocaleString()} DH</TableCell>
-                  <TableCell className="text-green-600">{sale.avance.toLocaleString()} DH</TableCell>
+                  <TableCell>{formatCurrency(sale.total)}</TableCell>
+                  <TableCell className="text-green-600 font-medium">{formatCurrency(sale.avance)}</TableCell>
                   <TableCell className={sale.reste > 0 ? "text-destructive font-bold" : ""}>
-                    {sale.reste.toLocaleString()} DH
+                    {formatCurrency(sale.reste)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={

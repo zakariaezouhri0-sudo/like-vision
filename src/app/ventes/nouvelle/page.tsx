@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { ShoppingBag, Save, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
 
 export default function NewSalePage() {
   const { toast } = useToast();
@@ -194,7 +195,7 @@ export default function NewSalePage() {
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold text-lg">Reste à Payer</span>
                   <span className="font-bold text-lg text-destructive">
-                    {(total - avance).toLocaleString('fr-FR')} DH
+                    {formatCurrency(total - avance)}
                   </span>
                 </div>
               </div>
@@ -202,7 +203,7 @@ export default function NewSalePage() {
               {/* Admin Only Margin Input */}
               <div className="pt-6 border-t">
                  <div className="bg-muted p-4 rounded-lg space-y-3">
-                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Section Administrative (Masqué Client)</h4>
+                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Section Administrative</h4>
                     <div className="flex justify-between items-center">
                       <Label className="text-xs">Prix Achat Verres</Label>
                       <Input className="h-8 w-24 text-right text-xs" type="number" placeholder="0.00" />
@@ -210,10 +211,6 @@ export default function NewSalePage() {
                     <div className="flex justify-between items-center">
                       <Label className="text-xs">Prix Achat Monture</Label>
                       <Input className="h-8 w-24 text-right text-xs" type="number" placeholder="0.00" />
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-muted-foreground/20">
-                      <span className="text-xs font-bold">Marge Brute Estimée</span>
-                      <span className="text-xs font-bold text-accent">--- DH</span>
                     </div>
                  </div>
               </div>
