@@ -31,7 +31,18 @@ export function SidebarNav({ role = "ADMIN" }: { role?: string }) {
     <nav className="flex flex-col gap-2 p-4">
       {NAV_ITEMS.filter(item => item.roles.includes(role)).map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        
+        // Logique raffinée : l'élément est actif s'il correspond exactement au chemin,
+        // OU s'il est un préfixe MAIS qu'aucun autre élément du menu plus spécifique ne correspond.
+        const isActive = pathname === item.href || (
+          pathname.startsWith(item.href + "/") && 
+          !NAV_ITEMS.some(otherItem => 
+            otherItem.href !== item.href && 
+            otherItem.href.startsWith(item.href + "/") && 
+            (pathname === otherItem.href || pathname.startsWith(otherItem.href + "/"))
+          )
+        );
+
         return (
           <Link
             key={item.href}
