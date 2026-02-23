@@ -11,7 +11,7 @@ import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer } from "lucide-react";
+import { ShoppingBag, Save, Printer, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -23,7 +23,7 @@ export default function NewSalePage() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [total, setTotal] = useState(1500);
-  const [remise, setRemise] = useState(0);
+  const [remisePercent, setRemisePercent] = useState(0);
   const [avance, setAvance] = useState(500);
   
   const [prescription, setPrescription] = useState({
@@ -31,7 +31,8 @@ export default function NewSalePage() {
     og: { sph: "", cyl: "", axe: "" }
   });
 
-  const totalNet = total - remise;
+  const remiseAmount = (total * remisePercent) / 100;
+  const totalNet = total - remiseAmount;
   const resteAPayer = totalNet - avance;
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
@@ -57,7 +58,8 @@ export default function NewSalePage() {
       phone: clientPhone,
       mutuelle,
       total: total.toString(),
-      remise: remise.toString(),
+      remise: remiseAmount.toString(),
+      remisePercent: remisePercent.toString(),
       avance: avance.toString(),
       od_sph: prescription.od.sph,
       od_cyl: prescription.od.cyl,
@@ -65,6 +67,7 @@ export default function NewSalePage() {
       og_sph: prescription.og.sph,
       og_cyl: prescription.og.cyl,
       og_axe: prescription.og.axe,
+      date: new Date().toLocaleDateString("fr-FR"),
     });
     router.push(`/ventes/facture/OPT-2024-124?${params.toString()}`);
   };
@@ -197,13 +200,23 @@ export default function NewSalePage() {
                     />
                   </div>
                   <div className="flex justify-between items-center">
-                    <Label className="text-destructive font-semibold">Remise (DH)</Label>
-                    <Input 
-                      className="w-32 text-right text-destructive font-bold" 
-                      type="number" 
-                      value={remise} 
-                      onChange={(e) => setRemise(Number(e.target.value))}
-                    />
+                    <div className="flex flex-col">
+                      <Label className="text-destructive font-semibold">Remise (%)</Label>
+                      <span className="text-[10px] text-muted-foreground italic">
+                        Soit -{formatCurrency(remiseAmount)}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Percent className="absolute right-3 top-3 h-3 w-3 text-destructive" />
+                      <Input 
+                        className="w-32 text-right text-destructive font-bold pr-8" 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        value={remisePercent} 
+                        onChange={(e) => setRemisePercent(Number(e.target.value))}
+                      />
+                    </div>
                   </div>
                   <div className="flex justify-between items-center bg-muted/50 p-2 rounded">
                     <Label className="font-bold">Total Net (DH)</Label>

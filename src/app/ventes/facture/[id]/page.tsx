@@ -19,6 +19,7 @@ export default function InvoicePrintPage() {
   const mutuelle = searchParams.get("mutuelle") || "Aucune";
   const total = Number(searchParams.get("total")) || 0;
   const remise = Number(searchParams.get("remise")) || 0;
+  const remisePercent = searchParams.get("remisePercent") || "0";
   const avance = Number(searchParams.get("avance")) || 0;
   
   const totalNet = total - remise;
@@ -63,13 +64,13 @@ export default function InvoicePrintPage() {
           <p className="text-[7px] uppercase text-slate-400 font-black mb-0.5">Client</p>
           <p className="text-[10px] font-bold text-slate-900 truncate">{clientName}</p>
         </div>
-        <div className="min-w-0 px-2 border-x border-slate-100">
-          <p className="text-[7px] uppercase text-slate-400 font-black mb-0.5 text-center">Téléphone</p>
-          <p className="text-[10px] font-bold text-slate-900 text-center">{clientPhone}</p>
+        <div className="min-w-0 px-2 border-x border-slate-100 text-center">
+          <p className="text-[7px] uppercase text-slate-400 font-black mb-0.5">Téléphone</p>
+          <p className="text-[10px] font-bold text-slate-900">{clientPhone}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[7px] uppercase text-slate-400 font-black mb-0.5 text-right">Mutuelle</p>
-          <p className="text-[10px] font-bold text-slate-900 text-right">{mutuelle}</p>
+        <div className="min-w-0 text-right">
+          <p className="text-[7px] uppercase text-slate-400 font-black mb-0.5">Mutuelle</p>
+          <p className="text-[10px] font-bold text-slate-900">{mutuelle}</p>
         </div>
       </div>
 
@@ -112,7 +113,7 @@ export default function InvoicePrintPage() {
             </div>
             {remise > 0 && (
               <div className="flex justify-between text-[9px] text-destructive pr-4">
-                <span>Remise :</span>
+                <span>Remise ({remisePercent}%) :</span>
                 <span className="font-bold">-{formatCurrency(remise)}</span>
               </div>
             )}
