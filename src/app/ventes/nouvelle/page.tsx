@@ -20,6 +20,7 @@ export default function NewSalePage() {
   const router = useRouter();
   const [mutuelle, setMutuelle] = useState("Aucun");
   const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
   const [total, setTotal] = useState(1500);
   const [avance, setAvance] = useState(500);
   
@@ -48,6 +49,7 @@ export default function NewSalePage() {
   const handlePrint = () => {
     const params = new URLSearchParams({
       client: clientName,
+      phone: clientPhone,
       mutuelle,
       total: total.toString(),
       avance: avance.toString(),
@@ -102,7 +104,12 @@ export default function NewSalePage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="clientPhone">Téléphone</Label>
-                  <Input id="clientPhone" placeholder="06 00 00 00 00" />
+                  <Input 
+                    id="clientPhone" 
+                    placeholder="06 00 00 00 00" 
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                  />
                 </div>
               </div>
               
