@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -11,10 +12,11 @@ import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, Percent } from "lucide-react";
+import { ShoppingBag, Save, Printer, Percent, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NewSalePage() {
   const { toast } = useToast();
@@ -23,7 +25,11 @@ export default function NewSalePage() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [total, setTotal] = useState(1500);
-  const [remisePercent, setRemisePercent] = useState(0);
+  
+  // Gestion de la remise
+  const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
+  const [discountValue, setDiscountValue] = useState(0);
+  
   const [avance, setAvance] = useState(500);
   
   const [prescription, setPrescription] = useState({
@@ -31,7 +37,10 @@ export default function NewSalePage() {
     og: { sph: "", cyl: "", axe: "" }
   });
 
-  const remiseAmount = (total * remisePercent) / 100;
+  const remiseAmount = discountType === "percent" 
+    ? (total * discountValue) / 100 
+    : discountValue;
+
   const totalNet = total - remiseAmount;
   const resteAPayer = totalNet - avance;
 
@@ -59,7 +68,7 @@ export default function NewSalePage() {
       mutuelle,
       total: total.toString(),
       remise: remiseAmount.toString(),
-      remisePercent: remisePercent.toString(),
+      remisePercent: discountType === "percent" ? discountValue.toString() : "Fixe",
       avance: avance.toString(),
       od_sph: prescription.od.sph,
       od_cyl: prescription.od.cyl,
@@ -199,25 +208,42 @@ export default function NewSalePage() {
                       onChange={(e) => setTotal(Number(e.target.value))}
                     />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <Label className="text-destructive font-semibold">Remise (%)</Label>
-                      <span className="text-[10px] text-muted-foreground italic">
-                        Soit -{formatCurrency(remiseAmount)}
-                      </span>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-destructive font-semibold">Remise</Label>
+                      <Tabs 
+                        value={discountType} 
+                        onValueChange={(v) => setDiscountType(v as "percent" | "amount")}
+                        className="w-auto"
+                      >
+                        <TabsList className="h-8 grid grid-cols-2 w-[100px]">
+                          <TabsTrigger value="percent" className="text-[10px]">%</TabsTrigger>
+                          <TabsTrigger value="amount" className="text-[10px]">DH</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
                     </div>
-                    <div className="relative">
-                      <Percent className="absolute right-3 top-3 h-3 w-3 text-destructive" />
-                      <Input 
-                        className="w-32 text-right text-destructive font-bold pr-8" 
-                        type="number" 
-                        min="0"
-                        max="100"
-                        value={remisePercent} 
-                        onChange={(e) => setRemisePercent(Number(e.target.value))}
-                      />
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground italic">
+                        {discountType === "percent" ? `Soit -${formatCurrency(remiseAmount)}` : "Montant déduit"}
+                      </span>
+                      <div className="relative">
+                        {discountType === "percent" ? (
+                          <Percent className="absolute right-3 top-3 h-3 w-3 text-destructive" />
+                        ) : (
+                          <Coins className="absolute right-3 top-3 h-3 w-3 text-destructive" />
+                        )}
+                        <Input 
+                          className="w-32 text-right text-destructive font-bold pr-8" 
+                          type="number" 
+                          min="0"
+                          value={discountValue} 
+                          onChange={(e) => setDiscountValue(Number(e.target.value))}
+                        />
+                      </div>
                     </div>
                   </div>
+
                   <div className="flex justify-between items-center bg-muted/50 p-2 rounded">
                     <Label className="font-bold">Total Net (DH)</Label>
                     <span className="font-bold">{formatCurrency(totalNet)}</span>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -113,7 +114,7 @@ export default function InvoicePrintPage() {
             </div>
             {remise > 0 && (
               <div className="flex justify-between text-[9px] text-destructive pr-4">
-                <span>Remise ({remisePercent}%) :</span>
+                <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
                 <span className="font-bold">-{formatCurrency(remise)}</span>
               </div>
             )}
