@@ -66,10 +66,10 @@
   }
 }
 
-/* Print Specific Styles */
+/* Print Specific Styles - Optimized for side-by-side A5 on A4 Landscape */
 @media print {
   @page {
-    size: A4 portrait;
+    size: A4 landscape;
     margin: 0 !important;
   }
   body {
@@ -82,38 +82,44 @@
   .no-print {
     display: none !important;
   }
-  .pdf-a4 {
+  .pdf-a4-landscape {
     box-shadow: none !important;
     margin: 0 !important;
-    width: 210mm !important;
-    height: 297mm !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    display: flex !important;
+    flex-direction: row !important;
   }
 }
 
-.pdf-a4 {
-  width: 210mm;
-  height: 297mm;
+.pdf-a4-landscape {
+  width: 297mm;
+  height: 210mm;
   margin: 0 auto;
   background: white;
   position: relative;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
 }
 
-.pdf-a5-section {
-  height: 148.5mm;
-  width: 100%;
-  padding: 6mm 8mm; /* Ajusté pour plus de sécurité sur les côtés */
+.pdf-a5-portrait {
+  width: 148.5mm;
+  height: 210mm;
+  padding: 10mm 12mm;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.cutting-line {
-  border-top: 1px dashed #94a3b8;
-  width: 100%;
-  height: 1px;
+.cutting-line-vertical {
+  border-left: 1px dashed #94a3b8;
+  height: 100%;
+  width: 1px;
   position: absolute;
-  top: 148.5mm;
-  left: 0;
+  left: 148.5mm;
+  top: 0;
   z-index: 50;
 }
