@@ -52,51 +52,53 @@ export default function ClientsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Mutuelle</TableHead>
-                  <TableHead>Dernière Visite</TableHead>
-                  <TableHead>Commandes</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        {client.phone}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{client.mutuelle}</Badge>
-                    </TableCell>
-                    <TableCell>{client.lastVisit}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="rounded-sm">
-                        {client.orders} commande(s)
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="Voir dossier">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" title="Historique ventes">
-                          <History className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          <CardContent className="p-0 sm:p-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Client</TableHead>
+                    <TableHead className="whitespace-nowrap">Téléphone</TableHead>
+                    <TableHead className="whitespace-nowrap">Mutuelle</TableHead>
+                    <TableHead className="whitespace-nowrap">Dernière Visite</TableHead>
+                    <TableHead className="whitespace-nowrap">Commandes</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredClients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{client.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          {client.phone}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline">{client.mutuelle}</Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{client.lastVisit}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="secondary" className="rounded-sm">
+                          {client.orders} commande(s)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" title="Voir dossier">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" title="Historique ventes">
+                            <History className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

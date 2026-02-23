@@ -53,53 +53,55 @@ export default function SalesHistoryPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Facture</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Avance</TableHead>
-                  <TableHead>Reste</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSales.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.id}</TableCell>
-                    <TableCell>{sale.date}</TableCell>
-                    <TableCell>{sale.client}</TableCell>
-                    <TableCell>{formatCurrency(sale.total)}</TableCell>
-                    <TableCell className="text-green-600 font-medium">{formatCurrency(sale.avance)}</TableCell>
-                    <TableCell className={sale.reste > 0 ? "text-destructive font-bold" : ""}>
-                      {formatCurrency(sale.reste)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        sale.statut === "Payé" ? "default" : 
-                        sale.statut === "Partiel" ? "secondary" : "outline"
-                      }>
-                        {sale.statut}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="Voir détails">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" title="Imprimer">
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          <CardContent className="p-0 sm:p-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Facture</TableHead>
+                    <TableHead className="whitespace-nowrap">Date</TableHead>
+                    <TableHead className="whitespace-nowrap">Client</TableHead>
+                    <TableHead className="whitespace-nowrap">Total</TableHead>
+                    <TableHead className="whitespace-nowrap">Avance</TableHead>
+                    <TableHead className="whitespace-nowrap">Reste</TableHead>
+                    <TableHead className="whitespace-nowrap">Statut</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredSales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{sale.id}</TableCell>
+                      <TableCell className="whitespace-nowrap">{sale.date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{sale.client}</TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className="text-green-600 font-bold whitespace-nowrap">{formatCurrency(sale.avance)}</TableCell>
+                      <TableCell className={cn("whitespace-nowrap", sale.reste > 0 ? "text-destructive font-black" : "")}>
+                        {formatCurrency(sale.reste)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant={
+                          sale.statut === "Payé" ? "default" : 
+                          sale.statut === "Partiel" ? "secondary" : "outline"
+                        }>
+                          {sale.statut}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" title="Voir détails">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" title="Imprimer">
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
