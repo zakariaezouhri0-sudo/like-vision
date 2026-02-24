@@ -18,6 +18,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from "@/lib/utils";
 
 export default function ClientsPage() {
   const { toast } = useToast();
@@ -114,14 +115,14 @@ export default function ClientsPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Fichier Clients</h1>
-            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.1em]">Gestion des dossiers et ordonnances.</p>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Fichier Clients</h1>
+            <p className="text-[11px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.2em]">Gestion des dossiers et ordonnances.</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary w-full sm:w-auto h-12 font-black shadow-xl rounded-xl px-8">
-                <Plus className="mr-2 h-5 w-5" /> NOUVEAU CLIENT
+              <Button className="bg-primary w-full sm:w-auto h-14 font-black shadow-xl rounded-2xl px-10">
+                <Plus className="mr-3 h-6 w-6" /> NOUVEAU CLIENT
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md rounded-3xl">
@@ -182,64 +183,64 @@ export default function ClientsPage() {
           </DialogContent>
         </Dialog>
 
-        <Card className="shadow-sm border-none overflow-hidden rounded-[24px]">
-          <CardHeader className="py-4 px-6 bg-muted/20 border-b">
+        <Card className="shadow-sm border-none overflow-hidden rounded-[32px]">
+          <CardHeader className="py-6 px-8 bg-muted/20 border-b">
             <div className="relative max-w-sm w-full">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
-              <Input placeholder="Rechercher un dossier..." className="pl-11 h-12 text-sm font-bold border-none bg-white shadow-inner rounded-2xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <Search className="absolute left-4 top-4 h-5 w-5 text-primary/40" />
+              <Input placeholder="Rechercher un dossier..." className="pl-12 h-14 text-sm font-bold border-none bg-white shadow-inner rounded-2xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-                  <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Chargement des dossiers...</span>
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <Loader2 className="h-14 w-14 animate-spin text-primary opacity-20" />
+                  <span className="text-sm font-black uppercase text-muted-foreground tracking-[0.2em]">Chargement des dossiers...</span>
                 </div>
               ) : (
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-sm uppercase font-black px-6 py-5 tracking-widest text-slate-500">Client</TableHead>
-                      <TableHead className="text-sm uppercase font-black px-6 py-5 tracking-widest text-slate-500">Téléphone</TableHead>
-                      <TableHead className="text-sm uppercase font-black px-6 py-5 tracking-widest text-slate-500">Mutuelle</TableHead>
-                      <TableHead className="text-sm uppercase font-black px-6 py-5 tracking-widest text-slate-500 hidden md:table-cell">Dernière Visite</TableHead>
-                      <TableHead className="text-right text-sm uppercase font-black px-6 py-5 tracking-widest text-slate-500">Actions</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-8 py-6 tracking-widest text-slate-500">Client</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-8 py-6 tracking-widest text-slate-500">Téléphone</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-8 py-6 tracking-widest text-slate-500">Mutuelle</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-8 py-6 tracking-widest text-slate-500 hidden md:table-cell">Dernière Visite</TableHead>
+                      <TableHead className="text-right text-sm uppercase font-black px-8 py-6 tracking-widest text-slate-500">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredClients.length > 0 ? (
                       filteredClients.map((c: any) => (
-                        <TableRow key={c.id} className="hover:bg-primary/5 border-b last:border-0 transition-colors">
-                          <TableCell className="px-6 py-6">
-                            <div className="flex items-center gap-4">
-                              <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center shadow-inner"><User className="h-5 w-5 text-primary" /></div>
-                              <span className="text-sm font-black text-slate-900 leading-none">{c.name}</span>
+                        <TableRow key={c.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
+                          <TableCell className="px-8 py-8">
+                            <div className="flex items-center gap-5">
+                              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shadow-inner shrink-0"><User className="h-6 w-6 text-primary" /></div>
+                              <span className="text-base font-black text-slate-900 leading-none">{c.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm font-black text-primary px-6 py-6 tracking-tighter">{c.phone}</TableCell>
-                          <TableCell className="px-6 py-6">
-                            <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 bg-primary/5 text-primary px-3 py-1.5 rounded-lg shadow-sm">
+                          <TableCell className="text-sm font-black text-primary px-8 py-8 tracking-tighter">{c.phone}</TableCell>
+                          <TableCell className="px-8 py-8">
+                            <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 bg-primary/5 text-primary px-4 py-2 rounded-xl shadow-sm">
                               {c.mutuelle}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm font-bold text-muted-foreground px-6 py-6 hidden md:table-cell">{c.lastVisit}</TableCell>
-                          <TableCell className="text-right px-6 py-6">
+                          <TableCell className="text-sm font-bold text-muted-foreground px-8 py-8 hidden md:table-cell">{c.lastVisit}</TableCell>
+                          <TableCell className="text-right px-8 py-8">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-primary/10 rounded-xl transition-all"><MoreVertical className="h-5 w-5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-11 w-11 hover:bg-primary/10 rounded-2xl transition-all"><MoreVertical className="h-6 w-6" /></Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
-                                <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-xs uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
-                                <DropdownMenuItem className="py-3 font-black text-xs uppercase cursor-pointer rounded-xl"><History className="mr-3 h-4 w-4 text-primary" /> Ordonnance</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive py-3 font-black text-xs uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
+                              <DropdownMenuContent align="end" className="rounded-3xl p-3 shadow-2xl border-primary/10 min-w-[180px]">
+                                <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-sm uppercase cursor-pointer rounded-2xl"><Edit2 className="mr-3 h-5 w-5 text-primary" /> Modifier</DropdownMenuItem>
+                                <DropdownMenuItem className="py-3 font-black text-sm uppercase cursor-pointer rounded-2xl"><History className="mr-3 h-5 w-5 text-primary" /> Ordonnance</DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive py-3 font-black text-sm uppercase cursor-pointer rounded-2xl" onClick={() => handleDeleteClient(c.id, c.name)}><Trash2 className="mr-3 h-5 w-5" /> Supprimer</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={5} className="text-center py-24 text-xs font-black uppercase text-muted-foreground opacity-40 italic tracking-[0.2em]">Aucun dossier trouvé.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-32 text-sm font-black uppercase text-muted-foreground opacity-30 italic tracking-[0.3em]">Aucun dossier trouvé.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>

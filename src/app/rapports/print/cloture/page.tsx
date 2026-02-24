@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, FileText, Calendar, User, Coins, Glasses, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Suspense } from "react";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
@@ -56,10 +55,10 @@ function CashClosurePrintContent() {
         {/* Header with Logo */}
         <div className="flex justify-between items-start border-b-8 border-primary pb-10 mb-12">
           <div className="flex gap-6">
-            <div className="h-20 w-20 bg-primary rounded-3xl flex items-center justify-center text-primary-foreground shadow-2xl shrink-0">
+            <div className="h-24 w-24 bg-primary rounded-3xl flex items-center justify-center text-primary-foreground shadow-2xl shrink-0">
                <div className="relative">
-                <Glasses className="h-12 w-12" />
-                <ThumbsUp className="h-6 w-6 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
+                <Glasses className="h-14 w-14" />
+                <ThumbsUp className="h-7 w-7 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
               </div>
             </div>
             <div className="space-y-1.5">

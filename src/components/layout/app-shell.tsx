@@ -28,16 +28,16 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
       <aside className="w-80 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-2xl">
         <Link 
           href="/dashboard" 
-          className="h-28 border-b flex items-center px-8 gap-4 hover:bg-primary/5 transition-all group"
+          className="h-32 border-b flex items-center px-8 gap-4 hover:bg-primary/5 transition-all group"
         >
-          <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shrink-0">
+          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shrink-0">
              <div className="relative">
-              <Glasses className="h-9 w-9" />
-              <ThumbsUp className="h-4.5 w-4.5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full" />
+              <Glasses className="h-10 w-10" />
+              <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full border-2 border-white" />
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-black text-3xl tracking-tighter text-primary leading-none">{APP_NAME}</span>
+            <span className="font-headline font-black text-3xl tracking-tighter text-primary leading-none uppercase">{APP_NAME}</span>
             <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
           </div>
         </Link>
@@ -59,7 +59,7 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 md:h-24 border-b bg-card flex items-center justify-between px-6 md:px-12 sticky top-0 z-30 shadow-sm backdrop-blur-xl bg-white/80">
+        <header className="h-24 border-b bg-card flex items-center justify-between px-6 md:px-12 sticky top-0 z-30 shadow-sm backdrop-blur-xl bg-white/80">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Trigger */}
             <Sheet open={open} onOpenChange={setOpen}>
@@ -90,14 +90,14 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             </Sheet>
 
             <Link href="/dashboard" className="flex items-center gap-4 group md:hidden">
-              <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-110 transition-all">
+              <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-110 transition-all">
                 <div className="relative">
-                  <Glasses className="h-7 w-7" />
-                  <ThumbsUp className="h-3.5 w-3.5 absolute -top-1.5 -right-1.5 bg-primary p-0.5 rounded-full" />
+                  <Glasses className="h-8 w-8" />
+                  <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-primary p-0.5 rounded-full border-2 border-white" />
                 </div>
               </div>
               <div className="flex flex-col">
-                <h2 className="text-2xl font-black text-primary truncate tracking-tighter leading-none">
+                <h2 className="text-3xl font-black text-primary truncate tracking-tighter leading-none uppercase">
                   {APP_NAME}
                 </h2>
                 <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest mt-0.5">Optique Pro</span>
@@ -106,7 +106,7 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
 
             <div className="hidden md:block">
               <h2 className="text-xs font-black text-primary/40 uppercase tracking-[0.4em] mb-1">Système de Gestion</h2>
-              <p className="text-xl font-black text-slate-800 tracking-tight">Espace Professionnel</p>
+              <p className="text-2xl font-black text-slate-800 tracking-tight">Espace Professionnel</p>
             </div>
           </div>
           
