@@ -98,7 +98,7 @@ export default function ReportsPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
@@ -111,12 +111,14 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <Button onClick={handleExportCSV} className="h-11 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
-              <FileSpreadsheet className="mr-2 h-4 w-4" /> EXCEL
-            </Button>
-            <Button onClick={() => window.print()} variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20">
-              <Printer className="mr-2 h-4 w-4" /> PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleExportCSV} className="h-11 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> EXCEL
+              </Button>
+              <Button onClick={() => window.print()} variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
+                <Printer className="mr-2 h-4 w-4" /> PDF
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -151,19 +153,19 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Date</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Catégorie</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Date</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Opération</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Catégorie</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Montant</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {stats.filteredTrans.length > 0 ? stats.filteredTrans.map((t: any) => (
                       <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0">
-                        <TableCell className="text-[10px] font-bold text-muted-foreground px-6 py-4">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell>
-                        <TableCell className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                        <TableCell className="text-[10px] font-bold text-muted-foreground px-4 md:px-6 py-4">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell>
+                        <TableCell className="px-4 md:px-6 py-4">
+                          <div className="flex flex-col min-w-[120px]">
+                            <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{t.label}</span>
                             <Badge variant="outline" className={cn("text-[8px] font-black w-fit mt-1 border-none", 
                               t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
                               t.type === 'DEPENSE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
@@ -172,8 +174,8 @@ export default function ReportsPage() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">{t.category || "Général"}</TableCell>
-                        <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
+                        <TableCell className="px-4 md:px-6 py-4 text-[10px] font-black text-slate-500 uppercase">{t.category || "Général"}</TableCell>
+                        <TableCell className={cn("text-right px-4 md:px-6 py-4 font-black text-xs whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
                           {formatCurrency(t.montant)}
                         </TableCell>
                       </TableRow>
@@ -192,10 +194,10 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Vente</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Prix Vente</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Coût Achat</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-accent">Marge</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Vente</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Prix Vente</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Coût Achat</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4 text-accent">Marge</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -204,15 +206,15 @@ export default function ReportsPage() {
                       const cost = (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0);
                       return (
                         <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0">
-                          <TableCell className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-black uppercase text-slate-800">{s.clientName}</span>
-                              <span className="text-[9px] font-bold text-primary/40">{s.invoiceId}</span>
+                          <TableCell className="px-4 md:px-6 py-4">
+                            <div className="flex flex-col min-w-[140px]">
+                              <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{s.clientName}</span>
+                              <span className="text-[9px] font-bold text-primary/40 mt-0.5">{s.invoiceId}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right px-6 py-4 font-black text-xs">{formatCurrency(net)}</TableCell>
-                          <TableCell className="text-right px-6 py-4 text-muted-foreground font-bold text-[10px]">{formatCurrency(cost)}</TableCell>
-                          <TableCell className="text-right px-6 py-4 font-black text-accent text-xs">{formatCurrency(net - cost)}</TableCell>
+                          <TableCell className="text-right px-4 md:px-6 py-4 font-black text-xs whitespace-nowrap">{formatCurrency(net)}</TableCell>
+                          <TableCell className="text-right px-4 md:px-6 py-4 text-muted-foreground font-bold text-[10px] whitespace-nowrap">{formatCurrency(cost)}</TableCell>
+                          <TableCell className="text-right px-4 md:px-6 py-4 font-black text-accent text-xs whitespace-nowrap">{formatCurrency(net - cost)}</TableCell>
                         </TableRow>
                       );
                     })}
