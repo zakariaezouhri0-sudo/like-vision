@@ -216,10 +216,6 @@ export default function CaissePage() {
                     <div className="p-4 sm:p-8 bg-white space-y-3 sm:space-y-4">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Détail par coupure</h4>
-                        <div className="flex items-center gap-2">
-                           <Label className="text-[8px] font-black uppercase text-slate-400">S. Initial</Label>
-                           <Input type="number" className="h-7 w-20 text-right font-black text-[10px]" value={soldeInitial} onChange={e => setSoldeInitial(e.target.value)} />
-                        </div>
                       </div>
                       <div className="space-y-1.5 sm:space-y-2">
                         {DENOMINATIONS.map(val => (
