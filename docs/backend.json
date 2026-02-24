@@ -68,6 +68,18 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["type", "montant", "label"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "type": "object",
+      "description": "Configuration du magasin.",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "icePatent": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -89,6 +101,10 @@
     "/transactions/{transactionId}": {
       "schema": "Transaction",
       "description": "Collection des flux de caisse."
+    },
+    "/settings/shop-info": {
+      "schema": "Settings",
+      "description": "Informations du magasin."
     }
   }
 }
