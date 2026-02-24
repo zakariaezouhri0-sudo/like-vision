@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -27,12 +26,14 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Bypass de sécurité pour le développement initial
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
-        // IMPORTANT: On se connecte anonymement à Firebase pour lever les blocages de sécurité Firestore
         await signInAnonymously(auth);
-        toast({ title: "Connexion réussie", description: "Bienvenue (Mode Super-Admin)." });
+        toast({ 
+          variant: "success",
+          title: "Connexion réussie", 
+          description: "Bienvenue sur Like Vision (Mode Admin)." 
+        });
         router.push("/dashboard");
       } catch (err) {
         toast({ variant: "destructive", title: "Erreur Auth", description: "Impossible d'initialiser la session Firebase." });
@@ -58,10 +59,10 @@ export default function LoginPage() {
           throw new Error("Votre compte est suspendu.");
         }
         
-        // On se connecte aussi anonymement ici pour les utilisateurs créés manuellement
         await signInAnonymously(auth);
         
         toast({
+          variant: "success",
           title: "Bienvenue",
           description: `Ravi de vous revoir, ${userData.name}.`,
         });

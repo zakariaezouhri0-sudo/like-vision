@@ -23,6 +23,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     toast({
+      variant: "success",
       title: "Paramètres Enregistrés",
       description: "Les informations du magasin ont été mises à jour.",
     });

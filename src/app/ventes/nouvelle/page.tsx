@@ -54,6 +54,7 @@ export default function NewSalePage() {
 
   const handleSave = () => {
     toast({
+      variant: "success",
       title: "Vente Enregistrée",
       description: "La facture a été générée avec succès.",
     });
@@ -82,7 +83,6 @@ export default function NewSalePage() {
   return (
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-24 lg:pb-0">
-        {/* Header Compact */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-card p-3 rounded-lg border shadow-sm">
           <div>
             <h1 className="text-lg font-bold text-primary">Nouvelle Vente</h1>
@@ -102,7 +102,6 @@ export default function NewSalePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
-            {/* Infos Client */}
             <Card className="shadow-sm border-none overflow-hidden">
               <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
                 <CardTitle className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-2">
@@ -135,7 +134,6 @@ export default function NewSalePage() {
               </CardContent>
             </Card>
 
-            {/* Prescription */}
             <Card className="shadow-sm border-none overflow-hidden">
               <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
                 <CardTitle className="text-[10px] uppercase font-black text-muted-foreground">Prescription Optique</CardTitle>
@@ -145,7 +143,6 @@ export default function NewSalePage() {
               </CardContent>
             </Card>
 
-            {/* Détails Techniques */}
             <Collapsible className="border-none rounded-lg bg-card shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full flex justify-between px-4 py-3 h-auto hover:bg-muted/30 transition-all">
@@ -172,7 +169,6 @@ export default function NewSalePage() {
             </Collapsible>
           </div>
 
-          {/* Facturation */}
           <div className="space-y-4">
             <Card className="shadow-md border-primary/20 bg-primary/5 sticky top-20">
               <CardHeader className="py-3 px-4 bg-primary text-primary-foreground">

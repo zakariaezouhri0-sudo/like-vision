@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -57,7 +56,7 @@ export default function UsersPage() {
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
-        toast({ title: "Succès", description: "L'utilisateur a été enregistré." });
+        toast({ variant: "success", title: "Succès", description: "L'utilisateur a été enregistré." });
       })
       .catch((err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -81,7 +80,7 @@ export default function UsersPage() {
 
     updateDoc(userRef, updateData)
       .then(() => {
-        toast({ title: "Mis à jour", description: "Modification enregistrée." });
+        toast({ variant: "success", title: "Mis à jour", description: "Modification enregistrée." });
       })
       .catch((err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -97,7 +96,7 @@ export default function UsersPage() {
     const userRef = doc(db, "users", id);
     deleteDoc(userRef)
       .then(() => {
-        toast({ title: "Supprimé", description: "L'utilisateur a été retiré." });
+        toast({ variant: "success", title: "Supprimé", description: "L'utilisateur a été retiré." });
       })
       .catch(() => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 

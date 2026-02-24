@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -63,7 +62,7 @@ export default function ClientsPage() {
 
     addDoc(collection(db, "clients"), clientData)
       .then(() => {
-        toast({ title: "Client enregistré", description: `${clientData.name} a été ajouté.` });
+        toast({ variant: "success", title: "Client enregistré", description: `${clientData.name} a été ajouté.` });
       })
       .catch((err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -87,7 +86,7 @@ export default function ClientsPage() {
 
     updateDoc(clientRef, updateData)
       .then(() => {
-        toast({ title: "Modifié", description: "Le client a été mis à jour." });
+        toast({ variant: "success", title: "Modifié", description: "Le client a été mis à jour." });
       })
       .catch(() => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -103,7 +102,7 @@ export default function ClientsPage() {
     const clientRef = doc(db, "clients", id);
     deleteDoc(clientRef)
       .then(() => {
-        toast({ title: "Supprimé", description: "Dossier supprimé avec succès." });
+        toast({ variant: "success", title: "Supprimé", description: "Dossier supprimé avec succès." });
       })
       .catch(() => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: clientRef.path, operation: "delete" }));
