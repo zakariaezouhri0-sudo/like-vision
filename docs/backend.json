@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -58,9 +57,9 @@
     "Transaction": {
       "title": "Transaction",
       "type": "object",
-      "description": "Représente un mouvement de flux de caisse (dépense, apport, paiement vente).",
+      "description": "Représente un mouvement de flux de caisse (dépense, apport, versement, paiement vente).",
       "properties": {
-        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "APPORT"] },
+        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "APPORT", "VERSEMENT"] },
         "category": { "type": "string" },
         "label": { "type": "string" },
         "montant": { "type": "number" },

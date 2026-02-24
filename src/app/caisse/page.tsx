@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -56,8 +55,8 @@ export default function CaissePage() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleAddOperation = async () => {
-    if (!newOp.label || !newOp.montant) {
-      toast({ variant: "destructive", title: "Erreur", description: "Saisissez un libellé et un montant." });
+    if (!newOp.montant) {
+      toast({ variant: "destructive", title: "Erreur", description: "Saisissez un montant." });
       return;
     }
     setOpLoading(true);
@@ -66,7 +65,7 @@ export default function CaissePage() {
 
     const transData = {
       type: newOp.type,
-      label: newOp.label,
+      label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement" : "Apport"),
       category: newOp.category,
       montant: finalAmount,
       createdAt: serverTimestamp()
@@ -91,10 +90,9 @@ export default function CaissePage() {
       depenses: stats.depenses.toString(),
       apports: stats.apports.toString(),
       reel: soldeReel.toString(),
-      initial: "0" // On pourrait gérer un fond de caisse initial si besoin
+      initial: "0" 
     });
 
-    // Ajouter le détail des coupures
     Object.entries(denoms).forEach(([val, qty]) => {
       params.append(`d${val}`, qty.toString());
     });
@@ -119,7 +117,7 @@ export default function CaissePage() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] sm:max-w-md rounded-3xl">
-                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Encaisser / Décaisser</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Gestion des flux</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -128,7 +126,8 @@ export default function CaissePage() {
                         <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense</SelectItem>
-                          <SelectItem value="APPORT" className="font-bold text-green-600">Versement / Apport</SelectItem>
+                          <SelectItem value="VERSEMENT" className="font-bold text-green-600">Versement</SelectItem>
+                          <SelectItem value="APPORT" className="font-bold text-blue-600">Apport</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -138,7 +137,7 @@ export default function CaissePage() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé</Label>
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé (Optionnel)</Label>
                     <Input className="h-11 rounded-xl font-bold" value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} placeholder="ex: Achat fournitures" />
                   </div>
                 </div>
@@ -244,7 +243,7 @@ export default function CaissePage() {
               <TableBody>
                 {loading ? <TableRow><TableCell colSpan={2} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
                   transactions?.map((t: any) => (
-                    <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0">
+                    <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                       <TableCell className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
