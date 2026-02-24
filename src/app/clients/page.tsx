@@ -192,7 +192,7 @@ export default function ClientsPage() {
                     {filteredClients.length > 0 ? (
                       filteredClients.map((c: any) => (
                         <TableRow key={c.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                          <TableCell className="px-4 md:px-8 py-5 md:py-6">
+                          <TableCell className="px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
                             <div className="flex items-center gap-4">
                               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner shrink-0">
                                 <User className="h-5 w-5 text-primary" />
@@ -200,7 +200,7 @@ export default function ClientsPage() {
                               <span className="text-xs md:text-sm font-black text-slate-800 uppercase leading-none">{c.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-6 tracking-tighter">
+                          <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-6 tracking-tighter whitespace-nowrap">
                             {formatPhoneNumber(c.phone)}
                           </TableCell>
                           <TableCell className="px-4 md:px-8 py-5 md:py-6">
@@ -211,7 +211,7 @@ export default function ClientsPage() {
                               {c.mutuelle}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-5 md:py-6 hidden md:table-cell">
+                          <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-5 md:py-6 hidden md:table-cell whitespace-nowrap">
                             {c.lastVisit}
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6">

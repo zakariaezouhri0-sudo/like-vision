@@ -133,10 +133,10 @@ export default function SalesHistoryPage() {
                       filteredSales.map((sale: any) => (
                         <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                           <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">{sale.invoiceId}</TableCell>
-                          <TableCell className="px-4 md:px-8 py-5 md:py-6 min-w-[150px]">
+                          <TableCell className="px-4 md:px-8 py-5 md:py-6 min-w-[150px] whitespace-nowrap">
                             <div className="flex flex-col">
                               <span className="font-black text-xs md:text-sm text-slate-800 uppercase truncate">{sale.clientName}</span>
-                              <span className="text-[9px] md:text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
+                              <span className="text-[10px] font-black text-slate-400 whitespace-nowrap">{formatPhoneNumber(sale.clientPhone)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
