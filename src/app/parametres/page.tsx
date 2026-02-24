@@ -7,21 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const db = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [isReseting, setIsReseting] = useState(false);
   
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: fetchLoading } = useDoc(settingsRef);
@@ -43,7 +45,7 @@ export default function SettingsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // Limite de 1Mo pour le Base64 dans Firestore
+      if (file.size > 1024 * 1024) {
         toast({
           variant: "destructive",
           title: "Fichier trop volumineux",
@@ -84,6 +86,32 @@ export default function SettingsPage() {
     }
   };
 
+  const handleResetData = async () => {
+    setIsReseting(true);
+    try {
+      const collections = ["sales", "clients", "transactions"];
+      for (const colName of collections) {
+        const snap = await getDocs(collection(db, colName));
+        const batch = writeBatch(db);
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      toast({
+        variant: "success",
+        title: "Base de données nettoyée",
+        description: "Toutes les données de test ont été supprimées.",
+      });
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erreur lors du nettoyage",
+        description: "Impossible de supprimer toutes les données.",
+      });
+    } finally {
+      setIsReseting(false);
+    }
+  };
+
   if (fetchLoading) {
     return (
       <AppShell>
@@ -98,14 +126,40 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="space-y-8 max-w-4xl mx-auto pb-10">
-        <div>
-          <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Configuration du Magasin</h1>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Gérez l'identité visuelle et les coordonnées.</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Configuration du Magasin</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Gérez l'identité visuelle et les coordonnées.</p>
+          </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-destructive text-destructive hover:bg-destructive/5">
+                <RefreshCcw className="mr-2 h-4 w-4" /> RÉINITIALISER LES DONNÉES
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-3xl max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-black uppercase text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-6 w-6" /> Attention Risque !
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-slate-600 font-bold">
+                  Cette action va supprimer **définitivement** toutes les factures, tous les clients et toutes les opérations de caisse. Voulez-vous vraiment vider la base de données de test ?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2">
+                <AlertDialogCancel className="rounded-xl font-bold">ANNULER</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetData} className="rounded-xl font-black bg-destructive hover:bg-destructive/90">
+                  OUI, TOUT SUPPRIMER
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-1 space-y-6">
-            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg">
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
               <CardHeader className="bg-slate-50/50 border-b p-6">
                 <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Logo du Magasin</CardTitle>
               </CardHeader>
@@ -118,7 +172,6 @@ export default function SettingsPage() {
                         alt="Shop Logo" 
                         fill 
                         className="object-contain p-4"
-                        data-ai-hint="optical logo"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button variant="destructive" size="icon" onClick={removeLogo} className="rounded-full">
@@ -151,15 +204,10 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-            
-            <div className="bg-primary/5 p-6 rounded-[24px] flex gap-4 text-xs text-primary border border-primary/10">
-              <Info className="h-6 w-6 shrink-0" />
-              <p className="font-bold leading-relaxed">Le logo importé sera automatiquement utilisé sur vos factures et documents de clôture.</p>
-            </div>
           </div>
 
           <div className="md:col-span-2 space-y-6">
-            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg">
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
               <CardHeader className="bg-slate-50/50 border-b p-8">
                 <CardTitle className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-primary/60">
                   <Building2 className="h-5 w-5 text-accent" />
@@ -225,6 +273,21 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               </CardContent>
+            </Card>
+
+            <Card className="rounded-[32px] overflow-hidden border-none bg-white shadow-lg border-l-[12px] border-l-destructive">
+               <CardHeader className="p-8">
+                 <CardTitle className="text-xs font-black uppercase text-destructive tracking-widest flex items-center gap-3">
+                   <AlertTriangle className="h-5 w-5" /> Maintenance & Risques
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="px-8 pb-8 space-y-4">
+                 <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                   Si vous avez terminé vos tests et que vous souhaitez lancer l'application en production, vous pouvez vider toutes les données d'essai ici. 
+                   <br/><br/>
+                   <span className="text-destructive font-black underline">Cette opération est irréversible.</span>
+                 </p>
+               </CardContent>
             </Card>
           </div>
         </div>
