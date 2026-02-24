@@ -178,7 +178,7 @@ export default function ImportPage() {
           if (avance > 0) {
             await addDoc(collection(db, "transactions"), {
               type: "VENTE",
-              label: `Versement Import ${invoiceId}`,
+              label: `Vente ${invoiceId}`,
               category: "Historique",
               montant: avance,
               relatedId: invoiceId,
