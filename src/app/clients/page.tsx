@@ -60,11 +60,13 @@ export default function ClientsPage() {
       createdAt: serverTimestamp(),
     };
 
+    // Fermeture immédiate
+    setIsCreateOpen(false);
+    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
+
     addDoc(collection(db, "clients"), clientData)
       .then(() => {
-        setIsCreateOpen(false);
-        setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
-        toast({ title: "Client enregistré", description: `${newClient.name} a été ajouté.` });
+        toast({ title: "Client enregistré", description: `${clientData.name} a été ajouté.` });
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: "clients", operation: "create", requestResourceData: clientData }));
@@ -80,9 +82,11 @@ export default function ClientsPage() {
       mutuelle: editingClient.mutuelle
     };
 
+    // Fermeture immédiate
+    setEditingClient(null);
+
     updateDoc(clientRef, updateData)
       .then(() => {
-        setEditingClient(null);
         toast({ title: "Modifié", description: "Le client a été mis à jour." });
       })
       .catch(async () => {

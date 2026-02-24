@@ -49,11 +49,13 @@ export default function UsersPage() {
       createdAt: serverTimestamp(),
     };
 
+    // Fermeture immédiate pour la réactivité
+    setIsCreateOpen(false);
+    setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
+
     addDoc(collection(db, "users"), userData)
       .then(() => {
-        setIsCreateOpen(false);
-        setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
-        toast({ title: "Utilisateur créé", description: `${newUser.name} a été ajouté.` });
+        toast({ title: "Utilisateur créé", description: `${userData.name} a été ajouté.` });
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: "users", operation: "create", requestResourceData: userData }));
@@ -70,9 +72,11 @@ export default function UsersPage() {
       status: editingUser.status
     };
 
+    // Fermeture immédiate
+    setEditingUser(null);
+
     updateDoc(userRef, updateData)
       .then(() => {
-        setEditingUser(null);
         toast({ title: "Mis à jour", description: "L'utilisateur a été modifié avec succès." });
       })
       .catch(async () => {
@@ -134,7 +138,7 @@ export default function UsersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Mot de passe</Label>
-                    <input type="password" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} />
+                    <input type="password" disabled className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm opacity-50" placeholder="Configuré via Firebase" />
                   </div>
                 </div>
               </div>

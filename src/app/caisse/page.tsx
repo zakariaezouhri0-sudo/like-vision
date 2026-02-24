@@ -19,6 +19,7 @@ const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 export default function CaissePage() {
   const router = useRouter();
   const [isSessionOpen, setIsSessionOpen] = useState(true);
+  const [isOpeningDialogOpen, setIsOpeningDialogOpen] = useState(false);
   const [soldeInitial, setSoldeInitial] = useState(500);
   
   const [denoms, setDenoms] = useState<Record<number, number>>({
@@ -43,6 +44,11 @@ export default function CaissePage() {
 
   const handleUpdateDenom = (val: number, qty: string) => {
     setDenoms(prev => ({ ...prev, [val]: Number(qty) || 0 }));
+  };
+
+  const handleOpenSession = () => {
+    setIsSessionOpen(true);
+    setIsOpeningDialogOpen(false);
   };
 
   const handleCloturerEtImprimer = () => {
@@ -72,7 +78,7 @@ export default function CaissePage() {
           </div>
           
           {!isSessionOpen ? (
-            <Dialog>
+            <Dialog open={isOpeningDialogOpen} onOpenChange={setIsOpeningDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-primary w-full md:w-auto h-9">
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -90,7 +96,7 @@ export default function CaissePage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => setIsSessionOpen(true)} className="w-full">Confirmer</Button>
+                  <Button onClick={handleOpenSession} className="w-full">Confirmer</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
