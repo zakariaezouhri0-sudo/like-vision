@@ -209,10 +209,12 @@ export default function DashboardPage() {
                   <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
                     <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.id}</TableCell>
                     <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.client}</TableCell>
-                    <TableCell className="text-right text-xs md:text-sm font-black text-slate-900 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
-                      <div className="flex flex-col md:block">
-                        <span>{formatCurrency(sale.total).replace(' DH', '')}</span>
-                        <span className="md:ml-1 font-bold text-slate-400">DH</span>
+                    <TableCell className="text-right px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-black text-slate-900 leading-none">
+                          {formatCurrency(sale.total).replace(' DH', '')}
+                        </span>
+                        <span className="text-[10px] font-black text-slate-400 mt-1 uppercase">DH</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
