@@ -9,7 +9,7 @@ import {
   TrendingUp, 
   ShoppingCart, 
   AlertCircle, 
-  Heart, 
+  Users, 
   ChevronRight,
   ThumbsUp
 } from "lucide-react";
@@ -128,9 +128,9 @@ export default function DashboardPage() {
         </Card>
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500">
-          <Heart className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Satisfaction</p>
-          <p className="text-4xl font-black text-green-600 tracking-tighter">98%</p>
+          <Users className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
+          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Nouveaux Clients</p>
+          <p className="text-4xl font-black text-green-600 tracking-tighter">12</p>
         </Card>
       </div>
 
