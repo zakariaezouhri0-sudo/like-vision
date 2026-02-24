@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
@@ -17,7 +18,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -31,7 +32,6 @@ export default function SalesHistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
   
-  // États séparés pour les dates
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
@@ -157,76 +157,78 @@ export default function SalesHistoryPage() {
         </div>
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
-          <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
-            <div className="flex flex-col xl:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
-                <input 
-                  placeholder="Chercher par client ou n° facture..." 
-                  className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+          <CardHeader className="p-6 border-b bg-slate-50/50">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+              
+              <div className="lg:col-span-4 space-y-1.5 w-full">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Recherche client ou N°</Label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
+                  <input 
+                    placeholder="Nom, téléphone, facture..." 
+                    className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
-                {/* Sélecteurs de Dates Séparés */}
-                <div className="flex items-center gap-2 bg-white p-1 rounded-2xl shadow-inner border-none w-full sm:w-auto">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase text-primary/40 ml-2">Du:</span>
+              <div className="lg:col-span-5 grid grid-cols-2 gap-3 w-full">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Du</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
+                        {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "---"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                      <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Au</Label>
+                  <div className="flex gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-10 px-3 font-black text-xs hover:bg-primary/5 rounded-xl">
-                          {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Choisir..."}
+                        <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
+                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "---"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
-                        <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="h-4 w-px bg-slate-200 mx-1" />
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase text-primary/40">Au:</span>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-10 px-3 font-black text-xs hover:bg-primary/5 rounded-xl">
-                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "Choisir..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
                         <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus />
                       </PopoverContent>
                     </Popover>
+                    {(dateFrom || dateTo) && (
+                      <Button variant="ghost" size="icon" onClick={clearDates} className="h-12 w-12 rounded-xl text-destructive hover:bg-destructive/10 shrink-0">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-
-                  {(dateFrom || dateTo) && (
-                    <Button variant="ghost" size="icon" onClick={clearDates} className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Sélecteur de Statut */}
-                <div className="w-full sm:w-48">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
-                      <div className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-primary/40" />
-                        <SelectValue placeholder="Statut" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
-                      <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
-                      <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
-                      <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
+
+              <div className="lg:col-span-3 space-y-1.5 w-full">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Filtrer par Statut</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-primary/40" />
+                      <SelectValue placeholder="Statut" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
+                    <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
+                    <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
+                    <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
             </div>
           </CardHeader>
           <CardContent className="p-0">

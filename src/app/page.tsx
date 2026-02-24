@@ -1,111 +1,155 @@
 
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Glasses, ThumbsUp, ShieldCheck, Zap, BarChart3, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import Image from "next/image";
+import { useFirestore, useAuth } from "@/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { signInAnonymously, updateProfile } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
-export default function LandingPage() {
+export default function LoginPage() {
+  const router = useRouter();
+  const db = useFirestore();
+  const auth = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    if (username.toLowerCase() === "admin" && password === "admin123") {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: "Admin" });
+        }
+        toast({ 
+          variant: "success",
+          title: "Connexion réussie", 
+          description: "Bienvenue sur Like Vision (Mode Admin)." 
+        });
+        router.push("/dashboard");
+      } catch (err) {
+        toast({ variant: "destructive", title: "Erreur Auth", description: "Impossible d'initialiser la session Firebase." });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", username.toLowerCase().trim()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error("Utilisateur non trouvé.");
+      }
+
+      const userData = querySnapshot.docs[0].data();
+
+      if (userData.password === password) {
+        if (userData.status === "Suspendu") {
+          throw new Error("Votre compte est suspendu.");
+        }
+        
+        const userCredential = await signInAnonymously(auth);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: userData.name });
+        }
+        
+        toast({
+          variant: "success",
+          title: "Bienvenue",
+          description: `Ravi de vous revoir, ${userData.name}.`,
+        });
+        router.push("/dashboard");
+      } else {
+        throw new Error("Mot de passe incorrect.");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de connexion",
+        description: error.message || "Identifiants incorrects.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Navigation */}
-      <nav className="border-b bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm">
-              <div className="relative">
-                <Glasses className="h-5 w-5" />
-                <ThumbsUp className="h-2.5 w-2.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg transform rotate-3 mb-4">
+            <div className="relative">
+              <Glasses className="h-10 w-10" />
+              <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full" />
             </div>
-            <span className="font-headline font-bold text-xl tracking-tight text-primary">{APP_NAME}</span>
           </div>
-          <Button asChild variant="default" size="sm" className="font-bold">
-            <Link href="/login">Accès Professionnel</Link>
-          </Button>
+          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{APP_NAME}</h1>
+          <p className="text-muted-foreground font-medium uppercase text-xs tracking-[0.2em]">Gestion Optique Pro</p>
         </div>
-      </nav>
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative py-20 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center space-y-8 max-w-3xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest animate-fade-in">
-                <Zap className="h-3 w-3" />
-                Solution Optique Intelligente
-              </div>
-              <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-                Gérez votre magasin d'optique avec <span className="text-primary">précision</span> et <span className="text-accent">élégance</span>.
-              </h1>
-              <p className="text-lg text-muted-foreground font-medium">
-                La plateforme tout-en-un pour les opticiens modernes au Maroc. Facturation A5, suivi des ordonnances et gestion de caisse en temps réel.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="h-14 px-8 text-lg font-bold shadow-xl shadow-primary/20">
-                  <Link href="/login">Démarrer maintenant</Link>
-                </Button>
-                <Button variant="outline" size="lg" className="h-14 px-8 text-lg font-bold">
-                  En savoir plus
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Background Decorative Elements */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-10">
-            <div className="absolute top-20 left-10 w-64 h-64 bg-primary rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent rounded-full blur-3xl" />
-          </div>
-        </section>
-
-        {/* Features Grid */}
-        <section className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
-                  <ShieldCheck className="h-6 w-6" />
+        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <CardHeader className="space-y-1 pt-8 text-center border-b bg-muted/10 pb-6">
+            <CardTitle className="text-2xl font-black text-primary">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase opacity-60">
+              Saisissez vos identifiants magasin
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleLogin}>
+            <CardContent className="space-y-5 pt-8">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Identifiant / Login</Label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
+                  <Input 
+                    id="username" 
+                    type="text"
+                    placeholder="admin" 
+                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required 
+                  />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Facturation Certifiée</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Générez des factures A5 paysage professionnelles en deux clics, prêtes pour les mutuelles (CNSS, CNOPS, etc.).
-                </p>
               </div>
-
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="h-12 w-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6">
-                  <BarChart3 className="h-6 w-6" />
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mot de passe</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required 
+                  />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Tableau de Bord</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Suivez votre chiffre d'affaire, vos marges et vos restes à recouvrir en temps réel avec des graphiques clairs.
-                </p>
               </div>
-
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">Dossiers Clients</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Historique complet des prescriptions OD/OG pour chaque client. Ne perdez plus jamais une ordonnance.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="py-10 border-t bg-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground font-medium">
-            &copy; {new Date().getFullYear()} {APP_NAME} Optique Pro. Développé pour l'excellence optique.
-          </p>
-        </div>
-      </footer>
+            </CardContent>
+            <CardFooter className="pb-8 pt-4">
+              <Button className="w-full h-12 text-base font-black shadow-xl" disabled={loading}>
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }
