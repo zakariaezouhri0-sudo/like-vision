@@ -2,6 +2,11 @@
 
 Bienvenue dans votre application de gestion professionnelle.
 
+## Pourquoi PythonAnywhere ne fonctionne pas ?
+Cette application est développée avec **Next.js (Node.js)**. 
+- **PythonAnywhere** ne supporte que les applications **Python**.
+- Pour héberger cette application, vous devez utiliser un service compatible **Node.js** comme **Firebase App Hosting** ou **Vercel**.
+
 ## Comment mettre votre application en ligne (Gratuitement)
 
 Pour que votre application soit accessible sur internet, suivez ces étapes simples :
