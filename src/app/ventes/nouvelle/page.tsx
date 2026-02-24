@@ -10,13 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon } from "lucide-react";
+import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useFirestore } from "@/firebase";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -42,7 +40,12 @@ function NewSaleForm() {
     return d ? new Date(d) : new Date();
   });
   
-  const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
+  const initialMutuelle = searchParams.get("mutuelle") || "Aucun";
+  const isCustomMutuelle = initialMutuelle !== "Aucun" && !MUTUELLES.includes(initialMutuelle);
+  
+  const [mutuelle, setMutuelle] = useState(isCustomMutuelle ? "Autre" : initialMutuelle);
+  const [customMutuelle, setCustomMutuelle] = useState(isCustomMutuelle ? initialMutuelle : "");
+  
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   const [total, setTotal] = useState<number | string>(searchParams.get("total") || "");
@@ -81,7 +84,14 @@ function NewSaleForm() {
           if (!querySnapshot.empty) {
             const clientData = querySnapshot.docs[0].data();
             setClientName(clientData.name);
-            setMutuelle(clientData.mutuelle || "Aucun");
+            const clientMutuelle = clientData.mutuelle || "Aucun";
+            if (MUTUELLES.includes(clientMutuelle)) {
+              setMutuelle(clientMutuelle);
+              setCustomMutuelle("");
+            } else {
+              setMutuelle("Autre");
+              setCustomMutuelle(clientMutuelle);
+            }
 
             const salesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
             const salesSnapshot = await getDocs(salesQ);
@@ -142,11 +152,13 @@ function NewSaleForm() {
     const suffix = Date.now().toString().slice(-6);
     const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2026-${suffix}` : `OPT-2026-${suffix}`;
 
+    const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
+
     const saleData = {
       invoiceId,
       clientName,
       clientPhone: clientPhone.toString().replace(/\s/g, ""),
-      mutuelle,
+      mutuelle: finalMutuelle || "Aucun",
       total: nTotal,
       remise: remiseAmount,
       discountType,
@@ -171,9 +183,9 @@ function NewSaleForm() {
       const clientSnapshot = await getDocs(query(clientsRef, where("phone", "==", cleanPhone)));
 
       if (clientSnapshot.empty) {
-        await addDoc(clientsRef, { name: clientName, phone: cleanPhone, mutuelle, lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: 1, createdAt: serverTimestamp() });
+        await addDoc(clientsRef, { name: clientName, phone: cleanPhone, mutuelle: finalMutuelle || "Aucun", lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: 1, createdAt: serverTimestamp() });
       } else {
-        await updateDoc(doc(db, "clients", clientSnapshot.docs[0].id), { lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: increment(1), name: clientName, mutuelle });
+        await updateDoc(doc(db, "clients", clientSnapshot.docs[0].id), { lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: increment(1), name: clientName, mutuelle: finalMutuelle || "Aucun" });
       }
 
       if (editId) {
@@ -248,6 +260,17 @@ function NewSaleForm() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex justify-between">Téléphone{isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}</Label>
+                    <div className="relative">
+                      <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
+                      <Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
+                  </div>
+                  <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Date de Vente</Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -261,10 +284,32 @@ function NewSaleForm() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex justify-between">Téléphone{isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}</Label><div className="relative"><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" /><Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
                 </div>
-                <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label><Select onValueChange={setMutuelle} value={mutuelle}><SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
+                    <Select onValueChange={setMutuelle} value={mutuelle}>
+                      <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {mutuelle === "Autre" && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-left-4">
+                      <Label className="text-[10px] uppercase text-primary font-black tracking-widest ml-1">Précisez la mutuelle</Label>
+                      <Input 
+                        className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-primary/20 shadow-inner" 
+                        value={customMutuelle} 
+                        onChange={(e) => setCustomMutuelle(e.target.value)} 
+                        placeholder="Ex: Wafa Assurance"
+                      />
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
