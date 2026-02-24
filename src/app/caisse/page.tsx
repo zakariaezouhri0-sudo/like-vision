@@ -65,7 +65,7 @@ export default function CaissePage() {
     setOpLoading(true);
     const amount = parseFloat(newOp.montant);
     
-    // VERSEMENT (banque) and DEPENSE are outflows
+    // VERSEMENT (banque) and DEPENSE are outflows (money leaving the shop cash drawer)
     const isOutflow = newOp.type === "DEPENSE" || newOp.type === "VERSEMENT";
     const finalAmount = isOutflow ? -Math.abs(amount) : Math.abs(amount);
 
