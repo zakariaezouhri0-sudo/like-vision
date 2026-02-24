@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, Target } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -35,17 +35,16 @@ function NewSaleForm() {
   const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
-  const [total, setTotal] = useState(Number(searchParams.get("total")) || 0);
+  const [total, setTotal] = useState<number | string>(Number(searchParams.get("total")) || "");
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
-  const [discountValue, setDiscountValue] = useState(Number(searchParams.get("discountValue")) || 0);
-  const [avance, setAvance] = useState(Number(searchParams.get("avance")) || 0);
+  const [discountValue, setDiscountValue] = useState<number | string>(Number(searchParams.get("discountValue")) || "");
+  const [avance, setAvance] = useState<number | string>(Number(searchParams.get("avance")) || "");
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   
-  // Nouveaux champs pour le calcul de la marge (Interne)
-  const [purchasePriceFrame, setPurchasePriceFrame] = useState(Number(searchParams.get("purchasePriceFrame")) || 0);
-  const [purchasePriceLenses, setPurchasePriceLenses] = useState(Number(searchParams.get("purchasePriceLenses")) || 0);
+  const [purchasePriceFrame, setPurchasePriceFrame] = useState<number | string>(Number(searchParams.get("purchasePriceFrame")) || "");
+  const [purchasePriceLenses, setPurchasePriceLenses] = useState<number | string>(Number(searchParams.get("purchasePriceLenses")) || "");
 
   const [prescription, setPrescription] = useState({
     od: { 
@@ -62,11 +61,11 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
-      const cleanPhone = clientPhone.replace(/\s/g, "");
+      const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       if (cleanPhone.length >= 10 && !editId) {
         setIsSearchingClient(true);
         try {
-          const q = query(collection(db, "clients"), where("phone", "==", clientPhone));
+          const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
             const clientData = querySnapshot.docs[0].data();
@@ -90,17 +89,17 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, editId, toast]);
 
-  // Calculs Financiers Précis
-  const remiseAmount = discountType === "percent" 
-    ? (Number(total) * Number(discountValue)) / 100 
-    : Number(discountValue);
+  // Conversion sécurisée en nombre
+  const nTotal = Number(total) || 0;
+  const nDiscount = Number(discountValue) || 0;
+  const nAvance = Number(avance) || 0;
 
-  const totalNet = Math.max(0, Number(total) - remiseAmount);
-  const resteAPayer = Math.max(0, totalNet - Number(avance));
-  
-  // Calcul de la marge brute
-  const totalPurchase = Number(purchasePriceFrame) + Number(purchasePriceLenses);
-  const margeBrute = totalNet - totalPurchase;
+  const remiseAmount = discountType === "percent" 
+    ? (nTotal * nDiscount) / 100 
+    : nDiscount;
+
+  const totalNet = Math.max(0, nTotal - remiseAmount);
+  const resteAPayer = Math.max(0, totalNet - nAvance);
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({
@@ -113,30 +112,30 @@ function NewSaleForm() {
   };
 
   const handleSave = async (silent = false) => {
-    if (!clientName || !total || !clientPhone) {
+    if (!clientName || !nTotal || !clientPhone) {
       toast({ variant: "destructive", title: "Erreur", description: "Nom, téléphone et total obligatoires." });
       return null;
     }
 
     setLoading(true);
 
-    const statut = resteAPayer <= 0 ? "Payé" : (Number(avance) > 0 ? "Partiel" : "En attente");
+    const statut = resteAPayer <= 0 ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
     const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-${Date.now().toString().slice(-6)}` : `OPT-${Date.now().toString().slice(-6)}`;
 
     const saleData = {
       invoiceId,
       clientName,
-      clientPhone,
+      clientPhone: clientPhone.toString(),
       mutuelle,
-      total: Number(total),
+      total: nTotal,
       remise: remiseAmount,
       discountType,
-      discountValue: Number(discountValue),
-      remisePercent: discountType === "percent" ? discountValue.toString() : "Fixe",
-      avance: Number(avance),
+      discountValue: nDiscount,
+      remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
+      avance: nAvance,
       reste: resteAPayer,
-      purchasePriceFrame: Number(purchasePriceFrame),
-      purchasePriceLenses: Number(purchasePriceLenses),
+      purchasePriceFrame: Number(purchasePriceFrame) || 0,
+      purchasePriceLenses: Number(purchasePriceLenses) || 0,
       statut,
       prescription,
       monture,
@@ -147,13 +146,14 @@ function NewSaleForm() {
 
     try {
       const clientsRef = collection(db, "clients");
-      const clientQuery = query(clientsRef, where("phone", "==", clientPhone));
+      const cleanPhone = clientPhone.toString().replace(/\s/g, "");
+      const clientQuery = query(clientsRef, where("phone", "==", cleanPhone));
       const clientSnapshot = await getDocs(clientQuery);
 
       if (clientSnapshot.empty) {
         await addDoc(clientsRef, {
           name: clientName,
-          phone: clientPhone,
+          phone: cleanPhone,
           mutuelle: mutuelle,
           lastVisit: new Date().toLocaleDateString("fr-FR"),
           ordersCount: 1,
@@ -260,7 +260,12 @@ function NewSaleForm() {
                       {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
                     </Label>
                     <div className="relative">
-                      <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
+                      <Input 
+                        className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" 
+                        value={clientPhone} 
+                        onChange={(e) => setClientPhone(e.target.value)} 
+                        placeholder="06 00 00 00 00" 
+                      />
                       <Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" />
                     </div>
                   </div>
@@ -327,7 +332,12 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
                   <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix de Vente Brut</Label>
                   <div className="relative">
-                    <Input className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-slate-900 focus-visible:ring-0 text-lg" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
+                    <Input 
+                      className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-slate-900 focus-visible:ring-0 text-lg" 
+                      type="number" 
+                      value={total} 
+                      onChange={(e) => setTotal(e.target.value)} 
+                    />
                     <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
@@ -343,10 +353,15 @@ function NewSaleForm() {
                     </Tabs>
                   </div>
                   <div className="flex justify-end relative bg-white rounded-2xl overflow-hidden">
-                    <Input className="w-full h-12 text-right text-slate-900 font-black pr-10 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+                    <Input 
+                      className="w-full h-12 text-right text-slate-900 font-black pr-10 border-none focus-visible:ring-0" 
+                      type="number" 
+                      value={discountValue} 
+                      onChange={(e) => setDiscountValue(e.target.value)} 
+                    />
                     <span className="absolute right-4 top-3.5 text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
-                  {discountType === 'percent' && (
+                  {discountType === 'percent' && Number(discountValue) > 0 && (
                     <p className="text-right text-[10px] font-black text-white/40 italic">
                       = -{formatCurrency(remiseAmount)}
                     </p>
@@ -361,7 +376,12 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
                   <Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
                   <div className="relative">
-                    <Input className="w-32 h-10 text-right text-slate-900 font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+                    <Input 
+                      className="w-32 h-10 text-right text-slate-900 font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" 
+                      type="number" 
+                      value={avance} 
+                      onChange={(e) => setAvance(e.target.value)} 
+                    />
                     <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
@@ -374,7 +394,6 @@ function NewSaleForm() {
                   </span>
                 </div>
 
-                {/* Section Interne - Prix d'achat & Marge */}
                 <div className="pt-6 mt-6 border-t border-white/20 space-y-4">
                   <h3 className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] flex items-center gap-2">
                     <Calculator className="h-3 w-3" />
@@ -383,21 +402,22 @@ function NewSaleForm() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-black/20 p-3 rounded-xl space-y-1">
                       <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Monture</Label>
-                      <Input className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(Number(e.target.value))} />
+                      <Input 
+                        className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
+                        type="number" 
+                        value={purchasePriceFrame} 
+                        onChange={(e) => setPurchasePriceFrame(e.target.value)} 
+                      />
                     </div>
                     <div className="bg-black/20 p-3 rounded-xl space-y-1">
                       <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Verres</Label>
-                      <Input className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(Number(e.target.value))} />
+                      <Input 
+                        className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
+                        type="number" 
+                        value={purchasePriceLenses} 
+                        onChange={(e) => setPurchasePriceLenses(e.target.value)} 
+                      />
                     </div>
-                  </div>
-                  <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-400" />
-                      <span className="text-[10px] font-black uppercase text-green-400 tracking-widest">Marge Brute</span>
-                    </div>
-                    <span className={cn("font-black text-sm", margeBrute >= 0 ? "text-green-400" : "text-destructive")}>
-                      {formatCurrency(margeBrute)}
-                    </span>
                   </div>
                 </div>
               </CardContent>
