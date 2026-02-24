@@ -29,11 +29,9 @@ export default function ReportsPage() {
     to: new Date(),
   });
 
-  // Fetch Sales
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
   const { data: sales, isLoading: salesLoading } = useCollection(salesQuery);
 
-  // Fetch Transactions
   const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc")), [db]);
   const { data: transactions, isLoading: transLoading } = useCollection(transQuery);
 
@@ -91,7 +89,7 @@ export default function ReportsPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
