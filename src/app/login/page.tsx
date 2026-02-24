@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
-import { APP_NAME, DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
@@ -97,7 +97,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
           
-          <div className="h-36 w-36 flex items-center justify-center relative">
+          <div className="h-40 w-40 flex items-center justify-center relative">
             {settings?.logoUrl ? (
               <Image 
                 src={settings.logoUrl} 
@@ -106,10 +106,10 @@ export default function LoginPage() {
                 className="object-contain"
               />
             ) : (
-              <div className="h-24 w-24 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl transform rotate-3">
+              <div className="h-28 w-28 bg-primary rounded-3xl flex items-center justify-center text-primary-foreground shadow-2xl transform rotate-3">
                 <div className="relative">
-                  <Glasses className="h-14 w-14" />
-                  <ThumbsUp className="h-7 w-7 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full border-2 border-white" />
+                  <Glasses className="h-16 w-16" />
+                  <ThumbsUp className="h-8 w-8 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
                 </div>
               </div>
             )}

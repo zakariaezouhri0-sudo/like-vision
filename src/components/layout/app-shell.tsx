@@ -41,10 +41,10 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             {settings?.logoUrl ? (
               <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
             ) : (
-              <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
+              <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
                 <div className="relative">
-                  <Glasses className="h-7 w-7" />
-                  <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                  <Glasses className="h-8 w-8" />
+                  <ThumbsUp className="h-4 w-4 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                 </div>
               </div>
             )}
