@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "CAISSIER"] },
   { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "CAISSIER"] },
   { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/clients", label: "Clients & Ordonnances", icon: Eye, roles: ["ADMIN", "CAISSIER"] },
+  { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "CAISSIER"] },
   { href: "/rapports", label: "Rapports & Marges", icon: TrendingUp, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
   { href: "/parametres", label: "Paramètres", icon: Settings, roles: ["ADMIN"] },
