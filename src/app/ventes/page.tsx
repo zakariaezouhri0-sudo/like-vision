@@ -7,18 +7,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2 } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SalesHistoryPage() {
   const router = useRouter();
   const db = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
   const salesQuery = useMemoFirebase(() => {
@@ -29,7 +35,8 @@ export default function SalesHistoryPage() {
 
   const filteredSales = sales?.filter((sale: any) => 
     sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase())
+    sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''))
   ) || [];
 
   const handlePrint = (sale: any) => {
@@ -38,7 +45,7 @@ export default function SalesHistoryPage() {
       phone: sale.clientPhone,
       mutuelle: sale.mutuelle,
       total: sale.total.toString(),
-      remise: sale.remise.toString(),
+      remise: (sale.remise || 0).toString(),
       remisePercent: sale.remisePercent || "0",
       avance: sale.avance.toString(),
       od_sph: sale.prescription?.od?.sph || "",
@@ -49,7 +56,7 @@ export default function SalesHistoryPage() {
       og_axe: sale.prescription?.og?.axe || "",
       monture: sale.monture || "",
       verres: sale.verres || "",
-      date: sale.createdAt?.toDate ? sale.createdAt.toDate().toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"),
+      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : new Date().toLocaleDateString("fr-FR"),
     });
     router.push(`/ventes/facture/${sale.invoiceId}?${params.toString()}`);
   };
@@ -78,6 +85,26 @@ export default function SalesHistoryPage() {
       og_axe: sale.prescription?.og?.axe || "",
     });
     router.push(`/ventes/nouvelle?${params.toString()}`);
+  };
+
+  const handleDelete = async (id: string, invoiceId: string) => {
+    if (!confirm(`Voulez-vous vraiment supprimer la facture ${invoiceId} ? Cette action est irréversible.`)) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "sales", id));
+      toast({
+        variant: "success",
+        title: "Facture supprimée",
+        description: `La facture ${invoiceId} a été retirée de l'historique.`
+      });
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `sales/${id}`,
+        operation: 'delete'
+      }));
+    }
   };
 
   return (
@@ -119,6 +146,7 @@ export default function SalesHistoryPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Date</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Facture</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Client</TableHead>
                       <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Total</TableHead>
@@ -132,6 +160,14 @@ export default function SalesHistoryPage() {
                     {filteredSales.length > 0 ? (
                       filteredSales.map((sale: any) => (
                         <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                          <TableCell className="px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-[11px] font-bold text-slate-600">
+                                {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}
+                              </span>
+                            </div>
+                          </TableCell>
                           <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">{sale.invoiceId}</TableCell>
                           <TableCell className="px-4 md:px-8 py-5 md:py-6 min-w-[150px] whitespace-nowrap">
                             <div className="flex flex-col">
@@ -142,7 +178,7 @@ export default function SalesHistoryPage() {
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
                             <div className="flex items-baseline justify-end gap-1.5">
                               <span className="font-black text-xs md:text-sm text-slate-900 leading-none">
-                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total)}
+                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total - (sale.remise || 0))}
                               </span>
                               <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
                             </div>
@@ -184,13 +220,14 @@ export default function SalesHistoryPage() {
                               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
                                 <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Printer className="mr-3 h-4 w-4 text-primary" /> Ré-imprimer</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(sale.id, sale.invoiceId)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={7} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
