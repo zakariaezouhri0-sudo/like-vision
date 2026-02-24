@@ -28,6 +28,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "phone"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "type": "object",
+      "description": "Représente une vente/facture.",
+      "properties": {
+        "invoiceId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "mutuelle": { "type": "string" },
+        "total": { "type": "number" },
+        "remise": { "type": "number" },
+        "avance": { "type": "number" },
+        "reste": { "type": "number" },
+        "statut": { "type": "string" },
+        "prescription": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -41,6 +59,10 @@
     "/clients/{clientId}": {
       "schema": "Client",
       "description": "Collection des clients."
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Collection des ventes."
     }
   }
 }

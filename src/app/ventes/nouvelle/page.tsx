@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,28 +12,45 @@ import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useFirestore } from "@/firebase";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
-export default function NewSalePage() {
+function NewSaleForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const [mutuelle, setMutuelle] = useState("Aucun");
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [total, setTotal] = useState(0);
-  
-  const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
-  const [discountValue, setDiscountValue] = useState(0);
-  const [avance, setAvance] = useState(0);
+  const searchParams = useSearchParams();
+  const db = useFirestore();
+  const [loading, setLoading] = useState(false);
+
+  const editId = searchParams.get("editId");
+
+  const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
+  const [clientName, setClientName] = useState(searchParams.get("client") || "");
+  const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
+  const [total, setTotal] = useState(Number(searchParams.get("total")) || 0);
+  const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
+  const [discountValue, setDiscountValue] = useState(Number(searchParams.get("discountValue")) || 0);
+  const [avance, setAvance] = useState(Number(searchParams.get("avance")) || 0);
   
   const [prescription, setPrescription] = useState({
-    od: { sph: "", cyl: "", axe: "" },
-    og: { sph: "", cyl: "", axe: "" }
+    od: { 
+      sph: searchParams.get("od_sph") || "", 
+      cyl: searchParams.get("od_cyl") || "", 
+      axe: searchParams.get("od_axe") || "" 
+    },
+    og: { 
+      sph: searchParams.get("og_sph") || "", 
+      cyl: searchParams.get("og_cyl") || "", 
+      axe: searchParams.get("og_axe") || "" 
+    }
   });
 
   const remiseAmount = discountType === "percent" 
@@ -52,176 +70,226 @@ export default function NewSalePage() {
     }));
   };
 
-  const handleSave = () => {
-    toast({
-      variant: "success",
-      title: "Vente Enregistrée",
-      description: "La facture a été générée avec succès.",
-    });
+  const handleSave = async (silent = false) => {
+    if (!clientName || !total) {
+      toast({ variant: "destructive", title: "Erreur", description: "Nom client et total obligatoires." });
+      return null;
+    }
+
+    setLoading(true);
+
+    const statut = resteAPayer <= 0 ? "Payé" : (avance > 0 ? "Partiel" : "En attente");
+    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2024-${Math.floor(Math.random() * 1000)}` : `OPT-2024-${Math.floor(Math.random() * 1000)}`;
+
+    const saleData = {
+      invoiceId,
+      clientName,
+      clientPhone,
+      mutuelle,
+      total,
+      remise: remiseAmount,
+      discountType,
+      discountValue,
+      remisePercent: discountType === "percent" ? discountValue.toString() : "Fixe",
+      avance,
+      reste: resteAPayer,
+      statut,
+      prescription,
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      if (editId) {
+        await updateDoc(doc(db, "sales", editId), saleData);
+      } else {
+        await addDoc(collection(db, "sales"), { ...saleData, createdAt: serverTimestamp() });
+      }
+
+      if (!silent) {
+        toast({ variant: "success", title: "Succès", description: "La vente a été enregistrée." });
+        router.push("/ventes");
+      }
+      return saleData;
+    } catch (err) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+        path: editId ? `sales/${editId}` : "sales", 
+        operation: editId ? "update" : "create", 
+        requestResourceData: saleData 
+      }));
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    const saleData = await handleSave(true);
+    if (!saleData) return;
+
     const params = new URLSearchParams({
-      client: clientName || "Client de passage",
-      phone: clientPhone || "---",
-      mutuelle,
-      total: total.toString(),
-      remise: remiseAmount.toString(),
-      remisePercent: discountType === "percent" ? discountValue.toString() : "Fixe",
-      avance: avance.toString(),
-      od_sph: prescription.od.sph,
-      od_cyl: prescription.od.cyl,
-      od_axe: prescription.od.axe,
-      og_sph: prescription.og.sph,
-      og_cyl: prescription.og.cyl,
-      og_axe: prescription.og.axe,
+      client: saleData.clientName,
+      phone: saleData.clientPhone,
+      mutuelle: saleData.mutuelle,
+      total: saleData.total.toString(),
+      remise: saleData.remise.toString(),
+      remisePercent: saleData.remisePercent,
+      avance: saleData.avance.toString(),
+      od_sph: saleData.prescription.od.sph,
+      od_cyl: saleData.prescription.od.cyl,
+      od_axe: saleData.prescription.od.axe,
+      og_sph: saleData.prescription.og.sph,
+      og_cyl: saleData.prescription.og.cyl,
+      og_axe: saleData.prescription.og.axe,
       date: new Date().toLocaleDateString("fr-FR"),
     });
-    router.push(`/ventes/facture/OPT-2024-NEW?${params.toString()}`);
+    router.push(`/ventes/facture/${saleData.invoiceId}?${params.toString()}`);
   };
 
   return (
     <AppShell>
-      <div className="space-y-4 max-w-5xl mx-auto pb-24 lg:pb-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-card p-3 rounded-lg border shadow-sm">
+      <div className="space-y-4 max-w-5xl mx-auto pb-24">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[32px] border shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-primary">Nouvelle Vente</h1>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-medium tracking-wider">Saisie client & ordonnance.</p>
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">
+              {editId ? "Modifier la Vente" : "Nouvelle Vente"}
+            </h1>
+            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">Saisie client & ordonnance.</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none h-9 text-[11px] font-bold">
-              <Printer className="mr-1.5 h-4 w-4" />
+          <div className="flex gap-3 w-full sm:w-auto">
+            <Button variant="outline" size="lg" onClick={handlePrint} className="flex-1 sm:flex-none h-14 rounded-2xl font-black text-xs border-primary/20 bg-white hover:bg-primary/5 shadow-sm" disabled={loading}>
+              <Printer className="mr-2 h-5 w-5" />
               IMPRIMER
             </Button>
-            <Button size="sm" onClick={handleSave} className="flex-1 sm:flex-none h-9 text-[11px] font-bold">
-              <Save className="mr-1.5 h-4 w-4" />
+            <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-14 rounded-2xl font-black text-xs shadow-xl px-10" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
               ENREGISTRER
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-4">
-            <Card className="shadow-sm border-none overflow-hidden">
-              <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
-                <CardTitle className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-2">
-                  <ShoppingBag className="h-3.5 w-3.5" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
+              <CardHeader className="py-4 px-8 bg-slate-50/50 border-b">
+                <CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em] flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
                   Informations Client
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Nom & Prénom</Label>
-                    <Input className="h-9 text-sm font-medium" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
+              <CardContent className="p-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Téléphone</Label>
-                    <Input className="h-9 text-sm font-medium" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Téléphone</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-black">Couverture / Mutuelle</Label>
-                  <Select onValueChange={setMutuelle} defaultValue="Aucun">
-                    <SelectTrigger className="h-9 text-sm font-medium">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
+                  <Select onValueChange={setMutuelle} value={mutuelle}>
+                    <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {MUTUELLES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    <SelectContent className="rounded-2xl">
+                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-none overflow-hidden">
-              <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
-                <CardTitle className="text-[10px] uppercase font-black text-muted-foreground">Prescription Optique</CardTitle>
+            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
+              <CardHeader className="py-4 px-8 bg-slate-50/50 border-b">
+                <CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em]">Prescription Optique</CardTitle>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent className="p-8">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={handlePrescriptionChange} />
               </CardContent>
             </Card>
 
-            <Collapsible className="border-none rounded-lg bg-card shadow-sm overflow-hidden">
+            <Collapsible className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full flex justify-between px-4 py-3 h-auto hover:bg-muted/30 transition-all">
-                  <span className="text-[10px] font-black uppercase text-muted-foreground">Options Monture & Verres</span>
-                  <ChevronDown className="h-4 w-4" />
+                <Button variant="ghost" className="w-full flex justify-between px-8 py-5 h-auto hover:bg-slate-50 transition-all">
+                  <span className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Options Monture & Verres</span>
+                  <ChevronDown className="h-4 w-4 opacity-40" />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 pt-0 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Monture</Label>
-                    <Input className="h-9 text-sm" placeholder="Marque, Modèle..." />
+              <CollapsibleContent className="p-8 pt-0 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Monture</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" placeholder="Marque, Modèle..." />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Verres</Label>
-                    <Input className="h-9 text-sm" placeholder="Type, Traitement..." />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Verres</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" placeholder="Type, Traitement..." />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-black">Notes additionnelles</Label>
-                  <Textarea className="text-sm min-h-[80px]" placeholder="Observations particulières..." />
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Notes additionnelles</Label>
+                  <Textarea className="text-sm font-bold rounded-xl bg-slate-50 border-none min-h-[100px]" placeholder="Observations particulières..." />
                 </div>
               </CollapsibleContent>
             </Collapsible>
           </div>
 
-          <div className="space-y-4">
-            <Card className="shadow-md border-primary/20 bg-primary/5 sticky top-20">
-              <CardHeader className="py-3 px-4 bg-primary text-primary-foreground">
-                <CardTitle className="text-xs font-black uppercase tracking-widest">Calcul Financier</CardTitle>
+          <div className="space-y-6">
+            <Card className="shadow-2xl border-none bg-primary p-2 rounded-[40px] sticky top-24">
+              <CardHeader className="py-6 px-8 text-white">
+                <CardTitle className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Calcul Financier</CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="flex justify-between items-center bg-white p-2 rounded-lg border">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground">Total Brut</Label>
+              <CardContent className="p-6 space-y-5">
+                <div className="flex justify-between items-center bg-white/10 p-4 rounded-2xl border border-white/5">
+                  <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest">Total Brut</Label>
                   <div className="relative">
-                    <Input className="w-28 h-9 text-right font-black pr-8 border-none focus-visible:ring-0" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
-                    <span className="absolute right-2 top-2.5 text-[8px] font-black opacity-30">DH</span>
+                    <Input className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-white focus-visible:ring-0 text-lg" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
+                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-white/30">DH</span>
                   </div>
                 </div>
                 
-                <div className="space-y-2 pt-2 border-t border-dashed border-primary/20">
+                <div className="space-y-4 pt-4 border-t border-white/10">
                   <div className="flex justify-between items-center">
-                    <Label className="text-destructive text-[9px] font-black uppercase">Remise Client</Label>
-                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as "percent" | "amount")} className="h-7">
-                      <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-destructive/10">
-                        <TabsTrigger value="percent" className="text-[10px] h-5">%</TabsTrigger>
-                        <TabsTrigger value="amount" className="text-[10px] h-5">DH</TabsTrigger>
+                    <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise Client</Label>
+                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-8">
+                      <TabsList className="h-8 grid grid-cols-2 w-20 p-1 bg-white/10 border-none">
+                        <TabsTrigger value="percent" className="text-[10px] font-black h-6 data-[state=active]:bg-white data-[state=active]:text-primary">%</TabsTrigger>
+                        <TabsTrigger value="amount" className="text-[10px] font-black h-6 data-[state=active]:bg-white data-[state=active]:text-primary">DH</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
-                  <div className="flex justify-end relative bg-white rounded-lg border border-destructive/20 overflow-hidden">
-                    <Input className="w-full h-9 text-right text-destructive font-black pr-8 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
-                    <span className="absolute right-2 top-2.5 text-[8px] font-black text-destructive/40">{discountType === 'percent' ? '%' : 'DH'}</span>
+                  <div className="flex justify-end relative bg-white/10 rounded-2xl border border-white/5 overflow-hidden">
+                    <Input className="w-full h-12 text-right text-white font-black pr-10 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+                    <span className="absolute right-4 top-3.5 text-[9px] font-black text-white/30">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
                   {discountType === 'percent' && (
-                    <p className="text-right text-[9px] font-bold text-destructive/60">
+                    <p className="text-right text-[10px] font-black text-white/40 italic">
                       = -{formatCurrency(remiseAmount)}
                     </p>
                   )}
                 </div>
 
-                <div className="flex justify-between items-center bg-primary/10 p-3 rounded-lg border border-primary/20">
-                  <Label className="text-[10px] font-black uppercase text-primary">Total Net à payer</Label>
-                  <span className="font-black text-sm text-primary">{formatCurrency(totalNet)}</span>
+                <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-inner">
+                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Net à payer</Label>
+                  <span className="font-black text-xl text-primary tracking-tighter">{formatCurrency(totalNet)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center pt-2 bg-white p-2 rounded-lg border">
-                  <Label className="text-green-600 text-[10px] font-black uppercase">Avance Versée</Label>
+                <div className="flex justify-between items-center bg-green-500/20 p-4 rounded-2xl border border-green-500/20">
+                  <Label className="text-green-200 text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
                   <div className="relative">
-                    <Input className="w-28 h-9 text-right text-green-700 font-black pr-8 border-none focus-visible:ring-0" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
-                    <span className="absolute right-2 top-2.5 text-[8px] font-black text-green-700/40">DH</span>
+                    <Input className="w-32 h-10 text-right text-white font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-white/30">DH</span>
                   </div>
                 </div>
                 
-                <Separator className="bg-primary/20" />
-                
-                <div className="bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center shadow-lg transform scale-[1.02]">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Reste du</span>
-                  <span className="text-xl font-black tracking-tight">{formatCurrency(resteAPayer)}</span>
+                <div className="bg-slate-900 text-white p-6 rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">Reste à régler</span>
+                  <span className="text-3xl font-black tracking-tighter text-primary">
+                    {formatCurrency(resteAPayer).split(' ')[0]}
+                    <span className="text-xs ml-1 opacity-40">DH</span>
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -229,5 +297,13 @@ export default function NewSalePage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function NewSalePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Chargement du formulaire...</div>}>
+      <NewSaleForm />
+    </Suspense>
   );
 }
