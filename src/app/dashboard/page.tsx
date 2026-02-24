@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -67,7 +66,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-8">
-      {/* Header Compact */}
+      {/* Header Compact - Optimisé Mobile */}
       <div className="flex items-center justify-between gap-2 bg-card p-3 rounded-xl border shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
           <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shrink-0">
@@ -92,7 +91,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards Optimized */}
+      {/* KPI Cards - Design Final avec Icônes Grandes */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
           <TrendingUp className="absolute -right-4 -top-4 h-24 w-24 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-300" />
@@ -170,6 +169,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Dernières Ventes - Optimisé pour mobile sans "Dossiers" */}
       <Card className="shadow-sm border-none overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/20">
           <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Dernières Ventes</CardTitle>
