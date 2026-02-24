@@ -14,7 +14,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
-export default function LoginPage() {
+export default function HomePage() {
   const router = useRouter();
   const db = useFirestore();
   const auth = useAuth();
@@ -27,6 +27,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
+    // Identifiants par défaut pour le développement/démo
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);

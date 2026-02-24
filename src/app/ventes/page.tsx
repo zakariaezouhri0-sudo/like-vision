@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,7 +50,10 @@ export default function SalesHistoryPage() {
       if (dateFrom && saleDate) {
         const start = startOfDay(dateFrom);
         const end = endOfDay(dateTo || dateFrom);
-        matchesDate = isWithinInterval(saleDate, { start, end });
+        // On s'assure que start est bien avant end pour éviter les erreurs de date-fns
+        const finalStart = start < end ? start : end;
+        const finalEnd = start < end ? end : start;
+        matchesDate = isWithinInterval(saleDate, { start: finalStart, end: finalEnd });
       } else if (dateFrom && !saleDate) {
         matchesDate = false;
       }
@@ -158,14 +161,15 @@ export default function SalesHistoryPage() {
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-6 border-b bg-slate-50/50">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="flex flex-col lg:flex-row items-end gap-4">
               
-              <div className="lg:col-span-4 space-y-1.5 w-full">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Recherche client ou N°</Label>
+              {/* Recherche */}
+              <div className="flex-1 space-y-1.5 w-full">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Client ou N° Facture</Label>
                 <div className="relative">
                   <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
                   <input 
-                    placeholder="Nom, téléphone, facture..." 
+                    placeholder="Rechercher..." 
                     className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -173,61 +177,64 @@ export default function SalesHistoryPage() {
                 </div>
               </div>
               
-              <div className="lg:col-span-5 grid grid-cols-2 gap-3 w-full">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Du</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
-                        <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                        {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "---"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                      <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Au</Label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
-                          <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "---"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                        <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                    {(dateFrom || dateTo) && (
-                      <Button variant="ghost" size="icon" onClick={clearDates} className="h-12 w-12 rounded-xl text-destructive hover:bg-destructive/10 shrink-0">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+              {/* Filtre Date Du */}
+              <div className="w-full lg:w-44 space-y-1.5">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Du</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
+                      {dateFrom ? format(dateFrom, "dd/MM/yy") : "---"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                    <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              <div className="lg:col-span-3 space-y-1.5 w-full">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Filtrer par Statut</Label>
+              {/* Filtre Date Au */}
+              <div className="w-full lg:w-44 space-y-1.5">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Au</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
+                      {dateTo ? format(dateTo, "dd/MM/yy") : "---"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                    <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Statut */}
+              <div className="w-full lg:w-48 space-y-1.5">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Statut</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-primary/40" />
-                      <SelectValue placeholder="Statut" />
-                    </div>
+                    <SelectValue placeholder="Statut" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
+                    <SelectItem value="TOUS" className="font-bold">Tous</SelectItem>
                     <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
                     <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
                     <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Reset */}
+              {(dateFrom || dateTo || searchTerm || statusFilter !== "TOUS") && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => { clearDates(); setSearchTerm(""); setStatusFilter("TOUS"); }} 
+                  className="h-12 px-4 rounded-xl text-destructive hover:bg-destructive/10 font-black text-[10px] uppercase"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" /> Reset
+                </Button>
+              )}
 
             </div>
           </CardHeader>

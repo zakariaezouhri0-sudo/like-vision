@@ -258,9 +258,9 @@ function NewSaleForm() {
             <Card className="shadow-sm border-none overflow-hidden rounded-[24px] md:rounded-[32px] bg-white">
               <CardHeader className="py-4 px-6 md:px-8 bg-slate-50/50 border-b"><CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em] flex items-center gap-2"><ShoppingBag className="h-4 w-4" />Informations Client</CardTitle></CardHeader>
               <CardContent className="p-6 md:p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 h-4 leading-none flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex items-center gap-2 h-4">
                       Téléphone {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
                     </Label>
                     <div className="relative">
@@ -268,20 +268,20 @@ function NewSaleForm() {
                       <Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 h-4 leading-none flex items-center">Nom & Prénom</Label>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 h-4">Nom & Prénom</Label>
                     <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 h-4 leading-none flex items-center">Date de Vente</Label>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 h-4">Date de Vente</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold text-sm">
+                        <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold text-sm px-4">
                           <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                           {format(saleDate, "dd/MM/yyyy")}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
                         <Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus />
                       </PopoverContent>
                     </Popover>
@@ -338,7 +338,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
                 <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayer)}</span></div></div>
 
-                {/* Section Coûts d'Achat (Admin) - Repositionnée en bas */}
+                {/* Section Coûts d'Achat (Admin) */}
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
                     <Tag className="h-3 w-3" /> Coûts d'Achat (Interne)
