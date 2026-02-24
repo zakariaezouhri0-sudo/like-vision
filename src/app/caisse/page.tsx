@@ -64,119 +64,113 @@ export default function CaissePage() {
 
   return (
     <AppShell>
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-headline font-bold text-primary">Gestion de la Caisse</h1>
-            <p className="text-muted-foreground">Suivi quotidien des flux financiers du magasin.</p>
+            <h1 className="text-xl md:text-3xl font-bold text-primary">Gestion de la Caisse</h1>
+            <p className="text-[10px] md:text-sm text-muted-foreground">Suivi des flux financiers.</p>
           </div>
           
           {!isSessionOpen ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="lg" className="bg-primary hover:bg-primary/90 w-full md:w-auto">
-                  <PlusCircle className="mr-2 h-5 w-5" />
+                <Button size="sm" className="bg-primary w-full md:w-auto h-9">
+                  <PlusCircle className="mr-2 h-4 w-4" />
                   Ouvrir la Caisse
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[95vw] sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Ouverture de Session</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Solde Initial (DH)</Label>
-                    <Input type="number" placeholder="0.00" value={soldeInitial} onChange={(e) => setSoldeInitial(Number(e.target.value))} />
+                    <Label className="text-xs">Solde Initial (DH)</Label>
+                    <Input type="number" value={soldeInitial} onChange={(e) => setSoldeInitial(Number(e.target.value))} />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => setIsSessionOpen(true)}>Confirmer l'Ouverture</Button>
+                  <Button onClick={() => setIsSessionOpen(true)} className="w-full">Confirmer</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           ) : (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="lg" className="border-destructive text-destructive hover:bg-destructive/10 w-full md:w-auto">
-                  <LogOut className="mr-2 h-5 w-5" />
-                  Clôturer la Caisse
+                <Button variant="outline" size="sm" className="border-destructive text-destructive h-9 w-full md:w-auto">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Clôturer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Clôture de Session & Comptage</DialogTitle>
+                  <DialogTitle className="text-sm md:text-lg">Clôture & Comptage</DialogTitle>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 py-2">
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase text-muted-foreground flex items-center gap-2 border-b pb-2">
-                      <Coins className="h-4 w-4" />
-                      Détail des Espèces
+                    <h3 className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 border-b pb-1">
+                      <Coins className="h-3 w-3" />
+                      Détail Espèces
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {DENOMINATIONS.map(val => (
-                        <div key={val} className="grid grid-cols-[60px_20px_1fr_100px] items-center gap-2">
-                          <div className="text-right font-bold text-xs">{val} DH</div>
-                          <div className="text-muted-foreground text-xs text-center">x</div>
+                        <div key={val} className="grid grid-cols-[50px_15px_1fr_80px] items-center gap-1">
+                          <div className="text-right font-bold text-[10px]">{val} DH</div>
+                          <div className="text-muted-foreground text-[10px] text-center">x</div>
                           <Input 
                             type="number" 
-                            className="h-8 text-center" 
+                            className="h-7 text-center text-xs" 
                             value={denoms[val]}
                             onChange={(e) => handleUpdateDenom(val, e.target.value)}
-                            min="0"
                           />
-                          <div className="text-right text-xs font-medium whitespace-nowrap">
+                          <div className="text-right text-[10px] font-medium whitespace-nowrap">
                             {formatCurrency(val * (denoms[val] || 0))}
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="pt-4 border-t bg-primary/5 p-4 rounded-lg">
+                    <div className="pt-2 border-t bg-primary/5 p-3 rounded-lg">
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-sm">TOTAL COMPTÉ :</span>
-                        <span className="text-xl font-black text-primary whitespace-nowrap">{formatCurrency(soldeReel)}</span>
+                        <span className="font-bold text-[10px]">TOTAL COMPTÉ :</span>
+                        <span className="text-lg font-black text-primary">{formatCurrency(soldeReel)}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-8">
-                    <h3 className="text-sm font-bold uppercase text-muted-foreground border-b pb-2">Résumé Comptable</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between items-center gap-4">
-                        <span className="text-muted-foreground">Solde Initial:</span>
-                        <span className="font-medium whitespace-nowrap">{formatCurrency(soldeInitial)}</span>
+                  <div className="space-y-4 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-6">
+                    <h3 className="text-[10px] font-black uppercase text-muted-foreground border-b pb-1">Résumé Comptable</h3>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between">
+                        <span>Initial:</span>
+                        <span className="font-medium">{formatCurrency(soldeInitial)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-green-600 gap-4">
-                        <span>Total Ventes:</span>
-                        <span className="font-bold whitespace-nowrap">+{formatCurrency(totalVentes)}</span>
+                      <div className="flex justify-between text-green-600">
+                        <span>Ventes:</span>
+                        <span className="font-bold">+{formatCurrency(totalVentes)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-destructive gap-4">
-                        <span>Total Dépenses:</span>
-                        <span className="font-bold whitespace-nowrap">-{formatCurrency(totalDepenses)}</span>
+                      <div className="flex justify-between text-destructive">
+                        <span>Dépenses:</span>
+                        <span className="font-bold">-{formatCurrency(totalDepenses)}</span>
                       </div>
-                      <div className="flex justify-between items-center gap-4">
-                        <span className="text-muted-foreground">Total Apports:</span>
-                        <span className="font-medium whitespace-nowrap">+{formatCurrency(totalApports)}</span>
-                      </div>
-                      <div className="pt-3 border-t font-black text-primary flex justify-between items-center gap-4">
-                        <span>SOLDE THÉORIQUE:</span>
-                        <span className="whitespace-nowrap">{formatCurrency(soldeTheorique)}</span>
+                      <div className="pt-2 border-t font-black text-primary flex justify-between">
+                        <span>THÉORIQUE:</span>
+                        <span>{formatCurrency(soldeTheorique)}</span>
                       </div>
                     </div>
 
                     <div className={cn(
-                      "mt-8 p-4 rounded-lg border-2 text-center",
+                      "mt-4 p-3 rounded-lg border-2 text-center",
                       soldeReel - soldeTheorique === 0 ? "border-green-200 bg-green-50" : "border-destructive/20 bg-destructive/5"
                     )}>
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Écart de Caisse</p>
-                      <p className={cn("text-2xl font-black whitespace-nowrap", soldeReel - soldeTheorique >= 0 ? "text-green-600" : "text-destructive")}>
+                      <p className="text-[8px] uppercase font-bold text-muted-foreground mb-1">Écart</p>
+                      <p className={cn("text-xl font-black", soldeReel - soldeTheorique >= 0 ? "text-green-600" : "text-destructive")}>
                         {soldeReel - soldeTheorique >= 0 ? "+" : ""}{formatCurrency(soldeReel - soldeTheorique)}
                       </p>
                     </div>
                   </div>
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 border-t pt-4">
-                  <Button variant="ghost" className="text-muted-foreground w-full sm:w-auto" onClick={() => setIsSessionOpen(false)}>Annuler</Button>
-                  <Button className="bg-primary w-full sm:w-auto" onClick={handleCloturerEtImprimer}>
+                  <Button className="w-full" onClick={handleCloturerEtImprimer}>
                     <Printer className="mr-2 h-4 w-4" />
                     Valider & Imprimer
                   </Button>
@@ -186,110 +180,42 @@ export default function CaissePage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-primary text-primary-foreground">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium opacity-80">Solde Actuel (Théorique)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold whitespace-nowrap">{formatCurrency(soldeTheorique)}</div>
-              <div className="flex items-center gap-2 mt-1 opacity-80">
-                <Wallet className="h-4 w-4" />
-                <span className="text-xs">Initial: {formatCurrency(soldeInitial)}</span>
-              </div>
-            </CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="bg-primary text-primary-foreground p-4">
+            <p className="text-[10px] uppercase font-bold opacity-70">Solde Théorique</p>
+            <p className="text-2xl font-black">{formatCurrency(soldeTheorique)}</p>
           </Card>
-          
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Entrées</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 whitespace-nowrap">{formatCurrency(totalVentes + totalApports)}</div>
-              <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                <ArrowUpRight className="h-3 w-3" />
-                <span className="text-xs">Ventes + Apports</span>
-              </div>
-            </CardContent>
+          <Card className="border-l-4 border-l-green-500 p-4">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground">Entrées</p>
+            <p className="text-xl font-bold text-green-600">{formatCurrency(totalVentes + totalApports)}</p>
           </Card>
-
-          <Card className="border-l-4 border-l-destructive">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Sorties</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive whitespace-nowrap">-{formatCurrency(totalDepenses)}</div>
-              <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                <ArrowDownRight className="h-3 w-3" />
-                <span className="text-xs">Dépenses & Versements</span>
-              </div>
-            </CardContent>
+          <Card className="border-l-4 border-l-destructive p-4">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground">Sorties</p>
+            <p className="text-xl font-bold text-destructive">-{formatCurrency(totalDepenses)}</p>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle>Dernières Transactions</CardTitle>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" className="w-full sm:w-auto">Nouvelle Transaction</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Ajouter une Transaction</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Type</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez le type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DEPENSE">Dépense</SelectItem>
-                        <SelectItem value="APPORT">Apport</SelectItem>
-                        <SelectItem value="VERSEMENT">Versement</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Libellé</Label>
-                    <Input placeholder="Ex: Achat café, Transport..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Montant (DH)</Label>
-                    <Input type="number" placeholder="0.00" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button className="w-full sm:w-auto">Enregistrer</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="p-4 border-b">
+            <CardTitle className="text-sm font-bold">Derniers Flux</CardTitle>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="whitespace-nowrap">Heure</TableHead>
-                    <TableHead className="whitespace-nowrap">Libellé</TableHead>
-                    <TableHead className="whitespace-nowrap">Type</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Montant</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Heure</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Désignation</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Montant</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{t.date}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{t.label}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant={t.type === "VENTE" ? "default" : t.type === "DEPENSE" ? "destructive" : "secondary"}>
-                          {t.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={cn("text-right font-bold whitespace-nowrap", t.montant > 0 ? "text-green-600" : "text-destructive")}>
-                        {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
+                      <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">{t.date}</TableCell>
+                      <TableCell className="text-[10px] font-medium whitespace-nowrap truncate max-w-[120px]">{t.label}</TableCell>
+                      <TableCell className={cn("text-right text-[10px] font-bold whitespace-nowrap", t.montant > 0 ? "text-green-600" : "text-destructive")}>
+                        {formatCurrency(t.montant)}
                       </TableCell>
                     </TableRow>
                   ))}

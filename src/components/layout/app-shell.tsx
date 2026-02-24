@@ -51,13 +51,13 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 shadow-sm">
+        <header className="h-14 md:h-16 border-b bg-card flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-2">
             {/* Mobile Menu Trigger */}
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-72">
@@ -72,35 +72,35 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
                     <span className="font-headline font-bold text-xl text-primary">{APP_NAME}</span>
                   </SheetTitle>
                 </SheetHeader>
-                <div className="py-4" onClick={() => setOpen(false)}>
+                <div className="py-4 overflow-y-auto max-h-[calc(100vh-80px)]" onClick={() => setOpen(false)}>
                   <SidebarNav role={role} />
                 </div>
               </SheetContent>
             </Sheet>
 
             <Link href="/dashboard" className="flex items-center gap-2 group">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground md:hidden">
+              <div className="h-7 w-7 bg-primary rounded-full flex items-center justify-center text-primary-foreground md:hidden shrink-0">
                 <div className="relative">
-                  <Glasses className="h-5 w-5" />
-                  <ThumbsUp className="h-2.5 w-2.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
+                  <Glasses className="h-4 w-4" />
+                  <ThumbsUp className="h-2 w-2 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
                 </div>
               </div>
-              <h2 className="text-sm font-bold text-primary md:text-muted-foreground md:font-medium">
+              <h2 className="text-xs md:text-sm font-bold text-primary truncate max-w-[120px] md:max-w-none">
                 {APP_NAME} <span className="hidden md:inline">Optique Pro</span>
               </h2>
             </Link>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive h-8 px-2 md:px-3">
               <Link href="/login">
-                <LogOut className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Déconnexion</span>
+                <LogOut className="h-3.5 w-3.5 md:mr-2" />
+                <span className="hidden md:inline text-xs">Déconnexion</span>
               </Link>
             </Button>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 md:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

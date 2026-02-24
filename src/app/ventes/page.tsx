@@ -28,27 +28,27 @@ export default function SalesHistoryPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Historique des Ventes</h1>
-            <p className="text-sm text-muted-foreground">Suivi des factures et règlements clients.</p>
+            <h1 className="text-xl font-bold text-primary">Historique</h1>
+            <p className="text-[10px] text-muted-foreground">Suivi des factures.</p>
           </div>
-          <Button asChild size="sm" className="w-full sm:w-auto shadow-md">
+          <Button asChild size="sm" className="w-full sm:w-auto h-8 text-xs shadow-md">
             <Link href="/ventes/nouvelle">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nouvelle Vente
             </Link>
           </Button>
         </div>
 
-        <Card className="shadow-sm">
-          <CardHeader className="py-4 px-6 border-b">
+        <Card className="shadow-sm border-none">
+          <CardHeader className="p-3 md:p-4 border-b">
             <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input 
-                placeholder="Chercher client ou N° facture..." 
-                className="pl-10 h-9 text-sm"
+                placeholder="Chercher..." 
+                className="pl-8 h-8 text-xs"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -59,44 +59,26 @@ export default function SalesHistoryPage() {
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Facture</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Date</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Client</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Total</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Avance</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-right">Reste</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase text-center">Statut</TableHead>
-                    <TableHead className="text-right whitespace-nowrap font-bold text-xs uppercase">Actions</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Facture</TableHead>
+                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Client</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Total</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Reste</TableHead>
+                    <TableHead className="text-center text-[10px] uppercase font-bold whitespace-nowrap">Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-bold whitespace-nowrap text-primary text-xs">{sale.id}</TableCell>
-                      <TableCell className="whitespace-nowrap text-[10px] text-muted-foreground">{sale.date}</TableCell>
-                      <TableCell className="whitespace-nowrap font-semibold text-xs">{sale.client}</TableCell>
-                      <TableCell className="whitespace-nowrap text-right font-medium text-xs">{formatCurrency(sale.total)}</TableCell>
-                      <TableCell className="text-green-600 font-bold whitespace-nowrap text-right text-xs">{formatCurrency(sale.avance)}</TableCell>
-                      <TableCell className={cn("whitespace-nowrap text-right font-black text-xs", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
+                    <TableRow key={sale.id} className="hover:bg-muted/30">
+                      <TableCell className="font-bold text-[10px] whitespace-nowrap text-primary">{sale.id}</TableCell>
+                      <TableCell className="font-medium text-[10px] whitespace-nowrap">{sale.client}</TableCell>
+                      <TableCell className="text-right font-medium text-[10px] whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className={cn("text-right font-black text-[10px] whitespace-nowrap", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
                         {formatCurrency(sale.reste)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-center">
-                        <Badge className="text-[9px] font-black px-2 py-0 h-5" variant={
-                          sale.statut === "Payé" ? "default" : 
-                          sale.statut === "Partiel" ? "secondary" : "outline"
-                        }>
+                      <TableCell className="text-center">
+                        <Badge className="text-[8px] px-1.5 h-4" variant={sale.statut === "Payé" ? "default" : "outline"}>
                           {sale.statut}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Détails">
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Imprimer">
-                            <Printer className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
