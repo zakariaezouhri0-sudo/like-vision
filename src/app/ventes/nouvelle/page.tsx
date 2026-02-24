@@ -12,14 +12,14 @@ import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2 } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -29,6 +29,7 @@ function NewSaleForm() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
 
   const editId = searchParams.get("editId");
 
@@ -53,6 +54,37 @@ function NewSaleForm() {
     }
   });
 
+  // Recherche automatique du client quand le téléphone change
+  useEffect(() => {
+    const searchClient = async () => {
+      const cleanPhone = clientPhone.replace(/\s/g, "");
+      if (cleanPhone.length >= 10 && !editId) {
+        setIsSearchingClient(true);
+        try {
+          const q = query(collection(db, "clients"), where("phone", "==", clientPhone));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const clientData = querySnapshot.docs[0].data();
+            setClientName(clientData.name);
+            setMutuelle(clientData.mutuelle || "Aucun");
+            toast({
+              variant: "success",
+              title: "Client trouvé",
+              description: `Dossier de ${clientData.name} récupéré automatiquement.`,
+            });
+          }
+        } catch (error) {
+          console.error("Erreur recherche client:", error);
+        } finally {
+          setIsSearchingClient(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(searchClient, 500);
+    return () => clearTimeout(timer);
+  }, [clientPhone, db, editId, toast]);
+
   const remiseAmount = discountType === "percent" 
     ? (total * discountValue) / 100 
     : discountValue;
@@ -71,8 +103,8 @@ function NewSaleForm() {
   };
 
   const handleSave = async (silent = false) => {
-    if (!clientName || !total) {
-      toast({ variant: "destructive", title: "Erreur", description: "Nom client et total obligatoires." });
+    if (!clientName || !total || !clientPhone) {
+      toast({ variant: "destructive", title: "Erreur", description: "Nom, téléphone et total obligatoires." });
       return null;
     }
 
@@ -99,6 +131,33 @@ function NewSaleForm() {
     };
 
     try {
+      // 1. Gérer le dossier client automatiquement
+      const clientsRef = collection(db, "clients");
+      const clientQuery = query(clientsRef, where("phone", "==", clientPhone));
+      const clientSnapshot = await getDocs(clientQuery);
+
+      if (clientSnapshot.empty) {
+        // Nouveau client : créer dossier
+        await addDoc(clientsRef, {
+          name: clientName,
+          phone: clientPhone,
+          mutuelle: mutuelle,
+          lastVisit: new Date().toLocaleDateString("fr-FR"),
+          ordersCount: 1,
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        // Client existant : mettre à jour
+        const clientId = clientSnapshot.docs[0].id;
+        await updateDoc(doc(db, "clients", clientId), {
+          lastVisit: new Date().toLocaleDateString("fr-FR"),
+          ordersCount: increment(1),
+          name: clientName, // Au cas où le nom a été corrigé
+          mutuelle: mutuelle
+        });
+      }
+
+      // 2. Enregistrer la vente
       if (editId) {
         await updateDoc(doc(db, "sales", editId), saleData);
       } else {
@@ -106,7 +165,11 @@ function NewSaleForm() {
       }
 
       if (!silent) {
-        toast({ variant: "success", title: "Succès", description: "La vente a été enregistrée." });
+        toast({ 
+          variant: "success", 
+          title: "Vente Enregistrée", 
+          description: editId ? "La facture a été mise à jour." : "La vente et le dossier client ont été enregistrés." 
+        });
         router.push("/ventes");
       }
       return saleData;
@@ -179,12 +242,18 @@ function NewSaleForm() {
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label>
-                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex justify-between">
+                      Téléphone
+                      {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                    </Label>
+                    <div className="relative">
+                      <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
+                      <Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Téléphone</Label>
-                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label>
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
                   </div>
                 </div>
                 <div className="space-y-2">
