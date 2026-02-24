@@ -10,7 +10,7 @@ import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react
 import { APP_NAME } from "@/lib/constants";
 import { useFirestore, useAuth } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { signInAnonymously } from "firebase/auth";
+import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
@@ -26,9 +26,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
+    // Identifiants par défaut pour le développement/démo
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
-        await signInAnonymously(auth);
+        const userCredential = await signInAnonymously(auth);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: "Admin" });
+        }
         toast({ 
           variant: "success",
           title: "Connexion réussie", 
@@ -59,7 +63,10 @@ export default function LoginPage() {
           throw new Error("Votre compte est suspendu.");
         }
         
-        await signInAnonymously(auth);
+        const userCredential = await signInAnonymously(auth);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: userData.name });
+        }
         
         toast({
           variant: "success",

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -70,7 +69,7 @@ export default function DashboardPage() {
     }));
   }, []);
 
-  const userName = user?.displayName || user?.email?.split('@')[0] || "Utilisateur";
+  const userName = user?.displayName || "Utilisateur";
 
   return (
     <div className="space-y-6 md:space-y-8 pb-10">
@@ -189,7 +188,7 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-slate-50/50">
           <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes</CardTitle>
           <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap uppercase tracking-widest">
-            <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR</Link>
+            <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR <ChevronRight className="h-3 w-3" /></Link>
           </Button>
         </CardHeader>
         <CardContent className="p-0">
@@ -209,11 +208,11 @@ export default function DashboardPage() {
                     <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.id}</TableCell>
                     <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.client}</TableCell>
                     <TableCell className="text-right px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
-                          {formatCurrency(sale.total).replace(' DH', '')}
+                      <div className="flex items-baseline justify-end gap-1.5">
+                        <span className="text-sm md:text-lg font-black text-slate-900">
+                          {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total)}
                         </span>
-                        <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">DH</span>
+                        <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">DH</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
