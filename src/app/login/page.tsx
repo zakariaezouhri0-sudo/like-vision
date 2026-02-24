@@ -33,10 +33,14 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } catch (error: any) {
+      let message = "Email ou mot de passe incorrect.";
+      if (error.code === 'auth/invalid-email') message = "Format d'email invalide.";
+      if (error.code === 'auth/user-not-found') message = "Utilisateur non trouvé.";
+      
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: "Email ou mot de passe incorrect.",
+        description: message,
       });
       console.error(error);
     } finally {
@@ -62,19 +66,19 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 pt-8">
             <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
             <CardDescription>
-              Entrez vos identifiants réels Firebase pour accéder au système
+              Entrez votre utilisateur et mot de passe pour accéder au système.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email professionnel</Label>
+                <Label htmlFor="email">Utilisateur (Email)</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="email" 
                     type="email"
-                    placeholder="votre@email.com" 
+                    placeholder="exemple@domaine.com" 
                     className="pl-10" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -83,14 +87,13 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Mot de passe</Label>
-                </div>
+                <Label htmlFor="password">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="password" 
                     type="password" 
+                    placeholder="••••••••"
                     className="pl-10" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
