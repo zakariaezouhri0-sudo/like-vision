@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -73,8 +74,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 md:space-y-8 pb-10">
-      <div className="flex items-center justify-between gap-4 bg-white p-6 rounded-[32px] border shadow-sm border-slate-200">
-        <div className="flex items-center gap-5 min-w-0">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
+        <div className="flex items-center gap-6 min-w-0">
           <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg shrink-0 transform rotate-2">
             <Glasses className="h-10 w-10" />
           </div>
@@ -91,10 +92,10 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <div className="shrink-0 hidden sm:block">
-          <div className="bg-green-100 border border-green-200 rounded-2xl px-5 py-2.5 flex items-center gap-2.5 shadow-sm">
+        <div className="shrink-0">
+          <div className="bg-green-100 border border-green-200 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
             <div className="h-2.5 w-2.5 rounded-full bg-green-600 animate-pulse" />
-            <span className="text-xs font-black text-green-700 uppercase tracking-widest">Caisse Ouverte</span>
+            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Caisse Ouverte</span>
           </div>
         </div>
       </div>
