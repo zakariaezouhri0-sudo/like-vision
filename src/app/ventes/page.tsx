@@ -11,7 +11,7 @@ import { Search, Printer, Plus, MoreVertical, Edit2, Loader2 } from "lucide-reac
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -135,7 +135,7 @@ export default function SalesHistoryPage() {
                           <TableCell className="px-8 py-6">
                             <div className="flex flex-col">
                               <span className="font-black text-sm text-slate-800 uppercase">{sale.clientName}</span>
-                              <span className="text-[10px] font-bold text-slate-400">{sale.clientPhone}</span>
+                              <span className="text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-8 py-6">

@@ -19,6 +19,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { formatPhoneNumber } from "@/lib/utils";
 
 export default function ClientsPage() {
   const { toast } = useToast();
@@ -40,7 +41,7 @@ export default function ClientsPage() {
 
   const filteredClients = clients?.filter((client: any) => 
     client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    client.phone?.includes(searchTerm)
+    client.phone?.replace(/\s/g, '').includes(searchTerm.replace(/\s/g, ''))
   ) || [];
 
   const handleCreateClient = () => {
@@ -49,9 +50,12 @@ export default function ClientsPage() {
       return;
     }
 
+    // On nettoie le téléphone avant stockage pour indexation
+    const cleanedPhone = newClient.phone.replace(/\s/g, '');
+
     const clientData = {
       name: newClient.name,
-      phone: newClient.phone,
+      phone: cleanedPhone,
       mutuelle: newClient.mutuelle,
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
@@ -79,7 +83,7 @@ export default function ClientsPage() {
     const clientRef = doc(db, "clients", editingClient.id);
     const updateData = {
       name: editingClient.name,
-      phone: editingClient.phone,
+      phone: editingClient.phone.replace(/\s/g, ''),
       mutuelle: editingClient.mutuelle
     };
 
@@ -190,7 +194,9 @@ export default function ClientsPage() {
                               <span className="text-lg font-black text-slate-900 leading-none">{c.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm font-black text-primary px-10 py-9 tracking-tighter">{c.phone}</TableCell>
+                          <TableCell className="text-sm font-black text-primary px-10 py-9 tracking-tighter">
+                            {formatPhoneNumber(c.phone)}
+                          </TableCell>
                           <TableCell className="px-10 py-9">
                             <Badge variant="outline" className="text-[11px] font-black uppercase border-primary/20 bg-primary/5 text-primary px-5 py-2.5 rounded-xl shadow-sm tracking-widest">
                               {c.mutuelle}
