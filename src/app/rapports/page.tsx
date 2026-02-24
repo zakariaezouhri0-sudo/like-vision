@@ -10,7 +10,8 @@ import {
   FileSpreadsheet, 
   Calendar as CalendarIcon, 
   Loader2, 
-  Printer
+  Printer,
+  FileText
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -21,8 +22,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useRouter } from "next/navigation";
 
 export default function ReportsPage() {
+  const router = useRouter();
   const db = useFirestore();
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: startOfMonth(new Date()),
@@ -45,18 +48,27 @@ export default function ReportsPage() {
     const ca = filteredSales.reduce((acc, s) => acc + (s.total - (s.remise || 0)), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0), 0);
     const expenses = filteredTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+    const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(t.montant), 0);
     const apports = filteredTrans.filter(t => t.type === "APPORT").reduce((acc, t) => acc + t.montant, 0);
 
     return {
       ca,
       marge: ca - costs,
       expenses,
+      versements,
       apports,
       count: filteredSales.length,
       filteredSales,
       filteredTrans
     };
   }, [sales, transactions, dateRange]);
+
+  const handlePrintDaily = () => {
+    const params = new URLSearchParams({
+      date: format(dateRange.from, "yyyy-MM-dd"),
+    });
+    router.push(`/rapports/print/journalier?${params.toString()}`);
+  };
 
   const handleExportCSV = () => {
     const headers = ["Date", "Type", "Label", "Categorie", "Montant (DH)"];
@@ -106,8 +118,8 @@ export default function ReportsPage() {
               <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
             </Button>
             
-            <Button onClick={() => window.print()} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white shrink-0">
-              <Printer className="mr-1.5 h-4 w-4" /> PDF
+            <Button onClick={handlePrintDaily} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white shrink-0 text-primary">
+              <FileText className="mr-1.5 h-4 w-4" /> RAPPORT JOURNALIER
             </Button>
           </div>
         </div>
@@ -127,7 +139,7 @@ export default function ReportsPage() {
           </Card>
           <Card className="bg-white border-none shadow-lg p-6 rounded-[32px] border-l-8 border-l-green-500">
             <p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde de Période</p>
-            <p className="text-2xl font-black text-green-600">{formatCurrency(stats.ca + stats.apports - stats.expenses)}</p>
+            <p className="text-2xl font-black text-green-600">{formatCurrency(stats.ca + stats.apports - stats.expenses - stats.versements)}</p>
           </Card>
         </div>
 
