@@ -1,46 +1,28 @@
-# Like Vision - Système de Gestion Optique
 
-Bienvenue dans votre application de gestion professionnelle.
+# Like Vision - Système de Gestion Optique 🚀
 
-## Pourquoi PythonAnywhere ne fonctionne pas ?
-Cette application est développée avec **Next.js (Node.js)**. 
-- **PythonAnywhere** ne supporte que les applications **Python**.
-- Pour héberger cette application, vous devez utiliser un service compatible **Node.js** comme **Firebase App Hosting** ou **Vercel**.
+Félicitations ! Votre application est en ligne.
 
-## Comment mettre votre application en ligne (Gratuitement)
+## Accès Rapide
+- **Lien de Production :** [https://like-vision-w6y2.vercel.app/](https://like-vision-w6y2.vercel.app/)
 
-Pour que votre application soit accessible sur internet, suivez ces étapes simples :
+## Comment mettre à jour votre site
+Désormais, à chaque fois que vous faites une modification ici :
+1. Enregistrez les fichiers.
+2. Allez dans le **Terminal**.
+3. Tapez ces 3 commandes :
+   ```bash
+   git add .
+   git commit -m "Description de ma mise à jour"
+   git push origin main
+   ```
+4. **Vercel** mettra à jour votre site automatiquement en 1 minute.
 
-### 1. Créer votre projet sur GitHub
-- Connectez-vous sur [GitHub](https://github.com/).
-- Créez un nouveau dépôt (Repository) nommé `like-vision`.
-- Copiez l'adresse fournie (ex: `https://github.com/votre-nom/like-vision.git`).
+## Fonctionnalités Clés
+- **Tableau de Bord :** Vue d'ensemble du CA et des montants à recouvrir.
+- **Ventes & Factures :** Impression A4 paysage (2x A5) optimisée.
+- **Suivi Optique :** Gestion précise des corrections OD/OG.
+- **Gestion de Caisse :** Clôture journalière avec comptage des espèces.
 
-### 2. Envoyer le code vers GitHub
-- Ouvrez le **Terminal** ici dans Firebase Studio.
-- Tapez ces commandes une par une (remplacez le lien par le vôtre) :
-  ```bash
-  git init
-  git add .
-  git commit -m "Initial commit"
-  git branch -M main
-  git remote add origin [VOTRE_LIEN_GITHUB_ICI]
-  git push -u origin main
-  ```
-
-### 3. Configurer le déploiement sur Firebase
-- Allez sur votre lien : [Console App Hosting](https://console.firebase.google.com/project/like-vision-187e1/apphosting)
-- **Important :** Si Firebase vous demande de passer au forfait **Blaze (Pay-as-you-go)** :
-  - C'est nécessaire pour activer l'hébergement moderne.
-  - **Rassurez-vous :** Pour un petit projet, cela reste **0 DH**. Vous profitez du "Free Tier" (niveau gratuit) de Google Cloud.
-- **Sur l'écran App Hosting :**
-  - **Descendez tout en bas** de la page.
-  - Cliquez sur le bouton bleu **"Commencer"** ou **"Créer un backend"**.
-  - Connectez votre compte GitHub et sélectionnez votre dépôt `like-vision`.
-  - Cliquez sur **"Suivant"** jusqu'à la fin.
-
-## Fonctionnalités
-- Tableau de bord en temps réel.
-- Gestion de caisse et clôture.
-- Facturation A5 paysage.
-- Suivi des ordonnances.
+---
+*Propulsé par Next.js & Vercel*
