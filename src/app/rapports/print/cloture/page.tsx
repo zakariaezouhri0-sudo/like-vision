@@ -33,10 +33,11 @@ function CashClosurePrintContent() {
   const initial = Number(searchParams.get("initial")) || 0;
   const ventes = Number(searchParams.get("ventes")) || 0;
   const depenses = Number(searchParams.get("depenses")) || 0;
+  const versements = Number(searchParams.get("versements")) || 0;
   const apports = Number(searchParams.get("apports")) || 0;
   const reel = Number(searchParams.get("reel")) || 0;
   
-  const theorique = initial + ventes + apports - depenses;
+  const theorique = initial + ventes + apports - depenses - versements;
   const ecart = reel - theorique;
 
   const cashDetail = DENOMINATIONS.map(val => ({
@@ -121,7 +122,7 @@ function CashClosurePrintContent() {
               <FileText className="h-5 w-5 text-primary/60" />
               Analyse des Flux
             </h3>
-            <div className="space-y-5 bg-slate-50/50 p-8 rounded-3xl border border-slate-100 shadow-inner">
+            <div className="space-y-4 bg-slate-50/50 p-8 rounded-3xl border border-slate-100 shadow-inner">
               <div className="flex justify-between text-base font-bold text-slate-600">
                 <span>Solde Initial :</span>
                 <span className="text-slate-900">{formatCurrency(initial)}</span>
@@ -131,8 +132,12 @@ function CashClosurePrintContent() {
                 <span>+{formatCurrency(ventes + apports)}</span>
               </div>
               <div className="flex justify-between text-base font-black text-destructive">
-                <span>Total Sorties :</span>
+                <span>Dépenses :</span>
                 <span>-{formatCurrency(depenses)}</span>
+              </div>
+              <div className="flex justify-between text-base font-black text-orange-600">
+                <span>Versements :</span>
+                <span>-{formatCurrency(versements)}</span>
               </div>
               <div className="pt-6 border-t-4 border-dashed border-slate-200 flex justify-between items-center">
                 <span className="text-xs font-black uppercase tracking-widest text-slate-400">Solde Théorique</span>

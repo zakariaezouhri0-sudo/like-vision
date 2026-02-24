@@ -45,16 +45,23 @@ export default function CaissePage() {
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
-    if (!transactions) return { entrees: 0, sorties: 0 };
+    if (!transactions) return { entrees: 0, depenses: 0, versements: 0 };
     return transactions.reduce((acc: any, t: any) => {
-      if (t.montant > 0) acc.entrees += t.montant;
-      else acc.sorties += Math.abs(t.montant);
+      if (t.montant > 0) {
+        acc.entrees += t.montant;
+      } else {
+        if (t.type === "VERSEMENT") {
+          acc.versements += Math.abs(t.montant);
+        } else {
+          acc.depenses += Math.abs(t.montant);
+        }
+      }
       return acc;
-    }, { entrees: 0, sorties: 0 });
+    }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
 
   const initial = parseFloat(soldeInitial) || 0;
-  const soldeTheorique = initial + stats.entrees - stats.sorties;
+  const soldeTheorique = initial + stats.entrees - stats.depenses - stats.versements;
   const ecart = soldeReel - soldeTheorique;
 
   const handleAddOperation = async () => {
@@ -92,8 +99,9 @@ export default function CaissePage() {
   const handlePrintClosure = () => {
     const params = new URLSearchParams({
       date: new Date().toLocaleDateString("fr-FR"),
-      ventes: stats.entrees.toString(), // Total des entrées
-      depenses: stats.sorties.toString(), // Total des sorties
+      ventes: stats.entrees.toString(),
+      depenses: stats.depenses.toString(),
+      versements: stats.versements.toString(),
       apports: "0", 
       reel: soldeReel.toString(),
       initial: initial.toString()
@@ -112,7 +120,7 @@ export default function CaissePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Gestion de Caisse</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Suivi des entrées (Ventes/Apports) et sorties (Dépenses/Versements).</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Suivi des flux réels du magasin.</p>
           </div>
           
           <div className="flex gap-2 w-full sm:w-auto">
@@ -198,8 +206,12 @@ export default function CaissePage() {
                           <span>{formatCurrency(stats.entrees)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-destructive">
-                          <span>Total Sorties (-)</span>
-                          <span>{formatCurrency(stats.sorties)}</span>
+                          <span>Dépenses (-)</span>
+                          <span>{formatCurrency(stats.depenses)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-orange-600">
+                          <span>Versements (-)</span>
+                          <span>{formatCurrency(stats.versements)}</span>
                         </div>
                         <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                           <span className="text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
@@ -235,18 +247,22 @@ export default function CaissePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-green-500">
             <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Entrées (Ventes/Apports)</p>
             <p className="text-2xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p>
           </Card>
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-destructive">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Sorties (Dépenses/Vers. Banque)</p>
-            <p className="text-2xl font-black text-destructive">-{formatCurrency(stats.sorties)}</p>
+            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Dépenses (Charges)</p>
+            <p className="text-2xl font-black text-destructive">-{formatCurrency(stats.depenses)}</p>
+          </Card>
+          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-orange-500">
+            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Versements (Banque)</p>
+            <p className="text-2xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p>
           </Card>
           <Card className="bg-primary text-primary-foreground p-6 rounded-[32px] shadow-lg">
             <p className="text-[10px] uppercase font-black opacity-60 mb-1">Solde Net des Flux</p>
-            <p className="text-2xl font-black">{formatCurrency(stats.entrees - stats.sorties)}</p>
+            <p className="text-2xl font-black">{formatCurrency(stats.entrees - stats.depenses - stats.versements)}</p>
           </Card>
         </div>
 
