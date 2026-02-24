@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, AlertTriangle, CheckCircle2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -29,6 +29,7 @@ function NewSaleForm() {
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
 
   const editId = searchParams.get("editId");
 
@@ -65,23 +66,48 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !editId) {
         setIsSearchingClient(true);
         try {
+          // 1. Chercher le client
           const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
           const querySnapshot = await getDocs(q);
+          
           if (!querySnapshot.empty) {
             const clientData = querySnapshot.docs[0].data();
             setClientName(clientData.name);
             setMutuelle(clientData.mutuelle || "Aucun");
+
+            // 2. Chercher son historique de dettes
+            const salesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
+            const salesSnapshot = await getDocs(salesQ);
+            
+            let unpaid = 0;
+            let count = 0;
+            salesSnapshot.forEach(doc => {
+              const data = doc.data();
+              unpaid += (data.reste || 0);
+              count++;
+            });
+
+            setClientHistory({
+              totalUnpaid: unpaid,
+              orderCount: count,
+              hasUnpaid: unpaid > 0
+            });
+
             toast({
               variant: "success",
-              title: "Client trouvé",
-              description: `Dossier de ${clientData.name} récupéré automatiquement.`,
+              title: "Dossier Client chargé",
+              description: unpaid > 0 ? "Attention : Ce client a des impayés." : "Client fidèle identifié.",
             });
+          } else {
+            setClientHistory(null);
           }
         } catch (error) {
           console.error("Erreur recherche client:", error);
         } finally {
           setIsSearchingClient(false);
         }
+      } else if (cleanPhone.length < 10) {
+        setClientHistory(null);
       }
     };
 
@@ -292,6 +318,58 @@ function NewSaleForm() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* ESPACE CLIENT / STATUT FIDÉLITÉ & IMPAYÉS */}
+            {clientHistory && (
+              <div className={cn(
+                "p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500",
+                clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
+              )}>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0",
+                      clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white"
+                    )}>
+                      {clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}
+                    </div>
+                    <div>
+                      <h3 className={cn(
+                        "text-lg font-black uppercase tracking-tight",
+                        clientHistory.hasUnpaid ? "text-red-900" : "text-green-900"
+                      )}>
+                        Vérification Dossier Client
+                      </h3>
+                      <p className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.2em] opacity-70",
+                        clientHistory.hasUnpaid ? "text-red-700" : "text-green-700"
+                      )}>
+                        {clientHistory.hasUnpaid ? "Attention : Reste à régler détecté" : "Situation financière à jour"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 w-full md:w-auto">
+                    <div className="flex flex-col items-center md:items-end">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span>
+                      <span className={cn(
+                        "text-2xl font-black tracking-tighter",
+                        clientHistory.hasUnpaid ? "text-red-600" : "text-green-600"
+                      )}>
+                        {formatCurrency(clientHistory.totalUnpaid)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center md:items-end">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-black text-slate-900 tracking-tighter">{clientHistory.orderCount}</span>
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Card className="shadow-sm border-none overflow-hidden rounded-[24px] md:rounded-[32px] bg-white">
               <CardHeader className="py-4 px-6 md:px-8 bg-slate-50/50 border-b">
