@@ -90,26 +90,24 @@ function CashClosurePrintContent() {
               )}
             </div>
             <div className="space-y-1">
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
-              <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] leading-none">Gestion Optique Professionnelle</p>
-              <div className="mt-3 space-y-0.5">
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">{shop.address}</p>
-                <p className="text-[11px] font-bold text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
+              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
+              <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
+              <div className="mt-2.5 space-y-0.5">
+                <p className="text-[10px] text-slate-500 font-medium leading-tight">{shop.address}</p>
+                <p className="text-[10px] font-bold text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="border-2 border-slate-900 text-slate-900 px-5 py-2 rounded-xl mb-3 inline-block">
-              <h2 className="text-lg font-black uppercase tracking-widest text-center leading-none">Clôture de Caisse</h2>
-            </div>
+            <h2 className="text-base font-black uppercase tracking-widest text-center leading-none border-2 border-slate-900 px-4 py-2 rounded-lg mb-2">Clôture de Caisse</h2>
             <div className="space-y-1">
-              <div className="flex items-center justify-end gap-2 text-[11px] font-bold text-slate-600">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
+                <Calendar className="h-3 w-3 text-slate-400" />
                 <span>Date: {date}</span>
               </div>
-              <div className="flex items-center justify-end gap-2 text-[11px] font-bold text-slate-400">
-                <User className="h-3.5 w-3.5" />
-                <span className="uppercase">Par: Administrateur</span>
+              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
+                <User className="h-3 w-3" />
+                <span className="uppercase">Administrateur</span>
               </div>
             </div>
           </div>
@@ -118,15 +116,11 @@ function CashClosurePrintContent() {
         {/* Financial Summary Grid - Lighter and Cleaner */}
         <div className="grid grid-cols-2 gap-10 mb-12">
           <div className="space-y-6">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100 pb-2 tracking-[0.2em] flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+            <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-100 pb-2 tracking-[0.2em] flex items-center gap-2">
+              <FileText className="h-3.5 w-3.5" />
               Analyse des Flux
             </h3>
             <div className="space-y-3 bg-slate-50/30 p-6 rounded-2xl border border-slate-100">
-              <div className="flex justify-between text-xs font-medium text-slate-500">
-                <span>Solde Initial :</span>
-                <span className="text-slate-900 font-bold">{formatCurrency(initial)}</span>
-              </div>
               <div className="flex justify-between text-xs font-bold text-green-600">
                 <span>Total Entrées :</span>
                 <span>+{formatCurrency(ventes + apports)}</span>
@@ -140,29 +134,28 @@ function CashClosurePrintContent() {
                 <span>-{formatCurrency(versements)}</span>
               </div>
               <div className="pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Solde Théorique</span>
-                <span className="text-xl font-black text-slate-900 tracking-tight">{formatCurrency(theorique)}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Solde Théorique</span>
+                <span className="text-lg font-black text-slate-900 tracking-tight">{formatCurrency(theorique)}</span>
               </div>
             </div>
 
-            {/* Écart de Caisse Éclatant mais Proportionné */}
             <div className={`p-6 rounded-2xl border-2 text-center ${ecart === 0 ? 'border-green-100 bg-green-50/50' : 'border-destructive/10 bg-destructive/5'}`}>
-              <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-[0.2em]">Écart de Caisse Final</p>
-              <p className={`text-3xl font-black tracking-tighter ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+              <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-[0.2em]">Écart Final</p>
+              <p className={`text-2xl font-black tracking-tighter ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                 {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
               </p>
             </div>
           </div>
 
           <div className="bg-slate-50/50 p-8 rounded-2xl border border-slate-100 space-y-6">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-200/50 pb-3 flex items-center gap-2 tracking-[0.2em]">
-              <Coins className="h-4 w-4 text-primary" />
+            <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-200/50 pb-3 flex items-center gap-2 tracking-[0.2em]">
+              <Coins className="h-3.5 w-3.5 text-primary" />
               Détail du Comptage
             </h3>
             <div className="space-y-2">
               {cashDetail.length > 0 ? (
                 cashDetail.map(item => (
-                  <div key={item.val} className="flex justify-between items-center text-[11px] border-b border-slate-100 pb-2 last:border-0">
+                  <div key={item.val} className="flex justify-between items-center text-[10px] border-b border-slate-100 pb-2 last:border-0">
                     <div className="flex gap-2 text-slate-400 font-bold">
                       <span className="w-12 text-right text-slate-900">{item.val} DH</span>
                       <span>×</span>
@@ -172,38 +165,38 @@ function CashClosurePrintContent() {
                   </div>
                 ))
               ) : (
-                <p className="text-[11px] text-slate-400 italic text-center py-4">Aucun détail saisi.</p>
+                <p className="text-[10px] text-slate-400 italic text-center py-4">Aucun détail saisi.</p>
               )}
               <div className="flex flex-col items-end pt-6 border-t border-slate-200 mt-4">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Espèces Comptées</span>
-                <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(reel)}</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Espèces Comptées</span>
+                <span className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reel)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer Signatures - More Balanced */}
+        {/* Footer Signatures */}
         <div className="mt-auto pt-12 border-t border-slate-100 grid grid-cols-2 gap-20">
           <div className="space-y-16">
             <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Signature de l'Opérateur</p>
-              <p className="text-[11px] font-bold text-slate-800">Administrateur</p>
+              <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Signature de l'Opérateur</p>
+              <p className="text-[10px] font-bold text-slate-800">Administrateur</p>
             </div>
             <div className="border-b border-slate-200 w-full opacity-50"></div>
           </div>
           <div className="space-y-16 text-right flex flex-col items-end">
-            <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Cachet de la Direction</p>
-            <div className="w-[70mm] h-[40mm] border border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50/30 relative">
-              <span className="text-[9px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-[0.3em] opacity-40 text-center leading-loose select-none">
-                Espace Réservé<br/>au Cachet Officiel
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Cachet du Magasin</p>
+            <div className="w-[60mm] h-[35mm] border border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50/30 relative">
+              <span className="text-[8px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-[0.3em] opacity-40 text-center leading-loose select-none">
+                Espace Réservé
               </span>
             </div>
           </div>
         </div>
 
         <div className="mt-16 text-center border-t border-slate-50 pt-6">
-          <p className="text-[8px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
-            {shop.name} • Système de Gestion Like Vision v1.3
+          <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
+            {shop.name} • Système Like Vision
           </p>
         </div>
       </div>

@@ -11,12 +11,6 @@ import {
   Calendar as CalendarIcon, 
   Loader2, 
   TrendingUp, 
-  ShoppingBag, 
-  Target, 
-  ArrowDownRight, 
-  ArrowUpRight,
-  Wallet,
-  Download,
   Printer
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -112,12 +106,14 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <Button onClick={handleExportCSV} className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
-              <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
-            </Button>
-            <Button onClick={() => window.print()} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase border-primary/20 bg-white">
-              <Printer className="mr-1.5 h-4 w-4" /> PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleExportCSV} className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
+                <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
+              </Button>
+              <Button onClick={() => window.print()} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase border-primary/20 bg-white">
+                <Printer className="mr-1.5 h-4 w-4" /> PDF
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -154,12 +150,13 @@ export default function ReportsPage() {
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Date</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Opération</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Catégorie</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Montant</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stats.filteredTrans.length > 0 ? stats.filteredTrans.map((t: any) => (
+                    {(salesLoading || transLoading) ? (
+                      <TableRow><TableCell colSpan={3} className="text-center py-20"><Loader2 className="h-6 w-6 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                    ) : stats.filteredTrans.length > 0 ? stats.filteredTrans.map((t: any) => (
                       <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0">
                         <TableCell className="text-[10px] font-bold text-muted-foreground px-4 md:px-6 py-4">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell>
                         <TableCell className="px-4 md:px-6 py-4">
@@ -173,13 +170,12 @@ export default function ReportsPage() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="px-4 md:px-6 py-4 text-[10px] font-black text-slate-500 uppercase">{t.category || "Général"}</TableCell>
                         <TableCell className={cn("text-right px-4 md:px-6 py-4 font-black text-xs whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
                           {formatCurrency(t.montant)}
                         </TableCell>
                       </TableRow>
                     )) : (
-                      <TableRow><TableCell colSpan={4} className="text-center py-20 text-[10px] font-black uppercase opacity-30">Aucun flux sur cette période.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black uppercase opacity-30">Aucun flux sur cette période.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -195,7 +191,6 @@ export default function ReportsPage() {
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-4 md:px-6 py-4">Vente</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Prix Vente</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4">Coût Achat</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-6 py-4 text-accent">Marge</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -212,7 +207,6 @@ export default function ReportsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-6 py-4 font-black text-xs whitespace-nowrap">{formatCurrency(net)}</TableCell>
-                          <TableCell className="text-right px-4 md:px-6 py-4 text-muted-foreground font-bold text-[10px] whitespace-nowrap">{formatCurrency(cost)}</TableCell>
                           <TableCell className="text-right px-4 md:px-6 py-4 font-black text-accent text-xs whitespace-nowrap">{formatCurrency(net - cost)}</TableCell>
                         </TableRow>
                       );

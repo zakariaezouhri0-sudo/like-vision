@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, HandCoins, Loader2, Calendar, User } from "lucide-react";
+import { Search, HandCoins, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
@@ -18,8 +18,6 @@ import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, add
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
 export default function UnpaidSalesPage() {
   const router = useRouter();
@@ -149,7 +147,6 @@ export default function UnpaidSalesPage() {
                             </span>
                             <div className="flex items-center gap-1.5 mt-1">
                               <span className="text-[9px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded uppercase">{sale.invoiceId}</span>
-                              <span className="text-[9px] font-bold text-slate-400 hidden sm:inline">{formatPhoneNumber(sale.clientPhone)}</span>
                             </div>
                           </div>
                         </TableCell>
