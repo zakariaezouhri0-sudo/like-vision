@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, FileText, Calendar, Loader2, Glasses, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
@@ -81,7 +81,7 @@ function DailyCashReportContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 print:py-0">
-      <div className="no-print w-[210mm] flex justify-between mb-8 px-4">
+      <div className="no-print w-full max-w-[210mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black">
           <Link href="/rapports">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
