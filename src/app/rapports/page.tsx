@@ -98,12 +98,13 @@ export default function ReportsPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
+                <Button variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase border-primary/20 bg-white">
                   <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                  {format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}
+                  <span className="hidden sm:inline">{format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}</span>
+                  <span className="sm:hidden">{format(dateRange.from, "dd/MM")} - {format(dateRange.to, "dd/MM")}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
@@ -111,14 +112,12 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <div className="flex gap-2">
-              <Button onClick={handleExportCSV} className="h-11 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
-                <FileSpreadsheet className="mr-2 h-4 w-4" /> EXCEL
-              </Button>
-              <Button onClick={() => window.print()} variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
-                <Printer className="mr-2 h-4 w-4" /> PDF
-              </Button>
-            </div>
+            <Button onClick={handleExportCSV} className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
+              <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
+            </Button>
+            <Button onClick={() => window.print()} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase border-primary/20 bg-white">
+              <Printer className="mr-1.5 h-4 w-4" /> PDF
+            </Button>
           </div>
         </div>
 
