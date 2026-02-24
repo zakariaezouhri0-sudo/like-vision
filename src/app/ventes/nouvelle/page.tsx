@@ -89,10 +89,10 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, editId, toast]);
 
-  // Nettoyage des valeurs pour le calcul (gestion des espaces de formatage)
   const cleanVal = (val: string | number) => {
     if (typeof val === 'number') return val;
-    return parseFloat(val.toString().replace(/\s/g, '').replace(',', '.')) || 0;
+    const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
   };
 
   const nTotal = cleanVal(total);
@@ -130,7 +130,7 @@ function NewSaleForm() {
     const saleData = {
       invoiceId,
       clientName,
-      clientPhone: clientPhone.toString(),
+      clientPhone: clientPhone.toString().replace(/\s/g, ""),
       mutuelle,
       total: nTotal,
       remise: remiseAmount,
@@ -229,20 +229,20 @@ function NewSaleForm() {
   return (
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-24">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[32px] border shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] border shadow-sm">
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">
+            <h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">
               {editId ? "Modifier la Vente" : "Nouvelle Vente"}
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">Saisie client & ordonnance.</p>
+            <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">Saisie client & ordonnance.</p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <Button variant="outline" size="lg" onClick={handlePrint} className="flex-1 sm:flex-none h-14 rounded-2xl font-black text-xs border-primary/20 bg-white hover:bg-primary/5 shadow-sm" disabled={loading}>
-              <Printer className="mr-2 h-5 w-5" />
+          <div className="flex gap-2 md:gap-3 w-full sm:w-auto">
+            <Button variant="outline" size="lg" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs border-primary/20 bg-white hover:bg-primary/5 shadow-sm" disabled={loading}>
+              <Printer className="mr-2 h-4 w-4 md:h-5 md:w-5" />
               IMPRIMER
             </Button>
-            <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-14 rounded-2xl font-black text-xs shadow-xl px-10" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
+            <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-xl px-6 md:px-10" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" /> : <Save className="mr-2 h-4 w-4 md:h-5 md:w-5" />}
               ENREGISTRER
             </Button>
           </div>
@@ -250,14 +250,14 @@ function NewSaleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
-              <CardHeader className="py-4 px-8 bg-slate-50/50 border-b">
+            <Card className="shadow-sm border-none overflow-hidden rounded-[24px] md:rounded-[32px] bg-white">
+              <CardHeader className="py-4 px-6 md:px-8 bg-slate-50/50 border-b">
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em] flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4" />
                   Informations Client
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-8 space-y-6">
+              <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex justify-between">
@@ -293,23 +293,23 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
-              <CardHeader className="py-4 px-8 bg-slate-50/50 border-b">
+            <Card className="shadow-sm border-none overflow-hidden rounded-[24px] md:rounded-[32px] bg-white">
+              <CardHeader className="py-4 px-6 md:px-8 bg-slate-50/50 border-b">
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em]">Prescription Optique</CardTitle>
               </CardHeader>
-              <CardContent className="p-8">
+              <CardContent className="p-6 md:p-8">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={handlePrescriptionChange} />
               </CardContent>
             </Card>
 
-            <Collapsible defaultOpen={false} className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
+            <Collapsible defaultOpen={false} className="border-none rounded-[24px] md:rounded-[32px] bg-white shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full flex justify-between px-8 py-5 h-auto hover:bg-slate-50 transition-all">
+                <Button variant="ghost" className="w-full flex justify-between px-6 md:px-8 py-4 md:py-5 h-auto hover:bg-slate-50 transition-all">
                   <span className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Options Monture & Verres (Détails)</span>
                   <ChevronDown className="h-4 w-4 opacity-40" />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-8 pt-0 space-y-6">
+              <CollapsibleContent className="p-6 md:p-8 pt-0 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Détail Monture</Label>
@@ -329,16 +329,16 @@ function NewSaleForm() {
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-2xl border-none bg-primary p-2 rounded-[40px] sticky top-24 overflow-hidden">
-              <CardHeader className="py-6 px-8 text-white">
-                <CardTitle className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Calcul Financier</CardTitle>
+            <Card className="shadow-2xl border-none bg-primary p-2 rounded-[32px] md:rounded-[40px] lg:sticky lg:top-24 overflow-hidden">
+              <CardHeader className="py-6 px-8 text-white/60">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em]">Calcul Financier</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-5">
+              <CardContent className="p-4 md:p-6 space-y-5">
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix de Vente Brut</Label>
-                  <div className="flex items-center gap-1.5">
-                    <Input 
-                      className="w-28 h-10 text-right font-black border-none bg-transparent text-slate-950 focus-visible:ring-0 text-lg p-0" 
+                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Brut</Label>
+                  <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                    <input 
+                      className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg p-0" 
                       type="number" 
                       value={total} 
                       onChange={(e) => setTotal(e.target.value)} 
@@ -349,7 +349,7 @@ function NewSaleForm() {
                 
                 <div className="space-y-4 pt-4 border-t border-white/10">
                   <div className="flex justify-between items-center px-1">
-                    <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise Client</Label>
+                    <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label>
                     <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7">
                       <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg">
                         <TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger>
@@ -358,8 +358,8 @@ function NewSaleForm() {
                     </Tabs>
                   </div>
                   <div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm">
-                    <Input 
-                      className="w-full h-8 text-right text-slate-950 font-black border-none focus-visible:ring-0 text-lg p-0" 
+                    <input 
+                      className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg p-0" 
                       type="number" 
                       value={discountValue} 
                       onChange={(e) => setDiscountValue(e.target.value)} 
@@ -381,10 +381,10 @@ function NewSaleForm() {
                 </div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                  <Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
-                  <div className="flex items-center gap-1.5">
-                    <Input 
-                      className="w-28 h-10 text-right text-slate-950 font-black border-none bg-transparent focus-visible:ring-0 text-lg p-0" 
+                  <Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label>
+                  <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                    <input 
+                      className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg p-0" 
                       type="number" 
                       value={avance} 
                       onChange={(e) => setAvance(e.target.value)} 
@@ -393,10 +393,10 @@ function NewSaleForm() {
                   </div>
                 </div>
                 
-                <div className="bg-slate-950 text-white p-6 rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2">
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2">
                   <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-4xl font-black tracking-tighter text-accent">
+                    <span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">
                       {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(resteAPayer)}
                     </span>
                     <span className="text-xs font-black text-accent/60 uppercase tracking-widest mt-2">DH</span>
@@ -404,15 +404,15 @@ function NewSaleForm() {
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-white/20 space-y-4">
-                  <h3 className="text-[10px] font-black uppercase text-white/40 tracking-[0.3em] flex items-center gap-2 px-1">
+                  <h3 className="text-[9px] font-black uppercase text-white/30 tracking-[0.3em] flex items-center gap-2 px-1">
                     <Calculator className="h-3 w-3" />
                     Données d'achat (Interne)
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white p-3 rounded-xl space-y-1 shadow-inner">
                       <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Achat Monture</Label>
-                      <Input 
-                        className="h-8 text-right font-black text-slate-950 bg-transparent border-none p-0 focus-visible:ring-0 text-sm" 
+                      <input 
+                        className="w-full h-6 text-right font-black text-slate-950 bg-transparent outline-none text-sm p-0" 
                         type="number" 
                         value={purchasePriceFrame} 
                         onChange={(e) => setPurchasePriceFrame(e.target.value)} 
@@ -421,8 +421,8 @@ function NewSaleForm() {
                     </div>
                     <div className="bg-white p-3 rounded-xl space-y-1 shadow-inner">
                       <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Achat Verres</Label>
-                      <Input 
-                        className="h-8 text-right font-black text-slate-950 bg-transparent border-none p-0 focus-visible:ring-0 text-sm" 
+                      <input 
+                        className="w-full h-6 text-right font-black text-slate-950 bg-transparent outline-none text-sm p-0" 
                         type="number" 
                         value={purchasePriceLenses} 
                         onChange={(e) => setPurchasePriceLenses(e.target.value)} 
@@ -442,7 +442,7 @@ function NewSaleForm() {
 
 export default function NewSalePage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Chargement du formulaire...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-widest animate-pulse">Chargement du formulaire...</div>}>
       <NewSaleForm />
     </Suspense>
   );

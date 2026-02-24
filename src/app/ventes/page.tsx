@@ -97,12 +97,12 @@ export default function SalesHistoryPage() {
         </div>
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
-          <CardHeader className="p-6 border-b bg-slate-50/50">
+          <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
             <div className="relative max-w-md">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
-              <Input 
+              <input 
                 placeholder="Chercher par client ou n° facture..." 
-                className="pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white"
+                className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -118,46 +118,55 @@ export default function SalesHistoryPage() {
               ) : (
                 <Table>
                   <TableHeader className="bg-slate-50/80">
-                    <TableRow>
-                      <TableHead className="text-[11px] uppercase font-black px-8 py-5 tracking-widest">Facture</TableHead>
-                      <TableHead className="text-[11px] uppercase font-black px-8 py-5 tracking-widest">Client</TableHead>
-                      <TableHead className="text-right text-[11px] uppercase font-black px-8 py-5 tracking-widest">Total</TableHead>
-                      <TableHead className="text-right text-[11px] uppercase font-black px-8 py-5 tracking-widest">Reste</TableHead>
-                      <TableHead className="text-center text-[11px] uppercase font-black px-8 py-5 tracking-widest">Statut</TableHead>
-                      <TableHead className="text-right text-[11px] uppercase font-black px-8 py-5 tracking-widest">Actions</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Facture</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Client</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Total</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Avance</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Reste</TableHead>
+                      <TableHead className="text-center text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Statut</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSales.length > 0 ? (
                       filteredSales.map((sale: any) => (
                         <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                          <TableCell className="font-black text-sm text-primary px-8 py-6">{sale.invoiceId}</TableCell>
-                          <TableCell className="px-8 py-6">
+                          <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">{sale.invoiceId}</TableCell>
+                          <TableCell className="px-4 md:px-8 py-5 md:py-6 min-w-[150px]">
                             <div className="flex flex-col">
-                              <span className="font-black text-sm text-slate-800 uppercase">{sale.clientName}</span>
-                              <span className="text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
+                              <span className="font-black text-xs md:text-sm text-slate-800 uppercase truncate">{sale.clientName}</span>
+                              <span className="text-[9px] md:text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right px-8 py-6">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className="font-black text-sm text-slate-900">
+                          <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
+                            <div className="flex flex-col items-end">
+                              <span className="font-black text-xs md:text-sm text-slate-900 leading-none">
                                 {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total)}
                               </span>
-                              <span className="text-[9px] font-black text-slate-400 uppercase">DH</span>
+                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right px-8 py-6">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className={cn("font-black text-sm", sale.reste > 0 ? "text-destructive" : "text-slate-300")}>
-                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.reste)}
+                          <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
+                            <div className="flex flex-col items-end">
+                              <span className="font-black text-xs md:text-sm text-green-600 leading-none">
+                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.avance || 0)}
                               </span>
-                              <span className="text-[9px] font-black text-slate-400 uppercase">DH</span>
+                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-center px-8 py-6">
+                          <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
+                            <div className="flex flex-col items-end">
+                              <span className={cn("font-black text-xs md:text-sm leading-none", (sale.reste || 0) > 0 ? "text-destructive" : "text-slate-300")}>
+                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.reste || 0)}
+                              </span>
+                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center px-4 md:px-8 py-5 md:py-6">
                             <Badge 
                               className={cn(
-                                "text-[9px] px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none",
+                                "text-[8px] md:text-[9px] px-2 md:px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none whitespace-nowrap",
                                 sale.statut === "Payé" ? "bg-green-100 text-green-700" : 
                                 sale.statut === "En attente" ? "bg-red-100 text-red-700" : 
                                 "bg-blue-100 text-blue-700"
@@ -167,21 +176,21 @@ export default function SalesHistoryPage() {
                               {sale.statut}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right px-8 py-6">
+                          <TableCell className="text-right px-4 md:px-8 py-5 md:py-6">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-primary/10 rounded-xl"><MoreVertical className="h-5 w-5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 rounded-xl transition-all"><MoreVertical className="h-4 w-4 md:h-5 md:w-5" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
-                                <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[11px] uppercase cursor-pointer rounded-xl"><Printer className="mr-3 h-4 w-4 text-primary" /> Ré-imprimer</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Printer className="mr-3 h-4 w-4 text-primary" /> Ré-imprimer</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={6} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
