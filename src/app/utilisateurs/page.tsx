@@ -24,7 +24,7 @@ export default function UsersPage() {
   const db = useFirestore();
   
   const usersQuery = useMemoFirebase(() => {
-    return query(collection(db, "users"), orderBy("name", "asc"));
+    return query(collection(db, "users"), orderBy("createdAt", "desc"));
   }, [db]);
 
   const { data: users, loading } = useCollection(usersQuery);
@@ -57,10 +57,9 @@ export default function UsersPage() {
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
-        toast({ title: "Utilisateur créé", description: `${userData.name} a été enregistré en base.` });
+        toast({ title: "Succès", description: "L'utilisateur a été enregistré." });
       })
       .catch((err) => {
-        toast({ variant: "destructive", title: "Erreur Base de Données", description: "Impossible d'enregistrer sur le serveur." });
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
           path: "users", 
           operation: "create", 
@@ -82,10 +81,14 @@ export default function UsersPage() {
 
     updateDoc(userRef, updateData)
       .then(() => {
-        toast({ title: "Mis à jour", description: "L'utilisateur a été modifié." });
+        toast({ title: "Mis à jour", description: "Modification enregistrée." });
       })
-      .catch(() => {
-        toast({ variant: "destructive", title: "Erreur", description: "La modification a échoué." });
+      .catch((err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: userRef.path, 
+          operation: "update", 
+          requestResourceData: updateData 
+        }));
       });
   };
 
@@ -97,7 +100,10 @@ export default function UsersPage() {
         toast({ title: "Supprimé", description: "L'utilisateur a été retiré." });
       })
       .catch(() => {
-        toast({ variant: "destructive", title: "Erreur", description: "La suppression a échoué." });
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: userRef.path, 
+          operation: "delete"
+        }));
       });
   };
 
@@ -196,16 +202,16 @@ export default function UsersPage() {
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-                  <span className="text-xs font-black text-muted-foreground uppercase">Chargement...</span>
+                  <span className="text-sm font-bold text-muted-foreground">Chargement...</span>
                 </div>
               ) : (
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="text-xs uppercase font-black px-6 py-4">Nom complet</TableHead>
-                      <TableHead className="text-xs uppercase font-black px-6 py-4">Identifiant</TableHead>
-                      <TableHead className="text-xs uppercase font-black px-6 py-4">Accès</TableHead>
-                      <TableHead className="text-right text-xs uppercase font-black px-6 py-4">Actions</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-6 py-4">Nom complet</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-6 py-4">Identifiant</TableHead>
+                      <TableHead className="text-sm uppercase font-black px-6 py-4">Accès</TableHead>
+                      <TableHead className="text-right text-sm uppercase font-black px-6 py-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -222,7 +228,7 @@ export default function UsersPage() {
                           <TableCell className="px-6 py-5">
                             <div className="flex items-center gap-2">
                               {u.role === 'ADMIN' ? <Shield className="h-3.5 w-3.5 text-primary" /> : <User className="h-3.5 w-3.5 text-muted-foreground" />}
-                              <Badge variant="outline" className="text-[9px] font-black uppercase bg-muted/30 px-2 py-0.5 rounded border-none shadow-none">{u.role}</Badge>
+                              <Badge variant="outline" className="text-[10px] font-black uppercase bg-muted/30 px-2 py-0.5 rounded border-none shadow-none">{u.role}</Badge>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-6 py-5">

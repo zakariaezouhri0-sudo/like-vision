@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -70,7 +71,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-8">
-      {/* Header Compact - Optimisé Mobile */}
       <div className="flex items-center justify-between gap-2 bg-card p-4 rounded-2xl border shadow-sm">
         <div className="flex items-center gap-3 min-w-0">
           <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shrink-0">
@@ -95,7 +95,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-lg p-5 md:p-8 rounded-[24px] relative overflow-hidden group">
           <TrendingUp className="absolute -right-6 -top-6 h-32 w-32 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-300" />

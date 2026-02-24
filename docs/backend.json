@@ -2,12 +2,10 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Représente un utilisateur du système.",
       "properties": {
-        "id": { "type": "string" },
         "name": { "type": "string" },
         "username": { "type": "string" },
         "role": { "type": "string" },
@@ -18,16 +16,15 @@
       "required": ["username", "name", "role", "password"]
     },
     "Client": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Client",
       "type": "object",
       "description": "Représente un client du magasin.",
       "properties": {
-        "id": { "type": "string" },
         "name": { "type": "string" },
         "phone": { "type": "string" },
         "mutuelle": { "type": "string" },
         "lastVisit": { "type": "string" },
+        "ordersCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "phone"]
@@ -37,23 +34,13 @@
     "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Collection des utilisateurs."
-        }
-      },
-      {
-        "path": "/clients/{clientId}",
-        "definition": {
-          "entityName": "Client",
-          "schema": { "$ref": "#/backend/entities/Client" },
-          "description": "Collection des clients."
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection des utilisateurs."
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Collection des clients."
+    }
   }
 }
