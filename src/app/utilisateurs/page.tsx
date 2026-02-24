@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2, Loader2 } from "lu
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -23,8 +23,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const db = useFirestore();
   
-  // Requête simplifiée pour assurer la visibilité immédiate
-  const usersQuery = useMemo(() => {
+  const usersQuery = useMemoFirebase(() => {
     return query(collection(db, "users"));
   }, [db]);
 
@@ -53,7 +52,6 @@ export default function UsersPage() {
       createdAt: serverTimestamp(),
     };
 
-    // Fermeture immédiate pour fluidité
     setIsCreateOpen(false);
     setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
 
