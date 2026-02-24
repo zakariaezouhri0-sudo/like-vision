@@ -1,0 +1,11 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pour le prototype, on autorise tout en lecture/écriture
+    // À restreindre plus tard avec l'authentification
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

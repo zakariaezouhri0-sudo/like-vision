@@ -1,0 +1,68 @@
+
+{
+  "entities": {
+    "Client": {
+      "title": "Client",
+      "description": "Informations sur le client et son historique optique",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nom complet du client" },
+        "phone": { "type": "string", "description": "Numéro de téléphone" },
+        "mutuelle": { "type": "string", "description": "Nom de la mutuelle" },
+        "lastVisit": { "type": "string", "format": "date", "description": "Date de la dernière visite" },
+        "ordersCount": { "type": "number", "description": "Nombre total de commandes" }
+      },
+      "required": ["name", "phone"]
+    },
+    "Sale": {
+      "title": "Vente",
+      "description": "Détails d'une transaction de vente optique",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "ID du client (si existant)" },
+        "clientName": { "type": "string", "description": "Nom du client lors de la vente" },
+        "date": { "type": "string", "format": "date-time", "description": "Date de la vente" },
+        "total": { "type": "number", "description": "Montant total brut" },
+        "discount": { "type": "number", "description": "Montant de la remise" },
+        "avance": { "type": "number", "description": "Avance versée" },
+        "reste": { "type": "number", "description": "Reste à payer" },
+        "status": { "type": "string", "enum": ["Payé", "Partiel", "En attente"] },
+        "prescription": {
+          "type": "object",
+          "properties": {
+            "od": { "type": "object", "properties": { "sph": { "type": "string" }, "cyl": { "type": "string" }, "axe": { "type": "string" } } },
+            "og": { "type": "object", "properties": { "sph": { "type": "string" }, "cyl": { "type": "string" }, "axe": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    "CashTransaction": {
+      "title": "Transaction de Caisse",
+      "description": "Entrée ou sortie d'argent en caisse",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "APPORT"] },
+        "label": { "type": "string", "description": "Description de la transaction" },
+        "montant": { "type": "number", "description": "Montant (positif pour entrées, négatif pour sorties)" },
+        "date": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Collection des clients du magasin"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Historique des ventes et factures"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "CashTransaction",
+      "description": "Journal des flux de caisse"
+    }
+  }
+}
