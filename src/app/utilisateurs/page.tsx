@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
+import { useToast } from "@/hooks/use-toast";
 
 const MOCK_USERS = [
   { id: 1, name: "Admin Système", username: "admin", role: "ADMIN", status: "Actif" },
@@ -20,7 +21,44 @@ const MOCK_USERS = [
 ];
 
 export default function UsersPage() {
-  const [users] = useState(MOCK_USERS);
+  const { toast } = useToast();
+  const [users, setUsers] = useState(MOCK_USERS);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    username: "",
+    role: "CAISSIER",
+    password: ""
+  });
+
+  const handleCreateUser = () => {
+    if (!newUser.name || !newUser.username || !newUser.password) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de saisie",
+        description: "Veuillez remplir tous les champs obligatoires.",
+      });
+      return;
+    }
+
+    // Simulation d'ajout
+    const userToAdd = {
+      id: users.length + 1,
+      name: newUser.name,
+      username: newUser.username,
+      role: newUser.role,
+      status: "Actif"
+    };
+
+    setUsers([...users, userToAdd]);
+    setIsDialogOpen(false);
+    setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
+
+    toast({
+      title: "Utilisateur créé",
+      description: `Le compte de ${newUser.name} a été activé avec succès.`,
+    });
+  };
 
   return (
     <AppShell>
@@ -31,7 +69,7 @@ export default function UsersPage() {
             <p className="text-muted-foreground">Gérez les accès et les permissions de votre équipe.</p>
           </div>
           
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -45,16 +83,27 @@ export default function UsersPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Nom complet</Label>
-                  <Input placeholder="Prénom Nom" />
+                  <Input 
+                    placeholder="Prénom Nom" 
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Nom d'utilisateur</Label>
-                  <Input placeholder="nom.prenom" />
+                  <Input 
+                    placeholder="nom.prenom" 
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Rôle</Label>
-                    <Select defaultValue="CAISSIER">
+                    <Select 
+                      value={newUser.role} 
+                      onValueChange={(v) => setNewUser({...newUser, role: v})}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Rôle" />
                       </SelectTrigger>
@@ -66,12 +115,16 @@ export default function UsersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Mot de passe</Label>
-                    <Input type="password" />
+                    <Input 
+                      type="password" 
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button>Créer le compte</Button>
+                <Button onClick={handleCreateUser}>Créer le compte</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

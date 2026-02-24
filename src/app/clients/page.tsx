@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, Eye, History, Phone, User } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
+import { useToast } from "@/hooks/use-toast";
 
 const MOCK_CLIENTS = [
   { id: 1, name: "Ahmed Mansour", phone: "06 61 22 33 44", lastVisit: "10/05/2024", mutuelle: "CNSS", orders: 3 },
@@ -21,12 +22,47 @@ const MOCK_CLIENTS = [
 ];
 
 export default function ClientsPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [clients, setClients] = useState(MOCK_CLIENTS);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newClient, setNewClient] = useState({
+    name: "",
+    phone: "",
+    mutuelle: "Aucun"
+  });
 
-  const filteredClients = MOCK_CLIENTS.filter(client => 
+  const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     client.phone.includes(searchTerm)
   );
+
+  const handleCreateClient = () => {
+    if (!newClient.name || !newClient.phone) {
+      toast({
+        variant: "destructive",
+        title: "Champs manquants",
+        description: "Le nom et le téléphone sont obligatoires.",
+      });
+      return;
+    }
+
+    const clientToAdd = {
+      id: clients.length + 1,
+      ...newClient,
+      lastVisit: new Date().toLocaleDateString("fr-FR"),
+      orders: 0
+    };
+
+    setClients([clientToAdd, ...clients]);
+    setIsDialogOpen(false);
+    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
+
+    toast({
+      title: "Client enregistré",
+      description: `Le dossier de ${newClient.name} a été créé.`,
+    });
+  };
 
   return (
     <AppShell>
@@ -37,7 +73,7 @@ export default function ClientsPage() {
             <p className="text-sm text-muted-foreground">Gestion des dossiers et historique des ordonnances.</p>
           </div>
           
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary w-full sm:w-auto shadow-md">
                 <Plus className="mr-2 h-4 w-4" />
@@ -52,15 +88,28 @@ export default function ClientsPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nom Complet</Label>
-                  <Input id="name" placeholder="M. Mohamed Alami" />
+                  <Input 
+                    id="name" 
+                    placeholder="M. Mohamed Alami" 
+                    value={newClient.name}
+                    onChange={(e) => setNewClient({...newClient, name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Téléphone</Label>
-                  <Input id="phone" placeholder="06 00 00 00 00" />
+                  <Input 
+                    id="phone" 
+                    placeholder="06 00 00 00 00" 
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="mutuelle">Mutuelle / Couverture</Label>
-                  <Select defaultValue="Aucun">
+                  <Select 
+                    value={newClient.mutuelle} 
+                    onValueChange={(v) => setNewClient({...newClient, mutuelle: v})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez" />
                     </SelectTrigger>
@@ -73,7 +122,7 @@ export default function ClientsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button className="w-full">Enregistrer le client</Button>
+                <Button className="w-full" onClick={handleCreateClient}>Enregistrer le client</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
