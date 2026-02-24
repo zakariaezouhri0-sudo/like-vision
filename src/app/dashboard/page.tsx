@@ -24,8 +24,6 @@ import {
   Cell,
   PieChart,
   Pie,
-  LineChart,
-  Line,
   CartesianGrid
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -67,31 +65,34 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="space-y-8">
-      {/* Header with Welcome Message */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm">
-              <div className="relative">
-                <Glasses className="h-6 w-6" />
-                <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
-              </div>
+    <div className="space-y-6 md:space-y-8">
+      {/* Header with Welcome Message & Status aligned horizontally */}
+      <div className="flex flex-row justify-between items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 md:h-12 md:w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
+            <div className="relative">
+              <Glasses className="h-6 w-6 md:h-7 md:w-7" />
+              <ThumbsUp className="h-3 w-3 md:h-3.5 md:w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
             </div>
-            <h1 className="text-3xl font-headline font-bold text-primary tracking-tight">Bonjour, Like Vision</h1>
           </div>
-          <p className="text-muted-foreground flex items-center gap-2 capitalize">
-            <CalendarDays className="h-4 w-4" />
-            {today}
-          </p>
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-3xl font-headline font-bold text-primary tracking-tight truncate">Bonjour, Like Vision</h1>
+            <p className="text-[10px] md:text-sm text-muted-foreground flex items-center gap-1.5 capitalize truncate">
+              <CalendarDays className="h-3 w-3 shrink-0" />
+              {today}
+            </p>
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-3 flex items-center gap-4 shadow-sm">
-          <div className="flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">État de la Caisse</span>
-            <span className="text-lg font-black text-green-600">Ouverte</span>
+        
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="bg-card border rounded-full px-2.5 py-1 flex items-center gap-2 shadow-sm border-green-200 bg-green-50/50">
+            <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-green-600 animate-pulse" />
+            <span className="text-[9px] md:text-[10px] font-black text-green-600 uppercase tracking-tighter whitespace-nowrap">Caisse Ouverte</span>
           </div>
-          <div className="h-8 w-px bg-border" />
-          <Clock className="h-5 w-5 text-primary animate-pulse" />
+          <div className="hidden md:flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest px-1">
+            <Clock className="h-3 w-3" />
+            Temps Réel
+          </div>
         </div>
       </div>
 
@@ -219,7 +220,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
              </div>
-             <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-[-20px] w-full px-4">
+             <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-[-20px] w-full px-4 text-center">
                {mutuelleData.map((item, i) => (
                  <div key={item.name} className="flex items-center gap-2">
                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
@@ -237,9 +238,9 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-lg font-bold">Ventes Récentes</CardTitle>
-            <CardDescription>Les 5 dernières transactions effectuées.</CardDescription>
+            <CardDescription>Les dernières transactions effectuées.</CardDescription>
           </div>
-          <Badge variant="outline" className="h-8 px-4 cursor-pointer hover:bg-muted">Voir tout l'historique</Badge>
+          <Badge variant="outline" className="h-8 px-4 cursor-pointer hover:bg-muted hidden md:flex">Voir tout</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -248,7 +249,7 @@ export default function DashboardPage() {
                 <TableRow>
                   <TableHead className="font-bold text-xs uppercase tracking-wider">Facture</TableHead>
                   <TableHead className="font-bold text-xs uppercase tracking-wider">Client</TableHead>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider">Date/Heure</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider hidden md:table-cell">Date/Heure</TableHead>
                   <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Total</TableHead>
                   <TableHead className="text-center font-bold text-xs uppercase tracking-wider">Statut</TableHead>
                 </TableRow>
@@ -256,14 +257,16 @@ export default function DashboardPage() {
               <TableBody>
                 {RECENT_SALES.map((sale) => (
                   <TableRow key={sale.id} className="hover:bg-muted/20">
-                    <TableCell className="font-bold text-primary">{sale.id}</TableCell>
-                    <TableCell className="font-medium">{sale.client}</TableCell>
-                    <TableCell className="text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {sale.date}
+                    <TableCell className="font-bold text-primary whitespace-nowrap">{sale.id}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{sale.client}</TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {sale.date}
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right font-black">{formatCurrency(sale.total)}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-right font-black whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-center whitespace-nowrap">
                       <Badge className="text-[10px] font-bold" variant={
                         sale.status === "Payé" ? "default" : 
                         sale.status === "Partiel" ? "secondary" : "outline"
