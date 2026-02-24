@@ -89,7 +89,6 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, editId, toast]);
 
-  // Conversion sécurisée en nombre
   const nTotal = Number(total) || 0;
   const nDiscount = Number(discountValue) || 0;
   const nAvance = Number(avance) || 0;
@@ -329,81 +328,83 @@ function NewSaleForm() {
                 <CardTitle className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Calcul Financier</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-5">
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
                   <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix de Vente Brut</Label>
-                  <div className="relative">
+                  <div className="flex items-center gap-1.5">
                     <Input 
-                      className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-slate-900 focus-visible:ring-0 text-lg" 
+                      className="w-28 h-10 text-right font-black border-none bg-transparent text-slate-950 focus-visible:ring-0 text-lg p-0" 
                       type="number" 
                       value={total} 
                       onChange={(e) => setTotal(e.target.value)} 
                     />
-                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
+                    <span className="text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
                 
                 <div className="space-y-4 pt-4 border-t border-white/10">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center px-1">
                     <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise Client</Label>
-                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-8">
-                      <TabsList className="h-8 grid grid-cols-2 w-20 p-1 bg-white/10 border-none">
-                        <TabsTrigger value="percent" className="text-[10px] font-black h-6 data-[state=active]:bg-white data-[state=active]:text-primary">%</TabsTrigger>
-                        <TabsTrigger value="amount" className="text-[10px] font-black h-6 data-[state=active]:bg-white data-[state=active]:text-primary">DH</TabsTrigger>
+                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7">
+                      <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg">
+                        <TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger>
+                        <TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
-                  <div className="flex justify-end relative bg-white rounded-2xl overflow-hidden">
+                  <div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm">
                     <Input 
-                      className="w-full h-12 text-right text-slate-900 font-black pr-10 border-none focus-visible:ring-0" 
+                      className="w-full h-8 text-right text-slate-950 font-black border-none focus-visible:ring-0 text-lg p-0" 
                       type="number" 
                       value={discountValue} 
                       onChange={(e) => setDiscountValue(e.target.value)} 
                     />
-                    <span className="absolute right-4 top-3.5 text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
+                    <span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
                   {discountType === 'percent' && Number(discountValue) > 0 && (
-                    <p className="text-right text-[10px] font-black text-white/40 italic">
-                      = -{formatCurrency(remiseAmount)}
+                    <p className="text-right text-[10px] font-black text-white/40 italic pr-2">
+                      = -{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(remiseAmount)} DH
                     </p>
                   )}
                 </div>
 
-                <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-inner border border-white/10">
-                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Net à payer</Label>
-                  <span className="font-black text-xl text-primary tracking-tighter">{formatCurrency(totalNet)}</span>
+                <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5">
+                  <Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label>
+                  <span className="font-black text-xl text-white tracking-tighter">
+                    {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(totalNet)} DH
+                  </span>
                 </div>
                 
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
                   <Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
-                  <div className="relative">
+                  <div className="flex items-center gap-1.5">
                     <Input 
-                      className="w-32 h-10 text-right text-slate-900 font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" 
+                      className="w-28 h-10 text-right text-slate-950 font-black border-none bg-transparent focus-visible:ring-0 text-lg p-0" 
                       type="number" 
                       value={avance} 
                       onChange={(e) => setAvance(e.target.value)} 
                     />
-                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
+                    <span className="text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
                 
-                <div className="bg-slate-900 text-white p-6 rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5">
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">Reste à régler</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black tracking-tighter text-primary">
+                <div className="bg-slate-950 text-white p-6 rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2">
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-4xl font-black tracking-tighter text-accent">
                       {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(resteAPayer)}
                     </span>
-                    <span className="text-xs font-black text-primary/40 uppercase tracking-widest">DH</span>
+                    <span className="text-xs font-black text-accent/60 uppercase tracking-widest mt-2">DH</span>
                   </div>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-white/20 space-y-4">
-                  <h3 className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] flex items-center gap-2">
+                  <h3 className="text-[10px] font-black uppercase text-white/40 tracking-[0.3em] flex items-center gap-2 px-1">
                     <Calculator className="h-3 w-3" />
                     Données d'achat (Interne)
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                      <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Monture</Label>
+                      <Label className="text-[9px] font-black uppercase text-white/30 tracking-widest">Achat Monture</Label>
                       <Input 
                         className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
                         type="number" 
@@ -412,7 +413,7 @@ function NewSaleForm() {
                       />
                     </div>
                     <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                      <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Verres</Label>
+                      <Label className="text-[9px] font-black uppercase text-white/30 tracking-widest">Achat Verres</Label>
                       <Input 
                         className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
                         type="number" 

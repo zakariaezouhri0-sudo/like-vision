@@ -139,15 +139,17 @@ export default function SalesHistoryPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-8 py-6">
-                            <div className="flex flex-col items-end">
-                              <span className="font-black text-sm text-slate-900">{formatCurrency(sale.total).split(' ')[0]}</span>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="font-black text-sm text-slate-900">
+                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total)}
+                              </span>
                               <span className="text-[9px] font-black text-slate-400 uppercase">DH</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-8 py-6">
-                            <div className="flex flex-col items-end">
+                            <div className="flex items-center justify-end gap-1.5">
                               <span className={cn("font-black text-sm", sale.reste > 0 ? "text-destructive" : "text-slate-300")}>
-                                {formatCurrency(sale.reste).split(' ')[0]}
+                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.reste)}
                               </span>
                               <span className="text-[9px] font-black text-slate-400 uppercase">DH</span>
                             </div>
