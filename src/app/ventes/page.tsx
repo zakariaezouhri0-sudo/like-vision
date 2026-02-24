@@ -31,24 +31,24 @@ export default function SalesHistoryPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-primary">Historique</h1>
-            <p className="text-[10px] text-muted-foreground">Suivi des factures.</p>
+            <h1 className="text-xl font-bold text-primary">Historique des Ventes</h1>
+            <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wider">Suivi complet des factures.</p>
           </div>
-          <Button asChild size="sm" className="w-full sm:w-auto h-8 text-xs shadow-md">
+          <Button asChild size="sm" className="w-full sm:w-auto h-9 text-xs font-bold shadow-md">
             <Link href="/ventes/nouvelle">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              <Plus className="mr-1.5 h-4 w-4" />
               Nouvelle Vente
             </Link>
           </Button>
         </div>
 
-        <Card className="shadow-sm border-none">
-          <CardHeader className="p-3 md:p-4 border-b">
+        <Card className="shadow-sm border-none overflow-hidden">
+          <CardHeader className="p-3 md:p-4 border-b bg-muted/20">
             <div className="relative max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Chercher..." 
-                className="pl-8 h-8 text-xs"
+                placeholder="Chercher par client ou ID..." 
+                className="pl-9 h-9 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -59,24 +59,27 @@ export default function SalesHistoryPage() {
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Facture</TableHead>
-                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Client</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Total</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Reste</TableHead>
-                    <TableHead className="text-center text-[10px] uppercase font-bold whitespace-nowrap">Statut</TableHead>
+                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Facture</TableHead>
+                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Client</TableHead>
+                    <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Total</TableHead>
+                    <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Reste</TableHead>
+                    <TableHead className="text-center text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id} className="hover:bg-muted/30">
-                      <TableCell className="font-bold text-[10px] whitespace-nowrap text-primary">{sale.id}</TableCell>
-                      <TableCell className="font-medium text-[10px] whitespace-nowrap">{sale.client}</TableCell>
-                      <TableCell className="text-right font-medium text-[10px] whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
-                      <TableCell className={cn("text-right font-black text-[10px] whitespace-nowrap", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
+                    <TableRow key={sale.id} className="hover:bg-muted/30 border-b last:border-0">
+                      <TableCell className="font-bold text-xs whitespace-nowrap text-primary px-4 py-4">{sale.id}</TableCell>
+                      <TableCell className="font-medium text-xs whitespace-nowrap px-4 py-4">{sale.client}</TableCell>
+                      <TableCell className="text-right font-medium text-xs whitespace-nowrap px-4 py-4">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className={cn("text-right font-black text-xs whitespace-nowrap px-4 py-4", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
                         {formatCurrency(sale.reste)}
                       </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="text-[8px] px-1.5 h-4" variant={sale.statut === "Payé" ? "default" : "outline"}>
+                      <TableCell className="text-center px-4 py-4">
+                        <Badge 
+                          className="text-[10px] px-2 py-0.5 font-black rounded-sm whitespace-nowrap" 
+                          variant={sale.statut === "Payé" ? "default" : sale.statut === "En attente" ? "destructive" : "outline"}
+                        >
                           {sale.statut}
                         </Badge>
                       </TableCell>

@@ -197,24 +197,24 @@ export default function CaissePage() {
 
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="p-4 border-b">
-            <CardTitle className="text-sm font-bold">Derniers Flux</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider">Derniers Flux</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Heure</TableHead>
-                    <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Désignation</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Montant</TableHead>
+                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Heure</TableHead>
+                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Désignation</TableHead>
+                    <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Montant</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">{t.date}</TableCell>
-                      <TableCell className="text-[10px] font-medium whitespace-nowrap truncate max-w-[120px]">{t.label}</TableCell>
-                      <TableCell className={cn("text-right text-[10px] font-bold whitespace-nowrap", t.montant > 0 ? "text-green-600" : "text-destructive")}>
+                    <TableRow key={t.id} className="border-b last:border-0 hover:bg-muted/10">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap px-4 py-4">{t.date}</TableCell>
+                      <TableCell className="text-xs font-medium whitespace-nowrap truncate max-w-[150px] px-4 py-4">{t.label}</TableCell>
+                      <TableCell className={cn("text-right text-xs font-bold whitespace-nowrap px-4 py-4", t.montant > 0 ? "text-green-600" : "text-destructive")}>
                         {formatCurrency(t.montant)}
                       </TableCell>
                     </TableRow>

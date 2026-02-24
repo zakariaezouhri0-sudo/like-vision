@@ -173,27 +173,30 @@ export default function DashboardPage() {
       <Card className="shadow-sm border-none overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/20">
           <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Dernières Ventes</CardTitle>
-          <Badge variant="outline" className="text-[8px] h-5 font-bold">Voir Historique</Badge>
+          <Badge variant="outline" className="text-[10px] h-6 font-bold">Voir Historique</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">ID Facture</TableHead>
-                  <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Total</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-bold whitespace-nowrap">Statut</TableHead>
+                  <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">ID Facture</TableHead>
+                  <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Client</TableHead>
+                  <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Total</TableHead>
+                  <TableHead className="text-center text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Statut</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {RECENT_SALES.map((sale) => (
-                  <TableRow key={sale.id} className="hover:bg-muted/30">
-                    <TableCell className="text-[10px] font-bold text-primary whitespace-nowrap">{sale.id}</TableCell>
-                    <TableCell className="text-[10px] font-medium whitespace-nowrap">{sale.client}</TableCell>
-                    <TableCell className="text-right text-[10px] font-bold whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge className="text-[8px] px-1.5 h-4 font-black rounded-sm" variant={sale.status === "Payé" ? "default" : "outline"}>
+                  <TableRow key={sale.id} className="hover:bg-muted/30 border-b last:border-0">
+                    <TableCell className="text-xs font-bold text-primary whitespace-nowrap px-4 py-4">{sale.id}</TableCell>
+                    <TableCell className="text-xs font-medium whitespace-nowrap px-4 py-4">{sale.client}</TableCell>
+                    <TableCell className="text-right text-xs font-bold whitespace-nowrap px-4 py-4">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-center px-4 py-4">
+                      <Badge 
+                        className="text-[10px] px-2 py-0.5 font-black rounded-sm whitespace-nowrap" 
+                        variant={sale.status === "Payé" ? "default" : sale.status === "En attente" ? "destructive" : "outline"}
+                      >
                         {sale.status}
                       </Badge>
                     </TableCell>
