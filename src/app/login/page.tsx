@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,13 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useAuth } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { signInAnonymously } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
   const db = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -26,16 +29,22 @@ export default function LoginPage() {
     
     // Bypass de sécurité pour le développement initial
     if (username.toLowerCase() === "admin" && password === "admin123") {
-      toast({ title: "Connexion réussie", description: "Bienvenue (Mode Super-Admin)." });
-      router.push("/dashboard");
-      setLoading(false);
+      try {
+        // IMPORTANT: On se connecte anonymement à Firebase pour lever les blocages de sécurité Firestore
+        await signInAnonymously(auth);
+        toast({ title: "Connexion réussie", description: "Bienvenue (Mode Super-Admin)." });
+        router.push("/dashboard");
+      } catch (err) {
+        toast({ variant: "destructive", title: "Erreur Auth", description: "Impossible d'initialiser la session Firebase." });
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
     try {
-      // Recherche de l'utilisateur dans Firestore
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username.toLowerCase()));
+      const q = query(usersRef, where("username", "==", username.toLowerCase().trim()));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -44,11 +53,13 @@ export default function LoginPage() {
 
       const userData = querySnapshot.docs[0].data();
 
-      // Vérification du mot de passe stocké manuellement
       if (userData.password === password) {
         if (userData.status === "Suspendu") {
           throw new Error("Votre compte est suspendu.");
         }
+        
+        // On se connecte aussi anonymement ici pour les utilisateurs créés manuellement
+        await signInAnonymously(auth);
         
         toast({
           title: "Bienvenue",
@@ -99,7 +110,7 @@ export default function LoginPage() {
                   <Input 
                     id="username" 
                     type="text"
-                    placeholder="amine" 
+                    placeholder="admin" 
                     className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}

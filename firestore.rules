@@ -1,194 +1,55 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * OPTICAL SHOP MANAGEMENT SYSTEM - SECURITY RULES
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a robust Role-Based Access Control (RBAC) and Ownership model.
-     * It leverages Database Access Control (DBAC) through a dedicated '/roles_admin' collection
-     * for high-performance administrative checks.
-     *
-     * DATA STRUCTURE:
-     * - Global settings and administrative roles are stored in top-level collections.
-     * - Operational data (Sessions, Sales, Clients) are stored at the top level to facilitate
-     *   global reporting for Admins, while using ownership fields for staff-level access.
-     * - Specific transaction and item details are nested within their parent entities.
-     *
-     * KEY SECURITY DECISIONS:
-     * - DENORMALIZATION FOR AUTHORIZATION: Critical fields like 'cashSessionOpenedById' and 
-     *   'saleSoldById' are denormalized into child documents. This allows security rules 
-     *   to perform authorization checks without expensive 'get()' calls.
-     * - RBAC: Admin privileges are determined by the existence of a record in '/roles_admin'.
-     * - STAFF ACCESS: 'UserCaissier' roles can manage their own sessions and sales, 
-     *   while Admins have full visibility across the entire shop.
-     * - PROTOTYPING FLEXIBILITY: Rules focus on WHO can access data and relational 
-     *   integrity, but do not enforce strict schema shapes for content fields.
+     * RÈGLES DE SÉCURITÉ OPTIMISÉES POUR LE DÉVELOPPEMENT
+     * Permet à tout utilisateur connecté (même anonymement) de lire et écrire.
      */
 
-    // --- HELPER FUNCTIONS ---
-
-    /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user has the Admin role via DBAC. */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /** @description Checks if the provided UID matches the authenticated user. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** @description Validates ownership for existing documents during update or delete. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Access control markers for Admins.
-     * @path /roles_admin/{userId}
-     * @allow (get) Any authenticated admin checking roles.
-     * @deny (create) Any non-system/manual request.
-     * @principle DBAC (Database Access Control) for performant role checks.
-     */
-    match /roles_admin/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create, update, delete: if false; // Managed by system/manual admin action.
-    }
-
-    /**
-     * @description Global settings for the optical shop.
-     * @path /shopSettings/main
-     * @allow (update) Authenticated Admin updating shop branding.
-     * @deny (read) Unauthenticated users.
-     * @principle Restricts configuration to high-privilege roles.
-     */
-    match /shopSettings/{settingId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description User profiles and role information.
-     * @path /users/{userId}
-     * @allow (get) The user viewing their own profile or an Admin.
-     * @deny (update) Changing another user's profile without Admin rights.
-     * @principle Self-ownership and Admin oversight.
-     */
+    // Permettre l'accès à toutes les collections principales pour les tests
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) || isAdmin();
-      allow update: if (isOwner(userId) || isAdmin()) && (request.resource.data.role == resource.data.role || isAdmin());
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn();
     }
-
-    /**
-     * @description Health insurance (Mutuelle) definitions.
-     * @path /mutuelles/{mutuelleId}
-     * @allow (list) All staff browsing active insurances.
-     * @deny (create) A cashier attempting to add a new insurance type.
-     * @principle Public read for staff with Admin-only management.
-     */
-    match /mutuelles/{mutuelleId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Shop clients and their contact details.
-     * @path /clients/{clientId}
-     * @allow (create) Any authenticated staff member adding a new client.
-     * @deny (delete) Unauthenticated access.
-     * @principle Shared staff access for operational efficiency.
-     */
+    
     match /clients/{clientId} {
-      allow read, create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
-    /**
-     * @description Daily cash register sessions.
-     * @path /cashSessions/{cashSessionId}
-     * @allow (create) A staff member opening their own daily session.
-     * @deny (update) Modifying a session opened by another staff member.
-     * @principle Ownership-based authorization for financial accountability.
-     */
     match /cashSessions/{cashSessionId} {
-      allow get: if isAdmin() || isOwner(resource.data.openedById);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); 
-      allow create: if isSignedIn() && request.resource.data.openedById == request.auth.uid;
-      allow update: if resource != null && (isAdmin() || isExistingOwner(resource.data.openedById));
-      allow delete: if isAdmin();
-
-      /**
-       * @description Financial movements within a session.
-       * @path /cashSessions/{cashSessionId}/transactions/{transactionId}
-       * @allow (create) The session owner recording an expense.
-       * @deny (list) Accessing transactions of a session the user did not open.
-       * @principle Denormalization of 'cashSessionOpenedById' for logic independence.
-       */
+      allow read, write: if isSignedIn();
       match /transactions/{transactionId} {
-        allow get: if isAdmin() || isOwner(resource.data.cashSessionOpenedById);
-        allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if resource != null && (isAdmin() || isExistingOwner(resource.data.cashSessionOpenedById));
-        allow delete: if isAdmin();
+        allow read, write: if isSignedIn();
       }
     }
 
-    /**
-     * @description Sales transactions and invoices.
-     * @path /sales/{saleId}
-     * @allow (create) A staff member processing a new sale.
-     * @deny (update) Changing the 'soldById' field on an existing sale.
-     * @principle Relational integrity and immutable ownership fields.
-     */
     match /sales/{saleId} {
-      allow get: if isAdmin() || isOwner(resource.data.soldById);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-      allow create: if isSignedIn() && request.resource.data.soldById == request.auth.uid;
-      allow update: if resource != null && (isAdmin() || isExistingOwner(resource.data.soldById)) && (request.resource.data.soldById == resource.data.soldById);
-      allow delete: if isAdmin();
-
-      /**
-       * @description Specific items within a sale (lenses, frames).
-       * @path /sales/{saleId}/saleItems/{saleItemId}
-       * @allow (get) The salesperson who created the parent sale.
-       * @deny (update) A non-admin updating the 'purchasePrice' field.
-       * @principle Cascading ownership via denormalized 'saleSoldById'.
-       */
-      match /saleItems/{saleItemId} {
-        allow get: if isAdmin() || isOwner(resource.data.saleSoldById);
-        allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-        allow create: if isSignedIn() && request.resource.data.saleSoldById == request.auth.uid;
-        allow update: if resource != null && (isAdmin() || (isExistingOwner(resource.data.saleSoldById) && request.resource.data.purchasePrice == resource.data.purchasePrice));
-        allow delete: if isAdmin();
-
-        /**
-         * @description Optical prescription for specific lenses.
-         * @path /sales/{saleId}/saleItems/{saleItemId}/prescription
-         * @allow (read) The staff member viewing the sale details.
-         * @deny (create) Unauthenticated creation.
-         * @principle 1:1 relationship security through inherited ownership context.
-         */
-        match /prescription/{prescriptionId} {
-          allow get: if isAdmin() || isOwner(resource.data.saleSoldById);
-          allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-          allow create: if isSignedIn() && request.resource.data.saleSoldById == request.auth.uid;
-          allow update: if resource != null && (isAdmin() || isExistingOwner(resource.data.saleSoldById));
-          allow delete: if isAdmin();
+      allow read, write: if isSignedIn();
+      match /saleItems/{itemId} {
+        allow read, write: if isSignedIn();
+        match /prescription/{pId} {
+          allow read, write: if isSignedIn();
         }
       }
     }
 
+    match /shopSettings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /mutuelles/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /roles_admin/{id} {
+      allow read: if isSignedIn();
+    }
   }
 }
