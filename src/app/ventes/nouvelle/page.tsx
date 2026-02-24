@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon } from "lucide-react";
+import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -329,11 +329,34 @@ function NewSaleForm() {
             <Card className="shadow-2xl border-none bg-primary p-2 rounded-[32px] md:rounded-[40px] lg:sticky lg:top-24">
               <CardHeader className="py-6 px-8 text-white/60"><CardTitle className="text-[10px] font-black uppercase tracking-[0.3em]">Calcul Financier</CardTitle></CardHeader>
               <CardContent className="p-4 md:p-6 space-y-5">
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Brut</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={total} onChange={(e) => setTotal(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Vente Brut</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={total} onChange={(e) => setTotal(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
                 <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNet)}</span></div>
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
                 <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayer)}</span></div></div>
+                
+                {/* Section Coûts d'Achat (Admin) */}
+                <div className="pt-6 mt-4 border-t border-white/10 space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2 flex items-center gap-2">
+                    <Tag className="h-3 w-3" /> Coûts d'Achat (Interne)
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                      <Label className="text-[8px] font-black uppercase text-white/60 tracking-widest block mb-1">Monture</Label>
+                      <div className="flex items-center gap-1">
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(e.target.value)} placeholder="0" />
+                        <span className="text-[8px] font-black text-white/20">DH</span>
+                      </div>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                      <Label className="text-[8px] font-black uppercase text-white/60 tracking-widest block mb-1">Verres</Label>
+                      <div className="flex items-center gap-1">
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(e.target.value)} placeholder="0" />
+                        <span className="text-[8px] font-black text-white/20">DH</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
