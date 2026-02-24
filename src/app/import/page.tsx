@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Table as TableIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 type Mapping = Record<string, string>;
@@ -51,12 +51,21 @@ export default function ImportPage() {
   const downloadTemplate = () => {
     const templateData = importType === "sales" ? [
       {
-        "N° Facture": "OPT-2026-001",
-        "Nom Client": "Ahmed Alami",
+        "N° Facture": "OPT-2026-2316",
+        "Nom Client": "ACHTOUK HANAE",
         "Téléphone": "0661000000",
-        "Total Brut": 1500,
-        "Avance Payée": 500,
-        "Date": "2024-05-20",
+        "Total Brut": 500,
+        "Avance Payée": 200,
+        "Date": "2026-01-29",
+        "Mutuelle": "CNOPS"
+      },
+      {
+        "N° Facture": "OPT-2026-2316",
+        "Nom Client": "ACHTOUK HANAE",
+        "Téléphone": "0661000000",
+        "Total Brut": 500,
+        "Avance Payée": 300,
+        "Date": "2026-01-30",
         "Mutuelle": "CNOPS"
       }
     ] : [
@@ -95,7 +104,6 @@ export default function ImportPage() {
           if (jsonData.length > 0) {
             setData(jsonData);
             setHeaders(Object.keys(jsonData[0] as object));
-            // Auto-mapping
             const newMapping: Mapping = {};
             Object.keys(jsonData[0] as object).forEach(header => {
               const lowerHeader = header.toLowerCase();
@@ -133,7 +141,7 @@ export default function ImportPage() {
           const clientPhone = (row[mapping.clientPhone]?.toString() || "").replace(/\s/g, "");
           const total = parseFloat(row[mapping.total]) || 0;
           const avance = parseFloat(row[mapping.avance]) || 0;
-          const invoiceId = row[mapping.invoiceId] || `OPT-2026-IMP-${Date.now().toString().slice(-4)}-${i}`;
+          const invoiceId = row[mapping.invoiceId]?.toString() || `OPT-2026-IMP-${Date.now().toString().slice(-4)}-${i}`;
           
           let createdAtDate = new Date();
           const rawDate = row[mapping.createdAt];
@@ -144,22 +152,40 @@ export default function ImportPage() {
             }
           }
 
-          const saleData = {
-            invoiceId,
-            clientName,
-            clientPhone,
-            total,
-            avance,
-            reste: Math.max(0, total - avance),
-            statut: avance >= total ? "Payé" : (avance > 0 ? "Partiel" : "En attente"),
-            mutuelle: row[mapping.mutuelle] || "Aucun",
-            createdAt: Timestamp.fromDate(createdAtDate),
-            updatedAt: serverTimestamp(),
-            remise: 0,
-            notes: "Importé depuis historique"
-          };
+          const salesRef = collection(db, "sales");
+          const q = query(salesRef, where("invoiceId", "==", invoiceId));
+          const snapshot = await getDocs(q);
 
-          await addDoc(collection(db, "sales"), saleData);
+          if (!snapshot.empty) {
+            const existingDoc = snapshot.docs[0];
+            const existingData = existingDoc.data();
+            const newAvance = (existingData.avance || 0) + avance;
+            const newReste = Math.max(0, total - newAvance);
+            const newStatut = newReste <= 0 ? "Payé" : (newAvance > 0 ? "Partiel" : "En attente");
+
+            await updateDoc(doc(db, "sales", existingDoc.id), {
+              avance: newAvance,
+              reste: newReste,
+              statut: newStatut,
+              updatedAt: serverTimestamp()
+            });
+          } else {
+            const saleData = {
+              invoiceId,
+              clientName,
+              clientPhone,
+              total,
+              avance,
+              reste: Math.max(0, total - avance),
+              statut: avance >= total ? "Payé" : (avance > 0 ? "Partiel" : "En attente"),
+              mutuelle: row[mapping.mutuelle] || "Aucun",
+              createdAt: Timestamp.fromDate(createdAtDate),
+              updatedAt: serverTimestamp(),
+              remise: 0,
+              notes: "Importé depuis historique"
+            };
+            await addDoc(salesRef, saleData);
+          }
 
           const clientsRef = collection(db, "clients");
           const clientQ = query(clientsRef, where("phone", "==", clientPhone));
@@ -168,7 +194,7 @@ export default function ImportPage() {
             await addDoc(clientsRef, {
               name: clientName,
               phone: clientPhone,
-              mutuelle: saleData.mutuelle,
+              mutuelle: row[mapping.mutuelle] || "Aucun",
               createdAt: serverTimestamp(),
               lastVisit: createdAtDate.toLocaleDateString("fr-FR"),
               ordersCount: 1
@@ -179,7 +205,7 @@ export default function ImportPage() {
             await addDoc(collection(db, "transactions"), {
               type: "VENTE",
               label: `Vente ${invoiceId}`,
-              category: "Historique",
+              category: "Optique",
               montant: avance,
               relatedId: invoiceId,
               createdAt: Timestamp.fromDate(createdAtDate)
@@ -210,7 +236,7 @@ export default function ImportPage() {
     toast({
       variant: errorCount > 0 ? "destructive" : "success",
       title: "Importation Terminée",
-      description: `${successCount} lignes importées. ${errorCount} erreurs.`
+      description: `${successCount} lignes traitées. ${errorCount} erreurs.`
     });
     
     if (errorCount === 0) {
