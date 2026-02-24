@@ -1,9 +1,8 @@
-
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSy...",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "like-vision-187e1.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "like-vision-187e1",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "like-vision-187e1.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:abcdef"
+  "projectId": "studio-8223503245-60ae5",
+  "appId": "1:58488072062:web:45a6910443004a3805b52f",
+  "apiKey": "AIzaSyDTVvD1Hr07ypQGuowJE6N5QGHDTMwR6Hg",
+  "authDomain": "studio-8223503245-60ae5.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "58488072062"
 };
