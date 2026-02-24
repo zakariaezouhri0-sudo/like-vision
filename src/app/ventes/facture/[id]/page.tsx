@@ -4,15 +4,29 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Suspense } from "react";
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 function InvoicePrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const shop = DEFAULT_SHOP_SETTINGS;
+  const db = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
+
+  const shop = {
+    name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
+    address: remoteSettings?.address || DEFAULT_SHOP_SETTINGS.address,
+    phone: remoteSettings?.phone || DEFAULT_SHOP_SETTINGS.phone,
+    icePatent: remoteSettings?.icePatent || DEFAULT_SHOP_SETTINGS.icePatent,
+    logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
+  };
 
   const clientName = searchParams.get("client") || "Client de passage";
   const clientPhone = searchParams.get("phone") || "---";
@@ -43,14 +57,18 @@ function InvoicePrintContent() {
       {/* Header */}
       <div className="flex justify-between items-start mb-10 pb-6 border-b border-slate-100">
         <div className="flex gap-4">
-          <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0">
-            <div className="relative">
-              <Glasses className="h-8 w-8" />
-              <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-white text-primary p-0.5 rounded-full border border-primary" />
-            </div>
+          <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0 overflow-hidden relative bg-white">
+            {shop.logoUrl ? (
+              <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
+            ) : (
+              <div className="relative">
+                <Glasses className="h-8 w-8" />
+                <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-white text-primary p-0.5 rounded-full border border-primary" />
+              </div>
+            )}
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-base font-black text-slate-900 leading-none uppercase tracking-tighter">{APP_NAME}</h2>
+            <h2 className="text-base font-black text-slate-900 leading-none uppercase tracking-tighter">{shop.name}</h2>
             <p className="text-[8px] text-slate-500 max-w-[180px] leading-tight font-medium">{shop.address}</p>
             <p className="text-[8px] font-bold text-slate-700">Tél: {shop.phone}</p>
             <p className="text-[8px] font-black text-slate-900 uppercase tracking-widest">ICE: {shop.icePatent}</p>
@@ -169,10 +187,18 @@ function InvoicePrintContent() {
 
       {/* Footer minimal */}
       <div className="flex justify-center items-center mt-10 pt-4 border-t border-slate-50">
-         <p className="text-[7px] font-black text-slate-200 uppercase tracking-[0.5em]">{APP_NAME} Optique Pro</p>
+         <p className="text-[7px] font-black text-slate-200 uppercase tracking-[0.5em]">{shop.name}</p>
       </div>
     </div>
   );
+
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">

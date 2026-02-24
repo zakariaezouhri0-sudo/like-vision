@@ -1,18 +1,33 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, FileText, Calendar, User, Coins, Glasses, ThumbsUp } from "lucide-react";
+import { Printer, ArrowLeft, FileText, Calendar, User, Coins, Glasses, ThumbsUp, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
 import { Suspense } from "react";
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
 function CashClosurePrintContent() {
   const searchParams = useSearchParams();
-  const shop = DEFAULT_SHOP_SETTINGS;
+  const db = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
+
+  const shop = {
+    name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
+    address: remoteSettings?.address || DEFAULT_SHOP_SETTINGS.address,
+    phone: remoteSettings?.phone || DEFAULT_SHOP_SETTINGS.phone,
+    icePatent: remoteSettings?.icePatent || DEFAULT_SHOP_SETTINGS.icePatent,
+    logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
+  };
 
   const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const initial = Number(searchParams.get("initial")) || 0;
@@ -28,6 +43,14 @@ function CashClosurePrintContent() {
     val,
     qty: Number(searchParams.get(`d${val}`)) || 0
   })).filter(item => item.qty >= 0);
+
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-12">
@@ -55,14 +78,18 @@ function CashClosurePrintContent() {
         {/* Header with Logo */}
         <div className="flex justify-between items-start border-b-8 border-primary pb-10 mb-12">
           <div className="flex gap-6">
-            <div className="h-24 w-24 bg-primary rounded-3xl flex items-center justify-center text-primary-foreground shadow-2xl shrink-0">
-               <div className="relative">
-                <Glasses className="h-14 w-14" />
-                <ThumbsUp className="h-7 w-7 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
-              </div>
+            <div className="h-24 w-24 bg-primary rounded-3xl flex items-center justify-center text-primary-foreground shadow-2xl shrink-0 overflow-hidden relative">
+              {shop.logoUrl ? (
+                <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-2" />
+              ) : (
+                <div className="relative">
+                  <Glasses className="h-14 w-14" />
+                  <ThumbsUp className="h-7 w-7 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
-              <h1 className="text-4xl font-black text-primary uppercase tracking-tighter leading-none">{APP_NAME}</h1>
+              <h1 className="text-4xl font-black text-primary uppercase tracking-tighter leading-none">{shop.name}</h1>
               <p className="text-[11px] font-black uppercase text-primary/40 tracking-[0.4em] leading-none">Gestion Optique Pro</p>
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <p className="text-[12px] text-slate-500 max-w-[300px] font-bold leading-tight italic">{shop.address}</p>
@@ -171,7 +198,7 @@ function CashClosurePrintContent() {
 
         <div className="mt-20 text-center border-t border-slate-50 pt-8">
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] italic opacity-40 leading-none">
-            {APP_NAME} Optique Pro • Généré par Like Vision System v1.2.0
+            {shop.name} • Généré par Like Vision System v1.2.0
           </p>
         </div>
       </div>
