@@ -1,17 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  ShoppingCart, 
-  TrendingUp, 
-  Users, 
-  Wallet, 
   Glasses, 
-  ThumbsUp, 
-  ArrowUpRight, 
-  ArrowDownRight,
   CalendarDays,
-  Clock
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { 
@@ -57,11 +50,15 @@ const RECENT_SALES = [
 const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15', '#F87171'];
 
 export default function DashboardPage() {
-  const today = new Date().toLocaleDateString("fr-FR", { 
-    weekday: 'short', 
-    day: 'numeric',
-    month: 'short'
-  });
+  const [today, setToday] = useState<string>("");
+
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString("fr-FR", { 
+      weekday: 'short', 
+      day: 'numeric',
+      month: 'short'
+    }));
+  }, []);
 
   return (
     <div className="space-y-4 md:space-y-8">
@@ -73,10 +70,12 @@ export default function DashboardPage() {
           </div>
           <div className="min-w-0">
             <h1 className="text-sm md:text-xl font-bold text-primary truncate">Bonjour, Like Vision</h1>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1 capitalize">
-              <CalendarDays className="h-3 w-3" />
-              {today}
-            </p>
+            {today && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1 capitalize">
+                <CalendarDays className="h-3 w-3" />
+                {today}
+              </p>
+            )}
           </div>
         </div>
         
@@ -92,7 +91,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-md p-3 md:p-6">
           <p className="text-[10px] uppercase font-bold opacity-70 mb-1">C.A</p>
-          <p className="text-sm md:text-2xl font-black">{formatCurrency(24850).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
+          <p className="text-sm md:text-2xl font-black whitespace-nowrap">{formatCurrency(24850).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
         </Card>
         <Card className="bg-accent text-accent-foreground border-none shadow-md p-3 md:p-6">
           <p className="text-[10px] uppercase font-bold opacity-70 mb-1">Ventes</p>
@@ -100,7 +99,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="border-l-4 border-l-destructive p-3 md:p-6">
           <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Crédits</p>
-          <p className="text-sm md:text-2xl font-black text-destructive">{formatCurrency(4200).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
+          <p className="text-sm md:text-2xl font-black text-destructive whitespace-nowrap">{formatCurrency(4200).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
         </Card>
         <Card className="border-l-4 border-l-green-500 p-3 md:p-6">
           <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Satisfaction</p>
@@ -109,11 +108,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-6">
-        <Card className="lg:col-span-4 shadow-sm border-none">
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm md:text-lg font-bold">Performance</CardTitle>
+        <Card className="lg:col-span-4 shadow-sm border-none overflow-hidden">
+          <CardHeader className="p-4 border-b">
+            <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Performance Semaine</CardTitle>
           </CardHeader>
-          <CardContent className="h-[250px] md:h-[320px] p-0 pr-4">
+          <CardContent className="h-[250px] md:h-[320px] p-2 pr-4 pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={salesData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -126,26 +125,26 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 shadow-sm border-none">
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm md:text-lg font-bold">Mutuelles</CardTitle>
+        <Card className="lg:col-span-3 shadow-sm border-none overflow-hidden">
+          <CardHeader className="p-4 border-b">
+            <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Répartition Mutuelles</CardTitle>
           </CardHeader>
           <CardContent className="h-[250px] md:h-[320px] p-2 flex flex-col">
              <div className="flex-1 min-h-0">
                <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={mutuelleData} innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                    {mutuelleData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {mutuelleData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
              </div>
-             <div className="grid grid-cols-2 gap-2 mt-2">
+             <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-2">
                {mutuelleData.map((item, i) => (
-                 <div key={item.name} className="flex items-center gap-1.5">
-                   <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                   <span className="text-[8px] font-medium truncate">{item.name}</span>
+                 <div key={item.name} className="flex items-center gap-1.5 overflow-hidden">
+                   <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                   <span className="text-[8px] font-medium truncate">{item.name} ({item.value}%)</span>
                  </div>
                ))}
              </div>
@@ -153,17 +152,17 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-sm border-none">
-        <CardHeader className="flex flex-row items-center justify-between p-4">
-          <CardTitle className="text-sm md:text-lg font-bold">Ventes Récentes</CardTitle>
-          <Badge variant="outline" className="text-[8px] h-6">Voir tout</Badge>
+      <Card className="shadow-sm border-none overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/20">
+          <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Dernières Ventes</CardTitle>
+          <Badge variant="outline" className="text-[8px] h-5 font-bold">Voir Historique</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">ID</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">ID Facture</TableHead>
                   <TableHead className="text-[10px] uppercase font-bold whitespace-nowrap">Client</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-bold whitespace-nowrap">Total</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-bold whitespace-nowrap">Statut</TableHead>
@@ -171,12 +170,12 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {RECENT_SALES.map((sale) => (
-                  <TableRow key={sale.id}>
+                  <TableRow key={sale.id} className="hover:bg-muted/30">
                     <TableCell className="text-[10px] font-bold text-primary whitespace-nowrap">{sale.id}</TableCell>
                     <TableCell className="text-[10px] font-medium whitespace-nowrap">{sale.client}</TableCell>
                     <TableCell className="text-right text-[10px] font-bold whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge className="text-[8px] px-1.5 h-4" variant={sale.status === "Payé" ? "default" : "outline"}>
+                      <Badge className="text-[8px] px-1.5 h-4 font-black rounded-sm" variant={sale.status === "Payé" ? "default" : "outline"}>
                         {sale.status}
                       </Badge>
                     </TableCell>

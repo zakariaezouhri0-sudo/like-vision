@@ -81,21 +81,21 @@ export default function NewSalePage() {
 
   return (
     <AppShell>
-      <div className="space-y-4 max-w-5xl mx-auto pb-20 md:pb-0">
+      <div className="space-y-4 max-w-5xl mx-auto pb-24 lg:pb-0">
         {/* Header Compact */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-card p-3 rounded-lg border shadow-sm">
           <div>
             <h1 className="text-lg font-bold text-primary">Nouvelle Vente</h1>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Saisie client & ordonnance.</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-medium tracking-wider">Saisie client & ordonnance.</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none h-8 text-[11px]">
-              <Printer className="mr-1.5 h-3.5 w-3.5" />
-              Imprimer
+            <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none h-9 text-[11px] font-bold">
+              <Printer className="mr-1.5 h-4 w-4" />
+              IMPRIMER
             </Button>
-            <Button size="sm" onClick={handleSave} className="flex-1 sm:flex-none h-8 text-[11px]">
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-              Enregistrer
+            <Button size="sm" onClick={handleSave} className="flex-1 sm:flex-none h-9 text-[11px] font-bold">
+              <Save className="mr-1.5 h-4 w-4" />
+              ENREGISTRER
             </Button>
           </div>
         </div>
@@ -103,28 +103,28 @@ export default function NewSalePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
             {/* Infos Client */}
-            <Card className="shadow-sm">
-              <CardHeader className="py-2.5 px-4 bg-muted/20">
-                <CardTitle className="text-xs flex items-center gap-2">
-                  <ShoppingBag className="h-3.5 w-3.5 text-accent" />
-                  Client
+            <Card className="shadow-sm border-none overflow-hidden">
+              <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
+                <CardTitle className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-2">
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Informations Client
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Nom</Label>
-                    <Input className="h-8 text-sm" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Nom & Prénom</Label>
+                    <Input className="h-9 text-sm font-medium" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Tél</Label>
-                    <Input className="h-8 text-sm" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Téléphone</Label>
+                    <Input className="h-9 text-sm font-medium" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-black">Mutuelle</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-black">Couverture / Mutuelle</Label>
                   <Select onValueChange={setMutuelle} defaultValue="Aucun">
-                    <SelectTrigger className="h-8 text-sm">
+                    <SelectTrigger className="h-9 text-sm font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -136,9 +136,9 @@ export default function NewSalePage() {
             </Card>
 
             {/* Prescription */}
-            <Card className="shadow-sm">
-              <CardHeader className="py-2.5 px-4 bg-muted/20">
-                <CardTitle className="text-xs">Ordonnance</CardTitle>
+            <Card className="shadow-sm border-none overflow-hidden">
+              <CardHeader className="py-2.5 px-4 bg-muted/30 border-b">
+                <CardTitle className="text-[10px] uppercase font-black text-muted-foreground">Prescription Optique</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={handlePrescriptionChange} />
@@ -146,68 +146,86 @@ export default function NewSalePage() {
             </Card>
 
             {/* Détails Techniques */}
-            <Collapsible className="border rounded-lg bg-card shadow-sm">
+            <Collapsible className="border-none rounded-lg bg-card shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full flex justify-between px-4 py-2.5 h-auto hover:bg-transparent">
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Monture & Verres</span>
-                  <ChevronDown className="h-3.5 w-3.5" />
+                <Button variant="ghost" className="w-full flex justify-between px-4 py-3 h-auto hover:bg-muted/30 transition-all">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground">Options Monture & Verres</span>
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 pt-0 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Input className="h-8 text-sm" placeholder="Monture..." />
-                  <Input className="h-8 text-sm" placeholder="Verres..." />
+              <CollapsibleContent className="p-4 pt-0 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Monture</Label>
+                    <Input className="h-9 text-sm" placeholder="Marque, Modèle..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black">Verres</Label>
+                    <Input className="h-9 text-sm" placeholder="Type, Traitement..." />
+                  </div>
                 </div>
-                <Textarea className="text-sm min-h-[60px]" placeholder="Observations..." />
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-black">Notes additionnelles</Label>
+                  <Textarea className="text-sm min-h-[80px]" placeholder="Observations particulières..." />
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </div>
 
           {/* Facturation */}
           <div className="space-y-4">
-            <Card className="shadow-md border-primary/20">
-              <CardHeader className="py-2.5 px-4 bg-primary/5">
-                <CardTitle className="text-xs font-bold text-primary uppercase">Calcul Financier</CardTitle>
+            <Card className="shadow-md border-primary/20 bg-primary/5 sticky top-20">
+              <CardHeader className="py-3 px-4 bg-primary text-primary-foreground">
+                <CardTitle className="text-xs font-black uppercase tracking-widest">Calcul Financier</CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <Label className="text-[10px] font-black">TOTAL BRUT</Label>
+              <CardContent className="p-4 space-y-4">
+                <div className="flex justify-between items-center bg-white p-2 rounded-lg border">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground">Total Brut</Label>
                   <div className="relative">
-                    <Input className="w-24 h-8 text-right font-bold pr-7" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
-                    <span className="absolute right-2 top-2 text-[8px] font-black opacity-40">DH</span>
+                    <Input className="w-28 h-9 text-right font-black pr-8 border-none focus-visible:ring-0" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
+                    <span className="absolute right-2 top-2.5 text-[8px] font-black opacity-30">DH</span>
                   </div>
                 </div>
                 
-                <div className="space-y-2 pt-2 border-t border-dashed">
+                <div className="space-y-2 pt-2 border-t border-dashed border-primary/20">
                   <div className="flex justify-between items-center">
-                    <Label className="text-destructive text-[9px] font-black uppercase">Remise</Label>
-                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as "percent" | "amount")} className="h-6">
-                      <TabsList className="h-6 grid grid-cols-2 w-14 p-0.5">
-                        <TabsTrigger value="percent" className="text-[8px] h-5">%</TabsTrigger>
-                        <TabsTrigger value="amount" className="text-[8px] h-5">DH</TabsTrigger>
+                    <Label className="text-destructive text-[9px] font-black uppercase">Remise Client</Label>
+                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as "percent" | "amount")} className="h-7">
+                      <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-destructive/10">
+                        <TabsTrigger value="percent" className="text-[10px] h-5">%</TabsTrigger>
+                        <TabsTrigger value="amount" className="text-[10px] h-5">DH</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
-                  <div className="flex justify-end">
-                    <Input className="w-24 h-8 text-right text-destructive font-black" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+                  <div className="flex justify-end relative bg-white rounded-lg border border-destructive/20 overflow-hidden">
+                    <Input className="w-full h-9 text-right text-destructive font-black pr-8 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+                    <span className="absolute right-2 top-2.5 text-[8px] font-black text-destructive/40">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
+                  {discountType === 'percent' && (
+                    <p className="text-right text-[9px] font-bold text-destructive/60">
+                      = -{formatCurrency(remiseAmount)}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
-                  <Label className="text-[10px] font-black">TOTAL NET</Label>
-                  <span className="font-black text-xs">{formatCurrency(totalNet)}</span>
+                <div className="flex justify-between items-center bg-primary/10 p-3 rounded-lg border border-primary/20">
+                  <Label className="text-[10px] font-black uppercase text-primary">Total Net à payer</Label>
+                  <span className="font-black text-sm text-primary">{formatCurrency(totalNet)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center pt-2">
-                  <Label className="text-green-600 text-[10px] font-black uppercase">Avance</Label>
-                  <Input className="w-24 h-8 text-right text-green-700 font-black" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+                <div className="flex justify-between items-center pt-2 bg-white p-2 rounded-lg border">
+                  <Label className="text-green-600 text-[10px] font-black uppercase">Avance Versée</Label>
+                  <div className="relative">
+                    <Input className="w-28 h-9 text-right text-green-700 font-black pr-8 border-none focus-visible:ring-0" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+                    <span className="absolute right-2 top-2.5 text-[8px] font-black text-green-700/40">DH</span>
+                  </div>
                 </div>
                 
-                <Separator />
+                <Separator className="bg-primary/20" />
                 
-                <div className="bg-slate-900 text-white p-3 rounded-lg flex justify-between items-center">
-                  <span className="text-[9px] font-black uppercase opacity-70">Reste</span>
-                  <span className="text-base font-black">{formatCurrency(resteAPayer)}</span>
+                <div className="bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center shadow-lg transform scale-[1.02]">
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Reste du</span>
+                  <span className="text-xl font-black tracking-tight">{formatCurrency(resteAPayer)}</span>
                 </div>
               </CardContent>
             </Card>
