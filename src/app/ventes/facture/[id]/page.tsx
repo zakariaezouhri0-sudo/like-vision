@@ -43,156 +43,146 @@ function InvoicePrintContent() {
   const InvoiceCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
       <div className="flex-1 flex flex-col justify-center">
-        {/* Header - Simple & Clean */}
-        <div className="flex justify-between items-start mb-16 pb-8 border-b border-slate-100">
+        {/* Header - Clean without blue bar */}
+        <div className="flex justify-between items-start mb-12 pb-6 border-b border-slate-100">
           <div className="flex gap-4">
-            <div className="h-16 w-16 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
+            <div className="h-16 w-16 border-2 border-slate-200 rounded-xl flex items-center justify-center text-primary shadow-sm shrink-0">
               <div className="relative">
                 <Glasses className="h-10 w-10" />
-                <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full" />
+                <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-white text-primary p-0.5 rounded-full border border-primary" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <h2 className="text-lg font-black text-primary leading-none uppercase tracking-tighter">{APP_NAME}</h2>
-              <p className="text-[10px] text-slate-500 max-w-[200px] leading-tight font-medium">{shop.address}</p>
+            <div className="space-y-1">
+              <h2 className="text-lg font-black text-slate-900 leading-none uppercase tracking-tighter">{APP_NAME}</h2>
+              <p className="text-[9px] text-slate-500 max-w-[200px] leading-tight font-medium">{shop.address}</p>
               <div className="flex flex-col gap-0.5 pt-1">
-                <p className="text-[10px] font-bold text-slate-700">Tél: {shop.phone}</p>
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">ICE: {shop.icePatent}</p>
+                <p className="text-[9px] font-bold text-slate-700">Tél: {shop.phone}</p>
+                <p className="text-[9px] font-black text-slate-900 uppercase tracking-widest">ICE: {shop.icePatent}</p>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="border-2 border-primary text-primary px-4 py-1.5 rounded-sm inline-block mb-3">
-              <h1 className="text-[12px] font-black uppercase tracking-widest">Facture</h1>
+            <div className="border-2 border-slate-900 text-slate-900 px-4 py-1.5 rounded-sm inline-block mb-2">
+              <h1 className="text-[11px] font-black uppercase tracking-widest">Facture</h1>
             </div>
-            <p className="text-[11px] font-black text-slate-900 mt-1">N°: {invoiceNo}</p>
-            <p className="text-[10px] text-slate-500 font-bold italic">Date: {date}</p>
+            <p className="text-[10px] font-black text-slate-900 mt-1">N°: {invoiceNo}</p>
+            <p className="text-[9px] text-slate-500 font-bold italic">Date: {date}</p>
           </div>
         </div>
 
         {/* Client Info - Centered */}
-        <div className="grid grid-cols-1 gap-4 mb-16 bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-              <User className="h-3 w-3" /> Nom du Client
+        <div className="mb-10 bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center space-y-4">
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <User className="h-2.5 w-2.5" /> Nom du Client
             </div>
-            <p className="text-lg font-black text-slate-900 leading-none uppercase">{clientName}</p>
+            <p className="text-base font-black text-slate-900 leading-none uppercase">{clientName}</p>
           </div>
           <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
-            <div className="space-y-1.5 border-r border-slate-200">
-              <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-                <Phone className="h-3 w-3" /> Téléphone
+            <div className="space-y-1 border-r border-slate-200">
+              <div className="flex items-center justify-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                <Phone className="h-2.5 w-2.5" /> Téléphone
               </div>
-              <p className="text-sm font-black text-slate-900 leading-none">{formatPhoneNumber(clientPhone)}</p>
+              <p className="text-xs font-black text-slate-900 leading-none">{formatPhoneNumber(clientPhone)}</p>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-                <ShieldCheck className="h-3 w-3" /> Mutuelle
+            <div className="space-y-1">
+              <div className="flex items-center justify-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                <ShieldCheck className="h-2.5 w-2.5" /> Mutuelle
               </div>
-              <p className="text-sm font-black text-primary leading-none uppercase">{mutuelle}</p>
+              <p className="text-xs font-black text-slate-900 leading-none uppercase">{mutuelle}</p>
             </div>
           </div>
         </div>
 
-        {/* Prescription */}
-        <div className="mb-16">
-          <h3 className="text-[10px] font-black uppercase mb-4 text-primary tracking-[0.2em] flex items-center gap-3 justify-center">
-            <div className="h-0.5 w-6 bg-primary/30 rounded-full" />
+        {/* Prescription - Gray header for ink saving */}
+        <div className="mb-10">
+          <h3 className="text-[9px] font-black uppercase mb-4 text-slate-400 tracking-[0.2em] flex items-center gap-3 justify-center">
+            <div className="h-px w-6 bg-slate-200" />
             Ordonnance Optique
-            <div className="h-0.5 w-6 bg-primary/30 rounded-full" />
+            <div className="h-px w-6 bg-slate-200" />
           </h3>
-          <table className="w-full text-[12px] border-collapse">
+          <table className="w-full text-[11px] border-collapse">
             <thead>
-              <tr className="bg-primary text-white">
-                <th className="border border-primary p-3 text-left text-[9px] uppercase font-black tracking-widest">Oeil</th>
-                <th className="border border-primary p-3 text-center text-[9px] uppercase font-black tracking-widest">Sphère</th>
-                <th className="border border-primary p-3 text-center text-[9px] uppercase font-black tracking-widest">Cylindre</th>
-                <th className="border border-primary p-3 text-center text-[9px] uppercase font-black tracking-widest">Axe</th>
+              <tr className="bg-slate-100 text-slate-900">
+                <th className="border border-slate-200 p-2.5 text-left text-[8px] uppercase font-black tracking-widest">Oeil</th>
+                <th className="border border-slate-200 p-2.5 text-center text-[8px] uppercase font-black tracking-widest">Sphère</th>
+                <th className="border border-slate-200 p-2.5 text-center text-[8px] uppercase font-black tracking-widest">Cylindre</th>
+                <th className="border border-slate-200 p-2.5 text-center text-[8px] uppercase font-black tracking-widest">Axe</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="bg-white">
-                <td className="border border-slate-200 p-3 font-black text-slate-700 bg-slate-50/50">Oeil Droit (OD)</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{od.sph}</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{od.cyl}</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{od.axe}</td>
+              <tr>
+                <td className="border border-slate-200 p-2.5 font-black text-slate-700 bg-slate-50/50">Oeil Droit (OD)</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{od.sph}</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{od.cyl}</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{od.axe}</td>
               </tr>
-              <tr className="bg-white">
-                <td className="border border-slate-200 p-3 font-black text-slate-700 bg-slate-50/50">Oeil Gauche (OG)</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{og.sph}</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{og.cyl}</td>
-                <td className="border border-slate-200 p-3 text-center font-bold text-sm">{og.axe}</td>
+              <tr>
+                <td className="border border-slate-200 p-2.5 font-black text-slate-700 bg-slate-50/50">Oeil Gauche (OG)</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{og.sph}</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{og.cyl}</td>
+                <td className="border border-slate-200 p-2.5 text-center font-bold text-xs">{og.axe}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Details Monture & Verres */}
-        <div className="mb-16 grid grid-cols-2 gap-8">
-          {monture && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5 text-center">
-              <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Monture</p>
-              <p className="text-[12px] font-bold text-slate-800 uppercase">{monture}</p>
-            </div>
-          )}
-          {verres && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5 text-center">
-              <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Verres</p>
-              <p className="text-[12px] font-bold text-slate-800 uppercase">{verres}</p>
-            </div>
-          )}
+        {/* Details Monture & Verres - Back in details */}
+        <div className="mb-10 grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1 text-center">
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Monture</p>
+            <p className="text-[10px] font-bold text-slate-800 uppercase truncate">{monture || "---"}</p>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-1 text-center">
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Verres</p>
+            <p className="text-[10px] font-bold text-slate-800 uppercase truncate">{verres || "---"}</p>
+          </div>
         </div>
 
-        {/* Totals & Stamp */}
-        <div className="flex justify-between items-end gap-12 pt-8">
-          <div className="flex-1 space-y-3.5 bg-slate-50 p-6 rounded-[24px] border border-slate-100">
-            <div className="flex justify-between text-[11px] text-slate-500 font-medium">
+        {/* Totals & Stamp - Optimized vertical space */}
+        <div className="flex justify-between items-end gap-10">
+          <div className="flex-1 space-y-2.5 bg-slate-50 p-5 rounded-[20px] border border-slate-100">
+            <div className="flex justify-between text-[10px] text-slate-500 font-medium">
               <span>Total Brut :</span>
               <span>{formatCurrency(total)}</span>
             </div>
             {remise > 0 && (
-              <div className="flex justify-between text-[11px] text-destructive font-black italic">
+              <div className="flex justify-between text-[10px] text-destructive font-black">
                 <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
                 <span>-{formatCurrency(remise)}</span>
               </div>
             )}
-            <div className="flex justify-between text-[13px] text-slate-900 font-black border-t border-slate-200 pt-3">
+            <div className="flex justify-between text-[11px] text-slate-900 font-black border-t border-slate-200 pt-2.5">
               <span>Total Net :</span>
               <span>{formatCurrency(totalNet)}</span>
             </div>
-            <div className="flex justify-between text-[13px] text-green-700 font-black">
+            <div className="flex justify-between text-[11px] text-slate-700 font-black">
               <span>Avance payée :</span>
               <span>{formatCurrency(avance)}</span>
             </div>
             
-            <div className="flex justify-between items-center pt-4 border-t-4 border-primary mt-4">
-              <span className="text-[11px] font-black uppercase text-primary tracking-tighter">Reste à régler</span>
-              <span className="text-3xl font-black text-primary tracking-tighter">
+            <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 mt-2">
+              <span className="text-[10px] font-black uppercase text-slate-900 tracking-tighter">Reste à régler</span>
+              <span className="text-2xl font-black text-slate-900 tracking-tighter">
                 {formatCurrency(reste)}
               </span>
             </div>
           </div>
           
-          <div className="flex flex-col items-center w-48 mb-2">
-            <div className="w-full h-32 border-2 border-dashed border-primary/20 rounded-2xl flex items-center justify-center relative bg-primary/5 overflow-hidden mb-4">
-              <span className="text-[9px] uppercase text-primary/30 font-black rotate-[-15deg] text-center px-4 leading-relaxed select-none">
+          <div className="flex flex-col items-center w-40 mb-2">
+            <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center relative bg-slate-50 overflow-hidden mb-2">
+              <span className="text-[8px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-4 leading-relaxed select-none">
                 CACHET & SIGNATURE<br/>OFFICIELS DU MAGASIN
               </span>
             </div>
-            <p className="text-[9px] font-black text-slate-400 uppercase italic tracking-widest">Validé par Direction</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase italic tracking-widest">Direction {APP_NAME}</p>
           </div>
         </div>
       </div>
 
-      {/* Footer Logo */}
-      <div className="flex justify-center items-center mt-12 pt-6 border-t border-slate-50">
-         <div className="flex items-center gap-3 opacity-30">
-           <div className="relative">
-            <Glasses className="h-5 w-5" />
-            <ThumbsUp className="h-2 w-2 absolute -top-1.5 -right-1.5" />
-          </div>
-           <p className="text-[10px] font-black uppercase tracking-[0.5em]">{APP_NAME} Optique Pro</p>
-         </div>
+      {/* Footer minimal */}
+      <div className="flex justify-center items-center mt-8 pt-4 border-t border-slate-50">
+         <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.5em]">{APP_NAME} Optique Pro</p>
       </div>
     </div>
   );
@@ -200,36 +190,27 @@ function InvoicePrintContent() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
       <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
-        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-primary/20 text-primary shadow-sm h-12 px-8 rounded-xl font-black text-xs">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 shadow-sm h-12 px-8 rounded-xl font-black text-xs">
           <Link href="/ventes">
             <ArrowLeft className="mr-3 h-5 w-5" />
             RETOUR HISTORIQUE
           </Link>
         </Button>
         <div className="flex items-center gap-6">
-          <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm flex items-center gap-3 tracking-widest">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-            Format A4 Paysage • 2 Copies A5
+          <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm tracking-widest">
+            A4 Paysage • 2 Copies A5
           </span>
-          <Button onClick={() => window.print()} className="bg-primary shadow-2xl hover:bg-primary/90 px-12 h-12 text-base font-black rounded-xl">
+          <Button onClick={() => window.print()} className="bg-slate-900 shadow-2xl hover:bg-slate-800 px-12 h-12 text-base font-black rounded-xl">
             <Printer className="mr-3 h-5 w-5" />
             IMPRIMER
           </Button>
         </div>
       </div>
 
-      <div className="pdf-a4-landscape shadow-[0_0_80px_rgba(0,0,0,0.15)] overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
+      <div className="pdf-a4-landscape shadow-2xl overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
         <InvoiceCopy />
         <div className="cutting-line-vertical" />
         <InvoiceCopy />
-      </div>
-
-      <div className="no-print mt-10 text-slate-500 text-[10px] font-black flex items-center gap-4 bg-white/95 px-8 py-4 rounded-full border border-primary/10 shadow-2xl uppercase tracking-widest">
-        <div className="relative">
-          <Glasses className="h-5 w-5 text-primary" />
-          <ThumbsUp className="h-2 w-2 absolute -top-1 -right-1 text-primary" />
-        </div>
-        Astuce : Réglez les marges sur "Aucune" dans les paramètres d'impression.
       </div>
     </div>
   );
