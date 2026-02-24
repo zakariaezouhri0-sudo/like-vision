@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { Suspense } from "react";
 
-export default function InvoicePrintPage() {
+function InvoicePrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const shop = DEFAULT_SHOP_SETTINGS;
@@ -215,5 +216,13 @@ export default function InvoicePrintPage() {
         Conseil : Désactivez les en-têtes/pieds de page dans les options d'impression de votre navigateur.
       </div>
     </div>
+  );
+}
+
+export default function InvoicePrintPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Chargement de la facture...</div>}>
+      <InvoicePrintContent />
+    </Suspense>
   );
 }

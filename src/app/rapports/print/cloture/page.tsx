@@ -7,10 +7,11 @@ import { Printer, ArrowLeft, FileText, Calendar, User, Coins } from "lucide-reac
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Suspense } from "react";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
-export default function CashClosurePrintPage() {
+function CashClosurePrintContent() {
   const searchParams = useSearchParams();
   const shop = DEFAULT_SHOP_SETTINGS;
 
@@ -180,5 +181,13 @@ export default function CashClosurePrintPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CashClosurePrintPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Chargement du rapport...</div>}>
+      <CashClosurePrintContent />
+    </Suspense>
   );
 }
