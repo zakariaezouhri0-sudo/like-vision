@@ -11,11 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, limit } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -28,6 +29,7 @@ export default function CaissePage() {
   const router = useRouter();
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
   const [newOp, setNewOp] = useState({
     type: "DEPENSE",
@@ -71,14 +73,12 @@ export default function CaissePage() {
     }
     setOpLoading(true);
     const amount = parseFloat(newOp.montant);
-    
-    // VERSEMENT (banque) and DEPENSE are outflows (money leaving the shop cash drawer)
     const isOutflow = newOp.type === "DEPENSE" || newOp.type === "VERSEMENT";
     const finalAmount = isOutflow ? -Math.abs(amount) : Math.abs(amount);
 
     const transData = {
       type: newOp.type,
-      label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : "Apport"),
+      label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : newOp.type === "APPORT" ? "Apport" : "Vente"),
       category: newOp.category,
       montant: finalAmount,
       createdAt: serverTimestamp()
@@ -91,6 +91,43 @@ export default function CaissePage() {
       setIsOpDialogOpen(false);
     } catch (e) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: "transactions", operation: "create", requestResourceData: transData }));
+    } finally {
+      setOpLoading(false);
+    }
+  };
+
+  const handleDeleteOperation = async (id: string, label: string) => {
+    if (!confirm(`Supprimer l'opération "${label}" ?`)) return;
+    const transRef = doc(db, "transactions", id);
+    try {
+      await deleteDoc(transRef);
+      toast({ variant: "success", title: "Opération supprimée" });
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: transRef.path, operation: "delete" }));
+    }
+  };
+
+  const handleUpdateOperation = async () => {
+    if (!editingTransaction) return;
+    setOpLoading(true);
+    const transRef = doc(db, "transactions", editingTransaction.id);
+    const amount = parseFloat(editingTransaction.montant_raw);
+    const isOutflow = editingTransaction.type === "DEPENSE" || editingTransaction.type === "VERSEMENT";
+    const finalAmount = isOutflow ? -Math.abs(amount) : Math.abs(amount);
+
+    const updateData = {
+      type: editingTransaction.type,
+      label: editingTransaction.label,
+      category: editingTransaction.category,
+      montant: finalAmount,
+    };
+
+    try {
+      await updateDoc(transRef, updateData);
+      toast({ variant: "success", title: "Opération mise à jour" });
+      setEditingTransaction(null);
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: transRef.path, operation: "update", requestResourceData: updateData }));
     } finally {
       setOpLoading(false);
     }
@@ -247,6 +284,47 @@ export default function CaissePage() {
           </div>
         </div>
 
+        <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
+          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-3xl">
+            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier l'Opération</DialogTitle></DialogHeader>
+            {editingTransaction && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
+                    <Select value={editingTransaction.type} onValueChange={v => setEditingTransaction({...editingTransaction, type: v})}>
+                      <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense (Charge)</SelectItem>
+                        <SelectItem value="VERSEMENT" className="font-bold text-orange-600">Versement (Banque)</SelectItem>
+                        <SelectItem value="APPORT" className="font-bold text-blue-600">Apport (Entrée)</SelectItem>
+                        <SelectItem value="VENTE" className="font-bold text-green-600">Vente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
+                    <Input type="number" className="h-11 rounded-xl font-bold" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé</Label>
+                  <Input className="h-11 rounded-xl font-bold" value={editingTransaction.label} onChange={e => setEditingTransaction({...editingTransaction, label: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Catégorie</Label>
+                  <Input className="h-11 rounded-xl font-bold" value={editingTransaction.category} onChange={e => setEditingTransaction({...editingTransaction, category: e.target.value})} />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">
+                {opLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "ENREGISTRER LES MODIFICATIONS"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-green-500">
             <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Entrées (Ventes/Apports)</p>
@@ -254,7 +332,7 @@ export default function CaissePage() {
           </Card>
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-destructive">
             <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Dépenses (Charges)</p>
-            <p className="text-2xl font-black text-destructive">-{formatCurrency(stats.depenses)}</p>
+            <p className="text-2xl font-black">-{formatCurrency(stats.depenses)}</p>
           </Card>
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-orange-500">
             <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Versements (Banque)</p>
@@ -276,10 +354,11 @@ export default function CaissePage() {
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? <TableRow><TableCell colSpan={2} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
+                {loading ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
                   transactions?.map((t: any) => (
                     <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                       <TableCell className="px-6 py-4">
@@ -300,6 +379,23 @@ export default function CaissePage() {
                       </TableCell>
                       <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
                         {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
+                      </TableCell>
+                      <TableCell className="text-right px-6 py-4">
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
+                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
