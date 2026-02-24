@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Link as LinkIcon } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
@@ -20,13 +20,13 @@ import { FirestorePermissionError } from '@/firebase/errors';
 export default function SettingsPage() {
   const { toast } = useToast();
   const db = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: fetchLoading } = useDoc(settingsRef);
 
   const [settings, setSettings] = useState(DEFAULT_SHOP_SETTINGS);
-  const [showLogoInput, setShowLogoInput] = useState(false);
 
   useEffect(() => {
     if (remoteSettings) {
@@ -39,6 +39,30 @@ export default function SettingsPage() {
       });
     }
   }, [remoteSettings]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // Limite de 1Mo pour le Base64 dans Firestore
+        toast({
+          variant: "destructive",
+          title: "Fichier trop volumineux",
+          description: "Veuillez choisir une image de moins de 1 Mo.",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings(prev => ({ ...prev, logoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLogo = () => {
+    setSettings(prev => ({ ...prev, logoUrl: "" }));
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -86,49 +110,51 @@ export default function SettingsPage() {
                 <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Logo du Magasin</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-6 p-8">
-                <div className="relative h-48 w-48 border-2 border-dashed border-primary/10 rounded-[32px] overflow-hidden bg-slate-50 flex items-center justify-center shadow-inner">
+                <div className="relative h-48 w-48 border-2 border-dashed border-primary/10 rounded-[32px] overflow-hidden bg-slate-50 flex items-center justify-center shadow-inner group">
                   {settings.logoUrl ? (
-                    <Image 
-                      src={settings.logoUrl} 
-                      alt="Shop Logo" 
-                      fill 
-                      className="object-contain p-4"
-                      data-ai-hint="optical logo"
-                    />
+                    <>
+                      <Image 
+                        src={settings.logoUrl} 
+                        alt="Shop Logo" 
+                        fill 
+                        className="object-contain p-4"
+                        data-ai-hint="optical logo"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button variant="destructive" size="icon" onClick={removeLogo} className="rounded-full">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
                   ) : (
-                    <Building2 className="h-12 w-12 text-primary/10" />
+                    <ImageIcon className="h-12 w-12 text-primary/10" />
                   )}
                 </div>
                 
-                <div className="w-full space-y-4">
+                <div className="w-full">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="w-full h-11 rounded-xl font-black text-[10px] uppercase border-primary/20"
-                    onClick={() => setShowLogoInput(!showLogoInput)}
+                    className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white hover:bg-slate-50"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    {showLogoInput ? "MASQUER L'URL" : "CHANGER L'URL DU LOGO"}
+                    <Upload className="mr-2 h-4 w-4" />
+                    IMPORTER DEPUIS MON PC
                   </Button>
-
-                  {showLogoInput && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Lien direct de l'image</Label>
-                      <Input 
-                        placeholder="https://exemple.com/logo.png"
-                        value={settings.logoUrl}
-                        onChange={(e) => setSettings({...settings, logoUrl: e.target.value})}
-                        className="h-10 text-xs font-bold rounded-xl"
-                      />
-                    </div>
-                  )}
+                  <p className="text-[9px] text-center mt-2 font-bold text-muted-foreground uppercase opacity-60 italic">Format conseillé: Carré, max 1Mo</p>
                 </div>
               </CardContent>
             </Card>
             
             <div className="bg-primary/5 p-6 rounded-[24px] flex gap-4 text-xs text-primary border border-primary/10">
               <Info className="h-6 w-6 shrink-0" />
-              <p className="font-bold leading-relaxed">Ces informations apparaîtront automatiquement sur l'en-tête de vos factures et rapports officiels.</p>
+              <p className="font-bold leading-relaxed">Le logo importé sera automatiquement utilisé sur vos factures et documents de clôture.</p>
             </div>
           </div>
 
