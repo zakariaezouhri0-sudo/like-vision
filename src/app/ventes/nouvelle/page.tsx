@@ -35,16 +35,16 @@ function NewSaleForm() {
   const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
-  const [total, setTotal] = useState<number | string>(Number(searchParams.get("total")) || "");
+  const [total, setTotal] = useState<number | string>(searchParams.get("total") || "");
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
-  const [discountValue, setDiscountValue] = useState<number | string>(Number(searchParams.get("discountValue")) || "");
-  const [avance, setAvance] = useState<number | string>(Number(searchParams.get("avance")) || "");
+  const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
+  const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   
-  const [purchasePriceFrame, setPurchasePriceFrame] = useState<number | string>(Number(searchParams.get("purchasePriceFrame")) || "");
-  const [purchasePriceLenses, setPurchasePriceLenses] = useState<number | string>(Number(searchParams.get("purchasePriceLenses")) || "");
+  const [purchasePriceFrame, setPurchasePriceFrame] = useState<number | string>(searchParams.get("purchasePriceFrame") || "");
+  const [purchasePriceLenses, setPurchasePriceLenses] = useState<number | string>(searchParams.get("purchasePriceLenses") || "");
 
   const [prescription, setPrescription] = useState({
     od: { 
@@ -89,9 +89,15 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, editId, toast]);
 
-  const nTotal = Number(total) || 0;
-  const nDiscount = Number(discountValue) || 0;
-  const nAvance = Number(avance) || 0;
+  // Nettoyage des valeurs pour le calcul (gestion des espaces de formatage)
+  const cleanVal = (val: string | number) => {
+    if (typeof val === 'number') return val;
+    return parseFloat(val.toString().replace(/\s/g, '').replace(',', '.')) || 0;
+  };
+
+  const nTotal = cleanVal(total);
+  const nDiscount = cleanVal(discountValue);
+  const nAvance = cleanVal(avance);
 
   const remiseAmount = discountType === "percent" 
     ? (nTotal * nDiscount) / 100 
@@ -111,7 +117,7 @@ function NewSaleForm() {
   };
 
   const handleSave = async (silent = false) => {
-    if (!clientName || !nTotal || !clientPhone) {
+    if (!clientName || nTotal === 0 || !clientPhone) {
       toast({ variant: "destructive", title: "Erreur", description: "Nom, téléphone et total obligatoires." });
       return null;
     }
@@ -133,8 +139,8 @@ function NewSaleForm() {
       remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
       avance: nAvance,
       reste: resteAPayer,
-      purchasePriceFrame: Number(purchasePriceFrame) || 0,
-      purchasePriceLenses: Number(purchasePriceLenses) || 0,
+      purchasePriceFrame: cleanVal(purchasePriceFrame),
+      purchasePriceLenses: cleanVal(purchasePriceLenses),
       statut,
       prescription,
       monture,
@@ -403,22 +409,24 @@ function NewSaleForm() {
                     Données d'achat (Interne)
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                      <Label className="text-[9px] font-black uppercase text-white/30 tracking-widest">Achat Monture</Label>
+                    <div className="bg-white p-3 rounded-xl space-y-1 shadow-inner">
+                      <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Achat Monture</Label>
                       <Input 
-                        className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
+                        className="h-8 text-right font-black text-slate-950 bg-transparent border-none p-0 focus-visible:ring-0 text-sm" 
                         type="number" 
                         value={purchasePriceFrame} 
                         onChange={(e) => setPurchasePriceFrame(e.target.value)} 
+                        placeholder="0.00"
                       />
                     </div>
-                    <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                      <Label className="text-[9px] font-black uppercase text-white/30 tracking-widest">Achat Verres</Label>
+                    <div className="bg-white p-3 rounded-xl space-y-1 shadow-inner">
+                      <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Achat Verres</Label>
                       <Input 
-                        className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" 
+                        className="h-8 text-right font-black text-slate-950 bg-transparent border-none p-0 focus-visible:ring-0 text-sm" 
                         type="number" 
                         value={purchasePriceLenses} 
                         onChange={(e) => setPurchasePriceLenses(e.target.value)} 
+                        placeholder="0.00"
                       />
                     </div>
                   </div>
