@@ -28,27 +28,27 @@ export default function SalesHistoryPage() {
 
   return (
     <AppShell>
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-xl font-bold text-primary">Historique des Ventes</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wider">Suivi complet des factures.</p>
+            <h1 className="text-2xl font-bold text-primary">Historique des Ventes</h1>
+            <p className="text-sm text-muted-foreground uppercase font-bold opacity-60">Suivi complet de vos facturations.</p>
           </div>
-          <Button asChild size="sm" className="w-full sm:w-auto h-9 text-xs font-bold shadow-md">
+          <Button asChild className="w-full sm:w-auto h-12 text-sm font-black shadow-lg rounded-xl px-6">
             <Link href="/ventes/nouvelle">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nouvelle Vente
+              <Plus className="mr-2 h-5 w-5" />
+              NOUVELLE VENTE
             </Link>
           </Button>
         </div>
 
-        <Card className="shadow-sm border-none overflow-hidden">
-          <CardHeader className="p-3 md:p-4 border-b bg-muted/20">
+        <Card className="shadow-sm border-none overflow-hidden rounded-2xl">
+          <CardHeader className="p-5 border-b bg-muted/20">
             <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="Chercher par client ou ID..." 
-                className="pl-9 h-9 text-sm"
+                placeholder="Chercher par client ou facture..." 
+                className="pl-10 h-11 text-base font-medium rounded-xl border-muted-foreground/20"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -59,26 +59,34 @@ export default function SalesHistoryPage() {
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Facture</TableHead>
-                    <TableHead className="text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Client</TableHead>
-                    <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Total</TableHead>
-                    <TableHead className="text-right text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Reste</TableHead>
-                    <TableHead className="text-center text-xs uppercase font-bold whitespace-nowrap px-4 py-3">Statut</TableHead>
+                    <TableHead className="text-xs uppercase font-black px-6 py-4">Facture</TableHead>
+                    <TableHead className="text-xs uppercase font-black px-6 py-4">Client</TableHead>
+                    <TableHead className="text-right text-xs uppercase font-black px-6 py-4">Total</TableHead>
+                    <TableHead className="text-right text-xs uppercase font-black px-6 py-4">Reste</TableHead>
+                    <TableHead className="text-center text-xs uppercase font-black px-6 py-4">Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id} className="hover:bg-muted/30 border-b last:border-0">
-                      <TableCell className="font-bold text-xs whitespace-nowrap text-primary px-4 py-4">{sale.id}</TableCell>
-                      <TableCell className="font-medium text-xs whitespace-nowrap px-4 py-4">{sale.client}</TableCell>
-                      <TableCell className="text-right font-medium text-xs whitespace-nowrap px-4 py-4">{formatCurrency(sale.total)}</TableCell>
-                      <TableCell className={cn("text-right font-black text-xs whitespace-nowrap px-4 py-4", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
+                    <TableRow key={sale.id} className="hover:bg-muted/30 border-b last:border-0 transition-colors">
+                      <TableCell className="font-black text-sm text-primary px-6 py-5">{sale.id}</TableCell>
+                      <TableCell className="font-bold text-sm text-slate-800 px-6 py-5">{sale.client}</TableCell>
+                      <TableCell className="text-right font-black text-sm text-slate-900 px-6 py-5">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className={cn(
+                        "text-right font-black text-sm px-6 py-5", 
+                        sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30"
+                      )}>
                         {formatCurrency(sale.reste)}
                       </TableCell>
-                      <TableCell className="text-center px-4 py-4">
+                      <TableCell className="text-center px-6 py-5">
                         <Badge 
-                          className="text-[10px] px-2 py-0.5 font-black rounded-sm whitespace-nowrap" 
-                          variant={sale.statut === "Payé" ? "default" : sale.statut === "En attente" ? "destructive" : "outline"}
+                          className={cn(
+                            "text-[10px] px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm whitespace-nowrap",
+                            sale.statut === "Payé" ? "bg-green-100 text-green-700 border-green-200" : 
+                            sale.statut === "En attente" ? "bg-red-100 text-red-700 border-red-200" : 
+                            "bg-blue-100 text-blue-700 border-blue-200"
+                          )}
+                          variant="outline"
                         >
                           {sale.statut}
                         </Badge>
