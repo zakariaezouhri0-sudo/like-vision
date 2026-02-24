@@ -74,7 +74,7 @@ export default function DashboardPage() {
             <Glasses className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm md:text-xl font-bold text-primary truncate">Bonjour, Like Vision</h1>
+            <h1 className="text-sm md:text-xl font-bold text-primary truncate">Bonjour, Administrateur</h1>
             {today && (
               <p className="text-[10px] text-muted-foreground flex items-center gap-1 capitalize">
                 <CalendarDays className="h-3 w-3" />
