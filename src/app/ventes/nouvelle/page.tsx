@@ -388,10 +388,12 @@ function NewSaleForm() {
                 
                 <div className="bg-slate-900 text-white p-6 rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5">
                   <span className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40">Reste à régler</span>
-                  <span className="text-3xl font-black tracking-tighter text-primary">
-                    {formatCurrency(resteAPayer).split(' ')[0]}
-                    <span className="text-xs ml-1 opacity-40">DH</span>
-                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black tracking-tighter text-primary">
+                      {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(resteAPayer)}
+                    </span>
+                    <span className="text-xs font-black text-primary/40 uppercase tracking-widest">DH</span>
+                  </div>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-white/20 space-y-4">
