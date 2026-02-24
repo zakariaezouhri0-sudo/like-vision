@@ -10,7 +10,8 @@ import {
   Settings, 
   FileText, 
   Eye, 
-  TrendingUp 
+  TrendingUp,
+  HandCoins
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "CAISSIER"] },
   { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "CAISSIER"] },
   { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "CAISSIER"] },
+  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "CAISSIER"] },
   { href: "/clients", label: "Clients & Ordonnances", icon: Eye, roles: ["ADMIN", "CAISSIER"] },
   { href: "/rapports", label: "Rapports & Marges", icon: TrendingUp, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
@@ -32,8 +34,6 @@ export function SidebarNav({ role = "ADMIN" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(role)).map((item) => {
         const Icon = item.icon;
         
-        // Logique raffinée : l'élément est actif s'il correspond exactement au chemin,
-        // OU s'il est un préfixe MAIS qu'aucun autre élément du menu plus spécifique ne correspond.
         const isActive = pathname === item.href || (
           pathname.startsWith(item.href + "/") && 
           !NAV_ITEMS.some(otherItem => 
