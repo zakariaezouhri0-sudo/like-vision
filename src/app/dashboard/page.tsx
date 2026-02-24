@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Heart
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { 
   Bar, 
   BarChart, 
