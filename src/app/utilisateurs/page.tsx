@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -36,8 +37,8 @@ export default function UsersPage() {
   });
 
   const handleCreateUser = () => {
-    if (!newUser.name || !newUser.username || !newUser.password) {
-      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs." });
+    if (!newUser.name || !newUser.username) {
+      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir les champs obligatoires." });
       return;
     }
 
@@ -49,7 +50,7 @@ export default function UsersPage() {
       createdAt: serverTimestamp(),
     };
 
-    // Fermeture immédiate pour la réactivité
+    // Fermeture immédiate du dialogue
     setIsCreateOpen(false);
     setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
 
@@ -72,7 +73,7 @@ export default function UsersPage() {
       status: editingUser.status
     };
 
-    // Fermeture immédiate
+    // Fermeture immédiate du dialogue
     setEditingUser(null);
 
     updateDoc(userRef, updateData)
@@ -98,34 +99,34 @@ export default function UsersPage() {
 
   return (
     <AppShell>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-headline font-bold text-primary">Gestion des Utilisateurs</h1>
-            <p className="text-muted-foreground">Gérez les accès et les permissions de votre équipe.</p>
+            <h1 className="text-2xl font-bold text-primary">Gestion des Utilisateurs</h1>
+            <p className="text-sm text-muted-foreground">Gérez les accès et les permissions de votre équipe.</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary">
+              <Button className="bg-primary w-full sm:w-auto">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Nouvel Utilisateur
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Ajouter un membre</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Nom complet</Label>
-                  <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Prénom Nom" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} />
+                  <Input placeholder="Prénom Nom" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Nom d'utilisateur / Email</Label>
-                  <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="nom.prenom@email.com" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
+                  <Input placeholder="nom.prenom@email.com" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Rôle</Label>
                     <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v})}>
@@ -138,20 +139,19 @@ export default function UsersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Mot de passe</Label>
-                    <input type="password" disabled className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm opacity-50" placeholder="Configuré via Firebase" />
+                    <Input type="password" disabled className="bg-muted opacity-50" placeholder="Configuré via Firebase" />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleCreateUser}>Créer le compte</Button>
+                <Button onClick={handleCreateUser} className="w-full">Créer le compte</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Dialog de Modification */}
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Modifier l'utilisateur</DialogTitle>
             </DialogHeader>
@@ -159,7 +159,7 @@ export default function UsersPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Nom complet</Label>
-                  <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} />
+                  <Input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Rôle</Label>
@@ -184,50 +184,56 @@ export default function UsersPage() {
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleUpdateUser}>Sauvegarder</Button>
+              <Button onClick={handleUpdateUser} className="w-full">Sauvegarder</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste du Personnel</CardTitle>
+        <Card className="shadow-sm border-none overflow-hidden">
+          <CardHeader className="py-3 px-4 bg-muted/20 border-b">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Liste du Personnel</CardTitle>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" /></div>
               ) : (
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Utilisateur</TableHead>
-                      <TableHead>Rôle</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Nom</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3 hidden md:table-cell">Utilisateur</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Rôle</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Statut</TableHead>
+                      <TableHead className="text-right text-[11px] uppercase font-bold px-4 py-3">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users && users.length > 0 ? (
                       users.map((u: any) => (
-                        <TableRow key={u.id}>
-                          <TableCell className="font-medium flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center"><User className="h-4 w-4 text-muted-foreground" /></div>
-                            {u.name}
-                          </TableCell>
-                          <TableCell>{u.username}</TableCell>
-                          <TableCell>
+                        <TableRow key={u.id} className="hover:bg-muted/10 border-b last:border-0">
+                          <TableCell className="font-medium px-4 py-4">
                             <div className="flex items-center gap-2">
-                              {u.role === 'ADMIN' ? <Shield className="h-3 w-3 text-primary" /> : <User className="h-3 w-3 text-muted-foreground" />}
-                              <span className="text-xs font-medium">{u.role}</span>
+                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-3.5 w-3.5 text-primary" /></div>
+                              <span className="text-xs md:text-sm">{u.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell><Badge variant={u.status === "Actif" ? "default" : "secondary"}>{u.status}</Badge></TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-xs text-muted-foreground px-4 py-4 hidden md:table-cell">{u.username}</TableCell>
+                          <TableCell className="px-4 py-4">
+                            <div className="flex items-center gap-1.5">
+                              {u.role === 'ADMIN' ? <Shield className="h-3 w-3 text-primary" /> : <User className="h-3 w-3 text-muted-foreground" />}
+                              <span className="text-[10px] md:text-xs font-bold uppercase tracking-tighter">{u.role}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-4">
+                            <Badge variant={u.status === "Actif" ? "default" : "secondary"} className="text-[9px] px-2 py-0 font-bold uppercase">
+                              {u.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right px-4 py-4">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => setEditingUser(u)}><Edit2 className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
@@ -238,7 +244,7 @@ export default function UsersPage() {
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={5} className="text-center py-10">Aucun utilisateur.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-xs text-muted-foreground italic">Aucun utilisateur enregistré.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
