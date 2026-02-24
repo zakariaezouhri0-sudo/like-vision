@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
-import { APP_NAME } from "@/lib/constants";
-import { useFirestore, useAuth } from "@/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { APP_NAME, DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
+import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,11 +24,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Identifiants par défaut pour le développement/démo
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -92,13 +96,26 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg transform rotate-3 mb-4">
-            <div className="relative">
-              <Glasses className="h-10 w-10" />
-              <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full" />
-            </div>
+          
+          <div className="h-24 w-24 flex items-center justify-center mb-4 relative">
+            {settings?.logoUrl ? (
+              <Image 
+                src={settings.logoUrl} 
+                alt="Logo" 
+                fill 
+                className="object-contain"
+              />
+            ) : (
+              <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg transform rotate-3">
+                <div className="relative">
+                  <Glasses className="h-10 w-10" />
+                  <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full border-2 border-white" />
+                </div>
+              </div>
+            )}
           </div>
-          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{APP_NAME}</h1>
+
+          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{settings?.name || APP_NAME}</h1>
           <p className="text-muted-foreground font-medium uppercase text-xs tracking-[0.2em]">Gestion Optique Pro</p>
         </div>
 

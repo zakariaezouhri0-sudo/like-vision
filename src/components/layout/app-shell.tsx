@@ -9,7 +9,9 @@ import { LogOut, Glasses, ThumbsUp, Menu } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import Image from "next/image";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -19,6 +21,10 @@ interface AppShellProps {
 export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
+  const db = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
 
   const userName = user?.displayName || user?.email?.split('@')[0] || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
@@ -31,14 +37,20 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
           href="/dashboard" 
           className="h-24 border-b flex items-center px-6 gap-3 hover:bg-primary/5 transition-all group"
         >
-          <div className="h-11 w-11 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all shrink-0">
-             <div className="relative">
-              <Glasses className="h-6 w-6" />
-              <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
-            </div>
+          <div className="h-11 w-11 flex items-center justify-center shrink-0 relative">
+            {settings?.logoUrl ? (
+              <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+            ) : (
+              <div className="h-11 w-11 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
+                <div className="relative">
+                  <Glasses className="h-6 w-6" />
+                  <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-headline font-black text-lg tracking-tighter text-primary leading-none uppercase truncate">{APP_NAME}</span>
+            <span className="font-headline font-black text-lg tracking-tighter text-primary leading-none uppercase truncate">{settings?.name || APP_NAME}</span>
             <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
           </div>
         </Link>
@@ -72,14 +84,20 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
               <SheetContent side="left" className="p-0 w-72">
                 <SheetHeader className="p-6 border-b text-left bg-slate-50">
                   <SheetTitle className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
-                       <div className="relative">
-                        <Glasses className="h-6 w-6" />
-                        <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full" />
-                      </div>
+                    <div className="h-10 w-10 flex items-center justify-center shrink-0 relative">
+                      {settings?.logoUrl ? (
+                        <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                      ) : (
+                        <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
+                          <div className="relative">
+                            <Glasses className="h-6 w-6" />
+                            <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">{APP_NAME}</span>
+                      <span className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">{settings?.name || APP_NAME}</span>
                       <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
                     </div>
                   </SheetTitle>
@@ -91,15 +109,21 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             </Sheet>
 
             <Link href="/dashboard" className="flex items-center gap-3 group md:hidden">
-              <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
-                <div className="relative">
-                  <Glasses className="h-6 w-6" />
-                  <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
-                </div>
+              <div className="h-10 w-10 flex items-center justify-center shrink-0 relative">
+                {settings?.logoUrl ? (
+                  <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                ) : (
+                  <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
+                    <div className="relative">
+                      <Glasses className="h-6 w-6" />
+                      <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col">
                 <h2 className="text-xl font-black text-primary truncate tracking-tighter leading-none uppercase">
-                  {APP_NAME}
+                  {settings?.name || APP_NAME}
                 </h2>
                 <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
               </div>
