@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react";
+import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2, Loader2, Lock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { useToast } from "@/hooks/use-toast";
@@ -37,20 +37,20 @@ export default function UsersPage() {
   });
 
   const handleCreateUser = () => {
-    if (!newUser.name || !newUser.username) {
-      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir les champs obligatoires." });
+    if (!newUser.name || !newUser.username || !newUser.password) {
+      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs, y compris le mot de passe." });
       return;
     }
 
     const userData = {
       name: newUser.name,
-      username: newUser.username,
+      username: newUser.username.toLowerCase(),
       role: newUser.role,
+      password: newUser.password, // Stockage direct du mot de passe
       status: "Actif",
       createdAt: serverTimestamp(),
     };
 
-    // Fermeture immédiate du dialogue
     setIsCreateOpen(false);
     setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
 
@@ -68,12 +68,12 @@ export default function UsersPage() {
     const userRef = doc(db, "users", editingUser.id);
     const updateData = {
       name: editingUser.name,
-      username: editingUser.username,
+      username: editingUser.username.toLowerCase(),
       role: editingUser.role,
-      status: editingUser.status
+      status: editingUser.status,
+      password: editingUser.password // Mise à jour du mot de passe
     };
 
-    // Fermeture immédiate du dialogue
     setEditingUser(null);
 
     updateDoc(userRef, updateData)
@@ -103,12 +103,12 @@ export default function UsersPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary">Gestion des Utilisateurs</h1>
-            <p className="text-sm text-muted-foreground">Gérez les accès et les permissions de votre équipe.</p>
+            <p className="text-sm text-muted-foreground">Gérez les accès et les mots de passe de votre équipe.</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary w-full sm:w-auto">
+              <Button className="bg-primary w-full sm:w-auto h-10 font-bold">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Nouvel Utilisateur
               </Button>
@@ -118,33 +118,33 @@ export default function UsersPage() {
                 <DialogTitle>Ajouter un membre</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Nom complet</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Nom complet</Label>
                   <Input placeholder="Prénom Nom" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Nom d'utilisateur / Email</Label>
-                  <Input placeholder="nom.prenom@email.com" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Identifiant (Login)</Label>
+                  <Input placeholder="ex: amine" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Rôle</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
                     <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ADMIN">Administrateur</SelectItem>
                         <SelectItem value="CAISSIER">Caissier / Opticien</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Mot de passe</Label>
-                    <Input type="password" disabled className="bg-muted opacity-50" placeholder="Configuré via Firebase" />
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Mot de passe</Label>
+                    <Input type="text" placeholder="Saisir le mot de passe" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleCreateUser} className="w-full">Créer le compte</Button>
+                <Button onClick={handleCreateUser} className="w-full h-11 text-base font-bold">Créer le compte</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -157,41 +157,47 @@ export default function UsersPage() {
             </DialogHeader>
             {editingUser && (
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Nom complet</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Nom complet</Label>
                   <Input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Rôle</Label>
-                  <Select value={editingUser.role} onValueChange={(v) => setEditingUser({...editingUser, role: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">Administrateur</SelectItem>
-                      <SelectItem value="CAISSIER">Caissier / Opticien</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground">Mot de passe</Label>
+                  <Input value={editingUser.password} onChange={(e) => setEditingUser({...editingUser, password: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Statut</Label>
-                  <Select value={editingUser.status} onValueChange={(v) => setEditingUser({...editingUser, status: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Actif">Actif</SelectItem>
-                      <SelectItem value="Suspendu">Suspendu</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
+                    <Select value={editingUser.role} onValueChange={(v) => setEditingUser({...editingUser, role: v})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Administrateur</SelectItem>
+                        <SelectItem value="CAISSIER">Caissier / Opticien</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Statut</Label>
+                    <Select value={editingUser.status} onValueChange={(v) => setEditingUser({...editingUser, status: v})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Actif">Actif</SelectItem>
+                        <SelectItem value="Suspendu">Suspendu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleUpdateUser} className="w-full">Sauvegarder</Button>
+              <Button onClick={handleUpdateUser} className="w-full h-11 text-base font-bold">Sauvegarder</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Card className="shadow-sm border-none overflow-hidden">
+        <Card className="shadow-sm border-none overflow-hidden rounded-2xl">
           <CardHeader className="py-3 px-4 bg-muted/20 border-b">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Liste du Personnel</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Liste du Personnel</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -202,9 +208,9 @@ export default function UsersPage() {
                   <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Nom</TableHead>
-                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3 hidden md:table-cell">Utilisateur</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Login</TableHead>
+                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Pass</TableHead>
                       <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Rôle</TableHead>
-                      <TableHead className="text-[11px] uppercase font-bold px-4 py-3">Statut</TableHead>
                       <TableHead className="text-right text-[11px] uppercase font-bold px-4 py-3">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -215,20 +221,16 @@ export default function UsersPage() {
                           <TableCell className="font-medium px-4 py-4">
                             <div className="flex items-center gap-2">
                               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center"><User className="h-3.5 w-3.5 text-primary" /></div>
-                              <span className="text-xs md:text-sm">{u.name}</span>
+                              <span className="text-xs font-bold">{u.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-4 py-4 hidden md:table-cell">{u.username}</TableCell>
+                          <TableCell className="text-xs font-black text-primary px-4 py-4 uppercase">{u.username}</TableCell>
+                          <TableCell className="text-[10px] font-mono text-muted-foreground px-4 py-4">{u.password}</TableCell>
                           <TableCell className="px-4 py-4">
                             <div className="flex items-center gap-1.5">
                               {u.role === 'ADMIN' ? <Shield className="h-3 w-3 text-primary" /> : <User className="h-3 w-3 text-muted-foreground" />}
-                              <span className="text-[10px] md:text-xs font-bold uppercase tracking-tighter">{u.role}</span>
+                              <span className="text-[10px] font-black uppercase tracking-tighter">{u.role}</span>
                             </div>
-                          </TableCell>
-                          <TableCell className="px-4 py-4">
-                            <Badge variant={u.status === "Actif" ? "default" : "secondary"} className="text-[9px] px-2 py-0 font-bold uppercase">
-                              {u.status}
-                            </Badge>
                           </TableCell>
                           <TableCell className="text-right px-4 py-4">
                             <DropdownMenu>

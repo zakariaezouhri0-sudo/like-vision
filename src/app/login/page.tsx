@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -7,52 +6,63 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Glasses, ThumbsUp, Lock, User as UserIcon } from "lucide-react";
+import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { useFirestore } from "@/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const auth = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Bypass de sécurité pour le développement (admin / admin123)
-    if (email === "admin" && password === "admin123") {
-      toast({
-        title: "Connexion réussie",
-        description: "Bienvenue sur Like Vision (Mode Administrateur).",
-      });
+    // Bypass de sécurité pour le développement initial
+    if (username.toLowerCase() === "admin" && password === "admin123") {
+      toast({ title: "Connexion réussie", description: "Bienvenue (Mode Super-Admin)." });
       router.push("/dashboard");
       setLoading(false);
       return;
     }
 
     try {
-      // Tentative de connexion réelle via Firebase si l'identifiant est un email
-      if (email.includes("@")) {
-        await signInWithEmailAndPassword(auth, email, password);
+      // Recherche de l'utilisateur dans Firestore
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", username.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error("Utilisateur non trouvé.");
+      }
+
+      const userData = querySnapshot.docs[0].data();
+
+      // Vérification du mot de passe stocké manuellement
+      if (userData.password === password) {
+        if (userData.status === "Suspendu") {
+          throw new Error("Votre compte est suspendu.");
+        }
+        
         toast({
-          title: "Connexion réussie",
-          description: "Bienvenue sur Like Vision.",
+          title: "Bienvenue",
+          description: `Ravi de vous revoir, ${userData.name}.`,
         });
         router.push("/dashboard");
       } else {
-        throw new Error("Identifiants incorrects.");
+        throw new Error("Mot de passe incorrect.");
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: "Utilisateur ou mot de passe incorrect.",
+        description: error.message || "Identifiants incorrects.",
       });
     } finally {
       setLoading(false);
@@ -70,42 +80,42 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{APP_NAME}</h1>
-          <p className="text-muted-foreground font-medium">Gestion Optique & Facturation</p>
+          <p className="text-muted-foreground font-medium uppercase text-xs tracking-[0.2em]">Gestion Optique Pro</p>
         </div>
 
-        <Card className="border-none shadow-xl bg-card/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pt-8">
-            <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
-            <CardDescription>
-              Utilisez <b>admin</b> et <b>admin123</b> pour tester le système.
+        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <CardHeader className="space-y-1 pt-8 text-center border-b bg-muted/10 pb-6">
+            <CardTitle className="text-2xl font-black text-primary">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase opacity-60">
+              Saisissez vos identifiants magasin
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 pt-8">
               <div className="space-y-2">
-                <Label htmlFor="email">Identifiant</Label>
+                <Label htmlFor="username" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Identifiant / Login</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <UserIcon className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
                   <Input 
-                    id="email" 
+                    id="username" 
                     type="text"
-                    placeholder="admin" 
-                    className="pl-10" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="amine" 
+                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required 
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
                   <Input 
                     id="password" 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-10" 
+                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
@@ -113,9 +123,9 @@ export default function LoginPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pb-8">
-              <Button className="w-full h-11 text-lg font-semibold" disabled={loading}>
-                {loading ? "Vérification..." : "Se connecter"}
+            <CardFooter className="pb-8 pt-4">
+              <Button className="w-full h-12 text-base font-black shadow-xl" disabled={loading}>
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>
           </form>
