@@ -4,7 +4,7 @@ Bienvenue dans votre application de gestion professionnelle.
 
 ## Comment mettre votre application en ligne (Gratuitement)
 
-Pour que votre application soit accessible sur internet, suivez ces étapes :
+Pour que votre application soit accessible sur internet, suivez ces étapes simples :
 
 ### 1. Créer votre projet sur GitHub
 - Connectez-vous sur [GitHub](https://github.com/).
@@ -14,7 +14,7 @@ Pour que votre application soit accessible sur internet, suivez ces étapes :
 - Copiez l'adresse qui s'affiche (ex: `https://github.com/votre-nom/like-vision.git`).
 
 ### 2. Envoyer le code vers GitHub
-- Ouvrez le terminal dans votre éditeur.
+- Ouvrez le terminal dans votre éditeur (Firebase Studio).
 - Tapez ces commandes une par une :
   ```bash
   git init
@@ -25,13 +25,14 @@ Pour que votre application soit accessible sur internet, suivez ces étapes :
   git push -u origin main
   ```
 
-### 3. Configurer le déploiement Firebase
+### 3. Configurer le déploiement sur Firebase
 - Allez sur [console.firebase.google.com](https://console.firebase.google.com/).
-- Créez un projet nommé **"Like Vision"**.
-- Dans le menu de gauche, allez dans **App Hosting**.
-- Cliquez sur **"Get Started"** et connectez votre compte GitHub.
-- Sélectionnez votre dépôt `like-vision`.
-- Firebase s'occupe du reste ! Votre application sera en ligne dans quelques minutes.
+- Créez ou sélectionnez votre projet **"Like Vision"**.
+- Dans le menu de gauche, cliquez sur **"Build"** (ou "Construction"), puis sur **"App Hosting"**.
+- Cliquez sur le gros bouton bleu **"Get Started"** au centre de la page.
+- Connectez votre compte GitHub et sélectionnez votre dépôt `like-vision`.
+- Laissez les réglages par défaut et cliquez sur **"Finish"**.
+- Firebase s'occupe du reste ! Votre application sera en ligne dans 3 à 5 minutes.
 
 ## Fonctionnalités principales
 - **Tableau de bord** : Statistiques en temps réel (CA, Ventes, Montant à recouvrir).
