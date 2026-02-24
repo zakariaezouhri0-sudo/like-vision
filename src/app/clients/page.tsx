@@ -20,9 +20,11 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, 
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { formatPhoneNumber } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function ClientsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -113,6 +115,10 @@ export default function ClientsPage() {
       });
   };
 
+  const goToHistory = (phone: string) => {
+    router.push(`/ventes?search=${phone}`);
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -158,6 +164,39 @@ export default function ClientsPage() {
           </Dialog>
         </div>
 
+        {/* Modal de Modification */}
+        <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
+          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[24px]">
+            <DialogHeader>
+              <DialogTitle className="font-black uppercase text-primary text-xl">Modifier Dossier</DialogTitle>
+            </DialogHeader>
+            {editingClient && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Nom Complet</Label>
+                  <Input className="h-11 rounded-xl font-bold" value={editingClient.name} onChange={(e) => setEditingClient({...editingClient, name: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone</Label>
+                  <Input className="h-11 rounded-xl font-bold" value={editingClient.phone} onChange={(e) => setEditingClient({...editingClient, phone: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
+                  <Select value={editingClient.mutuelle} onValueChange={(v) => setEditingClient({...editingClient, mutuelle: v})}>
+                    <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={handleUpdateClient} className="w-full h-12 text-base font-black rounded-xl shadow-xl">SAUVEGARDER</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
             <div className="relative max-w-md">
@@ -181,29 +220,29 @@ export default function ClientsPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500">Client</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500">Téléphone</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500">Mutuelle</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 hidden md:table-cell">Dernière Visite</TableHead>
-                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500">Actions</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Client</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Téléphone</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Mutuelle</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 hidden md:table-cell whitespace-nowrap">Dernière Visite</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredClients.length > 0 ? (
                       filteredClients.map((c: any) => (
                         <TableRow key={c.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                          <TableCell className="px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner shrink-0">
-                                <User className="h-5 w-5 text-primary" />
+                          <TableCell className="px-4 md:px-8 py-4 md:py-5 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner shrink-0">
+                                <User className="h-4 w-4 text-primary" />
                               </div>
                               <span className="text-xs md:text-sm font-black text-slate-800 uppercase leading-none">{c.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-6 tracking-tighter whitespace-nowrap">
+                          <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-4 md:py-5 tracking-tighter whitespace-nowrap">
                             {formatPhoneNumber(c.phone)}
                           </TableCell>
-                          <TableCell className="px-4 md:px-8 py-5 md:py-6">
+                          <TableCell className="px-4 md:px-8 py-4 md:py-5">
                             <Badge 
                               className="text-[8px] md:text-[9px] px-2 md:px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none bg-blue-100 text-blue-700 whitespace-nowrap"
                               variant="outline"
@@ -211,10 +250,10 @@ export default function ClientsPage() {
                               {c.mutuelle}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-5 md:py-6 hidden md:table-cell whitespace-nowrap">
+                          <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-4 md:py-5 hidden md:table-cell whitespace-nowrap">
                             {c.lastVisit}
                           </TableCell>
-                          <TableCell className="text-right px-4 md:px-8 py-5 md:py-6">
+                          <TableCell className="text-right px-4 md:px-8 py-4 md:py-5">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 rounded-xl transition-all">
@@ -225,7 +264,7 @@ export default function ClientsPage() {
                                 <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
