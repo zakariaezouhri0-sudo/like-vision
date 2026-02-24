@@ -95,9 +95,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center text-center space-y-2">
+        <div className="flex flex-col items-center text-center space-y-4">
           
-          <div className="h-24 w-24 flex items-center justify-center mb-4 relative">
+          <div className="h-36 w-36 flex items-center justify-center relative">
             {settings?.logoUrl ? (
               <Image 
                 src={settings.logoUrl} 
@@ -106,22 +106,24 @@ export default function LoginPage() {
                 className="object-contain"
               />
             ) : (
-              <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg transform rotate-3">
+              <div className="h-24 w-24 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl transform rotate-3">
                 <div className="relative">
-                  <Glasses className="h-10 w-10" />
-                  <ThumbsUp className="h-5 w-5 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full border-2 border-white" />
+                  <Glasses className="h-14 w-14" />
+                  <ThumbsUp className="h-7 w-7 absolute -top-2 -right-2 bg-primary p-0.5 rounded-full border-2 border-white" />
                 </div>
               </div>
             )}
           </div>
 
-          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">{settings?.name || APP_NAME}</h1>
-          <p className="text-muted-foreground font-medium uppercase text-xs tracking-[0.2em]">Gestion Optique Pro</p>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-headline font-black text-primary tracking-tighter uppercase">{settings?.name || APP_NAME}</h1>
+            <p className="text-muted-foreground font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
+          </div>
         </div>
 
         <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-sm rounded-3xl overflow-hidden">
           <CardHeader className="space-y-1 pt-8 text-center border-b bg-muted/10 pb-6">
-            <CardTitle className="text-2xl font-black text-primary">Connexion</CardTitle>
+            <CardTitle className="text-2xl font-black text-primary uppercase">Connexion</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase opacity-60">
               Saisissez vos identifiants magasin
             </CardDescription>
@@ -160,7 +162,7 @@ export default function LoginPage() {
               </div>
             </CardContent>
             <CardFooter className="pb-8 pt-4">
-              <Button className="w-full h-12 text-base font-black shadow-xl" disabled={loading}>
+              <Button className="w-full h-12 text-base font-black shadow-xl rounded-xl" disabled={loading}>
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>

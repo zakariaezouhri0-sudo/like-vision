@@ -35,23 +35,23 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
       <aside className="w-64 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-2xl">
         <Link 
           href="/dashboard" 
-          className="h-24 border-b flex items-center px-6 gap-3 hover:bg-primary/5 transition-all group"
+          className="h-28 border-b flex items-center px-6 gap-4 hover:bg-primary/5 transition-all group"
         >
-          <div className="h-11 w-11 flex items-center justify-center shrink-0 relative">
+          <div className="h-16 w-16 flex items-center justify-center shrink-0 relative">
             {settings?.logoUrl ? (
               <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
             ) : (
-              <div className="h-11 w-11 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
+              <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
                 <div className="relative">
-                  <Glasses className="h-6 w-6" />
-                  <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                  <Glasses className="h-7 w-7" />
+                  <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                 </div>
               </div>
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-headline font-black text-lg tracking-tighter text-primary leading-none uppercase truncate">{settings?.name || APP_NAME}</span>
-            <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
+            <span className="font-headline font-black text-xl tracking-tighter text-primary leading-tight uppercase truncate">{settings?.name || APP_NAME}</span>
+            <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5">Optique Pro</span>
           </div>
         </Link>
         <div className="flex-1 py-4 overflow-y-auto px-3">
@@ -83,15 +83,15 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-72">
                 <SheetHeader className="p-6 border-b text-left bg-slate-50">
-                  <SheetTitle className="flex items-center gap-3">
-                    <div className="h-10 w-10 flex items-center justify-center shrink-0 relative">
+                  <SheetTitle className="flex items-center gap-4">
+                    <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
                       {settings?.logoUrl ? (
                         <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
                       ) : (
-                        <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
+                        <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
                           <div className="relative">
-                            <Glasses className="h-6 w-6" />
-                            <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                            <Glasses className="h-7 w-7" />
+                            <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                           </div>
                         </div>
                       )}
@@ -108,8 +108,8 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
               </SheetContent>
             </Sheet>
 
-            <Link href="/dashboard" className="flex items-center gap-3 group md:hidden">
-              <div className="h-10 w-10 flex items-center justify-center shrink-0 relative">
+            <Link href="/dashboard" className="flex items-center gap-4 group md:hidden">
+              <div className="h-12 w-12 flex items-center justify-center shrink-0 relative">
                 {settings?.logoUrl ? (
                   <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
                 ) : (
