@@ -11,7 +11,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Suspense, useMemo } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
-import { format, startOfDay, endOfDay, isSameDay, isBefore } from "date-fns";
+import { format, startOfDay, endOfDay, isBefore, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function DailyCashReportContent() {
@@ -70,10 +70,6 @@ function DailyCashReportContent() {
 
     return { sales, expenses, versements, apports, initial, final: initial + totalDay };
   }, [transactions, selectedDate]);
-
-  const isWithinInterval = (date: Date, interval: { start: Date, end: Date }) => {
-    return date >= interval.start && date <= interval.end;
-  };
 
   if (settingsLoading || transLoading) {
     return (
