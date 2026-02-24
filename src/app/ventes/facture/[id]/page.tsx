@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Tag } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Suspense } from "react";
@@ -22,9 +23,11 @@ function InvoicePrintContent() {
   const remise = Number(searchParams.get("remise")) || 0;
   const remisePercent = searchParams.get("remisePercent") || "0";
   const avance = Number(searchParams.get("avance")) || 0;
+  const monture = searchParams.get("monture") || "";
+  const verres = searchParams.get("verres") || "";
   
-  const totalNet = total - remise;
-  const reste = totalNet - avance;
+  const totalNet = Math.max(0, total - remise);
+  const reste = Math.max(0, totalNet - avance);
 
   const od = {
     sph: searchParams.get("od_sph") || "---",
@@ -39,7 +42,6 @@ function InvoicePrintContent() {
 
   const InvoiceCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[6mm] relative">
-      {/* Header Section */}
       <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-primary/20">
         <div className="flex gap-3">
           <div className="h-12 w-12 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
@@ -64,7 +66,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Information */}
       <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
         <div className="space-y-0.5">
           <div className="flex items-center gap-1 text-[7px] font-black text-primary uppercase opacity-60">
@@ -86,7 +87,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription */}
       <div className="mb-4">
         <h3 className="text-[8px] font-black uppercase mb-1.5 text-primary tracking-widest flex items-center gap-2">
           <div className="h-0.5 w-3 bg-primary/30 rounded-full" />
@@ -118,10 +118,23 @@ function InvoicePrintContent() {
         </table>
       </div>
 
-      {/* Financials & Signatures */}
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        {monture && (
+          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+            <p className="text-[7px] font-black uppercase text-primary/60 mb-1">Monture</p>
+            <p className="text-[9px] font-bold text-slate-800">{monture}</p>
+          </div>
+        )}
+        {verres && (
+          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+            <p className="text-[7px] font-black uppercase text-primary/60 mb-1">Verres</p>
+            <p className="text-[9px] font-bold text-slate-800">{verres}</p>
+          </div>
+        )}
+      </div>
+
       <div className="mt-auto">
         <div className="flex justify-between items-end gap-4 border-t-2 border-slate-100 pt-3">
-          {/* Detailed Totals */}
           <div className="flex-1 space-y-1 bg-slate-50/50 p-2 rounded-lg">
             <div className="flex justify-between text-[9px] text-slate-500 font-medium">
               <span>Total Brut :</span>
@@ -150,7 +163,6 @@ function InvoicePrintContent() {
             </div>
           </div>
           
-          {/* Stamp Area */}
           <div className="flex flex-col items-center w-28">
             <div className="w-full h-16 border-2 border-dashed border-primary/20 rounded-xl flex items-center justify-center relative bg-primary/5 overflow-hidden mb-1">
               <span className="text-[7px] uppercase text-primary/30 font-black rotate-[-15deg] text-center px-1 leading-tight select-none">
@@ -161,7 +173,6 @@ function InvoicePrintContent() {
           </div>
         </div>
         
-        {/* Footer */}
         <div className="flex justify-between items-center px-1 mt-3 border-t border-slate-100 pt-2">
            <p className="text-[8px] font-black text-slate-400 uppercase italic">Signature Client : ............................</p>
            <div className="flex items-center gap-1 opacity-20">
@@ -178,7 +189,6 @@ function InvoicePrintContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
-      {/* Controls Overlay */}
       <div className="no-print w-[297mm] flex justify-between mb-6">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-primary/20 text-primary shadow-sm">
           <Link href="/ventes/nouvelle">
@@ -198,13 +208,9 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Actual A4 Page */}
       <div className="pdf-a4-landscape shadow-[0_0_60px_rgba(0,0,0,0.15)] overflow-hidden print:shadow-none bg-white print:m-0">
         <InvoiceCopy />
-        
-        {/* Vertical Dashed Line for cutting */}
         <div className="cutting-line-vertical" />
-        
         <InvoiceCopy />
       </div>
 

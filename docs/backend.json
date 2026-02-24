@@ -43,6 +43,8 @@
         "avance": { "type": "number" },
         "reste": { "type": "number" },
         "statut": { "type": "string" },
+        "monture": { "type": "string" },
+        "verres": { "type": "string" },
         "prescription": { "type": "object" },
         "createdAt": { "type": "string", "format": "date-time" }
       }

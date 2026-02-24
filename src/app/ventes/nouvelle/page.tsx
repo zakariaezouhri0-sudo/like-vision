@@ -40,6 +40,9 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState(Number(searchParams.get("discountValue")) || 0);
   const [avance, setAvance] = useState(Number(searchParams.get("avance")) || 0);
+  const [monture, setMonture] = useState(searchParams.get("monture") || "");
+  const [verres, setVerres] = useState(searchParams.get("verres") || "");
+  const [notes, setNotes] = useState(searchParams.get("notes") || "");
   
   const [prescription, setPrescription] = useState({
     od: { 
@@ -54,7 +57,6 @@ function NewSaleForm() {
     }
   });
 
-  // Recherche automatique du client quand le téléphone change
   useEffect(() => {
     const searchClient = async () => {
       const cleanPhone = clientPhone.replace(/\s/g, "");
@@ -89,8 +91,8 @@ function NewSaleForm() {
     ? (total * discountValue) / 100 
     : discountValue;
 
-  const totalNet = total - remiseAmount;
-  const resteAPayer = totalNet - avance;
+  const totalNet = Math.max(0, total - remiseAmount);
+  const resteAPayer = Math.max(0, totalNet - avance);
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({
@@ -127,17 +129,18 @@ function NewSaleForm() {
       reste: resteAPayer,
       statut,
       prescription,
+      monture,
+      verres,
+      notes,
       updatedAt: serverTimestamp(),
     };
 
     try {
-      // 1. Gérer le dossier client automatiquement
       const clientsRef = collection(db, "clients");
       const clientQuery = query(clientsRef, where("phone", "==", clientPhone));
       const clientSnapshot = await getDocs(clientQuery);
 
       if (clientSnapshot.empty) {
-        // Nouveau client : créer dossier
         await addDoc(clientsRef, {
           name: clientName,
           phone: clientPhone,
@@ -147,17 +150,15 @@ function NewSaleForm() {
           createdAt: serverTimestamp(),
         });
       } else {
-        // Client existant : mettre à jour
         const clientId = clientSnapshot.docs[0].id;
         await updateDoc(doc(db, "clients", clientId), {
           lastVisit: new Date().toLocaleDateString("fr-FR"),
           ordersCount: increment(1),
-          name: clientName, // Au cas où le nom a été corrigé
+          name: clientName,
           mutuelle: mutuelle
         });
       }
 
-      // 2. Enregistrer la vente
       if (editId) {
         await updateDoc(doc(db, "sales", editId), saleData);
       } else {
@@ -203,6 +204,8 @@ function NewSaleForm() {
       og_sph: saleData.prescription.og.sph,
       og_cyl: saleData.prescription.og.cyl,
       og_axe: saleData.prescription.og.axe,
+      monture: saleData.monture,
+      verres: saleData.verres,
       date: new Date().toLocaleDateString("fr-FR"),
     });
     router.push(`/ventes/facture/${saleData.invoiceId}?${params.toString()}`);
@@ -279,7 +282,7 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            <Collapsible className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
+            <Collapsible defaultOpen={true} className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full flex justify-between px-8 py-5 h-auto hover:bg-slate-50 transition-all">
                   <span className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Options Monture & Verres</span>
@@ -290,16 +293,16 @@ function NewSaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Monture</Label>
-                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" placeholder="Marque, Modèle..." />
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" value={monture} onChange={(e) => setMonture(e.target.value)} placeholder="Marque, Modèle..." />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Verres</Label>
-                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" placeholder="Type, Traitement..." />
+                    <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" value={verres} onChange={(e) => setVerres(e.target.value)} placeholder="Type, Traitement..." />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Notes additionnelles</Label>
-                  <Textarea className="text-sm font-bold rounded-xl bg-slate-50 border-none min-h-[100px]" placeholder="Observations particulières..." />
+                  <Textarea className="text-sm font-bold rounded-xl bg-slate-50 border-none min-h-[100px]" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observations particulières..." />
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -311,11 +314,11 @@ function NewSaleForm() {
                 <CardTitle className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Calcul Financier</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-5">
-                <div className="flex justify-between items-center bg-white/10 p-4 rounded-2xl border border-white/5">
-                  <Label className="text-[10px] font-black uppercase text-white/60 tracking-widest">Total Brut</Label>
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
+                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Total Brut</Label>
                   <div className="relative">
-                    <Input className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-white focus-visible:ring-0 text-lg" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
-                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-white/30">DH</span>
+                    <Input className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-slate-900 focus-visible:ring-0 text-lg" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
+                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
                 
@@ -329,9 +332,9 @@ function NewSaleForm() {
                       </TabsList>
                     </Tabs>
                   </div>
-                  <div className="flex justify-end relative bg-white/10 rounded-2xl border border-white/5 overflow-hidden">
-                    <Input className="w-full h-12 text-right text-white font-black pr-10 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
-                    <span className="absolute right-4 top-3.5 text-[9px] font-black text-white/30">{discountType === 'percent' ? '%' : 'DH'}</span>
+                  <div className="flex justify-end relative bg-white rounded-2xl overflow-hidden">
+                    <Input className="w-full h-12 text-right text-slate-900 font-black pr-10 border-none focus-visible:ring-0" type="number" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+                    <span className="absolute right-4 top-3.5 text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
                   {discountType === 'percent' && (
                     <p className="text-right text-[10px] font-black text-white/40 italic">
@@ -345,11 +348,11 @@ function NewSaleForm() {
                   <span className="font-black text-xl text-primary tracking-tighter">{formatCurrency(totalNet)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center bg-green-500/20 p-4 rounded-2xl border border-green-500/20">
-                  <Label className="text-green-200 text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
+                  <Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance payée</Label>
                   <div className="relative">
-                    <Input className="w-32 h-10 text-right text-white font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
-                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-white/30">DH</span>
+                    <Input className="w-32 h-10 text-right text-slate-900 font-black pr-10 border-none bg-transparent focus-visible:ring-0 text-lg" type="number" value={avance} onChange={(e) => setAvance(Number(e.target.value))} />
+                    <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
                 
