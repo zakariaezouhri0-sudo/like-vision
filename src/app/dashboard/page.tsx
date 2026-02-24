@@ -43,17 +43,17 @@ const salesData = [
 ];
 
 const mutuelleData = [
-  { name: "Aucun", value: 45 },
+  { name: "AUCUN", value: 45 },
   { name: "CNOPS", value: 20 },
   { name: "CNSS", value: 25 },
   { name: "FAR", value: 10 },
 ];
 
 const RECENT_SALES = [
-  { id: "OPT-2024-045", client: "Karim Tazi", date: "10 min", total: 1850, status: "Payé" },
-  { id: "OPT-2024-044", client: "Siham Alaoui", date: "1h", total: 2400, status: "Partiel" },
-  { id: "OPT-2024-043", client: "Yassine Jaber", date: "3h", total: 950, status: "Payé" },
-  { id: "OPT-2024-042", client: "Meryem Bennani", date: "Auj.", total: 3100, status: "En attente" },
+  { id: "2024-045", client: "Karim Tazi", date: "10 min", total: 1850, status: "PAYÉ" },
+  { id: "2024-044", client: "Siham Alaoui", date: "1h", total: 2400, status: "PARTIEL" },
+  { id: "2024-043", client: "Yassine Jaber", date: "3h", total: 950, status: "PAYÉ" },
+  { id: "2024-042", client: "Meryem Bennani", date: "Auj.", total: 3100, status: "EN ATTENTE" },
 ];
 
 const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15'];
@@ -220,8 +220,8 @@ export default function DashboardPage() {
                       <Badge 
                         className={cn(
                           "text-[9px] px-3 py-1 font-black rounded-lg uppercase tracking-widest shadow-sm whitespace-nowrap border-none",
-                          sale.status === "Payé" ? "bg-green-100 text-green-700" : 
-                          sale.status === "En attente" ? "bg-red-100 text-red-700" : 
+                          sale.status === "PAYÉ" ? "bg-green-100 text-green-700" : 
+                          sale.status === "EN ATTENTE" ? "bg-red-100 text-red-700" : 
                           "bg-blue-100 text-blue-700"
                         )}
                         variant="outline"
