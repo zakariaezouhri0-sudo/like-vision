@@ -11,7 +11,8 @@ import {
   ShoppingCart, 
   AlertCircle, 
   Heart, 
-  ChevronRight 
+  ChevronRight,
+  ThumbsUp
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { 
@@ -70,17 +71,20 @@ export default function DashboardPage() {
     }));
   }, []);
 
-  const userName = user?.displayName || user?.email?.split('@')[0] || "Administrateur";
+  const userName = user?.displayName || user?.email?.split('@')[0] || "Utilisateur";
 
   return (
     <div className="space-y-6 md:space-y-8 pb-10">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
         <div className="flex items-center gap-6 min-w-0">
-          <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg shrink-0 transform rotate-2">
-            <Glasses className="h-10 w-10" />
+          <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shrink-0 transform rotate-2">
+            <div className="relative">
+              <Glasses className="h-8 w-8" />
+              <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-primary p-0.5 rounded-full border border-white" />
+            </div>
           </div>
           <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 truncate tracking-tight capitalize">
+            <h1 className="text-xl md:text-3xl font-black text-slate-900 truncate tracking-tight capitalize">
               Bonjour, {userName}
             </h1>
             {today && (
@@ -92,8 +96,8 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <div className="shrink-0">
-          <div className="bg-green-100 border border-green-200 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-sm">
+        <div className="shrink-0 w-full md:w-auto">
+          <div className="bg-green-100 border border-green-200 rounded-2xl px-5 py-3 flex items-center justify-center md:justify-start gap-3 shadow-sm">
             <div className="h-2.5 w-2.5 rounded-full bg-green-600 animate-pulse" />
             <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Caisse Ouverte</span>
           </div>
@@ -184,10 +188,10 @@ export default function DashboardPage() {
       </div>
 
       <Card className="shadow-sm border-none overflow-hidden rounded-[40px] bg-white">
-        <CardHeader className="flex flex-row items-center justify-between p-8 border-b bg-primary/5">
-          <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes</CardTitle>
-          <Button variant="outline" size="sm" asChild className="text-[11px] h-10 px-6 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all tracking-widest">
-            <Link href="/ventes">TOUT VOIR <ChevronRight className="ml-1.5 h-4 w-4" /></Link>
+        <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-primary/5">
+          <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes</CardTitle>
+          <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap">
+            <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR <ChevronRight className="h-3 w-3" /></Link>
           </Button>
         </CardHeader>
         <CardContent className="p-0">
@@ -195,22 +199,22 @@ export default function DashboardPage() {
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="text-[11px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">ID Facture</TableHead>
-                  <TableHead className="text-[11px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Client</TableHead>
-                  <TableHead className="text-right text-[11px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Total</TableHead>
-                  <TableHead className="text-center text-[11px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Statut</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">ID Facture</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Client</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Total</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Statut</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {RECENT_SALES.map((sale) => (
                   <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
-                    <TableCell className="text-sm font-black text-primary px-8 py-7">{sale.id}</TableCell>
-                    <TableCell className="text-sm font-black text-slate-800 px-8 py-7">{sale.client}</TableCell>
-                    <TableCell className="text-right text-sm font-black text-slate-900 px-8 py-7">{formatCurrency(sale.total)}</TableCell>
-                    <TableCell className="text-center px-8 py-7">
+                    <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.id}</TableCell>
+                    <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.client}</TableCell>
+                    <TableCell className="text-right text-xs md:text-sm font-black text-slate-900 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
                       <Badge 
                         className={cn(
-                          "text-[10px] px-4 py-2 font-black rounded-xl uppercase tracking-widest shadow-sm",
+                          "text-[9px] px-3 py-1 font-black rounded-xl uppercase tracking-widest shadow-sm whitespace-nowrap",
                           sale.status === "Payé" ? "bg-green-100 text-green-700 border-green-200" : 
                           sale.status === "En attente" ? "bg-red-100 text-red-700 border-red-200" : 
                           "bg-blue-100 text-blue-700 border-blue-200"
