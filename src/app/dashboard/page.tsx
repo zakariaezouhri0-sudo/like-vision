@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   const [today, setToday] = useState<string>("");
 
   useEffect(() => {
+    // On utilise useEffect pour éviter les erreurs d'hydratation (date différente entre serveur et client)
     setToday(new Date().toLocaleDateString("fr-FR", { 
       weekday: 'short', 
       day: 'numeric',
