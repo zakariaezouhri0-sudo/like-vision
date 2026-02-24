@@ -140,7 +140,7 @@ function NewSaleForm() {
       clientPhone: clientPhone.toString().replace(/\s/g, ""),
       mutuelle,
       total: nTotal,
-      rem Antithesis: remiseAmount,
+      remise: remiseAmount,
       discountType,
       discountValue: nDiscount,
       remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",

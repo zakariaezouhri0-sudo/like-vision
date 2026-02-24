@@ -97,7 +97,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
           
-          <div className="h-44 w-44 flex items-center justify-center relative">
+          <div className="h-52 w-52 flex items-center justify-center relative">
             {settings?.logoUrl ? (
               <Image 
                 src={settings.logoUrl} 
@@ -106,10 +106,10 @@ export default function LoginPage() {
                 className="object-contain"
               />
             ) : (
-              <div className="h-32 w-32 bg-primary rounded-[40px] flex items-center justify-center text-primary-foreground shadow-2xl transform rotate-3">
+              <div className="h-40 w-40 bg-primary rounded-[40px] flex items-center justify-center text-primary-foreground shadow-2xl transform rotate-3">
                 <div className="relative">
-                  <Glasses className="h-16 w-16" />
-                  <ThumbsUp className="h-8 w-8 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
+                  <Glasses className="h-20 w-20" />
+                  <ThumbsUp className="h-10 w-10 absolute -top-4 -right-4 bg-primary p-1 rounded-full border-2 border-white" />
                 </div>
               </div>
             )}
