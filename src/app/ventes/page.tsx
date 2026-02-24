@@ -17,7 +17,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -30,7 +30,12 @@ export default function SalesHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  // État pour la période (par défaut: Aujourd'hui)
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: new Date(),
+    to: new Date(),
+  });
 
   const salesQuery = useMemoFirebase(() => {
     return query(collection(db, "sales"), orderBy("createdAt", "desc"));
@@ -41,9 +46,18 @@ export default function SalesHistoryPage() {
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     return sales.filter((sale: any) => {
-      // Filtre par date (si une date est sélectionnée)
+      // Filtre par période
       const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
-      const matchesDate = !selectedDate || (saleDate && isSameDay(saleDate, selectedDate));
+      let matchesDate = true;
+      
+      if (dateRange.from && saleDate) {
+        matchesDate = isWithinInterval(saleDate, {
+          start: startOfDay(dateRange.from),
+          end: endOfDay(dateRange.to || dateRange.from)
+        });
+      } else if (dateRange.from && !saleDate) {
+        matchesDate = false;
+      }
 
       // Filtre par texte
       const matchesSearch = 
@@ -56,7 +70,7 @@ export default function SalesHistoryPage() {
 
       return matchesDate && matchesSearch && matchesStatus;
     });
-  }, [sales, searchTerm, statusFilter, selectedDate]);
+  }, [sales, searchTerm, statusFilter, dateRange]);
 
   const handlePrint = (sale: any) => {
     const params = new URLSearchParams({
@@ -157,20 +171,39 @@ export default function SalesHistoryPage() {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                {/* Sélecteur de Date */}
+                {/* Sélecteur de Période */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-12 px-4 rounded-xl font-bold bg-white border-none shadow-inner justify-start">
+                    <Button variant="outline" className="h-12 px-4 rounded-xl font-bold bg-white border-none shadow-inner justify-start min-w-[220px]">
                       <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                      {selectedDate ? format(selectedDate, "dd MMM yyyy", { locale: fr }) : "Toutes les dates"}
+                      <span className="truncate">
+                        {dateRange.from ? (
+                          dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? 
+                            `${format(dateRange.from, "dd MMM", { locale: fr })} - ${format(dateRange.to, "dd MMM yyyy", { locale: fr })}` :
+                            format(dateRange.from, "dd MMM yyyy", { locale: fr })
+                        ) : "Toutes les dates"}
+                      </span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
-                    <div className="p-2 border-b bg-slate-50 flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-primary/40 ml-2">Choisir une date</span>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedDate(undefined)} className="h-7 px-2 text-[9px] font-black uppercase">Voir Tout</Button>
+                    <div className="p-3 border-b bg-slate-50 flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase text-primary/40 ml-2">Filtrer par période</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setDateRange({ from: undefined, to: undefined })} 
+                        className="h-7 px-2 text-[9px] font-black uppercase hover:bg-primary/10"
+                      >
+                        Voir Tout
+                      </Button>
                     </div>
-                    <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={fr} initialFocus />
+                    <Calendar 
+                      mode="range" 
+                      selected={{ from: dateRange.from, to: dateRange.to }} 
+                      onSelect={(range: any) => setDateRange({ from: range?.from, to: range?.to })} 
+                      locale={fr} 
+                      initialFocus 
+                    />
                   </PopoverContent>
                 </Popover>
 
