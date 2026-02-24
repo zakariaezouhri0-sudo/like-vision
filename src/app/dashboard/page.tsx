@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useUser } from "@/firebase";
 
 const salesData = [
   { name: "Lun", total: 1200 },
@@ -54,6 +55,7 @@ const RECENT_SALES = [
 const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15', '#F87171'];
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const [today, setToday] = useState<string>("");
 
   useEffect(() => {
@@ -64,6 +66,8 @@ export default function DashboardPage() {
     }));
   }, []);
 
+  const userName = user?.displayName || user?.email?.split('@')[0] || "Administrateur";
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Header Compact - Optimisé Mobile */}
@@ -73,7 +77,7 @@ export default function DashboardPage() {
             <Glasses className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm md:text-xl font-bold text-primary truncate">Bonjour, Administrateur</h1>
+            <h1 className="text-sm md:text-xl font-bold text-primary truncate capitalize">Bonjour, {userName}</h1>
             {today && (
               <p className="text-[10px] text-muted-foreground flex items-center gap-1 capitalize">
                 <CalendarDays className="h-3 w-3" />
@@ -91,7 +95,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards - Design Final avec Icônes Grandes */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
           <TrendingUp className="absolute -right-4 -top-4 h-24 w-24 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-300" />
@@ -169,7 +173,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Dernières Ventes - Optimisé pour mobile sans "Dossiers" */}
       <Card className="shadow-sm border-none overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/20">
           <CardTitle className="text-xs md:text-sm font-bold uppercase tracking-wider">Dernières Ventes</CardTitle>

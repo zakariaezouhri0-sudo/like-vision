@@ -8,6 +8,7 @@ import { LogOut, Glasses, ThumbsUp, Menu } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
+import { useUser } from "@/firebase";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,6 +17,10 @@ interface AppShellProps {
 
 export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
   const [open, setOpen] = useState(false);
+  const { user } = useUser();
+
+  const userName = user?.displayName || user?.email?.split('@')[0] || "Administrateur";
+  const userInitials = userName.substring(0, 2).toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -39,10 +44,10 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
         <div className="p-4 border-t mt-auto">
           <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg">
             <Avatar className="h-8 w-8 border">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">AD</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold truncate">Administrateur</span>
+              <span className="text-sm font-semibold truncate capitalize">{userName}</span>
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{role}</span>
             </div>
           </div>
