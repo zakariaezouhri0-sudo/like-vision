@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -5,14 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Calendar as CalendarIcon, Loader2, TrendingUp, ShoppingBag, Target, ArrowRight } from "lucide-react";
+import { 
+  FileSpreadsheet, 
+  Calendar as CalendarIcon, 
+  Loader2, 
+  TrendingUp, 
+  ShoppingBag, 
+  Target, 
+  ArrowDownRight, 
+  ArrowUpRight,
+  Wallet,
+  Download,
+  Printer
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, isWithinInterval, startOfDay, endOfDay, subDays, startOfMonth } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function ReportsPage() {
@@ -22,173 +36,192 @@ export default function ReportsPage() {
     to: new Date(),
   });
 
-  const salesQuery = useMemoFirebase(() => {
-    return query(collection(db, "sales"), orderBy("createdAt", "desc"));
-  }, [db]);
+  // Fetch Sales
+  const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
+  const { data: sales, isLoading: salesLoading } = useCollection(salesQuery);
 
-  const { data: allSales, isLoading: loading } = useCollection(salesQuery);
+  // Fetch Transactions (Expenses, Apports, etc.)
+  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc")), [db]);
+  const { data: transactions, isLoading: transLoading } = useCollection(transQuery);
 
   const stats = useMemo(() => {
-    if (!allSales) return { ca: 0, marge: 0, count: 0, filteredSales: [] };
+    const from = startOfDay(dateRange.from);
+    const to = endOfDay(dateRange.to);
 
-    const filtered = allSales.filter((sale: any) => {
-      if (!sale.createdAt?.toDate) return false;
-      const saleDate = sale.createdAt.toDate();
-      return isWithinInterval(saleDate, {
-        start: startOfDay(dateRange.from),
-        end: endOfDay(dateRange.to),
-      });
-    });
+    const filteredSales = sales?.filter((s: any) => s.createdAt?.toDate && isWithinInterval(s.createdAt.toDate(), { start: from, end: to })) || [];
+    const filteredTrans = transactions?.filter((t: any) => t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start: from, end: to })) || [];
 
-    const ca = filtered.reduce((acc, s) => acc + (s.total - (s.remise || 0)), 0);
-    const costs = filtered.reduce((acc, s) => acc + (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0), 0);
-    const marge = ca - costs;
+    const ca = filteredSales.reduce((acc, s) => acc + (s.total - (s.remise || 0)), 0);
+    const costs = filteredSales.reduce((acc, s) => acc + (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0), 0);
+    const expenses = filteredTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+    const apports = filteredTrans.filter(t => t.type === "APPORT").reduce((acc, t) => acc + t.montant, 0);
 
     return {
       ca,
-      marge,
-      count: filtered.length,
-      filteredSales: filtered
+      marge: ca - costs,
+      expenses,
+      apports,
+      count: filteredSales.length,
+      filteredSales,
+      filteredTrans
     };
-  }, [allSales, dateRange]);
+  }, [sales, transactions, dateRange]);
+
+  const handleExportCSV = () => {
+    const headers = ["Date", "Type", "Label", "Categorie", "Montant (DH)"];
+    const rows = stats.filteredTrans.map((t: any) => [
+      format(t.createdAt.toDate(), "dd/MM/yyyy HH:mm"),
+      t.type,
+      t.label,
+      t.category || "---",
+      t.montant
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(";")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rapport_like_vision_${format(new Date(), "yyyyMMdd")}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <AppShell>
-      <div className="space-y-8 pb-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-[32px] border shadow-sm">
+      <div className="space-y-6 pb-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[32px] border shadow-sm">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Rapports d'Activité</h1>
-            <p className="text-[10px] md:text-xs text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Analyse des performances financières.</p>
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Rapports d'Activité</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 px-6 rounded-2xl font-black text-xs border-primary/20 bg-white hover:bg-primary/5 shadow-sm">
-                  <CalendarIcon className="mr-3 h-4 w-4 text-primary" />
+                <Button variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                   {format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-2xl overflow-hidden border-none shadow-2xl" align="end">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange.from}
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range: any) => {
-                    if (range?.from && range?.to) {
-                      setDateRange({ from: range.from, to: range.to });
-                    } else if (range?.from) {
-                      setDateRange({ from: range.from, to: range.from });
-                    }
-                  }}
-                  numberOfMonths={2}
-                  locale={fr}
-                />
+              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
+                <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} numberOfMonths={1} locale={fr} />
               </PopoverContent>
             </Popover>
             
-            <Button className="h-12 px-6 rounded-2xl font-black text-xs shadow-xl bg-green-600 hover:bg-green-700">
-              <FileSpreadsheet className="mr-3 h-4 w-4" />
-              EXPORTER EXCEL
+            <Button onClick={handleExportCSV} className="h-11 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> EXCEL
+            </Button>
+            <Button onClick={() => window.print()} variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20">
+              <Printer className="mr-2 h-4 w-4" /> PDF
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
-            <TrendingUp className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
-            <p className="text-[10px] uppercase font-black opacity-60 mb-3 tracking-[0.3em]">Chiffre d'Affaires Net</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black tracking-tighter">{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(stats.ca)}</span>
-              <span className="text-lg font-black opacity-60 uppercase">DH</span>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-primary text-primary-foreground border-none shadow-lg p-6 rounded-[32px]">
+            <p className="text-[9px] uppercase font-black opacity-60 mb-2">CA Net (Ventes)</p>
+            <p className="text-2xl font-black">{formatCurrency(stats.ca)}</p>
           </Card>
-          
-          <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
-            <Target className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
-            <p className="text-[10px] uppercase font-black opacity-60 mb-3 tracking-[0.3em]">Marge Brute Réalisée</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black tracking-tighter">{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(stats.marge)}</span>
-              <span className="text-lg font-black opacity-60 uppercase">DH</span>
-            </div>
+          <Card className="bg-accent text-accent-foreground border-none shadow-lg p-6 rounded-[32px]">
+            <p className="text-[9px] uppercase font-black opacity-60 mb-2">Marge Brute</p>
+            <p className="text-2xl font-black">{formatCurrency(stats.marge)}</p>
           </Card>
-          
-          <Card className="bg-white border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500">
-            <ShoppingBag className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-3 tracking-[0.3em]">Volume de Ventes</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-green-600 tracking-tighter">{stats.count}</span>
-              <span className="text-lg font-black text-green-600/40 uppercase">Dossiers</span>
-            </div>
+          <Card className="bg-destructive text-destructive-foreground border-none shadow-lg p-6 rounded-[32px]">
+            <p className="text-[9px] uppercase font-black opacity-60 mb-2">Dépenses</p>
+            <p className="text-2xl font-black">-{formatCurrency(stats.expenses)}</p>
+          </Card>
+          <Card className="bg-white border-none shadow-lg p-6 rounded-[32px] border-l-8 border-l-green-500">
+            <p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde de Période</p>
+            <p className="text-2xl font-black text-green-600">{formatCurrency(stats.ca + stats.apports - stats.expenses)}</p>
           </Card>
         </div>
 
-        <Card className="shadow-sm border-none overflow-hidden rounded-[40px] bg-white">
-          <CardHeader className="p-8 border-b bg-slate-50/50">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Détail des Marges par Vente</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-24 gap-4">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-                  <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Calcul des marges...</span>
-                </div>
-              ) : (
+        <Tabs defaultValue="flux" className="w-full">
+          <TabsList className="bg-white p-1 rounded-2xl shadow-sm border h-14 w-full md:w-auto grid grid-cols-2">
+            <TabsTrigger value="flux" className="rounded-xl font-black text-[10px] uppercase">Flux de Caisse</TabsTrigger>
+            <TabsTrigger value="marges" className="rounded-xl font-black text-[10px] uppercase">Détail Marges</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="flux" className="mt-6">
+            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Date</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Client / Facture</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Vente Net</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Coût Achat</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">Marge</TableHead>
-                      <TableHead className="text-center text-[10px] uppercase font-black px-8 py-6 tracking-widest text-slate-500">%</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Date</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Catégorie</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stats.filteredSales.length > 0 ? (
-                      stats.filteredSales.map((sale: any) => {
-                        const netSale = sale.total - (sale.remise || 0);
-                        const cost = (sale.purchasePriceFrame || 0) + (sale.purchasePriceLenses || 0);
-                        const marge = netSale - cost;
-                        const margePercent = netSale > 0 ? ((marge / netSale) * 100).toFixed(1) : "0";
-                        const saleDate = sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---";
-
-                        return (
-                          <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
-                            <TableCell className="text-xs font-bold text-muted-foreground px-8 py-6">{saleDate}</TableCell>
-                            <TableCell className="px-8 py-6">
-                              <div className="flex flex-col">
-                                <span className="text-xs font-black text-slate-800 uppercase leading-none">{sale.clientName}</span>
-                                <span className="text-[10px] font-black text-primary/40 mt-1">{sale.invoiceId}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right px-8 py-6 font-black text-slate-900 text-xs">{formatCurrency(netSale)}</TableCell>
-                            <TableCell className="text-right px-8 py-6 text-muted-foreground text-xs font-bold">{formatCurrency(cost)}</TableCell>
-                            <TableCell className="text-right px-8 py-6 font-black text-accent text-sm">{formatCurrency(marge)}</TableCell>
-                            <TableCell className="text-center px-8 py-6">
-                              <Badge className="bg-slate-100 text-slate-600 border-none font-black text-[10px] px-2 py-0.5 rounded-lg">
-                                {margePercent}%
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">
-                          Aucune donnée pour cette période.
+                    {stats.filteredTrans.length > 0 ? stats.filteredTrans.map((t: any) => (
+                      <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0">
+                        <TableCell className="text-[10px] font-bold text-muted-foreground px-6 py-4">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell>
+                        <TableCell className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                            <Badge variant="outline" className={cn("text-[8px] font-black w-fit mt-1 border-none", 
+                              t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
+                              t.type === 'DEPENSE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            )}>
+                              {t.type}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">{t.category || "Général"}</TableCell>
+                        <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
+                          {formatCurrency(t.montant)}
                         </TableCell>
                       </TableRow>
+                    )) : (
+                      <TableRow><TableCell colSpan={4} className="text-center py-20 text-[10px] font-black uppercase opacity-30">Aucun flux sur cette période.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="marges" className="mt-6">
+            <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50/80">
+                    <TableRow>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-4">Vente</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Prix Vente</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Coût Achat</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-accent">Marge</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stats.filteredSales.map((s: any) => {
+                      const net = s.total - (s.remise || 0);
+                      const cost = (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0);
+                      return (
+                        <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0">
+                          <TableCell className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black uppercase text-slate-800">{s.clientName}</span>
+                              <span className="text-[9px] font-bold text-primary/40">{s.invoiceId}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right px-6 py-4 font-black text-xs">{formatCurrency(net)}</TableCell>
+                          <TableCell className="text-right px-6 py-4 text-muted-foreground font-bold text-[10px]">{formatCurrency(cost)}</TableCell>
+                          <TableCell className="text-right px-6 py-4 font-black text-accent text-xs">{formatCurrency(net - cost)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppShell>
   );

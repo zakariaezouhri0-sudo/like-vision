@@ -47,13 +47,27 @@
         "statut": { "type": "string" },
         "monture": { "type": "string" },
         "verres": { "type": "string" },
-        "purchasePriceFrame": { "type": "number", "description": "Prix d'achat monture (Interne)" },
-        "purchasePriceLenses": { "type": "number", "description": "Prix d'achat verres (Interne)" },
+        "purchasePriceFrame": { "type": "number" },
+        "purchasePriceLenses": { "type": "number" },
         "prescription": { "type": "object" },
         "notes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "type": "object",
+      "description": "Représente un mouvement de flux de caisse (dépense, apport, paiement vente).",
+      "properties": {
+        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "APPORT"] },
+        "category": { "type": "string" },
+        "label": { "type": "string" },
+        "montant": { "type": "number" },
+        "relatedId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "montant", "label"]
     }
   },
   "auth": {
@@ -71,6 +85,10 @@
     "/sales/{saleId}": {
       "schema": "Sale",
       "description": "Collection des ventes."
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Collection des flux de caisse."
     }
   }
 }
