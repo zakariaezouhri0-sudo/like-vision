@@ -206,76 +206,81 @@ export default function CaissePage() {
                   <LogOut className="mr-2 h-4 w-4" /> CLÔTURE DE JOURNÉE
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-[95vw] sm:max-w-3xl rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-                 <DialogHeader className="p-8 bg-slate-900 text-white">
-                    <DialogTitle className="font-black uppercase tracking-widest text-center flex items-center justify-center gap-3">
-                      <Coins className="h-6 w-6 text-primary" /> Clôture & Comptage Espèces
+              <DialogContent className="max-w-[95vw] sm:max-w-3xl rounded-[24px] sm:rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+                 <DialogHeader className="p-4 sm:p-8 bg-slate-900 text-white">
+                    <DialogTitle className="font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base">
+                      <Coins className="h-5 w-5 sm:h-6 sm:h-6 text-primary" /> Clôture & Comptage
                     </DialogTitle>
                  </DialogHeader>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-                    <div className="p-8 bg-white space-y-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Détail par coupure</h4>
-                        <div className="space-y-1 text-right">
-                           <Label className="text-[8px] font-black uppercase text-slate-400">Solde Initial</Label>
-                           <Input type="number" className="h-8 w-24 text-right font-black text-xs" value={soldeInitial} onChange={e => setSoldeInitial(e.target.value)} />
+                    <div className="p-4 sm:p-8 bg-white space-y-3 sm:space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest">Détail par coupure</h4>
+                        <div className="flex items-center gap-2">
+                           <Label className="text-[8px] font-black uppercase text-slate-400">S. Initial</Label>
+                           <Input type="number" className="h-7 w-20 text-right font-black text-[10px]" value={soldeInitial} onChange={e => setSoldeInitial(e.target.value)} />
                         </div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 sm:space-y-2">
                         {DENOMINATIONS.map(val => (
-                          <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                            <span className="w-16 text-right font-black text-[11px] text-slate-400">{val} DH</span>
-                            <Input type="number" className="h-9 w-20 text-center font-bold bg-white border-none shadow-inner" value={denoms[val]} onChange={e => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
-                            <span className="flex-1 text-right font-black text-primary text-[11px]">{formatCurrency(val * (denoms[val] || 0))}</span>
+                          <div key={val} className="flex items-center gap-2 sm:gap-3 bg-slate-50 p-1.5 sm:p-2 rounded-xl border border-slate-100">
+                            <span className="w-12 sm:w-16 text-right font-black text-[10px] sm:text-[11px] text-slate-400">{val} DH</span>
+                            <Input 
+                              type="number" 
+                              className="h-8 sm:h-9 w-16 sm:w-20 text-center font-bold bg-white border-none shadow-inner p-0" 
+                              value={denoms[val]} 
+                              onChange={e => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} 
+                            />
+                            <span className="flex-1 text-right font-black text-primary text-[10px] sm:text-[11px]">{formatCurrency(val * (denoms[val] || 0))}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     
-                    <div className="bg-slate-50 p-8 border-l border-slate-200 space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                    <div className="bg-slate-50 p-4 sm:p-8 border-t md:border-t-0 md:border-l border-slate-200 space-y-4 sm:space-y-6">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-slate-400">
                           <span>Solde Initial</span>
                           <span className="text-slate-900">{formatCurrency(initial)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-green-600">
+                        <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-green-600">
                           <span>Total Entrées (+)</span>
                           <span>{formatCurrency(stats.entrees)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-destructive">
+                        <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-destructive">
                           <span>Dépenses (-)</span>
                           <span>{formatCurrency(stats.depenses)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-orange-600">
+                        <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-orange-600">
                           <span>Versements (-)</span>
                           <span>{formatCurrency(stats.versements)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                          <span className="text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
-                          <span className="text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
+                        <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
+                          <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
+                          <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
                         </div>
                         
-                        <div className="flex justify-between items-center bg-primary/5 p-4 rounded-2xl border-2 border-primary/20">
-                          <span className="text-[10px] font-black uppercase text-primary tracking-widest">Total Compté</span>
-                          <span className="text-2xl font-black text-primary tracking-tighter">{formatCurrency(soldeReel)}</span>
+                        <div className="flex justify-between items-center bg-primary/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-primary/20">
+                          <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary tracking-widest">Total Compté</span>
+                          <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter">{formatCurrency(soldeReel)}</span>
                         </div>
                         
                         <div className={cn(
-                          "flex flex-col items-center justify-center p-6 rounded-3xl border-2 transition-all",
+                          "flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all",
                           Math.abs(ecart) < 0.01 ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20"
                         )}>
-                          <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
+                            <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
                               {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
                             </span>
-                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-destructive" />}
+                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />}
                           </div>
                         </div>
                       </div>
 
-                      <Button onClick={handlePrintClosure} className="w-full h-14 rounded-2xl font-black text-sm shadow-xl mt-4">
-                        VALIDER & IMPRIMER LE RAPPORT
+                      <Button onClick={handlePrintClosure} className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-xl mt-2">
+                        VALIDER & IMPRIMER
                       </Button>
                     </div>
                  </div>
