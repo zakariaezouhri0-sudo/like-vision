@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AppShell } from "@/components/layout/app-shell";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -23,9 +23,9 @@ export default function UsersPage() {
   const { toast } = useToast();
   const db = useFirestore();
   
-  // Utilisation de useMemo pour stabiliser la requête et éviter les lenteurs (T9ILA)
+  // Requête simplifiée pour assurer la visibilité immédiate
   const usersQuery = useMemo(() => {
-    return query(collection(db, "users"), orderBy("createdAt", "desc"));
+    return query(collection(db, "users"));
   }, [db]);
 
   const { data: users, loading } = useCollection(usersQuery);
@@ -46,7 +46,7 @@ export default function UsersPage() {
 
     const userData = {
       name: newUser.name,
-      username: newUser.username.toLowerCase(),
+      username: newUser.username.toLowerCase().trim(),
       role: newUser.role,
       password: newUser.password,
       status: "Actif",
@@ -59,10 +59,14 @@ export default function UsersPage() {
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
-        toast({ title: "Utilisateur créé", description: `${userData.name} a été enregistré avec succès.` });
+        toast({ title: "Utilisateur créé", description: `${userData.name} a été enregistré.` });
       })
       .catch((err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: "users", operation: "create", requestResourceData: userData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: "users", 
+          operation: "create", 
+          requestResourceData: userData 
+        }));
       });
   };
 
@@ -71,7 +75,7 @@ export default function UsersPage() {
     const userRef = doc(db, "users", editingUser.id);
     const updateData = {
       name: editingUser.name,
-      username: editingUser.username.toLowerCase(),
+      username: editingUser.username.toLowerCase().trim(),
       role: editingUser.role,
       password: editingUser.password
     };
@@ -83,7 +87,11 @@ export default function UsersPage() {
         toast({ title: "Mis à jour", description: "L'utilisateur a été modifié." });
       })
       .catch(() => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: "update", requestResourceData: updateData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: userRef.path, 
+          operation: "update", 
+          requestResourceData: updateData 
+        }));
       });
   };
 
@@ -92,10 +100,13 @@ export default function UsersPage() {
     const userRef = doc(db, "users", id);
     deleteDoc(userRef)
       .then(() => {
-        toast({ title: "Supprimé", description: "L'utilisateur a été retiré de la base." });
+        toast({ title: "Supprimé", description: "L'utilisateur a été retiré." });
       })
       .catch(() => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: "delete" }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: userRef.path, 
+          operation: "delete" 
+        }));
       });
   };
 
@@ -180,21 +191,21 @@ export default function UsersPage() {
               </div>
             )}
             <DialogFooter>
-              <Button onClick={handleUpdateUser} className="w-full h-12 text-base font-black">SAUVEGARDER LES MODIFICATIONS</Button>
+              <Button onClick={handleUpdateUser} className="w-full h-12 text-base font-black">SAUVEGARDER</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         <Card className="shadow-sm border-none overflow-hidden rounded-2xl">
           <CardHeader className="py-4 px-6 bg-muted/20 border-b">
-            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Membres du Personnel</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Membres du Personnel ({users?.length || 0})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-                  <span className="text-xs font-black text-muted-foreground uppercase">Chargement de la base...</span>
+                  <span className="text-xs font-black text-muted-foreground uppercase">Chargement...</span>
                 </div>
               ) : (
                 <Table>
