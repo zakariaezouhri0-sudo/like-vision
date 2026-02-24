@@ -159,27 +159,26 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3 shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-8 border-b bg-slate-50/50">
-            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary">Parts de Mutuelle</CardTitle>
+            <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">PARTS DE MUTUELLE</CardTitle>
           </CardHeader>
-          <CardContent className="h-[350px] p-8 flex flex-col">
-             <div className="flex-1 min-h-0">
+          <CardContent className="p-8 flex flex-col items-center">
+             <div className="w-full h-[220px]">
                <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={mutuelleData} innerRadius={65} outerRadius={105} paddingAngle={10} dataKey="value">
-                    {mutuelleData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={mutuelleData} innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
+                    {mutuelleData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none' }} />
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                 </PieChart>
               </ResponsiveContainer>
              </div>
-             <div className="grid grid-cols-2 gap-4 mt-8">
+             <div className="grid grid-cols-2 gap-x-8 gap-y-4 w-full mt-6 px-4">
                {mutuelleData.map((item, i) => (
-                 <div key={item.name} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
-                   <div className="h-3.5 w-3.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                   <div className="flex flex-col min-w-0">
-                     <span className="text-[11px] font-black text-slate-800 truncate uppercase tracking-tighter">{item.name}</span>
-                     <span className="text-[11px] font-bold text-slate-400">{item.value}%</span>
-                   </div>
+                 <div key={item.name} className="flex items-center gap-2">
+                   <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                   <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight">
+                     {item.name} <span className="text-slate-400 font-bold ml-1">({item.value}%)</span>
+                   </span>
                  </div>
                ))}
              </div>
@@ -188,10 +187,10 @@ export default function DashboardPage() {
       </div>
 
       <Card className="shadow-sm border-none overflow-hidden rounded-[40px] bg-white">
-        <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-primary/5">
+        <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-slate-50/50">
           <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes</CardTitle>
-          <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap">
-            <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR <ChevronRight className="h-3 w-3" /></Link>
+          <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap uppercase tracking-widest">
+            <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR</Link>
           </Button>
         </CardHeader>
         <CardContent className="p-0">
@@ -199,10 +198,10 @@ export default function DashboardPage() {
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">ID Facture</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Total</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">Statut</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">ID FACTURE</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">CLIENT</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">TOTAL</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">STATUT</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -210,14 +209,19 @@ export default function DashboardPage() {
                   <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
                     <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.id}</TableCell>
                     <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.client}</TableCell>
-                    <TableCell className="text-right text-xs md:text-sm font-black text-slate-900 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-right text-xs md:text-sm font-black text-slate-900 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
+                      <div className="flex flex-col md:block">
+                        <span>{formatCurrency(sale.total).replace(' DH', '')}</span>
+                        <span className="md:ml-1 font-bold text-slate-400">DH</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
                       <Badge 
                         className={cn(
-                          "text-[9px] px-3 py-1 font-black rounded-xl uppercase tracking-widest shadow-sm whitespace-nowrap",
-                          sale.status === "Payé" ? "bg-green-100 text-green-700 border-green-200" : 
-                          sale.status === "En attente" ? "bg-red-100 text-red-700 border-red-200" : 
-                          "bg-blue-100 text-blue-700 border-blue-200"
+                          "text-[9px] px-3 py-1 font-black rounded-lg uppercase tracking-widest shadow-sm whitespace-nowrap border-none",
+                          sale.status === "Payé" ? "bg-green-100 text-green-700" : 
+                          sale.status === "En attente" ? "bg-red-100 text-red-700" : 
+                          "bg-blue-100 text-blue-700"
                         )}
                         variant="outline"
                       >
