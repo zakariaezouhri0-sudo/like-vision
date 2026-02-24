@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
@@ -26,6 +27,7 @@ export default function SalesHistoryPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("TOUS");
 
   const salesQuery = useMemoFirebase(() => {
     return query(collection(db, "sales"), orderBy("createdAt", "desc"));
@@ -33,11 +35,16 @@ export default function SalesHistoryPage() {
 
   const { data: sales, isLoading: loading } = useCollection(salesQuery);
 
-  const filteredSales = sales?.filter((sale: any) => 
-    sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''))
-  ) || [];
+  const filteredSales = sales?.filter((sale: any) => {
+    const matchesSearch = 
+      sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
+    
+    const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  }) || [];
 
   const handlePrint = (sale: any) => {
     const params = new URLSearchParams({
@@ -126,14 +133,32 @@ export default function SalesHistoryPage() {
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
-            <div className="relative max-w-md">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
-              <input 
-                placeholder="Chercher par client ou n° facture..." 
-                className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
+                <input 
+                  placeholder="Chercher par client ou n° facture..." 
+                  className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="w-full md:w-64">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-primary/40" />
+                      <SelectValue placeholder="Filtrer par statut" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
+                    <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
+                    <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
+                    <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
