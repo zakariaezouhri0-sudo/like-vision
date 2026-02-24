@@ -25,24 +25,35 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
+    // Bypass de sécurité pour le développement (admin / admin123)
+    if (email === "admin" && password === "admin123") {
       toast({
         title: "Connexion réussie",
-        description: "Bienvenue sur Like Vision.",
+        description: "Bienvenue sur Like Vision (Mode Administrateur).",
       });
       router.push("/dashboard");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Tentative de connexion réelle via Firebase si l'identifiant est un email
+      if (email.includes("@")) {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue sur Like Vision.",
+        });
+        router.push("/dashboard");
+      } else {
+        throw new Error("Identifiants incorrects.");
+      }
     } catch (error: any) {
-      let message = "Email ou mot de passe incorrect.";
-      if (error.code === 'auth/invalid-email') message = "Format d'email invalide.";
-      if (error.code === 'auth/user-not-found') message = "Utilisateur non trouvé.";
-      
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: message,
+        description: "Utilisateur ou mot de passe incorrect.",
       });
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -66,19 +77,19 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 pt-8">
             <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
             <CardDescription>
-              Entrez votre utilisateur et mot de passe pour accéder au système.
+              Utilisez <b>admin</b> et <b>admin123</b> pour tester le système.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Utilisateur (Email)</Label>
+                <Label htmlFor="email">Identifiant</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="email" 
-                    type="email"
-                    placeholder="exemple@domaine.com" 
+                    type="text"
+                    placeholder="admin" 
                     className="pl-10" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

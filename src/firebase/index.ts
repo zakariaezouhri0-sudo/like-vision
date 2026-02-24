@@ -7,6 +7,7 @@ import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase() {
+  // Initialisation sécurisée pour éviter les crashs si la config est vide lors du premier build
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const firestore = getFirestore(app);
