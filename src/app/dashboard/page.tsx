@@ -54,7 +54,6 @@ export default function DashboardPage() {
   const [today, setToday] = useState<string>("");
 
   useEffect(() => {
-    // On utilise useEffect pour éviter les erreurs d'hydratation (date différente entre serveur et client)
     setToday(new Date().toLocaleDateString("fr-FR", { 
       weekday: 'short', 
       day: 'numeric',
@@ -64,7 +63,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-8">
-      {/* Header Optimisé Mobile */}
+      {/* Header Compact */}
       <div className="flex items-center justify-between gap-2 bg-card p-3 rounded-xl border shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
           <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shrink-0">
@@ -89,23 +88,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <Card className="bg-primary text-primary-foreground border-none shadow-md p-3 md:p-6">
-          <p className="text-[10px] uppercase font-bold opacity-70 mb-1">C.A</p>
-          <p className="text-sm md:text-2xl font-black whitespace-nowrap">{formatCurrency(24850).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
+      {/* KPI Cards Inspired by User Image */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px]">
+          <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">C.A</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl md:text-3xl font-black">24 850</span>
+            <span className="text-[10px] md:text-sm font-bold opacity-80">DH</span>
+          </div>
         </Card>
-        <Card className="bg-accent text-accent-foreground border-none shadow-md p-3 md:p-6">
-          <p className="text-[10px] uppercase font-bold opacity-70 mb-1">Ventes</p>
-          <p className="text-sm md:text-2xl font-black">18 Dossiers</p>
+        
+        <Card className="bg-accent text-accent-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px]">
+          <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">Ventes</p>
+          <p className="text-xl md:text-3xl font-black">18 Dossiers</p>
         </Card>
-        <Card className="border-l-4 border-l-destructive p-3 md:p-6">
-          <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Crédits</p>
-          <p className="text-sm md:text-2xl font-black text-destructive whitespace-nowrap">{formatCurrency(4200).split(' ')[0]} <span className="text-[8px] md:text-sm">DH</span></p>
+        
+        <Card className="bg-card border-none border-l-[6px] border-l-destructive shadow-lg p-4 md:p-6 rounded-[20px]">
+          <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Crédits</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl md:text-3xl font-black text-destructive">4 200</span>
+            <span className="text-[10px] md:text-sm font-bold text-destructive">DH</span>
+          </div>
         </Card>
-        <Card className="border-l-4 border-l-green-500 p-3 md:p-6">
-          <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Satisfaction</p>
-          <p className="text-sm md:text-2xl font-black text-green-600">98%</p>
+        
+        <Card className="bg-card border-none border-l-[6px] border-l-green-500 shadow-lg p-4 md:p-6 rounded-[20px]">
+          <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Satisfaction</p>
+          <p className="text-xl md:text-3xl font-black text-green-600">98%</p>
         </Card>
       </div>
 
