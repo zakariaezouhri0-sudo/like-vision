@@ -101,10 +101,10 @@ export default function ReportsPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex flex-row items-center gap-2 overflow-x-auto pb-1 md:pb-0 whitespace-nowrap scrollbar-hide">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white shrink-0">
+                <Button variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white">
                   <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                   {format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}
                 </Button>
@@ -114,32 +114,34 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <Button onClick={handleExportCSV} className="h-11 px-3 md:px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 shrink-0">
-              <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
-            </Button>
-            
-            <Button onClick={handlePrintDaily} variant="outline" className="h-11 px-3 md:px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white shrink-0 text-primary">
-              <FileText className="mr-1.5 h-4 w-4" /> RAPPORT JOURNALIER
-            </Button>
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-row">
+              <Button onClick={handleExportCSV} className="h-11 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
+              </Button>
+              
+              <Button onClick={handlePrintDaily} variant="outline" className="h-11 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white shrink-0 text-primary w-full sm:w-auto">
+                <FileText className="mr-1.5 h-4 w-4" /> JOURNALIER
+              </Button>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-primary text-primary-foreground border-none shadow-lg p-6 rounded-[32px]">
             <p className="text-[9px] uppercase font-black opacity-60 mb-2">CA Net (Ventes)</p>
-            <p className="text-2xl font-black">{formatCurrency(stats.ca)}</p>
+            <p className="text-2xl font-black whitespace-nowrap">{formatCurrency(stats.ca)}</p>
           </Card>
           <Card className="bg-accent text-accent-foreground border-none shadow-lg p-6 rounded-[32px]">
             <p className="text-[9px] uppercase font-black opacity-60 mb-2">Marge Brute</p>
-            <p className="text-2xl font-black">{formatCurrency(stats.marge)}</p>
+            <p className="text-2xl font-black whitespace-nowrap">{formatCurrency(stats.marge)}</p>
           </Card>
           <Card className="bg-destructive text-destructive-foreground border-none shadow-lg p-6 rounded-[32px]">
             <p className="text-[9px] uppercase font-black opacity-60 mb-2">Dépenses</p>
-            <p className="text-2xl font-black">-{formatCurrency(stats.expenses)}</p>
+            <p className="text-2xl font-black whitespace-nowrap">-{formatCurrency(stats.expenses)}</p>
           </Card>
           <Card className="bg-white border-none shadow-lg p-6 rounded-[32px] border-l-8 border-l-green-500">
             <p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde de Période</p>
-            <p className="text-2xl font-black text-green-600">{formatCurrency(stats.ca + stats.apports - stats.expenses - stats.versements)}</p>
+            <p className="text-2xl font-black text-green-600 whitespace-nowrap">{formatCurrency(stats.ca + stats.apports - stats.expenses - stats.versements)}</p>
           </Card>
         </div>
 
