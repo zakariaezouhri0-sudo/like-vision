@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,20 +7,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Glasses, ThumbsUp, Lock, User } from "lucide-react";
+import { Glasses, ThumbsUp, Lock, User as UserIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulation d'authentification
-    setTimeout(() => {
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Connexion réussie",
+        description: "Bienvenue sur Like Vision.",
+      });
       router.push("/dashboard");
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de connexion",
+        description: "Email ou mot de passe incorrect.",
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,19 +62,22 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 pt-8">
             <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
             <CardDescription>
-              Entrez vos identifiants pour accéder au système
+              Entrez vos identifiants réels Firebase pour accéder au système
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Utilisateur</Label>
+                <Label htmlFor="email">Email professionnel</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    id="username" 
-                    placeholder="admin" 
+                    id="email" 
+                    type="email"
+                    placeholder="votre@email.com" 
                     className="pl-10" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required 
                   />
                 </div>
@@ -60,9 +85,6 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Button variant="link" size="sm" className="h-auto p-0 text-xs" type="button">
-                    Oublié ?
-                  </Button>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -70,6 +92,8 @@ export default function LoginPage() {
                     id="password" 
                     type="password" 
                     className="pl-10" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required 
                   />
                 </div>
@@ -77,15 +101,11 @@ export default function LoginPage() {
             </CardContent>
             <CardFooter className="pb-8">
               <Button className="w-full h-11 text-lg font-semibold" disabled={loading}>
-                {loading ? "Connexion en cours..." : "Se connecter"}
+                {loading ? "Vérification..." : "Se connecter"}
               </Button>
             </CardFooter>
           </form>
         </Card>
-        
-        <p className="text-center text-sm text-muted-foreground">
-          Besoin d'aide ? Contactez l'administrateur du système.
-        </p>
       </div>
     </div>
   );
