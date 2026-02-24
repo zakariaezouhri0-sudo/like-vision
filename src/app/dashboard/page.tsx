@@ -89,10 +89,6 @@ export default function DashboardPage() {
             <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-green-600 animate-pulse" />
             <span className="text-[9px] md:text-[10px] font-black text-green-600 uppercase tracking-tighter whitespace-nowrap">Caisse Ouverte</span>
           </div>
-          <div className="hidden md:flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest px-1">
-            <Clock className="h-3 w-3" />
-            Temps Réel
-          </div>
         </div>
       </div>
 
@@ -200,15 +196,15 @@ export default function DashboardPage() {
             <CardDescription>Répartition par type de couverture.</CardDescription>
           </CardHeader>
           <CardContent className="h-[320px] flex flex-col items-center justify-center">
-             <div className="w-full h-full">
+             <div className="w-full h-full min-h-[220px]">
                <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={mutuelleData}
                     cx="50%"
-                    cy="45%"
-                    innerRadius={70}
-                    outerRadius={95}
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
                     paddingAngle={8}
                     dataKey="value"
                   >
@@ -220,12 +216,12 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
              </div>
-             <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-[-20px] w-full px-4 text-center">
+             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 w-full px-2">
                {mutuelleData.map((item, i) => (
                  <div key={item.name} className="flex items-center gap-2">
-                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                   <span className="text-xs font-medium text-muted-foreground">{item.name}</span>
-                   <span className="text-xs font-bold ml-auto">{item.value}%</span>
+                   <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                   <span className="text-[10px] font-medium text-muted-foreground truncate">{item.name}</span>
+                   <span className="text-[10px] font-bold ml-auto">{item.value}%</span>
                  </div>
                ))}
              </div>
@@ -235,39 +231,41 @@ export default function DashboardPage() {
 
       {/* Recent Sales Table */}
       <Card className="shadow-sm border-none">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-row items-center justify-between py-4 px-6">
+          <div className="min-w-0">
             <CardTitle className="text-lg font-bold">Ventes Récentes</CardTitle>
-            <CardDescription>Les dernières transactions effectuées.</CardDescription>
+            <CardDescription className="text-xs truncate">Les dernières transactions effectuées.</CardDescription>
           </div>
-          <Badge variant="outline" className="h-8 px-4 cursor-pointer hover:bg-muted hidden md:flex">Voir tout</Badge>
+          <Badge variant="outline" className="h-7 px-3 cursor-pointer hover:bg-muted shrink-0 text-[10px]">Voir tout</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider">Facture</TableHead>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider">Client</TableHead>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider hidden md:table-cell">Date/Heure</TableHead>
-                  <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Total</TableHead>
-                  <TableHead className="text-center font-bold text-xs uppercase tracking-wider">Statut</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">Facture</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">Client</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase tracking-wider hidden sm:table-cell whitespace-nowrap">Date/Heure</TableHead>
+                  <TableHead className="text-right font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">Total</TableHead>
+                  <TableHead className="text-center font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">Statut</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {RECENT_SALES.map((sale) => (
                   <TableRow key={sale.id} className="hover:bg-muted/20">
-                    <TableCell className="font-bold text-primary whitespace-nowrap">{sale.id}</TableCell>
-                    <TableCell className="font-medium whitespace-nowrap">{sale.client}</TableCell>
-                    <TableCell className="text-muted-foreground hidden md:table-cell whitespace-nowrap">
+                    <TableCell className="font-bold text-primary whitespace-nowrap text-[11px]">{sale.id}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap text-[11px]">{sale.client}</TableCell>
+                    <TableCell className="text-muted-foreground hidden sm:table-cell whitespace-nowrap text-[11px]">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {sale.date}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-black whitespace-nowrap">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-right font-black whitespace-nowrap text-[11px]">
+                      {formatCurrency(sale.total)}
+                    </TableCell>
                     <TableCell className="text-center whitespace-nowrap">
-                      <Badge className="text-[10px] font-bold" variant={
+                      <Badge className="text-[9px] font-bold px-1.5 py-0 h-5" variant={
                         sale.status === "Payé" ? "default" : 
                         sale.status === "Partiel" ? "secondary" : "outline"
                       }>
