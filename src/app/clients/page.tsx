@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,22 +9,25 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Eye, History, Phone, User } from "lucide-react";
+import { Search, Plus, Eye, History, Phone, User, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
-
-const MOCK_CLIENTS = [
-  { id: 1, name: "Ahmed Mansour", phone: "06 61 22 33 44", lastVisit: "10/05/2024", mutuelle: "CNSS", orders: 3 },
-  { id: 2, name: "Sara Benali", phone: "06 70 11 22 33", lastVisit: "11/05/2024", mutuelle: "CNOPS", orders: 1 },
-  { id: 3, name: "Driss El Fassi", phone: "06 12 34 56 78", lastVisit: "12/05/2024", mutuelle: "FAR", orders: 5 },
-  { id: 4, name: "Fatima Zahra", phone: "06 55 44 33 22", lastVisit: "12/05/2024", mutuelle: "Aucun", orders: 2 },
-];
+import { useFirestore, useCollection } from "@/firebase";
+import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function ClientsPage() {
   const { toast } = useToast();
+  const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [clients, setClients] = useState(MOCK_CLIENTS);
+  
+  const clientsQuery = useMemo(() => {
+    return query(collection(db, "clients"), orderBy("createdAt", "desc"));
+  }, [db]);
+
+  const { data: clients, loading } = useCollection(clientsQuery);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "",
@@ -32,10 +35,13 @@ export default function ClientsPage() {
     mutuelle: "Aucun"
   });
 
-  const filteredClients = clients.filter(client => 
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    client.phone.includes(searchTerm)
-  );
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    return clients.filter((client: any) => 
+      client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      client.phone?.includes(searchTerm)
+    );
+  }, [clients, searchTerm]);
 
   const handleCreateClient = () => {
     if (!newClient.name || !newClient.phone) {
@@ -47,21 +53,32 @@ export default function ClientsPage() {
       return;
     }
 
-    const clientToAdd = {
-      id: clients.length + 1,
-      ...newClient,
+    const clientData = {
+      name: newClient.name,
+      phone: newClient.phone,
+      mutuelle: newClient.mutuelle,
       lastVisit: new Date().toLocaleDateString("fr-FR"),
-      orders: 0
+      ordersCount: 0,
+      createdAt: serverTimestamp(),
     };
 
-    setClients([clientToAdd, ...clients]);
-    setIsDialogOpen(false);
-    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
-
-    toast({
-      title: "Client enregistré",
-      description: `Le dossier de ${newClient.name} a été créé.`,
-    });
+    addDoc(collection(db, "clients"), clientData)
+      .then(() => {
+        setIsDialogOpen(false);
+        setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
+        toast({
+          title: "Client enregistré",
+          description: `Le dossier de ${newClient.name} a été créé avec succès.`,
+        });
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: "clients",
+          operation: "create",
+          requestResourceData: clientData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (
@@ -142,56 +159,70 @@ export default function ClientsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Client</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Téléphone</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Mutuelle</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Dernière Visite</TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Commandes</TableHead>
-                    <TableHead className="text-right whitespace-nowrap font-bold text-xs uppercase">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClients.map((client) => (
-                    <TableRow key={client.id} className="hover:bg-muted/20">
-                      <TableCell className="font-medium whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-3.5 w-3.5 text-primary" />
-                          </div>
-                          {client.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs font-medium">
-                        {client.phone}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant="outline" className="text-[10px] font-bold px-2 h-5">
-                          {client.mutuelle}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{client.lastVisit}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant="secondary" className="text-[9px] font-bold rounded-sm h-5">
-                          {client.orders} commande(s)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Voir dossier">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Historique">
-                            <History className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Client</TableHead>
+                      <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Téléphone</TableHead>
+                      <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Mutuelle</TableHead>
+                      <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Dernière Visite</TableHead>
+                      <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Commandes</TableHead>
+                      <TableHead className="text-right whitespace-nowrap font-bold text-xs uppercase">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredClients.length > 0 ? (
+                      filteredClients.map((client: any) => (
+                        <TableRow key={client.id} className="hover:bg-muted/20">
+                          <TableCell className="font-medium whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-3.5 w-3.5 text-primary" />
+                              </div>
+                              {client.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs font-medium">
+                            {client.phone}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge variant="outline" className="text-[10px] font-bold px-2 h-5">
+                              {client.mutuelle}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{client.lastVisit}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge variant="secondary" className="text-[9px] font-bold rounded-sm h-5">
+                              {client.ordersCount || 0} commande(s)
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Voir dossier">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Historique">
+                                <History className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                          {searchTerm ? "Aucun résultat pour cette recherche." : "Aucun client dans la base. Commencez par en créer un !"}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </CardContent>
         </Card>
