@@ -23,7 +23,7 @@ function InvoicePrintContent() {
   const remise = Number(searchParams.get("remise")) || 0;
   const remisePercent = searchParams.get("remisePercent") || "0";
   const avance = Number(searchParams.get("avance")) || 0;
-  const monture = searchRegistry.get("monture") || "";
+  const monture = searchParams.get("monture") || "";
   const verres = searchParams.get("verres") || "";
   
   const totalNet = Math.max(0, total - remise);
@@ -43,8 +43,8 @@ function InvoicePrintContent() {
   const InvoiceCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
       <div className="flex-1 flex flex-col justify-center">
-        {/* Header - No Blue Border */}
-        <div className="flex justify-between items-start mb-12 pb-6 border-b border-slate-100">
+        {/* Header - Simple & Clean */}
+        <div className="flex justify-between items-start mb-16 pb-8 border-b border-slate-100">
           <div className="flex gap-4">
             <div className="h-16 w-16 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
               <div className="relative">
@@ -71,29 +71,31 @@ function InvoicePrintContent() {
         </div>
 
         {/* Client Info - Centered */}
-        <div className="grid grid-cols-3 gap-4 mb-12 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-          <div className="space-y-1.5 flex flex-col items-center text-center">
+        <div className="grid grid-cols-1 gap-4 mb-16 bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
+          <div className="space-y-2">
             <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-              <User className="h-3 w-3" /> Client
+              <User className="h-3 w-3" /> Nom du Client
             </div>
-            <p className="text-[13px] font-black text-slate-900 leading-none uppercase truncate w-full px-2">{clientName}</p>
+            <p className="text-lg font-black text-slate-900 leading-none uppercase">{clientName}</p>
           </div>
-          <div className="space-y-1.5 border-x border-slate-200 px-4 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-              <Phone className="h-3 w-3" /> Téléphone
+          <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
+            <div className="space-y-1.5 border-r border-slate-200">
+              <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
+                <Phone className="h-3 w-3" /> Téléphone
+              </div>
+              <p className="text-sm font-black text-slate-900 leading-none">{formatPhoneNumber(clientPhone)}</p>
             </div>
-            <p className="text-[13px] font-black text-slate-900 leading-none">{formatPhoneNumber(clientPhone)}</p>
-          </div>
-          <div className="space-y-1.5 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
-              <ShieldCheck className="h-3 w-3" /> Mutuelle
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase opacity-60 tracking-widest">
+                <ShieldCheck className="h-3 w-3" /> Mutuelle
+              </div>
+              <p className="text-sm font-black text-primary leading-none uppercase">{mutuelle}</p>
             </div>
-            <p className="text-[13px] font-black text-primary leading-none uppercase">{mutuelle}</p>
           </div>
         </div>
 
         {/* Prescription */}
-        <div className="mb-14">
+        <div className="mb-16">
           <h3 className="text-[10px] font-black uppercase mb-4 text-primary tracking-[0.2em] flex items-center gap-3 justify-center">
             <div className="h-0.5 w-6 bg-primary/30 rounded-full" />
             Ordonnance Optique
@@ -125,18 +127,18 @@ function InvoicePrintContent() {
           </table>
         </div>
 
-        {/* Details */}
-        <div className="mb-14 grid grid-cols-2 gap-8">
-          {searchParams.get("monture") && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5">
+        {/* Details Monture & Verres */}
+        <div className="mb-16 grid grid-cols-2 gap-8">
+          {monture && (
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5 text-center">
               <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Monture</p>
-              <p className="text-[12px] font-bold text-slate-800 uppercase">{searchParams.get("monture")}</p>
+              <p className="text-[12px] font-bold text-slate-800 uppercase">{monture}</p>
             </div>
           )}
-          {searchParams.get("verres") && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5">
+          {verres && (
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-1.5 text-center">
               <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Verres</p>
-              <p className="text-[12px] font-bold text-slate-800 uppercase">{searchParams.get("verres")}</p>
+              <p className="text-[12px] font-bold text-slate-800 uppercase">{verres}</p>
             </div>
           )}
         </div>
@@ -235,7 +237,7 @@ function InvoicePrintContent() {
 
 export default function InvoicePrintPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min- shores-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}>
       <InvoicePrintContent />
     </Suspense>
   );
