@@ -40,13 +40,19 @@
         "mutuelle": { "type": "string" },
         "total": { "type": "number" },
         "remise": { "type": "number" },
+        "discountType": { "type": "string" },
+        "discountValue": { "type": "number" },
         "avance": { "type": "number" },
         "reste": { "type": "number" },
         "statut": { "type": "string" },
         "monture": { "type": "string" },
         "verres": { "type": "string" },
+        "purchasePriceFrame": { "type": "number", "description": "Prix d'achat monture (Interne)" },
+        "purchasePriceLenses": { "type": "number", "description": "Prix d'achat verres (Interne)" },
         "prescription": { "type": "object" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       }
     }
   },

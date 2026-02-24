@@ -47,15 +47,17 @@ export default function SalesHistoryPage() {
       og_sph: sale.prescription?.og?.sph || "",
       og_cyl: sale.prescription?.og?.cyl || "",
       og_axe: sale.prescription?.og?.axe || "",
+      monture: sale.monture || "",
+      verres: sale.verres || "",
       date: sale.createdAt?.toDate ? sale.createdAt.toDate().toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"),
     });
     router.push(`/ventes/facture/${sale.invoiceId}?${params.toString()}`);
   };
 
   const handleEdit = (sale: any) => {
-    // On passe les données via URL pour remplir le formulaire de modification
     const params = new URLSearchParams({
       editId: sale.id,
+      invoiceId: sale.invoiceId,
       client: sale.clientName,
       phone: sale.clientPhone,
       mutuelle: sale.mutuelle,
@@ -63,6 +65,11 @@ export default function SalesHistoryPage() {
       avance: sale.avance.toString(),
       discountValue: sale.discountValue?.toString() || "0",
       discountType: sale.discountType || "percent",
+      purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(),
+      purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(),
+      monture: sale.monture || "",
+      verres: sale.verres || "",
+      notes: sale.notes || "",
       od_sph: sale.prescription?.od?.sph || "",
       od_cyl: sale.prescription?.od?.cyl || "",
       od_axe: sale.prescription?.od?.axe || "",

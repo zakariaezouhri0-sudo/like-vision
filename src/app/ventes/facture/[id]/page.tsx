@@ -4,7 +4,7 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Tag } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Suspense } from "react";
@@ -189,26 +189,26 @@ function InvoicePrintContent() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
-      <div className="no-print w-[297mm] flex justify-between mb-6">
-        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-primary/20 text-primary shadow-sm">
+      <div className="no-print w-[297mm] flex justify-between mb-6 px-4">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-primary/20 text-primary shadow-sm h-11 px-6 rounded-xl font-bold">
           <Link href="/ventes/nouvelle">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la vente
           </Link>
         </Button>
         <div className="flex items-center gap-4">
-          <span className="text-xs font-bold text-slate-500 bg-white px-4 py-2 rounded-full border shadow-sm flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 bg-white px-5 py-2.5 rounded-full border shadow-sm flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Format A4 Paysage (2 copies A5 Portrait)
           </span>
-          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 px-10 h-11 text-base font-bold">
+          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 px-10 h-11 text-base font-bold rounded-xl">
             <Printer className="mr-2 h-5 w-5" />
             Lancer l'impression
           </Button>
         </div>
       </div>
 
-      <div className="pdf-a4-landscape shadow-[0_0_60px_rgba(0,0,0,0.15)] overflow-hidden print:shadow-none bg-white print:m-0">
+      <div className="pdf-a4-landscape shadow-[0_0_60px_rgba(0,0,0,0.15)] overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
         <InvoiceCopy />
         <div className="cutting-line-vertical" />
         <InvoiceCopy />
@@ -219,7 +219,7 @@ function InvoicePrintContent() {
           <Glasses className="h-4 w-4 text-primary" />
           <ThumbsUp className="h-2 w-2 absolute -top-1 -right-1 text-primary" />
         </div>
-        Conseil : Désactivez les en-têtes/pieds de page dans les options d'impression de votre navigateur.
+        Conseil : Désactivez les en-têtes/pieds de page dans les options d'impression.
       </div>
     </div>
   );

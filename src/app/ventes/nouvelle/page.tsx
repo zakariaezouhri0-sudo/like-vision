@@ -10,11 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,6 +43,10 @@ function NewSaleForm() {
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   
+  // Nouveaux champs pour le calcul de la marge (Interne)
+  const [purchasePriceFrame, setPurchasePriceFrame] = useState(Number(searchParams.get("purchasePriceFrame")) || 0);
+  const [purchasePriceLenses, setPurchasePriceLenses] = useState(Number(searchParams.get("purchasePriceLenses")) || 0);
+
   const [prescription, setPrescription] = useState({
     od: { 
       sph: searchParams.get("od_sph") || "", 
@@ -87,12 +90,17 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, editId, toast]);
 
+  // Calculs Financiers Précis
   const remiseAmount = discountType === "percent" 
-    ? (total * discountValue) / 100 
-    : discountValue;
+    ? (Number(total) * Number(discountValue)) / 100 
+    : Number(discountValue);
 
-  const totalNet = Math.max(0, total - remiseAmount);
-  const resteAPayer = Math.max(0, totalNet - avance);
+  const totalNet = Math.max(0, Number(total) - remiseAmount);
+  const resteAPayer = Math.max(0, totalNet - Number(avance));
+  
+  // Calcul de la marge brute
+  const totalPurchase = Number(purchasePriceFrame) + Number(purchasePriceLenses);
+  const margeBrute = totalNet - totalPurchase;
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({
@@ -112,21 +120,23 @@ function NewSaleForm() {
 
     setLoading(true);
 
-    const statut = resteAPayer <= 0 ? "Payé" : (avance > 0 ? "Partiel" : "En attente");
-    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2024-${Math.floor(Math.random() * 1000)}` : `OPT-2024-${Math.floor(Math.random() * 1000)}`;
+    const statut = resteAPayer <= 0 ? "Payé" : (Number(avance) > 0 ? "Partiel" : "En attente");
+    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-${Date.now().toString().slice(-6)}` : `OPT-${Date.now().toString().slice(-6)}`;
 
     const saleData = {
       invoiceId,
       clientName,
       clientPhone,
       mutuelle,
-      total,
+      total: Number(total),
       remise: remiseAmount,
       discountType,
-      discountValue,
+      discountValue: Number(discountValue),
       remisePercent: discountType === "percent" ? discountValue.toString() : "Fixe",
-      avance,
+      avance: Number(avance),
       reste: resteAPayer,
+      purchasePriceFrame: Number(purchasePriceFrame),
+      purchasePriceLenses: Number(purchasePriceLenses),
       statut,
       prescription,
       monture,
@@ -282,21 +292,21 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            <Collapsible defaultOpen={true} className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
+            <Collapsible defaultOpen={false} className="border-none rounded-[32px] bg-white shadow-sm overflow-hidden">
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full flex justify-between px-8 py-5 h-auto hover:bg-slate-50 transition-all">
-                  <span className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Options Monture & Verres</span>
+                  <span className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Options Monture & Verres (Détails)</span>
                   <ChevronDown className="h-4 w-4 opacity-40" />
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="p-8 pt-0 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Monture</Label>
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Détail Monture</Label>
                     <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" value={monture} onChange={(e) => setMonture(e.target.value)} placeholder="Marque, Modèle..." />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Verres</Label>
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Détail Verres</Label>
                     <Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none" value={verres} onChange={(e) => setVerres(e.target.value)} placeholder="Type, Traitement..." />
                   </div>
                 </div>
@@ -309,13 +319,13 @@ function NewSaleForm() {
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-2xl border-none bg-primary p-2 rounded-[40px] sticky top-24">
+            <Card className="shadow-2xl border-none bg-primary p-2 rounded-[40px] sticky top-24 overflow-hidden">
               <CardHeader className="py-6 px-8 text-white">
                 <CardTitle className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Calcul Financier</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-5">
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl">
-                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Total Brut</Label>
+                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix de Vente Brut</Label>
                   <div className="relative">
                     <Input className="w-32 h-10 text-right font-black pr-10 border-none bg-transparent text-slate-900 focus-visible:ring-0 text-lg" type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
                     <span className="absolute right-3 top-2.5 text-[9px] font-black text-slate-400">DH</span>
@@ -343,7 +353,7 @@ function NewSaleForm() {
                   )}
                 </div>
 
-                <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-inner">
+                <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-inner border border-white/10">
                   <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Net à payer</Label>
                   <span className="font-black text-xl text-primary tracking-tighter">{formatCurrency(totalNet)}</span>
                 </div>
@@ -362,6 +372,33 @@ function NewSaleForm() {
                     {formatCurrency(resteAPayer).split(' ')[0]}
                     <span className="text-xs ml-1 opacity-40">DH</span>
                   </span>
+                </div>
+
+                {/* Section Interne - Prix d'achat & Marge */}
+                <div className="pt-6 mt-6 border-t border-white/20 space-y-4">
+                  <h3 className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] flex items-center gap-2">
+                    <Calculator className="h-3 w-3" />
+                    Données d'achat (Interne)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-black/20 p-3 rounded-xl space-y-1">
+                      <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Monture</Label>
+                      <Input className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(Number(e.target.value))} />
+                    </div>
+                    <div className="bg-black/20 p-3 rounded-xl space-y-1">
+                      <Label className="text-[9px] font-black uppercase text-white/40 tracking-widest">Achat Verres</Label>
+                      <Input className="h-8 text-right font-black text-white bg-transparent border-none p-0 focus-visible:ring-0 text-xs" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(Number(e.target.value))} />
+                    </div>
+                  </div>
+                  <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-green-400" />
+                      <span className="text-[10px] font-black uppercase text-green-400 tracking-widest">Marge Brute</span>
+                    </div>
+                    <span className={cn("font-black text-sm", margeBrute >= 0 ? "text-green-400" : "text-destructive")}>
+                      {formatCurrency(margeBrute)}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
