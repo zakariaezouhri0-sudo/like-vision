@@ -239,7 +239,7 @@ export default function SalesHistoryPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6">
-                            <DropdownMenu>
+                            <DropdownMenu modal={false}>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 rounded-xl transition-all"><MoreVertical className="h-4 w-4 md:h-5 md:w-5" /></Button>
                               </DropdownMenuTrigger>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -231,7 +232,7 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-6 py-5">
-                            <DropdownMenu>
+                            <DropdownMenu modal={false}>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-muted rounded-full"><MoreVertical className="h-5 w-5" /></Button>
                               </DropdownMenuTrigger>
