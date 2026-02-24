@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Glasses, 
   CalendarDays,
+  TrendingUp,
+  ShoppingCart,
+  AlertCircle,
+  Heart
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { 
@@ -90,7 +94,8 @@ export default function DashboardPage() {
 
       {/* KPI Cards Inspired by User Image */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px]">
+        <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
+          <TrendingUp className="absolute -right-2 -bottom-2 h-16 w-16 opacity-10 rotate-12" />
           <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">C.A</p>
           <div className="flex items-baseline gap-1">
             <span className="text-xl md:text-3xl font-black">24 850</span>
@@ -98,12 +103,14 @@ export default function DashboardPage() {
           </div>
         </Card>
         
-        <Card className="bg-accent text-accent-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px]">
+        <Card className="bg-accent text-accent-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
+          <ShoppingCart className="absolute -right-2 -bottom-2 h-16 w-16 opacity-15 -rotate-12" />
           <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">Ventes</p>
-          <p className="text-xl md:text-3xl font-black">18 Dossiers</p>
+          <p className="text-xl md:text-3xl font-black">18</p>
         </Card>
         
-        <Card className="bg-card border-none border-l-[6px] border-l-destructive shadow-lg p-4 md:p-6 rounded-[20px]">
+        <Card className="bg-card border-none border-l-[6px] border-l-destructive shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
+          <AlertCircle className="absolute -right-2 -top-2 h-12 w-12 text-destructive opacity-5" />
           <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Crédits</p>
           <div className="flex items-baseline gap-1">
             <span className="text-xl md:text-3xl font-black text-destructive">4 200</span>
@@ -111,7 +118,8 @@ export default function DashboardPage() {
           </div>
         </Card>
         
-        <Card className="bg-card border-none border-l-[6px] border-l-green-500 shadow-lg p-4 md:p-6 rounded-[20px]">
+        <Card className="bg-card border-none border-l-[6px] border-l-green-500 shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
+          <Heart className="absolute -right-2 -top-2 h-12 w-12 text-green-500 opacity-5" />
           <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Satisfaction</p>
           <p className="text-xl md:text-3xl font-black text-green-600">98%</p>
         </Card>
