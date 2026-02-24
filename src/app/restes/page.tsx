@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, HandCoins, Loader2, CheckCircle2 } from "lucide-react";
+import { Search, Printer, HandCoins, Loader2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
@@ -18,6 +18,8 @@ import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, add
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function UnpaidSalesPage() {
   const router = useRouter();
@@ -49,14 +51,17 @@ export default function UnpaidSalesPage() {
 
     setIsProcessing(true);
     const newAvance = (selectedSale.avance || 0) + amount;
-    const newReste = Math.max(0, selectedSale.total - (selectedSale.remise || 0) - newAvance);
+    const newReste = Math.max(0, (selectedSale.total - (selectedSale.remise || 0)) - newAvance);
     const newStatut = newReste <= 0 ? "Payé" : "Partiel";
 
     try {
-      // 1. Update Sale
-      await updateDoc(doc(db, "sales", selectedSale.id), { avance: newAvance, reste: newReste, statut: newStatut, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, "sales", selectedSale.id), { 
+        avance: newAvance, 
+        reste: newReste, 
+        statut: newStatut, 
+        updatedAt: serverTimestamp() 
+      });
       
-      // 2. Record Transaction
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
         label: `Versement ${selectedSale.invoiceId}`,
@@ -68,7 +73,24 @@ export default function UnpaidSalesPage() {
 
       toast({ variant: "success", title: "Paiement validé" });
 
-      const params = new URLSearchParams({ client: selectedSale.clientName, phone: selectedSale.clientPhone, mutuelle: selectedSale.mutuelle, total: selectedSale.total.toString(), remise: (selectedSale.remise || 0).toString(), remisePercent: selectedSale.remisePercent || "0", avance: newAvance.toString(), od_sph: selectedSale.prescription?.od?.sph || "", od_cyl: selectedSale.prescription?.od?.cyl || "", od_axe: selectedSale.prescription?.od?.axe || "", og_sph: selectedSale.prescription?.og?.sph || "", og_cyl: selectedSale.prescription?.og?.cyl || "", og_axe: selectedSale.prescription?.og?.axe || "", monture: selectedSale.monture || "", verres: selectedSale.verres || "", date: new Date().toLocaleDateString("fr-FR") });
+      const params = new URLSearchParams({ 
+        client: selectedSale.clientName, 
+        phone: selectedSale.clientPhone, 
+        mutuelle: selectedSale.mutuelle, 
+        total: selectedSale.total.toString(), 
+        remise: (selectedSale.remise || 0).toString(), 
+        remisePercent: selectedSale.remisePercent || "0", 
+        avance: newAvance.toString(), 
+        od_sph: selectedSale.prescription?.od?.sph || "", 
+        od_cyl: selectedSale.prescription?.od?.cyl || "", 
+        od_axe: selectedSale.prescription?.od?.axe || "", 
+        og_sph: selectedSale.prescription?.og?.sph || "", 
+        og_cyl: selectedSale.prescription?.og?.cyl || "", 
+        og_axe: selectedSale.prescription?.og?.axe || "", 
+        monture: selectedSale.monture || "", 
+        verres: selectedSale.verres || "", 
+        date: new Date().toLocaleDateString("fr-FR") 
+      });
       router.push(`/ventes/facture/${selectedSale.invoiceId}?${params.toString()}`);
       setSelectedSale(null);
     } catch (err) {
@@ -95,6 +117,7 @@ export default function UnpaidSalesPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
+                      <TableHead className="text-[10px] uppercase font-black px-6">Date</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-6">Facture</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-6">Client</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6">Total Net</TableHead>
@@ -106,6 +129,14 @@ export default function UnpaidSalesPage() {
                   <TableBody>
                     {filteredSales.length > 0 ? filteredSales.map((sale: any) => (
                       <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
+                        <TableCell className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-[10px] font-bold text-slate-600">
+                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
+                            </span>
+                          </div>
+                        </TableCell>
                         <TableCell className="font-black text-xs text-primary px-6">{sale.invoiceId}</TableCell>
                         <TableCell className="px-6 py-4">
                           <div className="flex flex-col"><span className="font-black text-[11px] text-slate-800 uppercase">{sale.clientName}</span><span className="text-[9px] font-black text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span></div>
@@ -117,7 +148,7 @@ export default function UnpaidSalesPage() {
                           <Button onClick={() => handleOpenPayment(sale)} className="h-9 px-4 font-black text-[10px] uppercase rounded-xl bg-primary shadow-lg"><HandCoins className="mr-2 h-4 w-4" />Régler</Button>
                         </TableCell>
                       </TableRow>
-                    )) : <TableRow><TableCell colSpan={6} className="text-center py-20 text-[10px] font-black uppercase opacity-20">Tout est à jour !</TableCell></TableRow>}
+                    )) : <TableRow><TableCell colSpan={7} className="text-center py-20 text-[10px] font-black uppercase opacity-20">Tout est à jour !</TableCell></TableRow>}
                   </TableBody>
                 </Table>
               )}

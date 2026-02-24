@@ -11,16 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, AlertTriangle, CheckCircle2, Star } from "lucide-react";
+import { ShoppingBag, Save, Printer, ChevronDown, Loader2, Search, Calculator, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -33,6 +37,11 @@ function NewSaleForm() {
 
   const editId = searchParams.get("editId");
 
+  const [saleDate, setSaleDate] = useState<Date>(() => {
+    const d = searchParams.get("date_raw");
+    return d ? new Date(d) : new Date();
+  });
+  
   const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
@@ -130,7 +139,6 @@ function NewSaleForm() {
     setLoading(true);
     const statut = resteAPayer <= 0 ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
     
-    // Format de facture: OPT-2026-**
     const suffix = Date.now().toString().slice(-6);
     const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2026-${suffix}` : `OPT-2026-${suffix}`;
 
@@ -153,6 +161,7 @@ function NewSaleForm() {
       monture,
       verres,
       notes,
+      createdAt: Timestamp.fromDate(saleDate),
       updatedAt: serverTimestamp(),
     };
 
@@ -162,25 +171,25 @@ function NewSaleForm() {
       const clientSnapshot = await getDocs(query(clientsRef, where("phone", "==", cleanPhone)));
 
       if (clientSnapshot.empty) {
-        await addDoc(clientsRef, { name: clientName, phone: cleanPhone, mutuelle, lastVisit: new Date().toLocaleDateString("fr-FR"), ordersCount: 1, createdAt: serverTimestamp() });
+        await addDoc(clientsRef, { name: clientName, phone: cleanPhone, mutuelle, lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: 1, createdAt: serverTimestamp() });
       } else {
-        await updateDoc(doc(db, "clients", clientSnapshot.docs[0].id), { lastVisit: new Date().toLocaleDateString("fr-FR"), ordersCount: increment(1), name: clientName, mutuelle });
+        await updateDoc(doc(db, "clients", clientSnapshot.docs[0].id), { lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: increment(1), name: clientName, mutuelle });
       }
 
       if (editId) {
         await updateDoc(doc(db, "sales", editId), saleData);
       } else {
-        await addDoc(collection(db, "sales"), { ...saleData, createdAt: serverTimestamp() });
+        await addDoc(collection(db, "sales"), saleData);
       }
 
-      if (nAvance > 0) {
+      if (nAvance > 0 && !editId) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",
           label: `Vente ${invoiceId}`,
           category: "Optique",
           montant: nAvance,
           relatedId: invoiceId,
-          createdAt: serverTimestamp()
+          createdAt: Timestamp.fromDate(saleDate)
         });
       }
 
@@ -200,7 +209,24 @@ function NewSaleForm() {
   const handlePrint = async () => {
     const saleData = await handleSave(true);
     if (!saleData) return;
-    const params = new URLSearchParams({ client: saleData.clientName, phone: saleData.clientPhone, mutuelle: saleData.mutuelle, total: saleData.total.toString(), remise: saleData.remise.toString(), remisePercent: saleData.remisePercent, avance: saleData.avance.toString(), od_sph: saleData.prescription.od.sph, od_cyl: saleData.prescription.od.cyl, od_axe: saleData.prescription.od.axe, og_sph: saleData.prescription.og.sph, og_cyl: saleData.prescription.og.cyl, og_axe: saleData.prescription.og.axe, monture: saleData.monture, verres: saleData.verres, date: new Date().toLocaleDateString("fr-FR") });
+    const params = new URLSearchParams({ 
+      client: saleData.clientName, 
+      phone: saleData.clientPhone, 
+      mutuelle: saleData.mutuelle, 
+      total: saleData.total.toString(), 
+      remise: saleData.remise.toString(), 
+      remisePercent: saleData.remisePercent, 
+      avance: saleData.avance.toString(), 
+      od_sph: saleData.prescription.od.sph, 
+      od_cyl: saleData.prescription.od.cyl, 
+      od_axe: saleData.prescription.od.axe, 
+      og_sph: saleData.prescription.og.sph, 
+      og_cyl: saleData.prescription.og.cyl, 
+      og_axe: saleData.prescription.og.axe, 
+      monture: saleData.monture, 
+      verres: saleData.verres, 
+      date: saleDate.toLocaleDateString("fr-FR") 
+    });
     router.push(`/ventes/facture/${saleData.invoiceId}?${params.toString()}`);
   };
 
@@ -220,7 +246,21 @@ function NewSaleForm() {
             <Card className="shadow-sm border-none overflow-hidden rounded-[24px] md:rounded-[32px] bg-white">
               <CardHeader className="py-4 px-6 md:px-8 bg-slate-50/50 border-b"><CardTitle className="text-[10px] uppercase font-black text-primary/60 tracking-[0.2em] flex items-center gap-2"><ShoppingBag className="h-4 w-4" />Informations Client</CardTitle></CardHeader>
               <CardContent className="p-6 md:p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Date de Vente</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold text-sm">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                          {format(saleDate, "dd/MM/yyyy")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1 flex justify-between">Téléphone{isSearchingClient && <Loader2 className="h-3 w-3 animate-spin text-primary" />}</Label><div className="relative"><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" /><Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" /></div></div>
                   <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
                 </div>

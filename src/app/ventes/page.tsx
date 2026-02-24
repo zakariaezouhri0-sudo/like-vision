@@ -83,6 +83,7 @@ export default function SalesHistoryPage() {
       og_sph: sale.prescription?.og?.sph || "",
       og_cyl: sale.prescription?.og?.cyl || "",
       og_axe: sale.prescription?.og?.axe || "",
+      date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "",
     });
     router.push(`/ventes/nouvelle?${params.toString()}`);
   };
