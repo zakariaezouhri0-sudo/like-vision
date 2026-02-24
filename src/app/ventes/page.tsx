@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar, Filter } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,10 +17,12 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 export default function SalesHistoryPage() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function SalesHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   const salesQuery = useMemoFirebase(() => {
     return query(collection(db, "sales"), orderBy("createdAt", "desc"));
@@ -35,16 +38,25 @@ export default function SalesHistoryPage() {
 
   const { data: sales, isLoading: loading } = useCollection(salesQuery);
 
-  const filteredSales = sales?.filter((sale: any) => {
-    const matchesSearch = 
-      sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
-    
-    const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+    return sales.filter((sale: any) => {
+      // Filtre par date (si une date est sélectionnée)
+      const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
+      const matchesDate = !selectedDate || (saleDate && isSameDay(saleDate, selectedDate));
 
-    return matchesSearch && matchesStatus;
-  }) || [];
+      // Filtre par texte
+      const matchesSearch = 
+        sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
+      
+      // Filtre par statut
+      const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
+
+      return matchesDate && matchesSearch && matchesStatus;
+    });
+  }, [sales, searchTerm, statusFilter, selectedDate]);
 
   const handlePrint = (sale: any) => {
     const params = new URLSearchParams({
@@ -133,7 +145,7 @@ export default function SalesHistoryPage() {
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
                 <input 
@@ -143,21 +155,42 @@ export default function SalesHistoryPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="w-full md:w-64">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-primary/40" />
-                      <SelectValue placeholder="Filtrer par statut" />
+              
+              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                {/* Sélecteur de Date */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-12 px-4 rounded-xl font-bold bg-white border-none shadow-inner justify-start">
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
+                      {selectedDate ? format(selectedDate, "dd MMM yyyy", { locale: fr }) : "Toutes les dates"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
+                    <div className="p-2 border-b bg-slate-50 flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase text-primary/40 ml-2">Choisir une date</span>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedDate(undefined)} className="h-7 px-2 text-[9px] font-black uppercase">Voir Tout</Button>
                     </div>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
-                    <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
-                    <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
-                    <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={fr} initialFocus />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Sélecteur de Statut */}
+                <div className="w-full sm:w-48">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-12 rounded-xl font-bold bg-white border-none shadow-inner px-4">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-4 w-4 text-primary/40" />
+                        <SelectValue placeholder="Statut" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="TOUS" className="font-bold">Tous les statuts</SelectItem>
+                      <SelectItem value="Payé" className="font-bold text-green-600">Payé</SelectItem>
+                      <SelectItem value="Partiel" className="font-bold text-blue-600">Partiel</SelectItem>
+                      <SelectItem value="En attente" className="font-bold text-red-600">En attente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -188,7 +221,7 @@ export default function SalesHistoryPage() {
                         <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                           <TableCell className="px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
                               <span className="text-[11px] font-bold text-slate-600">
                                 {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}
                               </span>
@@ -253,7 +286,7 @@ export default function SalesHistoryPage() {
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={8} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture trouvée pour cette sélection.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
