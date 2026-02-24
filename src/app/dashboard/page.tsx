@@ -87,40 +87,40 @@ export default function DashboardPage() {
         <div className="shrink-0">
           <div className="bg-green-50 border border-green-200 rounded-full px-2 py-1 flex items-center gap-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse" />
-            <span className="text-[8px] md:text-[10px] font-black text-green-700 uppercase whitespace-nowrap">Ouvert</span>
+            <span className="text-[8px] md:text-[10px] font-black text-green-700 uppercase whitespace-nowrap">Caisse Ouverte</span>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Inspired by User Image */}
+      {/* KPI Cards Optimized */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
-          <TrendingUp className="absolute -right-2 -bottom-2 h-16 w-16 opacity-10 rotate-12" />
-          <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">C.A</p>
+        <Card className="bg-primary text-primary-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
+          <TrendingUp className="absolute -right-4 -top-4 h-24 w-24 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-300" />
+          <p className="text-[9px] md:text-[10px] uppercase font-black opacity-70 mb-2 tracking-wider">Chiffre d'Affaire</p>
           <div className="flex items-baseline gap-1">
             <span className="text-xl md:text-3xl font-black">24 850</span>
             <span className="text-[10px] md:text-sm font-bold opacity-80">DH</span>
           </div>
         </Card>
         
-        <Card className="bg-accent text-accent-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
-          <ShoppingCart className="absolute -right-2 -bottom-2 h-16 w-16 opacity-15 -rotate-12" />
-          <p className="text-[10px] md:text-xs uppercase font-bold opacity-80 mb-2">Ventes</p>
+        <Card className="bg-accent text-accent-foreground border-none shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
+          <ShoppingCart className="absolute -right-4 -top-4 h-24 w-24 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-300" />
+          <p className="text-[9px] md:text-[10px] uppercase font-black opacity-70 mb-2 tracking-wider">Ventes</p>
           <p className="text-xl md:text-3xl font-black">18</p>
         </Card>
         
-        <Card className="bg-card border-none border-l-[6px] border-l-destructive shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
-          <AlertCircle className="absolute -right-2 -top-2 h-12 w-12 text-destructive opacity-5" />
-          <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Crédits</p>
+        <Card className="bg-card border-none border-l-[6px] border-l-destructive shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
+          <AlertCircle className="absolute -right-4 -top-4 h-24 w-24 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-300" />
+          <p className="text-[9px] md:text-[10px] uppercase font-black text-muted-foreground mb-2 tracking-wider">Montant à Recouvrer</p>
           <div className="flex items-baseline gap-1">
             <span className="text-xl md:text-3xl font-black text-destructive">4 200</span>
             <span className="text-[10px] md:text-sm font-bold text-destructive">DH</span>
           </div>
         </Card>
         
-        <Card className="bg-card border-none border-l-[6px] border-l-green-500 shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden">
-          <Heart className="absolute -right-2 -top-2 h-12 w-12 text-green-500 opacity-5" />
-          <p className="text-[10px] md:text-xs uppercase font-bold text-muted-foreground mb-2 tracking-tight">Satisfaction</p>
+        <Card className="bg-card border-none border-l-[6px] border-l-green-500 shadow-lg p-4 md:p-6 rounded-[20px] relative overflow-hidden group">
+          <Heart className="absolute -right-4 -top-4 h-24 w-24 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-300" />
+          <p className="text-[9px] md:text-[10px] uppercase font-black text-muted-foreground mb-2 tracking-wider">Satisfaction</p>
           <p className="text-xl md:text-3xl font-black text-green-600">98%</p>
         </Card>
       </div>
