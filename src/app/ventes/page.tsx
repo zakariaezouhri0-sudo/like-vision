@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -140,27 +139,27 @@ export default function SalesHistoryPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex flex-col items-end">
+                            <div className="flex items-baseline justify-end gap-1.5">
                               <span className="font-black text-xs md:text-sm text-slate-900 leading-none">
                                 {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total)}
                               </span>
-                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
+                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex flex-col items-end">
+                            <div className="flex items-baseline justify-end gap-1.5">
                               <span className="font-black text-xs md:text-sm text-green-600 leading-none">
                                 {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.avance || 0)}
                               </span>
-                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
+                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex flex-col items-end">
+                            <div className="flex items-baseline justify-end gap-1.5">
                               <span className={cn("font-black text-xs md:text-sm leading-none", (sale.reste || 0) > 0 ? "text-destructive" : "text-slate-300")}>
                                 {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.reste || 0)}
                               </span>
-                              <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mt-0.5">DH</span>
+                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-center px-4 md:px-8 py-5 md:py-6">
