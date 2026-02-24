@@ -129,7 +129,10 @@ function NewSaleForm() {
 
     setLoading(true);
     const statut = resteAPayer <= 0 ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
-    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-${Date.now().toString().slice(-6)}` : `OPT-${Date.now().toString().slice(-6)}`;
+    
+    // Format de facture: OPT-2026-**
+    const suffix = Date.now().toString().slice(-6);
+    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2026-${suffix}` : `OPT-2026-${suffix}`;
 
     const saleData = {
       invoiceId,
@@ -170,7 +173,6 @@ function NewSaleForm() {
         await addDoc(collection(db, "sales"), { ...saleData, createdAt: serverTimestamp() });
       }
 
-      // Enregistrer le paiement en caisse si avance > 0
       if (nAvance > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",

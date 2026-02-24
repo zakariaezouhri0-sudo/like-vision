@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Table as TableIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 type Mapping = Record<string, string>;
@@ -51,7 +51,7 @@ export default function ImportPage() {
   const downloadTemplate = () => {
     const templateData = importType === "sales" ? [
       {
-        "N° Facture": "FA-2024-001",
+        "N° Facture": "OPT-2026-001",
         "Nom Client": "Ahmed Alami",
         "Téléphone": "0661000000",
         "Total Brut": 1500,
@@ -85,25 +85,32 @@ export default function ImportPage() {
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const jsonData = XLSX.utils.sheet_to_json(ws);
-        if (jsonData.length > 0) {
-          setData(jsonData);
-          setHeaders(Object.keys(jsonData[0] as object));
-          // Auto-mapping simple
-          const newMapping: Mapping = {};
-          Object.keys(jsonData[0] as object).forEach(header => {
-            const lowerHeader = header.toLowerCase();
-            currentFields.forEach(field => {
-              if (lowerHeader.includes(field.label.toLowerCase()) || lowerHeader.includes(field.key.toLowerCase())) {
-                newMapping[field.key] = header;
-              }
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const jsonData = XLSX.utils.sheet_to_json(ws);
+          
+          if (jsonData.length > 0) {
+            setData(jsonData);
+            setHeaders(Object.keys(jsonData[0] as object));
+            // Auto-mapping
+            const newMapping: Mapping = {};
+            Object.keys(jsonData[0] as object).forEach(header => {
+              const lowerHeader = header.toLowerCase();
+              currentFields.forEach(field => {
+                if (lowerHeader.includes(field.label.toLowerCase()) || lowerHeader.includes(field.key.toLowerCase())) {
+                  newMapping[field.key] = header;
+                }
+              });
             });
-          });
-          setMapping(newMapping);
+            setMapping(newMapping);
+          } else {
+            toast({ variant: "destructive", title: "Fichier vide", description: "Le fichier ne contient aucune donnée." });
+          }
+        } catch (err) {
+          toast({ variant: "destructive", title: "Erreur de lecture", description: "Impossible de lire le fichier Excel." });
         }
       };
       reader.readAsBinaryString(selectedFile);
@@ -122,13 +129,12 @@ export default function ImportPage() {
       const row = data[i];
       try {
         if (importType === "sales") {
-          const clientName = row[mapping.clientName] || "Client Inconnu";
+          const clientName = row[mapping.clientName] || "Client Importé";
           const clientPhone = (row[mapping.clientPhone]?.toString() || "").replace(/\s/g, "");
           const total = parseFloat(row[mapping.total]) || 0;
           const avance = parseFloat(row[mapping.avance]) || 0;
-          const invoiceId = row[mapping.invoiceId] || `IMP-${Date.now().toString().slice(-6)}-${i}`;
+          const invoiceId = row[mapping.invoiceId] || `OPT-2026-IMP-${Date.now().toString().slice(-4)}-${i}`;
           
-          // Gestion flexible de la date
           let createdAtDate = new Date();
           const rawDate = row[mapping.createdAt];
           if (rawDate) {
@@ -153,10 +159,8 @@ export default function ImportPage() {
             notes: "Importé depuis historique"
           };
 
-          // 1. Sauvegarder la vente
           await addDoc(collection(db, "sales"), saleData);
 
-          // 2. Créer/Mettre à jour le client
           const clientsRef = collection(db, "clients");
           const clientQ = query(clientsRef, where("phone", "==", clientPhone));
           const clientSnap = await getDocs(clientQ);
@@ -171,7 +175,6 @@ export default function ImportPage() {
             });
           }
 
-          // 3. Enregistrer la transaction de caisse
           if (avance > 0) {
             await addDoc(collection(db, "transactions"), {
               type: "VENTE",
@@ -183,7 +186,6 @@ export default function ImportPage() {
             });
           }
         } else {
-          // Import Clients uniquement
           const name = row[mapping.name];
           const phone = (row[mapping.phone]?.toString() || "").replace(/\s/g, "");
           if (name && phone) {
@@ -199,7 +201,6 @@ export default function ImportPage() {
         }
         successCount++;
       } catch (e) {
-        console.error("Error importing row", i, e);
         errorCount++;
       }
       setProgress(Math.round(((i + 1) / data.length) * 100));
@@ -224,7 +225,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Importation Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Intégrez vos anciens mois (Mois 1, 2, etc.)</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Intégrez vos fichiers Excel facilement.</p>
           </div>
           <Button 
             onClick={downloadTemplate}
@@ -253,15 +254,6 @@ export default function ImportPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50 space-y-2">
-                <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Conseils :</h4>
-                <ul className="text-[9px] font-bold text-blue-700/70 space-y-1.5 list-disc pl-4 uppercase leading-relaxed">
-                  <li>Utilisez le format Date (AAAA-MM-JJ)</li>
-                  <li>Les numéros de téléphone sans espaces</li>
-                  <li>Le point (.) pour les décimales</li>
-                </ul>
-              </div>
             </CardContent>
           </Card>
 
@@ -287,7 +279,7 @@ export default function ImportPage() {
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
                   {file ? file.name : "Cliquez pour choisir votre fichier"}
                 </h3>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase mt-2">Format supporté : .xlsx (Excel)</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase mt-2">Format : .xlsx ou .xls</p>
               </div>
             </CardContent>
           </Card>
@@ -302,12 +294,9 @@ export default function ImportPage() {
                     <TableIcon className="h-8 w-8" /> Validation de l'import
                   </CardTitle>
                   <p className="text-white/60 font-black text-[10px] uppercase tracking-[0.3em] mt-2">
-                    {data.length} lignes prêtes à être intégrées.
+                    {data.length} lignes détectées.
                   </p>
                 </div>
-                <Badge className="bg-white/20 text-white border-none h-8 px-4 font-black uppercase text-[10px] tracking-widest">
-                  {importType === 'sales' ? 'HISTORIQUE VENTES' : 'CLIENTS'}
-                </Badge>
               </div>
             </CardHeader>
             <CardContent className="p-8">
@@ -327,7 +316,7 @@ export default function ImportPage() {
                       onValueChange={(v) => setMapping({...mapping, [field.key]: v})}
                     >
                       <SelectTrigger className="h-14 rounded-2xl font-black text-slate-900 border-none bg-slate-50 shadow-inner px-6">
-                        <SelectValue placeholder="Choisir la colonne Excel..." />
+                        <SelectValue placeholder="Choisir la colonne..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl">
                         {headers.map(h => <SelectItem key={h} value={h} className="font-black text-xs">{h}</SelectItem>)}
@@ -341,25 +330,19 @@ export default function ImportPage() {
                 {isProcessing && (
                   <div className="space-y-3">
                     <div className="flex justify-between text-[11px] font-black uppercase text-primary tracking-widest">
-                      <span className="flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Traitement en cours...</span>
+                      <span>Importation en cours...</span>
                       <span>{progress}%</span>
                     </div>
-                    <Progress value={progress} className="h-4 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-                    </Progress>
+                    <Progress value={progress} className="h-4" />
                   </div>
                 )}
 
                 <Button 
                   onClick={handleImport} 
-                  disabled={isProcessing || Object.keys(mapping).length < (importType === "sales" ? 4 : 2)}
-                  className="w-full h-16 rounded-[24px] font-black text-lg shadow-2xl bg-primary hover:bg-primary/90 transition-all active:scale-95"
+                  disabled={isProcessing || Object.keys(mapping).length < 2}
+                  className="w-full h-16 rounded-[24px] font-black text-lg shadow-2xl bg-primary hover:bg-primary/90 transition-all"
                 >
-                  {isProcessing ? (
-                    <>IMPORTATION EN COURS...</>
-                  ) : (
-                    <>INTÉGRER LES DONNÉES DANS LE SYSTÈME</>
-                  )}
+                  {isProcessing ? "TRAITEMENT..." : "LANCER L'IMPORTATION"}
                 </Button>
               </div>
             </CardContent>
