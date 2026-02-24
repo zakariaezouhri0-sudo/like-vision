@@ -2,54 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * RÈGLES DE SÉCURITÉ OPTIMISÉES POUR LE DÉVELOPPEMENT
-     * Permet à tout utilisateur connecté (même anonymement) de lire et écrire.
-     */
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Permettre l'accès à toutes les collections principales pour les tests
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
-    }
-    
-    match /clients/{clientId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /cashSessions/{cashSessionId} {
-      allow read, write: if isSignedIn();
-      match /transactions/{transactionId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    match /sales/{saleId} {
-      allow read, write: if isSignedIn();
-      match /saleItems/{itemId} {
-        allow read, write: if isSignedIn();
-        match /prescription/{pId} {
-          allow read, write: if isSignedIn();
-        }
-      }
-    }
-
-    match /shopSettings/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /mutuelles/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /roles_admin/{id} {
-      allow read: if isSignedIn();
+    // RÈGLES DE DÉVELOPPEMENT : Autorise tout utilisateur connecté
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

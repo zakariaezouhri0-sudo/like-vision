@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AppShell } from "@/components/layout/app-shell";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -24,7 +24,7 @@ export default function UsersPage() {
   const db = useFirestore();
   
   const usersQuery = useMemoFirebase(() => {
-    return query(collection(db, "users"));
+    return query(collection(db, "users"), orderBy("name", "asc"));
   }, [db]);
 
   const { data: users, loading } = useCollection(usersQuery);
@@ -57,9 +57,10 @@ export default function UsersPage() {
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
-        toast({ title: "Utilisateur créé", description: `${userData.name} a été enregistré.` });
+        toast({ title: "Utilisateur créé", description: `${userData.name} a été enregistré en base.` });
       })
       .catch((err) => {
+        toast({ variant: "destructive", title: "Erreur Base de Données", description: "Impossible d'enregistrer sur le serveur." });
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
           path: "users", 
           operation: "create", 
@@ -73,7 +74,6 @@ export default function UsersPage() {
     const userRef = doc(db, "users", editingUser.id);
     const updateData = {
       name: editingUser.name,
-      username: editingUser.username.toLowerCase().trim(),
       role: editingUser.role,
       password: editingUser.password
     };
@@ -85,11 +85,7 @@ export default function UsersPage() {
         toast({ title: "Mis à jour", description: "L'utilisateur a été modifié." });
       })
       .catch(() => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: userRef.path, 
-          operation: "update", 
-          requestResourceData: updateData 
-        }));
+        toast({ variant: "destructive", title: "Erreur", description: "La modification a échoué." });
       });
   };
 
@@ -101,10 +97,7 @@ export default function UsersPage() {
         toast({ title: "Supprimé", description: "L'utilisateur a été retiré." });
       })
       .catch(() => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: userRef.path, 
-          operation: "delete" 
-        }));
+        toast({ variant: "destructive", title: "Erreur", description: "La suppression a échoué." });
       });
   };
 
