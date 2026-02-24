@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,10 +9,10 @@ import {
   History, 
   Users, 
   Settings, 
-  FileText, 
   Eye, 
   TrendingUp,
-  HandCoins
+  HandCoins,
+  Upload
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "CAISSIER"] },
   { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "CAISSIER"] },
   { href: "/rapports", label: "Rapports", icon: TrendingUp, roles: ["ADMIN"] },
+  { href: "/import", label: "Importation", icon: Upload, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
   { href: "/parametres", label: "Paramètres", icon: Settings, roles: ["ADMIN"] },
 ];
