@@ -46,8 +46,7 @@ const mutuelleData = [
   { name: "Aucun", value: 45 },
   { name: "CNOPS", value: 20 },
   { name: "CNSS", value: 25 },
-  { name: "FAR", value: 5 },
-  { name: "Autre", value: 5 },
+  { name: "FAR", value: 10 },
 ];
 
 const RECENT_SALES = [
@@ -57,7 +56,7 @@ const RECENT_SALES = [
   { id: "OPT-2024-042", client: "Meryem Bennani", date: "Auj.", total: 3100, status: "En attente" },
 ];
 
-const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15', '#F87171'];
+const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15'];
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -211,10 +210,10 @@ export default function DashboardPage() {
                     <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.client}</TableCell>
                     <TableCell className="text-right px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
                       <div className="flex flex-col items-end">
-                        <span className="text-sm font-black text-slate-900 leading-none">
+                        <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
                           {formatCurrency(sale.total).replace(' DH', '')}
                         </span>
-                        <span className="text-[10px] font-black text-slate-400 mt-1 uppercase">DH</span>
+                        <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">DH</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
