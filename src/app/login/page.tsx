@@ -97,7 +97,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
           
-          <div className="h-48 w-48 flex items-center justify-center relative">
+          <div className="h-44 w-44 flex items-center justify-center relative">
             {settings?.logoUrl ? (
               <Image 
                 src={settings.logoUrl} 
