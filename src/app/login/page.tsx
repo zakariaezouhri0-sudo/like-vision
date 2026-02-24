@@ -94,10 +94,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center text-center space-y-4">
+      <div className="w-full max-w-md space-y-12">
+        <div className="flex flex-col items-center text-center space-y-6">
           
-          <div className="h-52 w-52 flex items-center justify-center relative">
+          <div className="h-44 w-44 flex items-center justify-center relative">
             {settings?.logoUrl ? (
               <Image 
                 src={settings.logoUrl} 

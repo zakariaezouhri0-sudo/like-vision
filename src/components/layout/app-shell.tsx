@@ -35,16 +35,16 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
       <aside className="w-64 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-2xl">
         <Link 
           href="/dashboard" 
-          className="h-28 border-b flex items-center px-6 gap-4 hover:bg-primary/5 transition-all group"
+          className="h-32 border-b flex items-center px-6 gap-5 hover:bg-primary/5 transition-all group"
         >
-          <div className="h-20 w-20 flex items-center justify-center shrink-0 relative">
+          <div className="h-16 w-16 flex items-center justify-center shrink-0 relative">
             {settings?.logoUrl ? (
               <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
             ) : (
-              <div className="h-16 w-16 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
+              <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
                 <div className="relative">
-                  <Glasses className="h-9 w-9" />
-                  <ThumbsUp className="h-4.5 w-4.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                  <Glasses className="h-8 w-8" />
+                  <ThumbsUp className="h-4 w-4 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                 </div>
               </div>
             )}
