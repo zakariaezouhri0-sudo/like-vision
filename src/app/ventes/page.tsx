@@ -32,9 +32,9 @@ export default function SalesHistoryPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary">Historique des Ventes</h1>
-            <p className="text-sm text-muted-foreground">Suivi des factures et paiements clients.</p>
+            <p className="text-sm text-muted-foreground">Suivi des factures et règlements clients.</p>
           </div>
-          <Button asChild size="sm" className="w-full sm:w-auto">
+          <Button asChild size="sm" className="w-full sm:w-auto shadow-md">
             <Link href="/ventes/nouvelle">
               <Plus className="mr-2 h-4 w-4" />
               Nouvelle Vente
@@ -47,7 +47,7 @@ export default function SalesHistoryPage() {
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Client ou N° facture..." 
+                placeholder="Chercher client ou N° facture..." 
                 className="pl-10 h-9 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -57,7 +57,7 @@ export default function SalesHistoryPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-muted/50">
+                <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Facture</TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-xs uppercase">Date</TableHead>
@@ -71,17 +71,17 @@ export default function SalesHistoryPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredSales.map((sale) => (
-                    <TableRow key={sale.id} className="hover:bg-muted/30">
-                      <TableCell className="font-bold whitespace-nowrap text-primary">{sale.id}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{sale.date}</TableCell>
-                      <TableCell className="whitespace-nowrap font-medium">{sale.client}</TableCell>
-                      <TableCell className="whitespace-nowrap text-right font-medium">{formatCurrency(sale.total)}</TableCell>
-                      <TableCell className="text-green-600 font-bold whitespace-nowrap text-right">{formatCurrency(sale.avance)}</TableCell>
-                      <TableCell className={cn("whitespace-nowrap text-right font-black", sale.reste > 0 ? "text-destructive" : "text-muted-foreground opacity-30")}>
+                    <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-bold whitespace-nowrap text-primary text-xs">{sale.id}</TableCell>
+                      <TableCell className="whitespace-nowrap text-[10px] text-muted-foreground">{sale.date}</TableCell>
+                      <TableCell className="whitespace-nowrap font-semibold text-xs">{sale.client}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right font-medium text-xs">{formatCurrency(sale.total)}</TableCell>
+                      <TableCell className="text-green-600 font-bold whitespace-nowrap text-right text-xs">{formatCurrency(sale.avance)}</TableCell>
+                      <TableCell className={cn("whitespace-nowrap text-right font-black text-xs", sale.reste > 0 ? "text-destructive" : "text-muted-foreground/30")}>
                         {formatCurrency(sale.reste)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-center">
-                        <Badge className="text-[10px] px-2 py-0 h-5" variant={
+                        <Badge className="text-[9px] font-black px-2 py-0 h-5" variant={
                           sale.statut === "Payé" ? "default" : 
                           sale.statut === "Partiel" ? "secondary" : "outline"
                         }>
@@ -90,11 +90,11 @@ export default function SalesHistoryPage() {
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Voir détails">
-                            <Eye className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Détails">
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimer">
-                            <Printer className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Imprimer">
+                            <Printer className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
