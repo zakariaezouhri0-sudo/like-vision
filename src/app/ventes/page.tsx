@@ -31,11 +31,9 @@ export default function SalesHistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
   
-  // État pour la période (par défaut: Aujourd'hui)
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(),
-    to: new Date(),
-  });
+  // États séparés pour les dates
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   const salesQuery = useMemoFirebase(() => {
     return query(collection(db, "sales"), orderBy("createdAt", "desc"));
@@ -46,31 +44,27 @@ export default function SalesHistoryPage() {
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     return sales.filter((sale: any) => {
-      // Filtre par période
       const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
       let matchesDate = true;
       
-      if (dateRange.from && saleDate) {
-        matchesDate = isWithinInterval(saleDate, {
-          start: startOfDay(dateRange.from),
-          end: endOfDay(dateRange.to || dateRange.from)
-        });
-      } else if (dateRange.from && !saleDate) {
+      if (dateFrom && saleDate) {
+        const start = startOfDay(dateFrom);
+        const end = endOfDay(dateTo || dateFrom);
+        matchesDate = isWithinInterval(saleDate, { start, end });
+      } else if (dateFrom && !saleDate) {
         matchesDate = false;
       }
 
-      // Filtre par texte
       const matchesSearch = 
         sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
         sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
       
-      // Filtre par statut
       const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
 
       return matchesDate && matchesSearch && matchesStatus;
     });
-  }, [sales, searchTerm, statusFilter, dateRange]);
+  }, [sales, searchTerm, statusFilter, dateFrom, dateTo]);
 
   const handlePrint = (sale: any) => {
     const params = new URLSearchParams({
@@ -141,6 +135,11 @@ export default function SalesHistoryPage() {
     }
   };
 
+  const clearDates = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -159,7 +158,7 @@ export default function SalesHistoryPage() {
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
                 <input 
@@ -170,42 +169,45 @@ export default function SalesHistoryPage() {
                 />
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                {/* Sélecteur de Période */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-12 px-4 rounded-xl font-bold bg-white border-none shadow-inner justify-start min-w-[220px]">
-                      <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                      <span className="truncate">
-                        {dateRange.from ? (
-                          dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? 
-                            `${format(dateRange.from, "dd MMM", { locale: fr })} - ${format(dateRange.to, "dd MMM yyyy", { locale: fr })}` :
-                            format(dateRange.from, "dd MMM yyyy", { locale: fr })
-                        ) : "Toutes les dates"}
-                      </span>
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
+                {/* Sélecteurs de Dates Séparés */}
+                <div className="flex items-center gap-2 bg-white p-1 rounded-2xl shadow-inner border-none w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase text-primary/40 ml-2">Du:</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" className="h-10 px-3 font-black text-xs hover:bg-primary/5 rounded-xl">
+                          {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Choisir..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                        <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="h-4 w-px bg-slate-200 mx-1" />
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase text-primary/40">Au:</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" className="h-10 px-3 font-black text-xs hover:bg-primary/5 rounded-xl">
+                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "Choisir..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                        <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {(dateFrom || dateTo) && (
+                    <Button variant="ghost" size="icon" onClick={clearDates} className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10">
+                      <X className="h-4 w-4" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
-                    <div className="p-3 border-b bg-slate-50 flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-primary/40 ml-2">Filtrer par période</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setDateRange({ from: undefined, to: undefined })} 
-                        className="h-7 px-2 text-[9px] font-black uppercase hover:bg-primary/10"
-                      >
-                        Voir Tout
-                      </Button>
-                    </div>
-                    <Calendar 
-                      mode="range" 
-                      selected={{ from: dateRange.from, to: dateRange.to }} 
-                      onSelect={(range: any) => setDateRange({ from: range?.from, to: range?.to })} 
-                      locale={fr} 
-                      initialFocus 
-                    />
-                  </PopoverContent>
-                </Popover>
+                  )}
+                </div>
 
                 {/* Sélecteur de Statut */}
                 <div className="w-full sm:w-48">
