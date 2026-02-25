@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, Phone, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { Suspense } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -43,9 +43,20 @@ function ReceiptPrintContent() {
   const totalNet = Math.max(0, total - remise);
   const reste = Math.max(0, totalNet - avance);
 
+  const od = {
+    sph: searchParams.get("od_sph") || "---",
+    cyl: searchParams.get("od_cyl") || "---",
+    axe: searchParams.get("od_axe") || "---"
+  };
+  const og = {
+    sph: searchParams.get("og_sph") || "---",
+    cyl: searchParams.get("og_cyl") || "---",
+    axe: searchParams.get("og_axe") || "---"
+  };
+
   const ReceiptCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[15mm] relative">
-      <div className="flex justify-between items-start mb-8 pb-4 border-b border-slate-100">
+      <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex gap-3">
           <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
             {shop.logoUrl ? (
@@ -61,7 +72,7 @@ function ReceiptPrintContent() {
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-primary text-white px-3 py-1 rounded-lg inline-block mb-1">
+          <div className="bg-slate-900 text-white px-3 py-1 rounded-lg inline-block mb-1">
             <h1 className="text-[8px] font-black uppercase tracking-widest">Reçu</h1>
           </div>
           <p className="text-[8px] font-black text-slate-900">N°: {receiptNo}</p>
@@ -80,25 +91,56 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
+      {/* Prescription Table Added here */}
+      <div className="mb-6">
+        <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
+          Prescription Optique
+        </h3>
+        <table className="w-full text-[8px] border-collapse">
+          <thead>
+            <tr className="bg-slate-100 text-slate-600">
+              <th className="border border-slate-200 p-1 text-left uppercase">Oeil</th>
+              <th className="border border-slate-200 p-1 text-center uppercase">Sph</th>
+              <th className="border border-slate-200 p-1 text-center uppercase">Cyl</th>
+              <th className="border border-slate-200 p-1 text-center uppercase">Axe</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-slate-100 p-1.5 font-bold">Droit (OD)</td>
+              <td className="border border-slate-100 p-1.5 text-center">{od.sph}</td>
+              <td className="border border-slate-100 p-1.5 text-center">{od.cyl}</td>
+              <td className="border border-slate-100 p-1.5 text-center">{od.axe}</td>
+            </tr>
+            <tr>
+              <td className="border border-slate-100 p-1.5 font-bold">Gauche (OG)</td>
+              <td className="border border-slate-100 p-1.5 text-center">{og.sph}</td>
+              <td className="border border-slate-100 p-1.5 text-center">{og.cyl}</td>
+              <td className="border border-slate-100 p-1.5 text-center">{og.axe}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">Historique des Versements</h3>
         <table className="w-full text-[8px]">
-          <thead className="bg-slate-100">
+          <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="p-1.5 text-left uppercase">Date</th>
               <th className="p-1.5 text-right uppercase">Montant</th>
             </tr>
           </thead>
           <tbody>
-            {saleData?.payments ? saleData.payments.map((p: any, i: number) => (
+            {saleData?.payments && saleData.payments.length > 0 ? saleData.payments.map((p: any, i: number) => (
               <tr key={i} className="border-b border-slate-50">
                 <td className="p-1.5 font-bold text-slate-600">
-                  {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : '---'}
+                  {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
                 </td>
                 <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(p.amount)}</td>
               </tr>
             )) : (
-              <tr>
+              <tr className="border-b border-slate-50">
                 <td className="p-1.5 font-bold text-slate-600">{date}</td>
                 <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(avance)}</td>
               </tr>
@@ -136,8 +178,13 @@ function ReceiptPrintContent() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
       <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
-        <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-12 px-8"><Link href="/ventes"><ArrowLeft className="mr-3 h-5 w-5" />RETOUR</Link></Button>
-        <Button onClick={() => window.print()} className="bg-slate-900 px-12 h-12 font-black rounded-xl text-white"><Printer className="mr-3 h-5 w-5" />IMPRIMER</Button>
+        <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-12 px-8 shadow-sm border-slate-200"><Link href="/ventes"><ArrowLeft className="mr-3 h-5 w-5" />RETOUR HISTORIQUE</Link></Button>
+        <div className="flex items-center gap-6">
+          <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm tracking-widest">
+            A4 Paysage • 2 Copies A5
+          </span>
+          <Button onClick={() => window.print()} className="bg-slate-900 px-12 h-12 font-black rounded-xl text-white shadow-2xl"><Printer className="mr-3 h-5 w-5" />IMPRIMER</Button>
+        </div>
       </div>
       <div className="pdf-a4-landscape shadow-2xl overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
         <ReceiptCopy />

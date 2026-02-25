@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, FileText, Calendar, Loader2, Glasses, ThumbsUp } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ function DailyCashReportContent() {
       if (!tDate) return;
 
       if (isBefore(tDate, start)) {
-        initialBalance += t.montant;
+        initialBalance += (t.montant || 0);
       } else if (isWithinInterval(tDate, { start, end })) {
         if (t.type === "VENTE") salesList.push(t);
         else if (t.type === "DEPENSE") expensesList.push(t);
@@ -66,8 +67,7 @@ function DailyCashReportContent() {
       }
     });
 
-    const dayTransactions = transactions.filter((t: any) => t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start, end }));
-    const totalDay = dayTransactions.reduce((acc: number, curr: any) => acc + curr.montant, 0);
+    const dayTotal = [...salesList, ...expensesList, ...versementsList, ...apportsList].reduce((acc, curr) => acc + (curr.montant || 0), 0);
 
     return { 
       sales: salesList, 
@@ -75,7 +75,7 @@ function DailyCashReportContent() {
       versements: versementsList, 
       apports: apportsList, 
       initial: initialBalance, 
-      final: initialBalance + totalDay 
+      final: initialBalance + dayTotal 
     };
   }, [transactions, selectedDate]);
 
@@ -150,7 +150,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Ventes (Encaissements)</span>
-              <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + b.montant, 0))}</span>
+              <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[10px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
@@ -176,7 +176,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
-              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + b.montant, 0)))}</span>
+              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + (b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[10px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
@@ -202,7 +202,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque / Apports</span>
-              <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + b.montant, 0) + reportData.apports.reduce((a, b) => a + b.montant, 0))}</span>
+              <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0) + reportData.apports.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[10px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
