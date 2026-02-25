@@ -4,11 +4,11 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatCurrency, cn } from "@/lib/utils";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isBefore, isWithinInterval } from "date-fns";
@@ -17,6 +17,11 @@ import { fr } from "date-fns/locale";
 function DailyCashReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
+  const [printTime, setPrintTime] = useState<string>("");
+
+  useEffect(() => {
+    setPrintTime(format(new Date(), "HH:mm"));
+  }, []);
 
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
@@ -102,7 +107,7 @@ function DailyCashReportContent() {
           <div className="flex gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
               {shop.logoUrl ? (
-                <Image src={shop.logoUrl} alt="Logo" fill className="object-contain" />
+                <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain" />
               ) : (
                 <div className="relative text-primary">
                   <Glasses className="h-12 w-12" />
@@ -121,9 +126,17 @@ function DailyCashReportContent() {
           </div>
           <div className="text-right">
             <h2 className="text-base font-black uppercase tracking-widest leading-none border-2 border-slate-900 px-4 py-2 rounded-lg mb-2">Flux de Caisse</h2>
-            <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
-              <Calendar className="h-3 w-3 text-slate-400" />
-              <span>Date: {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
+                <Calendar className="h-3 w-3 text-slate-400" />
+                <span>Date: {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+              </div>
+              {printTime && (
+                <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
+                  <Clock className="h-3 w-3" />
+                  <span>Heure: {printTime}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
