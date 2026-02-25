@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon, Calendar, ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
@@ -20,39 +20,47 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { startOfDay, endOfDay, format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
-export default function CaissePage() {
+function CaisseContent() {
   const { toast } = useToast();
   const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
-  const [todayDate] = useState(new Date());
-  const sessionDocId = format(todayDate, "yyyy-MM-dd");
+  // Date handling: current day or from param
+  const dateParam = searchParams.get("date");
+  const selectedDate = useMemo(() => {
+    if (dateParam) {
+      const d = new Date(dateParam);
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+    return new Date();
+  }, [dateParam]);
+
+  const sessionDocId = format(selectedDate, "yyyy-MM-dd");
+  const isToday = format(new Date(), "yyyy-MM-dd") === sessionDocId;
   const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
   
-  // State for session management
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
-  // Opening logic states
   const [isModifying, setIsModifying] = useState(false);
   const [openingBalanceInput, setOpeningBalanceInput] = useState<string>("0");
   const [modificationReason, setModificationReason] = useState("");
   
-  // Fetch current session
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
-  // Fetch last closed session to get report balance
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -68,24 +76,22 @@ export default function CaissePage() {
     return recentSessions.find(s => s.status === "CLOSED" && s.id !== sessionDocId);
   }, [recentSessions, sessionDocId]);
 
-  // Initialize balance input when last session is found
   useEffect(() => {
-    if (lastSession && !session) {
+    if (lastSession && !session && isToday) {
       setOpeningBalanceInput(lastSession.closingBalanceReal.toString());
     }
-  }, [lastSession, session]);
+  }, [lastSession, session, isToday]);
 
-  // Fetch today's transactions only
   const transactionsQuery = useMemoFirebase(() => {
-    const start = startOfDay(todayDate);
-    const end = endOfDay(todayDate);
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
     return query(
       collection(db, "transactions"), 
       where("createdAt", ">=", Timestamp.fromDate(start)),
       where("createdAt", "<=", Timestamp.fromDate(end)),
       orderBy("createdAt", "desc")
     );
-  }, [db, todayDate]);
+  }, [db, selectedDate]);
   
   const { data: transactions, isLoading: loadingTrans } = useCollection(transactionsQuery);
 
@@ -96,7 +102,7 @@ export default function CaissePage() {
     montant: ""
   });
 
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
@@ -269,26 +275,48 @@ export default function CaissePage() {
 
   if (sessionLoading || lastSessionLoading) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vérification de la caisse...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vérification de la caisse...</p>
+      </div>
+    );
+  }
+
+  // View for past date not opened
+  if (!isToday && !session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <div className="h-20 w-20 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center">
+          <Calendar className="h-10 w-10" />
         </div>
-      </AppShell>
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-black uppercase text-slate-800">Aucune Session</h2>
+          <p className="text-muted-foreground font-medium">La caisse n'a pas été ouverte le {format(selectedDate, "dd MMMM yyyy", { locale: fr })}.</p>
+        </div>
+        <Button variant="outline" onClick={() => router.push('/caisse/sessions')} className="rounded-xl font-black uppercase text-xs">
+          <ArrowLeft className="mr-2 h-4 w-4" /> RETOUR AU JOURNAL
+        </Button>
+      </div>
     );
   }
 
   // --- VIEW: CASH CLOSED ---
   if (session?.status === "CLOSED") {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-2xl mx-auto text-center space-y-8 animate-in fade-in zoom-in duration-500">
+      <div className="space-y-8 animate-in fade-in zoom-in duration-500">
+        {!isToday && (
+          <Button variant="ghost" onClick={() => router.push('/caisse/sessions')} className="font-black text-xs uppercase text-primary mb-2">
+            <ArrowLeft className="mr-2 h-4 w-4" /> RETOUR AU JOURNAL
+          </Button>
+        )}
+        
+        <div className="flex flex-col items-center justify-center max-w-2xl mx-auto text-center space-y-8">
           <div className="h-24 w-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-white shadow-2xl">
             <Lock className="h-10 w-10" />
           </div>
           <div className="space-y-2">
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Caisse Clôturée</h1>
-            <p className="text-muted-foreground font-bold">La journée du {format(todayDate, "dd MMMM yyyy")} est terminée.</p>
+            <p className="text-muted-foreground font-bold">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}.</p>
           </div>
           
           <div className={cn("grid gap-4 w-full", role === 'ADMIN' ? "grid-cols-2" : "grid-cols-1")}>
@@ -306,17 +334,27 @@ export default function CaissePage() {
             )}
           </div>
 
+          <Card className="w-full bg-white border shadow-sm p-6 rounded-[32px]">
+             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-4 text-left">RÉCAPITULATIF DES OPÉRATIONS</h3>
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="text-left"><p className="text-[8px] font-black uppercase text-slate-400">Ouverture</p><p className="font-black text-sm">{formatCurrency(session.openingBalance)}</p></div>
+                <div className="text-left"><p className="text-[8px] font-black uppercase text-green-600">Ventes</p><p className="font-black text-sm text-green-600">+{formatCurrency(stats.entrees)}</p></div>
+                <div className="text-left"><p className="text-[8px] font-black uppercase text-destructive">Dépenses</p><p className="font-black text-sm text-destructive">-{formatCurrency(stats.depenses)}</p></div>
+                <div className="text-left"><p className="text-[8px] font-black uppercase text-orange-600">Versements</p><p className="font-black text-sm text-orange-600">-{formatCurrency(stats.versements)}</p></div>
+             </div>
+          </Card>
+
           <div className="flex flex-col gap-4 w-full">
             <div className="flex flex-col sm:flex-row gap-4 w-full">
               <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20">
                 <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT
               </Button>
-              <Button onClick={() => router.push("/dashboard")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
-                RETOUR AU TABLEAU DE BORD
+              <Button onClick={() => isToday ? router.push("/dashboard") : router.push("/caisse/sessions")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
+                RETOUR {isToday ? "AU TABLEAU DE BORD" : "AU JOURNAL"}
               </Button>
             </div>
             
-            {role === 'ADMIN' && (
+            {role === 'ADMIN' && isToday && (
               <Button 
                 onClick={handleReopenCash} 
                 variant="ghost" 
@@ -329,134 +367,132 @@ export default function CaissePage() {
             )}
           </div>
         </div>
-      </AppShell>
+      </div>
     );
   }
 
-  // --- VIEW: CASH NOT OPENED YET ---
-  if (!session) {
+  // --- VIEW: CASH NOT OPENED YET (TODAY ONLY) ---
+  if (!session && isToday) {
     const isSubsequentSession = !!lastSession;
 
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3">
-            <PlayCircle className="h-12 w-12" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture de Caisse</h1>
-            <p className="text-muted-foreground font-bold">Préparez votre journée du {format(todayDate, "dd MMMM yyyy")}.</p>
-          </div>
-          
-          <Card className="w-full bg-white border-none shadow-2xl p-8 rounded-[40px] space-y-6">
-            {!isSubsequentSession || isModifying ? (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
-                    {isModifying ? "CORRIGER LE FOND DE CAISSE" : "Saisir le Fond de Caisse (Solde Initial)"}
-                  </Label>
-                  <div className="relative">
-                    <input 
-                      type="number" 
-                      autoFocus
-                      className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none focus:border-primary/20 transition-all text-primary"
-                      value={openingBalanceInput}
-                      onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                    />
-                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
-                  </div>
-                </div>
-
-                {isModifying && (
-                  <div className="space-y-3 text-left animate-in fade-in slide-in-from-top-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-destructive ml-1">Motif de la modification (Requis)</Label>
-                    <Textarea 
-                      placeholder="Pourquoi le montant est différent de la clôture d'hier ?"
-                      className="min-h-[100px] rounded-2xl bg-slate-50 border-destructive/20 focus:ring-destructive/10 font-bold text-xs"
-                      value={modificationReason}
-                      onChange={(e) => setModificationReason(e.target.value)}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex gap-3">
-                  {isModifying && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => { setIsModifying(false); setOpeningBalanceInput(lastSession?.closingBalanceReal.toString() || "0"); }}
-                      className="h-16 rounded-2xl font-black text-xs px-6 border-slate-200"
-                    >
-                      ANNULER
-                    </Button>
-                  )}
-                  <Button 
-                    onClick={handleOpenCash} 
-                    disabled={opLoading || (isModifying && !modificationReason.trim())}
-                    className="flex-1 h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
-                  >
-                    {opLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : isModifying ? "VALIDER LA MODIFICATION" : "OUVRIR LA SESSION"}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-8 py-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center gap-2 text-primary/40 uppercase font-black text-[10px] tracking-[0.2em]">
-                    <History className="h-3 w-3" /> Report de la veille
-                  </div>
-                  <div className="bg-slate-50 rounded-[32px] p-8 border-2 border-primary/5">
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Solde de Clôture Attendu</p>
-                    <p className="text-5xl font-black text-primary tracking-tighter">{formatCurrency(lastSession.closingBalanceReal)}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <Button 
-                    onClick={handleOpenCash} 
-                    disabled={opLoading}
-                    className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
-                  >
-                    {opLoading ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 h-6 w-6" />}
-                    VALIDER CE MONTANT
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost"
-                    onClick={() => setIsModifying(true)}
-                    className="w-full h-12 rounded-xl font-black text-[10px] uppercase text-slate-400 hover:text-primary hover:bg-primary/5"
-                  >
-                    <Edit2 className="mr-2 h-4 w-4" /> MODIFIER LE MONTANT
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-          
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-8">
-            <AlertCircle className="inline-block h-3 w-3 mr-1 mb-0.5" /> 
-            L'ouverture enregistre le montant présent physiquement en caisse. Toute modification par rapport à hier sera tracée.
-          </p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3">
+          <PlayCircle className="h-12 w-12" />
         </div>
-      </AppShell>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture de Caisse</h1>
+          <p className="text-muted-foreground font-bold">Préparez votre journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}.</p>
+        </div>
+        
+        <Card className="w-full bg-white border-none shadow-2xl p-8 rounded-[40px] space-y-6">
+          {!isSubsequentSession || isModifying ? (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
+                  {isModifying ? "CORRIGER LE FOND DE CAISSE" : "Saisir le Fond de Caisse (Solde Initial)"}
+                </Label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    autoFocus
+                    className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none focus:border-primary/20 transition-all text-primary"
+                    value={openingBalanceInput}
+                    onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+                </div>
+              </div>
+
+              {isModifying && (
+                <div className="space-y-3 text-left animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-destructive ml-1">Motif de la modification (Requis)</Label>
+                  <Textarea 
+                    placeholder="Pourquoi le montant est différent de la clôture d'hier ?"
+                    className="min-h-[100px] rounded-2xl bg-slate-50 border-destructive/20 focus:ring-destructive/10 font-bold text-xs"
+                    value={modificationReason}
+                    onChange={(e) => setModificationReason(e.target.value)}
+                  />
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                {isModifying && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setIsModifying(false); setOpeningBalanceInput(lastSession?.closingBalanceReal.toString() || "0"); }}
+                    className="h-16 rounded-2xl font-black text-xs px-6 border-slate-200"
+                  >
+                    ANNULER
+                  </Button>
+                )}
+                <Button 
+                  onClick={handleOpenCash} 
+                  disabled={opLoading || (isModifying && !modificationReason.trim())}
+                  className="flex-1 h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+                >
+                  {opLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : isModifying ? "VALIDER LA MODIFICATION" : "OUVRIR LA SESSION"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8 py-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-primary/40 uppercase font-black text-[10px] tracking-[0.2em]">
+                  <History className="h-3 w-3" /> Report de la veille
+                </div>
+                <div className="bg-slate-50 rounded-[32px] p-8 border-2 border-primary/5">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Solde de Clôture Attendu</p>
+                  <p className="text-5xl font-black text-primary tracking-tighter">{formatCurrency(lastSession.closingBalanceReal)}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={handleOpenCash} 
+                  disabled={opLoading}
+                  className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+                >
+                  {opLoading ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 h-6 w-6" />}
+                  VALIDER CE MONTANT
+                </Button>
+                
+                <Button 
+                  variant="ghost"
+                  onClick={() => setIsModifying(true)}
+                  className="w-full h-12 rounded-xl font-black text-[10px] uppercase text-slate-400 hover:text-primary hover:bg-primary/5"
+                >
+                  <Edit2 className="mr-2 h-4 w-4" /> MODIFIER LE MONTANT
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+        
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-8">
+          <AlertCircle className="inline-block h-3 w-3 mr-1 mb-0.5" /> 
+          L'ouverture enregistre le montant présent physiquement en caisse. Toute modification par rapport à hier sera tracée.
+        </p>
+      </div>
     );
   }
 
   // --- VIEW: DASHBOARD (CASH OPENED) ---
   return (
-    <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shrink-0">
-              <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Caisse Ouverte</h1>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Journée du {format(todayDate, "dd/MM/yyyy")}</p>
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shrink-0">
+            <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />
           </div>
-          
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <div>
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Caisse Ouverte</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Journée du {format(selectedDate, "dd/MM/yyyy")}</p>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {isToday && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg flex-1 sm:flex-none">
@@ -494,15 +530,17 @@ export default function CaissePage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          )}
 
-            <Button 
-              variant="outline"
-              onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
-              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-accent/20 text-accent bg-accent/5 hover:bg-accent hover:text-white transition-all shadow-md flex-1 sm:flex-none"
-            >
-              <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
-            </Button>
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
+            className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-accent/20 text-accent bg-accent/5 hover:bg-accent hover:text-white transition-all shadow-md flex-1 sm:flex-none"
+          >
+            <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
+          </Button>
 
+          {isToday && (
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-destructive text-destructive flex-1 sm:flex-none">
@@ -594,20 +632,22 @@ export default function CaissePage() {
                  </div>
               </DialogContent>
             </Dialog>
-          </div>
+          )}
         </div>
+      </div>
 
-        {session.wasModified && (
-          <Card className="bg-destructive/5 border-2 border-destructive/20 p-4 rounded-2xl flex items-start gap-4">
-            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase text-destructive tracking-widest">Alerte : Solde d'ouverture modifié manuellement</p>
-              <p className="text-xs font-bold text-slate-700 italic">" {session.modificationReason} "</p>
-              <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Écart à l'ouverture : {formatCurrency(session.openingBalance - session.previousClosingBalance)}</p>
-            </div>
-          </Card>
-        )}
+      {session.wasModified && (
+        <Card className="bg-destructive/5 border-2 border-destructive/20 p-4 rounded-2xl flex items-start gap-4">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-[10px] font-black uppercase text-destructive tracking-widest">Alerte : Solde d'ouverture modifié manuellement</p>
+            <p className="text-xs font-bold text-slate-700 italic">" {session.modificationReason} "</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Écart à l'ouverture : {formatCurrency(session.openingBalance - session.previousClosingBalance)}</p>
+          </div>
+        </Card>
+      )}
 
+      {isToday && (
         <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-3xl">
             <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier l'Opération</DialogTitle></DialogHeader>
@@ -647,121 +687,131 @@ export default function CaissePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-blue-500">
-            <div className="flex items-center gap-2 mb-2">
-              <PiggyBank className="h-3.5 w-3.5 text-blue-500" />
-              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Solde Initial</p>
-            </div>
-            <div className="bg-slate-50/50 p-2 rounded-xl">
-              <p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
-            </div>
-          </Card>
-          
-          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
-            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Ventes du jour</p>
-            <p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
-          </Card>
-          
-          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-destructive">
-            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Dépenses (Charges)</p>
-            <p className="text-xl font-black text-destructive">-{formatCurrency(stats.depenses).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
-          </Card>
-          
-          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-orange-500">
-            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Versements (Banque)</p>
-            <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
-          </Card>
-          
-          <Card className="bg-primary text-primary-foreground p-5 rounded-[24px] shadow-lg flex flex-col justify-center">
-            <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Théorique</p>
-            <p className="text-xl font-black">{formatCurrency(soldeTheorique).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
-          </Card>
-        </div>
-
-        <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
-          <CardHeader className="py-4 px-6 bg-slate-50/50 border-b">
-            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Opérations du Jour ({transactions?.length || 0})</CardTitle>
-          </CardHeader>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50/80">
-                <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead>
-                  {role === 'ADMIN' && <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-center">Utilisateur</TableHead>}
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loadingTrans ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
-                  transactions?.length === 0 ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
-                  transactions?.map((t: any) => (
-                    <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                      <TableCell className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[9px] font-bold text-slate-400">
-                              {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
-                            </span>
-                            <span className="text-[11px] font-black uppercase text-slate-800">
-                              {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2 py-0", 
-                              t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
-                              t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                            )}>
-                              {t.type}
-                            </Badge>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              {t.category ? `• ${t.category}` : ""}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      {role === 'ADMIN' && (
-                        <TableCell className="px-6 py-4 text-center">
-                          <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                            <UserIcon className="h-3 w-3 text-slate-300" />
-                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter truncate max-w-[100px]">{t.userName || "---"}</span>
-                          </div>
-                        </TableCell>
-                      )}
-                      <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
-                        {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
-                      </TableCell>
-                      <TableCell className="text-right px-6 py-4">
-                        {role === 'ADMIN' ? (
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
-                              <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <span className="text-[8px] font-black text-slate-300 uppercase">Verrouillé</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                }
-              </TableBody>
-            </Table>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-blue-500">
+          <div className="flex items-center gap-2 mb-2">
+            <PiggyBank className="h-3.5 w-3.5 text-blue-500" />
+            <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Solde Initial</p>
+          </div>
+          <div className="bg-slate-50/50 p-2 rounded-xl">
+            <p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </div>
         </Card>
+        
+        <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
+          <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Ventes du jour</p>
+          <p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+        </Card>
+        
+        <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-destructive">
+          <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Dépenses (Charges)</p>
+          <p className="text-xl font-black text-destructive">-{formatCurrency(stats.depenses).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+        </Card>
+        
+        <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-orange-500">
+          <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Versements (Banque)</p>
+          <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+        </Card>
+        
+        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px] shadow-lg flex flex-col justify-center">
+          <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Théorique</p>
+          <p className="text-xl font-black">{formatCurrency(soldeTheorique).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+        </Card>
       </div>
+
+      <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
+        <CardHeader className="py-4 px-6 bg-slate-50/50 border-b">
+          <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Opérations du Jour ({transactions?.length || 0})</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow>
+                <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead>
+                {role === 'ADMIN' && <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-center">Utilisateur</TableHead>}
+                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingTrans ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
+                transactions?.length === 0 ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
+                transactions?.map((t: any) => (
+                  <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                    <TableCell className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[9px] font-bold text-slate-400">
+                            {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                          </span>
+                          <span className="text-[11px] font-black uppercase text-slate-800">
+                            {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2 py-0", 
+                            t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
+                            t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                          )}>
+                            {t.type}
+                          </Badge>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            {t.category ? `• ${t.category}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    {role === 'ADMIN' && (
+                      <TableCell className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                          <UserIcon className="h-3 w-3 text-slate-300" />
+                          <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter truncate max-w-[100px]">{t.userName || "---"}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
+                      {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
+                    </TableCell>
+                    <TableCell className="text-right px-6 py-4">
+                      {role === 'ADMIN' && isToday ? (
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
+                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span className="text-[8px] font-black text-slate-300 uppercase">Verrouillé</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              }
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+export default function CaissePage() {
+  return (
+    <AppShell>
+      <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>}>
+        <CaisseContent />
+      </Suspense>
     </AppShell>
   );
 }

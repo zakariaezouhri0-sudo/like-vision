@@ -20,7 +20,8 @@ import {
   ChevronRight,
   TrendingUp,
   History,
-  Clock
+  Clock,
+  Eye
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -83,7 +84,7 @@ export default function CashSessionsPage() {
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Flux Net</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Final</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Écart</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Action</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -182,14 +183,24 @@ export default function CashSessionsPage() {
                           </TableCell>
 
                           <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)}
-                              className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-slate-200 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:scale-105"
-                            >
-                              <FileText className="mr-1.5 h-4 w-4" /> Rapport
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push(`/caisse?date=${s.date}`)}
+                                className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-primary text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                              >
+                                <Eye className="mr-1.5 h-4 w-4" /> Détails
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)}
+                                className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-slate-200 text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
+                              >
+                                <FileText className="mr-1.5 h-4 w-4" /> Rapport
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
