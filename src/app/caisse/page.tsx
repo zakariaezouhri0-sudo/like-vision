@@ -322,36 +322,40 @@ export default function CaissePage() {
         </Dialog>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-blue-500">
-            <div className="flex items-center gap-2 mb-1">
-              <PiggyBank className="h-3 w-3 text-blue-500" />
-              <p className="text-[10px] uppercase font-black text-muted-foreground">Solde Initial</p>
+          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-blue-500">
+            <div className="flex items-center gap-2 mb-2">
+              <PiggyBank className="h-3.5 w-3.5 text-blue-500" />
+              <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Solde Initial</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl">
               <input 
                 type="number" 
-                className="w-full bg-slate-50 rounded-lg px-2 py-1 text-2xl font-black text-blue-600 outline-none border border-transparent focus:border-blue-200" 
+                className="w-full bg-transparent text-xl font-black text-blue-600 outline-none" 
                 value={soldeInitial} 
                 onChange={(e) => setSoldeInitial(e.target.value)}
               />
               <span className="text-[10px] font-black text-slate-400">DH</span>
             </div>
           </Card>
-          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-green-500">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Entrées (Ventes)</p>
-            <p className="text-2xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p>
+          
+          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
+            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Entrées (Ventes)</p>
+            <p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
-          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-destructive">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Dépenses (Charges)</p>
-            <p className="text-2xl font-black">-{formatCurrency(stats.depenses)}</p>
+          
+          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-destructive">
+            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Dépenses (Charges)</p>
+            <p className="text-xl font-black text-destructive">-{formatCurrency(stats.depenses).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
-          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-orange-500">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Versements (Banque)</p>
-            <p className="text-2xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p>
+          
+          <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-orange-500">
+            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Versements (Banque)</p>
+            <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
-          <Card className="bg-primary text-primary-foreground p-6 rounded-[32px] shadow-lg">
-            <p className="text-[10px] uppercase font-black opacity-60 mb-1">Solde Net Final</p>
-            <p className="text-2xl font-black">{formatCurrency(initial + stats.entrees - stats.depenses - stats.versements)}</p>
+          
+          <Card className="bg-primary text-primary-foreground p-5 rounded-[24px] shadow-lg flex flex-col justify-center">
+            <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Net Final</p>
+            <p className="text-xl font-black">{formatCurrency(initial + stats.entrees - stats.depenses - stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
         </div>
 
