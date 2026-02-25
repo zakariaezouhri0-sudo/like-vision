@@ -106,7 +106,7 @@ export default function ReportsPage() {
   return (
     <AppShell>
       <div className="space-y-6 pb-10">
-        <div className="bg-white p-6 rounded-[32px] border shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-[32px] border shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Rapports d'Activité</h1>
@@ -114,10 +114,10 @@ export default function ReportsPage() {
             </div>
           </div>
           
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col md:flex-row gap-3 w-full items-center">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white w-full">
+                <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white w-full md:flex-1 justify-start">
                   <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                   {format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}
                 </Button>
@@ -127,15 +127,13 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <div className="grid grid-cols-2 gap-3 w-full">
-              <Button onClick={handleExportCSV} className="h-12 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 text-white">
-                <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
-              </Button>
-              
-              <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary">
-                <FileText className="mr-1.5 h-4 w-4" /> JOURNALIER
-              </Button>
-            </div>
+            <Button onClick={handleExportCSV} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 text-white w-full md:w-auto">
+              <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
+            </Button>
+            
+            <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary w-full md:w-auto whitespace-nowrap">
+              <FileText className="mr-1.5 h-4 w-4" /> RAPPORT JOURNALIER
+            </Button>
           </div>
         </div>
 
