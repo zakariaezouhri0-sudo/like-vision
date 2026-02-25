@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -35,9 +34,9 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
       <aside className="w-64 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-2xl">
         <Link 
           href="/dashboard" 
-          className="h-32 border-b flex items-center px-6 gap-5 hover:bg-primary/5 transition-all group"
+          className="h-32 border-b flex items-center px-6 gap-4 hover:bg-primary/5 transition-all group"
         >
-          <div className="h-16 w-16 flex items-center justify-center shrink-0 relative">
+          <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
             {settings?.logoUrl ? (
               <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
             ) : (
@@ -49,9 +48,13 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
               </div>
             )}
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-headline font-black text-xl tracking-tighter text-primary leading-tight uppercase truncate">{settings?.name || APP_NAME}</span>
-            <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5">Optique Pro</span>
+          <div className="flex flex-col justify-center min-w-0">
+            <span className="font-headline font-black text-lg lg:text-xl tracking-tighter text-primary leading-none uppercase">
+              {settings?.name || APP_NAME}
+            </span>
+            <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1.5">
+              Optique Pro
+            </span>
           </div>
         </Link>
         <div className="flex-1 py-4 overflow-y-auto px-3">
@@ -84,21 +87,21 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
               <SheetContent side="left" className="p-0 w-72">
                 <SheetHeader className="p-6 border-b text-left bg-slate-50">
                   <SheetTitle className="flex items-center gap-4">
-                    <div className="h-16 w-16 flex items-center justify-center shrink-0 relative">
+                    <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
                       {settings?.logoUrl ? (
                         <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
                       ) : (
-                        <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
+                        <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
                           <div className="relative">
-                            <Glasses className="h-8 w-8" />
-                            <ThumbsUp className="h-4 w-4 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                            <Glasses className="h-7 w-7" />
+                            <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                           </div>
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">{settings?.name || APP_NAME}</span>
-                      <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
+                    <div className="flex flex-col justify-center">
+                      <span className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase">{settings?.name || APP_NAME}</span>
+                      <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1.5">Optique Pro</span>
                     </div>
                   </SheetTitle>
                 </SheetHeader>
@@ -109,20 +112,20 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             </Sheet>
 
             <Link href="/dashboard" className="flex items-center gap-4 group md:hidden">
-              <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
+              <div className="h-12 w-12 flex items-center justify-center shrink-0 relative">
                 {settings?.logoUrl ? (
                   <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
                 ) : (
-                  <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
+                  <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
                     <div className="relative">
-                      <Glasses className="h-7 w-7" />
-                      <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
+                      <Glasses className="h-6 w-6" />
+                      <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
                     </div>
                   </div>
                 )}
               </div>
-              <div className="flex flex-col">
-                <h2 className="text-xl font-black text-primary truncate tracking-tighter leading-none uppercase">
+              <div className="flex flex-col justify-center">
+                <h2 className="text-lg font-black text-primary tracking-tighter leading-none uppercase">
                   {settings?.name || APP_NAME}
                 </h2>
                 <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
