@@ -31,10 +31,10 @@ export default function CaissePage() {
   
   const [todayDate] = useState(new Date());
   const sessionDocId = format(todayDate, "yyyy-MM-dd");
-  const [role, setRole] = useState<string>("CAISSIER");
+  const [role, setRole] = useState<string>("OPTICIEN");
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "CAISSIER");
+    setRole(localStorage.getItem('user_role') || "OPTICIEN");
   }, []);
   
   // State for session management

@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Tableau de Bord", icon: LayoutDashboard, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "CAISSIER"] },
-  { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "CAISSIER"] },
+  { href: "/dashboard", label: "Tableau de Bord", icon: LayoutDashboard, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "OPTICIEN"] },
   { href: "/rapports", label: "Rapports", icon: TrendingUp, roles: ["ADMIN"] },
   { href: "/import", label: "Importation", icon: Upload, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
@@ -33,7 +33,7 @@ export function SidebarNav({ role = "ADMIN" }: { role?: string }) {
 
   return (
     <nav className="flex flex-col gap-2 p-4">
-      {NAV_ITEMS.filter(item => item.roles.includes(role)).map((item) => {
+      {NAV_ITEMS.filter(item => item.roles.includes(role || "OPTICIEN")).map((item) => {
         const Icon = item.icon;
         
         const isActive = pathname === item.href || (

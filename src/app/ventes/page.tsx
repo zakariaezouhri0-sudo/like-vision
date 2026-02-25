@@ -31,13 +31,13 @@ export default function SalesHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
-  const [role, setRole] = useState<string>("CAISSIER");
+  const [role, setRole] = useState<string>("OPTICIEN");
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "CAISSIER");
+    setRole(localStorage.getItem('user_role') || "OPTICIEN");
   }, []);
 
   const salesQuery = useMemoFirebase(() => {

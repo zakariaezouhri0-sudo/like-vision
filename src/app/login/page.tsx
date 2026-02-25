@@ -71,7 +71,7 @@ export default function LoginPage() {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: userData.name });
-          localStorage.setItem('user_role', userData.role || 'CAISSIER');
+          localStorage.setItem('user_role', userData.role || 'OPTICIEN');
         }
         
         toast({

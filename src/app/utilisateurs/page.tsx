@@ -45,7 +45,7 @@ export default function UsersPage() {
   const [newUser, setNewUser] = useState({
     name: "",
     username: "",
-    role: "CAISSIER",
+    role: "OPTICIEN",
     password: ""
   });
 
@@ -65,7 +65,7 @@ export default function UsersPage() {
     };
 
     setIsCreateOpen(false);
-    setNewUser({ name: "", username: "", role: "CAISSIER", password: "" });
+    setNewUser({ name: "", username: "", role: "OPTICIEN", password: "" });
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
@@ -121,7 +121,10 @@ export default function UsersPage() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
                     <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v})}>
                       <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="ADMIN">Administrateur</SelectItem><SelectItem value="CAISSIER">Caissier</SelectItem></SelectContent>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Administrateur</SelectItem>
+                        <SelectItem value="OPTICIEN">Opticien</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Mot de passe</Label><Input value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} /></div>

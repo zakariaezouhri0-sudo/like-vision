@@ -1,6 +1,6 @@
 export const ROLES = {
   ADMIN: 'ADMIN',
-  CAISSIER: 'CAISSIER',
+  OPTICIEN: 'OPTICIEN',
 };
 
 export const MUTUELLES = [

@@ -19,7 +19,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<string>("CAISSIER");
+  const [role, setRole] = useState<string>("OPTICIEN");
   const { user } = useUser();
   const db = useFirestore();
 
