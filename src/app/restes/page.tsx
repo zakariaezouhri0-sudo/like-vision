@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -49,28 +49,44 @@ export default function UnpaidSalesPage() {
 
     setIsProcessing(true);
     const newAvance = (selectedSale.avance || 0) + amount;
-    const newReste = Math.max(0, (selectedSale.total - (selectedSale.remise || 0)) - newAvance);
-    const newStatut = newReste <= 0 ? "Payé" : "Partiel";
+    const totalNet = selectedSale.total - (selectedSale.remise || 0);
+    const newReste = Math.max(0, totalNet - newAvance);
+    const isFullyPaid = newReste <= 0;
+    const newStatut = isFullyPaid ? "Payé" : "Partiel";
+
+    // Si totalement payé, on transforme le préfixe RC en FLV
+    let newInvoiceId = selectedSale.invoiceId;
+    if (isFullyPaid && newInvoiceId.startsWith("RC-")) {
+      newInvoiceId = newInvoiceId.replace("RC-", "FLV-");
+    }
+
+    const paymentEntry = {
+      amount: amount,
+      date: new Date().toISOString()
+    };
 
     try {
       await updateDoc(doc(db, "sales", selectedSale.id), { 
+        invoiceId: newInvoiceId,
         avance: newAvance, 
         reste: newReste, 
         statut: newStatut, 
+        payments: arrayUnion(paymentEntry),
         updatedAt: serverTimestamp() 
       });
       
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
-        label: `Versement ${selectedSale.invoiceId}`,
+        label: `Versement ${newInvoiceId}`,
         category: "Optique",
         montant: amount,
-        relatedId: selectedSale.invoiceId,
+        relatedId: newInvoiceId,
         createdAt: serverTimestamp()
       });
 
       toast({ variant: "success", title: "Paiement validé" });
 
+      const page = isFullyPaid ? 'facture' : 'recu';
       const params = new URLSearchParams({ 
         client: selectedSale.clientName, 
         phone: selectedSale.clientPhone, 
@@ -89,7 +105,7 @@ export default function UnpaidSalesPage() {
         verres: selectedSale.verres || "", 
         date: new Date().toLocaleDateString("fr-FR") 
       });
-      router.push(`/ventes/facture/${selectedSale.invoiceId}?${params.toString()}`);
+      router.push(`/ventes/${page}/${newInvoiceId}?${params.toString()}`);
       setSelectedSale(null);
     } catch (err) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `sales/${selectedSale.id}`, operation: "update" }));

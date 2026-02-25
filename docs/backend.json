@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -49,6 +50,16 @@
         "purchasePriceFrame": { "type": "number" },
         "purchasePriceLenses": { "type": "number" },
         "prescription": { "type": "object" },
+        "payments": { 
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "amount": { "type": "number" },
+              "date": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
         "notes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }

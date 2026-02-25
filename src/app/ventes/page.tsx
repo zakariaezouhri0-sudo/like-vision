@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,7 +50,6 @@ export default function SalesHistoryPage() {
       if (dateFrom && saleDate) {
         const start = startOfDay(dateFrom);
         const end = endOfDay(dateTo || dateFrom);
-        // On s'assure que start est bien avant end pour éviter les erreurs de date-fns
         const finalStart = start < end ? start : end;
         const finalEnd = start < end ? end : start;
         matchesDate = isWithinInterval(saleDate, { start: finalStart, end: finalEnd });
@@ -70,6 +69,9 @@ export default function SalesHistoryPage() {
   }, [sales, searchTerm, statusFilter, dateFrom, dateTo]);
 
   const handlePrint = (sale: any) => {
+    const isPaid = sale.reste <= 0;
+    const page = isPaid ? 'facture' : 'recu';
+    
     const params = new URLSearchParams({
       client: sale.clientName,
       phone: sale.clientPhone,
@@ -88,7 +90,7 @@ export default function SalesHistoryPage() {
       verres: sale.verres || "",
       date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : new Date().toLocaleDateString("fr-FR"),
     });
-    router.push(`/ventes/facture/${sale.invoiceId}?${params.toString()}`);
+    router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
 
   const handleEdit = (sale: any) => {
@@ -162,10 +164,8 @@ export default function SalesHistoryPage() {
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-6 border-b bg-slate-50/50">
             <div className="flex flex-col lg:flex-row items-end gap-4">
-              
-              {/* Recherche */}
               <div className="flex-1 space-y-1.5 w-full">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Client ou N° Facture</Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Client ou N° Document</Label>
                 <div className="relative">
                   <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
                   <input 
@@ -177,7 +177,6 @@ export default function SalesHistoryPage() {
                 </div>
               </div>
               
-              {/* Filtre Date Du */}
               <div className="w-full lg:w-44 space-y-1.5">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Du</Label>
                 <Popover>
@@ -193,7 +192,6 @@ export default function SalesHistoryPage() {
                 </Popover>
               </div>
 
-              {/* Filtre Date Au */}
               <div className="w-full lg:w-44 space-y-1.5">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Au</Label>
                 <Popover>
@@ -209,7 +207,6 @@ export default function SalesHistoryPage() {
                 </Popover>
               </div>
 
-              {/* Statut */}
               <div className="w-full lg:w-48 space-y-1.5">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Statut</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -225,7 +222,6 @@ export default function SalesHistoryPage() {
                 </Select>
               </div>
 
-              {/* Reset */}
               {(dateFrom || dateTo || searchTerm || statusFilter !== "TOUS") && (
                 <Button 
                   variant="ghost" 
@@ -235,7 +231,6 @@ export default function SalesHistoryPage() {
                   <RotateCcw className="mr-2 h-4 w-4" /> Reset
                 </Button>
               )}
-
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -250,10 +245,10 @@ export default function SalesHistoryPage() {
                   <TableHeader className="bg-slate-50/80">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Date</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Facture</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Document</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Client</TableHead>
-                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Total</TableHead>
-                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Avance</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Total Net</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Versé</TableHead>
                       <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Reste</TableHead>
                       <TableHead className="text-center text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Statut</TableHead>
                       <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Actions</TableHead>
@@ -271,7 +266,9 @@ export default function SalesHistoryPage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">{sale.invoiceId}</TableCell>
+                          <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
+                            {sale.invoiceId}
+                          </TableCell>
                           <TableCell className="px-4 md:px-8 py-5 md:py-6 min-w-[150px] whitespace-nowrap">
                             <div className="flex flex-col">
                               <span className="font-black text-xs md:text-sm text-slate-800 uppercase truncate">{sale.clientName}</span>
@@ -279,39 +276,27 @@ export default function SalesHistoryPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex items-baseline justify-end gap-1.5">
-                              <span className="font-black text-xs md:text-sm text-slate-900 leading-none">
-                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total - (sale.remise || 0))}
-                              </span>
-                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
-                            </div>
+                            <span className="font-black text-xs md:text-sm text-slate-900 leading-none">
+                              {formatCurrency(sale.total - (sale.remise || 0))}
+                            </span>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex items-baseline justify-end gap-1.5">
-                              <span className="font-black text-xs md:text-sm text-green-600 leading-none">
-                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.avance || 0)}
-                              </span>
-                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
-                            </div>
+                            <span className="font-black text-xs md:text-sm text-green-600 leading-none">
+                              {formatCurrency(sale.avance || 0)}
+                            </span>
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex items-baseline justify-end gap-1.5">
-                              <span className={cn("font-black text-xs md:text-sm leading-none", (sale.reste || 0) > 0 ? "text-destructive" : "text-slate-300")}>
-                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.reste || 0)}
-                              </span>
-                              <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase">DH</span>
-                            </div>
+                            <span className={cn("font-black text-xs md:text-sm leading-none", (sale.reste || 0) > 0 ? "text-destructive" : "text-slate-300")}>
+                              {formatCurrency(sale.reste || 0)}
+                            </span>
                           </TableCell>
                           <TableCell className="text-center px-4 md:px-8 py-5 md:py-6">
-                            <Badge 
-                              className={cn(
+                            <Badge className={cn(
                                 "text-[8px] md:text-[9px] px-2 md:px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none whitespace-nowrap",
                                 sale.statut === "Payé" ? "bg-green-100 text-green-700" : 
                                 sale.statut === "En attente" ? "bg-red-100 text-red-700" : 
                                 "bg-blue-100 text-blue-700"
-                              )}
-                              variant="outline"
-                            >
+                              )} variant="outline">
                               {sale.statut}
                             </Badge>
                           </TableCell>
@@ -321,7 +306,10 @@ export default function SalesHistoryPage() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10 hover:bg-primary/10 rounded-xl transition-all"><MoreVertical className="h-4 w-4 md:h-5 md:w-5" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
-                                <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Printer className="mr-3 h-4 w-4 text-primary" /> Ré-imprimer</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                  {sale.reste <= 0 ? <FileText className="mr-3 h-4 w-4 text-primary" /> : <Printer className="mr-3 h-4 w-4 text-primary" />}
+                                  {sale.reste <= 0 ? "Facture FLV" : "Reçu RC"}
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleDelete(sale.id, sale.invoiceId)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
                               </DropdownMenuContent>
@@ -330,7 +318,7 @@ export default function SalesHistoryPage() {
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={8} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune facture trouvée pour cette sélection.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucun document trouvé.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>

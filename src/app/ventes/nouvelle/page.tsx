@@ -66,7 +66,7 @@ function NewSaleForm() {
       axe: searchParams.get("od_axe") || "" 
     },
     og: { 
-      sph: searchParams.get("og_sph") || "", 
+      sph: searchPoints.get("og_sph") || "", 
       cyl: searchParams.get("og_cyl") || "", 
       axe: searchParams.get("og_axe") || "" 
     }
@@ -147,10 +147,12 @@ function NewSaleForm() {
     }
 
     setLoading(true);
-    const statut = resteAPayer <= 0 ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
+    const isPaid = resteAPayer <= 0;
+    const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
     
     const suffix = Date.now().toString().slice(-6);
-    const invoiceId = editId ? searchParams.get("invoiceId") || `OPT-2026-${suffix}` : `OPT-2026-${suffix}`;
+    const prefix = isPaid ? "FLV" : "RC";
+    const invoiceId = editId ? searchParams.get("invoiceId") || `${prefix}-2026-${suffix}` : `${prefix}-2026-${suffix}`;
 
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
 
@@ -173,6 +175,7 @@ function NewSaleForm() {
       monture,
       verres,
       notes,
+      payments: nAvance > 0 ? [{ amount: nAvance, date: Timestamp.fromDate(saleDate) }] : [],
       createdAt: Timestamp.fromDate(saleDate),
       updatedAt: serverTimestamp(),
     };
@@ -197,7 +200,7 @@ function NewSaleForm() {
       if (nAvance > 0 && !editId) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",
-          label: `Vente ${invoiceId}`,
+          label: `${isPaid ? 'Vente' : 'Avance'} ${invoiceId}`,
           category: "Optique",
           montant: nAvance,
           relatedId: invoiceId,
@@ -221,6 +224,10 @@ function NewSaleForm() {
   const handlePrint = async () => {
     const saleData = await handleSave(true);
     if (!saleData) return;
+    
+    const isPaid = saleData.reste <= 0;
+    const page = isPaid ? 'facture' : 'recu';
+    
     const params = new URLSearchParams({ 
       client: saleData.clientName, 
       phone: saleData.clientPhone, 
@@ -239,7 +246,7 @@ function NewSaleForm() {
       verres: saleData.verres, 
       date: saleDate.toLocaleDateString("fr-FR") 
     });
-    router.push(`/ventes/facture/${saleData.invoiceId}?${params.toString()}`);
+    router.push(`/ventes/${page}/${saleData.invoiceId}?${params.toString()}`);
   };
 
   return (
