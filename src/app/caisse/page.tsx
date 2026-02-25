@@ -374,7 +374,9 @@ export default function CaissePage() {
                     <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                       <TableCell className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                          <span className="text-[11px] font-black uppercase text-slate-800">
+                            {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
+                          </span>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2", 
                               t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
