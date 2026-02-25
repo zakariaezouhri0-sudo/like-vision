@@ -1,29 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Autorisation globale pour le MVP (WATCHER TRIGGER RE-DEPLOY)
-    // Cette règle permet de lire et d'écrire sur n'importe quel document ou collection.
+    // Autorisation globale pour le MVP - Résolution erreur permission cash_sessions
+    // Cette règle permet toutes les opérations (get, list, create, update, delete)
     match /{document=**} {
-      allow read, write: if true;
-    }
-
-    // Sécurité explicite pour les collections principales pour garantir le succès des requêtes (list)
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-    match /clients/{clientId} {
-      allow read, write: if true;
-    }
-    match /sales/{saleId} {
-      allow read, write: if true;
-    }
-    match /transactions/{transactionId} {
-      allow read, write: if true;
-    }
-    match /cash_sessions/{sessionId} {
-      allow read, write: if true;
-    }
-    match /settings/{document=**} {
       allow read, write: if true;
     }
   }
