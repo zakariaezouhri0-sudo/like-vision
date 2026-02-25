@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
@@ -103,6 +103,25 @@ export default function CaissePage() {
       toast({ variant: "success", title: "Caisse Ouverte", description: `Session démarrée avec ${formatCurrency(amount)}` });
     } catch (e) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `cash_sessions/${sessionDocId}`, operation: "create", requestResourceData: sessionData }));
+    } finally {
+      setOpLoading(false);
+    }
+  };
+
+  const handleReopenCash = async () => {
+    if (!confirm("Voulez-vous vraiment ré-ouvrir la caisse ? Cela permettra de modifier les opérations de cette journée.")) return;
+    try {
+      setOpLoading(true);
+      await updateDoc(sessionRef, {
+        status: "OPEN",
+        closedAt: null,
+        closingBalanceReal: null,
+        closingBalanceTheoretical: null,
+        discrepancy: null
+      });
+      toast({ variant: "success", title: "Caisse Ré-ouverte", description: "Vous pouvez à nouveau gérer les opérations." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setOpLoading(false);
     }
@@ -245,13 +264,27 @@ export default function CaissePage() {
             </Card>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20">
-              <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT
-            </Button>
-            <Button onClick={() => router.push("/dashboard")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
-              RETOUR AU TABLEAU DE BORD
-            </Button>
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20">
+                <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT
+              </Button>
+              <Button onClick={() => router.push("/dashboard")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
+                RETOUR AU TABLEAU DE BORD
+              </Button>
+            </div>
+            
+            {role === 'ADMIN' && (
+              <Button 
+                onClick={handleReopenCash} 
+                variant="ghost" 
+                disabled={opLoading}
+                className="w-full h-12 rounded-xl font-black uppercase text-[10px] text-destructive hover:bg-destructive/5"
+              >
+                {opLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="mr-2 h-4 w-4" />} 
+                RÉ-OUVRIR LA SESSION (ADMIN)
+              </Button>
+            )}
           </div>
         </div>
       </AppShell>
