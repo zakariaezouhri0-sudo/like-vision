@@ -20,7 +20,11 @@ function DailyCashReportContent() {
 
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
-    return d ? new Date(d) : new Date();
+    try {
+      return d ? new Date(d) : new Date();
+    } catch (e) {
+      return new Date();
+    }
   }, [searchParams]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
@@ -43,32 +47,38 @@ function DailyCashReportContent() {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
 
-    let initial = 0;
-    const sales: any[] = [];
-    const expenses: any[] = [];
-    const versements: any[] = [];
-    const apports: any[] = [];
+    let initialBalance = 0;
+    const salesList: any[] = [];
+    const expensesList: any[] = [];
+    const versementsList: any[] = [];
+    const apportsList: any[] = [];
 
     transactions.forEach((t: any) => {
       const tDate = t.createdAt?.toDate ? t.createdAt.toDate() : null;
       if (!tDate) return;
 
       if (isBefore(tDate, start)) {
-        initial += t.montant;
+        initialBalance += t.montant;
       } else if (isWithinInterval(tDate, { start, end })) {
-        if (t.type === "VENTE") sales.push(t);
-        else if (t.type === "DEPENSE") expenses.push(t);
-        else if (t.type === "VERSEMENT") versements.push(t);
-        else if (t.type === "APPORT") apports.push(t);
+        if (t.type === "VENTE") salesList.push(t);
+        else if (t.type === "DEPENSE") expensesList.push(t);
+        else if (t.type === "VERSEMENT") versementsList.push(t);
+        else if (t.type === "APPORT") apportsList.push(t);
       }
     });
 
-    const totalDay = sales.reduce((a, b) => a + b.montant, 0) + 
-                     apports.reduce((a, b) => a + b.montant, 0) +
-                     expenses.reduce((a, b) => a + b.montant, 0) + 
-                     versements.reduce((a, b) => a + b.montant, 0);
+    const totalDay = transactions
+      .filter((t: any) => t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start, end }))
+      .reduce((acc: number, curr: any) => acc + curr.montant, 0);
 
-    return { sales, expenses, versements, apports, initial, final: initial + totalDay };
+    return { 
+      sales: salesList, 
+      expenses: expensesList, 
+      versements: versementsList, 
+      apports: apportsList, 
+      initial: initialBalance, 
+      final: initialBalance + totalDay 
+    };
   }, [transactions, selectedDate]);
 
   if (settingsLoading || transLoading) {
@@ -87,7 +97,7 @@ function DailyCashReportContent() {
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
           </Link>
         </Button>
-        <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-10 rounded-2xl font-black text-base">
+        <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-10 rounded-2xl font-black text-base text-white">
           <Printer className="mr-3 h-5 w-5" /> IMPRIMER LE RAPPORT
         </Button>
       </div>
@@ -168,7 +178,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
-              <span className="text-destructive">{formatCurrency(reportData.expenses.reduce((a, b) => a + b.montant, 0))}</span>
+              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + b.montant, 0)))}</span>
             </h3>
             <table className="w-full text-[10px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">

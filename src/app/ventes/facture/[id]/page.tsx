@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
-import { DEFAULT_SHOP_SETTINGS, APP_NAME } from "@/lib/constants";
+import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -83,7 +83,7 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Info Block - Centered with gray background */}
+      {/* Client Info Block */}
       <div className="mb-10 bg-slate-100/80 p-6 rounded-2xl text-center space-y-3">
         <div className="grid grid-cols-3 gap-4 items-center">
           <div className="space-y-1">
@@ -107,7 +107,7 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Centered Title */}
+      {/* Prescription Table */}
       <div className="mb-12">
         <div className="flex items-center justify-center gap-3 mb-4">
           <div className="h-px w-4 bg-slate-200" />
@@ -143,44 +143,41 @@ function InvoicePrintContent() {
       </div>
 
       <div className="mt-auto flex justify-between items-end gap-12">
-        {/* Totals Block - Bottom Left */}
+        {/* Totals Block */}
         <div className="flex-1 space-y-2 border-t pt-4">
           <div className="flex justify-between text-[9px] text-slate-500 font-medium">
             <span>Total Brut :</span>
-            <span>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(total)} DH</span>
+            <span>{formatCurrency(total)}</span>
           </div>
           {remise > 0 && (
             <div className="flex justify-between text-[9px] text-destructive font-bold">
               <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
-              <span>-{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(remise)} DH</span>
+              <span>-{formatCurrency(remise)}</span>
             </div>
           )}
           <div className="flex justify-between text-[10px] text-slate-900 font-black">
             <span>Total Net :</span>
-            <span>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(totalNet)} DH</span>
+            <span>{formatCurrency(totalNet)}</span>
           </div>
           <div className="flex justify-between text-[10px] text-green-600 font-black">
             <span>Avance payée :</span>
-            <span>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(avance)} DH</span>
+            <span>{formatCurrency(avance)}</span>
           </div>
           
           <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 mt-2">
             <span className="text-[9px] font-black uppercase text-slate-900 tracking-tighter">Reste à régler</span>
             <span className="text-xl font-black text-slate-900 tracking-tighter">
-              {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(reste)} DH
+              {formatCurrency(reste)}
             </span>
           </div>
         </div>
         
-        {/* Stamp Block - Bottom Right */}
+        {/* Stamp Block */}
         <div className="flex flex-col items-center w-48 mb-2">
           <div className="w-full h-32 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center relative bg-slate-50/50 overflow-hidden mb-2">
             <span className="text-[8px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-6 leading-relaxed select-none opacity-50">
               CACHET & SIGNATURE<br/>OFFICIELS DU MAGASIN
             </span>
-            <div className="absolute bottom-2 text-[7px] font-black text-slate-400 uppercase tracking-widest">
-              Validé par Direction
-            </div>
           </div>
         </div>
       </div>
@@ -213,7 +210,7 @@ function InvoicePrintContent() {
           <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm tracking-widest">
             A4 Paysage • 2 Copies A5
           </span>
-          <Button onClick={() => window.print()} className="bg-slate-900 shadow-2xl hover:bg-slate-800 px-12 h-12 text-base font-black rounded-xl">
+          <Button onClick={() => window.print()} className="bg-slate-900 shadow-2xl hover:bg-slate-800 px-12 h-12 text-base font-black rounded-xl text-white">
             <Printer className="mr-3 h-5 w-5" />
             IMPRIMER
           </Button>

@@ -4,13 +4,13 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Loader2, Calendar } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, Phone, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
-import { Suspense, useMemo } from "react";
+import { Suspense } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, collection, query, where } from "firebase/firestore";
 
 function ReceiptPrintContent() {
   const params = useParams();
@@ -20,7 +20,6 @@ function ReceiptPrintContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // Recherche de la vente dans Firestore pour avoir l'historique des paiements
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), where("invoiceId", "==", params.id)), [db, params.id]);
   const { data: saleDocs } = useCollection(salesQuery);
   const saleData = saleDocs?.[0];
@@ -37,7 +36,6 @@ function ReceiptPrintContent() {
   const clientPhone = searchParams.get("phone") || "---";
   const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const receiptNo = params.id as string;
-  const mutuelle = searchParams.get("mutuelle") || "Aucune";
   const total = Number(searchParams.get("total")) || 0;
   const remise = Number(searchParams.get("remise")) || 0;
   const avance = Number(searchParams.get("avance")) || 0;
@@ -139,7 +137,7 @@ function ReceiptPrintContent() {
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
       <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-12 px-8"><Link href="/ventes"><ArrowLeft className="mr-3 h-5 w-5" />RETOUR</Link></Button>
-        <Button onClick={() => window.print()} className="bg-slate-900 px-12 h-12 font-black rounded-xl"><Printer className="mr-3 h-5 w-5" />IMPRIMER</Button>
+        <Button onClick={() => window.print()} className="bg-slate-900 px-12 h-12 font-black rounded-xl text-white"><Printer className="mr-3 h-5 w-5" />IMPRIMER</Button>
       </div>
       <div className="pdf-a4-landscape shadow-2xl overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
         <ReceiptCopy />

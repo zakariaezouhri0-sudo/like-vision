@@ -132,9 +132,9 @@ function NewSaleForm() {
   const nDiscount = cleanVal(discountValue);
   const nAvance = cleanVal(avance);
 
-  const remiseAmount = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
-  const totalNet = Math.max(0, nTotal - remiseAmount);
-  const resteAPayer = Math.max(0, totalNet - nAvance);
+  const remiseAmountValue = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
+  const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
+  const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({ ...prev, [side.toLowerCase()]: { ...prev[side.toLowerCase() as keyof typeof prev], [field]: value } }));
@@ -147,7 +147,7 @@ function NewSaleForm() {
     }
 
     setLoading(true);
-    const isPaid = resteAPayer <= 0;
+    const isPaid = resteAPayerValue <= 0;
     const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
     
     const suffix = Date.now().toString().slice(-6);
@@ -162,12 +162,12 @@ function NewSaleForm() {
       clientPhone: clientPhone.toString().replace(/\s/g, ""),
       mutuelle: finalMutuelle || "Aucun",
       total: nTotal,
-      remise: remiseAmount,
+      remise: remiseAmountValue,
       discountType,
       discountValue: nDiscount,
       remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
       avance: nAvance,
-      reste: resteAPayer,
+      reste: resteAPayerValue,
       purchasePriceFrame: cleanVal(purchasePriceFrame),
       purchasePriceLenses: cleanVal(purchasePriceLenses),
       statut,
@@ -256,7 +256,7 @@ function NewSaleForm() {
           <div><h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">{editId ? "Modifier la Vente" : "Nouvelle Vente"}</h1><p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">Saisie client & ordonnance.</p></div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" size="lg" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs border-primary/20 bg-white" disabled={loading}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
-            <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-xl px-6" disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
+            <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-xl px-6 text-white" disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
           </div>
         </div>
 
@@ -340,12 +340,11 @@ function NewSaleForm() {
               <CardContent className="p-4 md:p-6 space-y-5">
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Vente Brut</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={total} onChange={(e) => setTotal(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
                 <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
-                <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNet)}</span></div>
+                <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayer)}</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
 
-                {/* Section Coûts d'Achat (Admin) */}
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
                     <Tag className="h-3 w-3" /> Coûts d'Achat (Interne)
