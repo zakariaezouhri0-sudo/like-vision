@@ -11,15 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { startOfDay, endOfDay, format } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -40,11 +41,34 @@ export default function CaissePage() {
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  
+  // Opening logic states
+  const [isModifying, setIsModifying] = useState(false);
   const [openingBalanceInput, setOpeningBalanceInput] = useState<string>("0");
+  const [modificationReason, setModificationReason] = useState("");
   
   // Fetch current session
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
+
+  // Fetch last closed session to get report balance
+  const lastSessionQuery = useMemoFirebase(() => {
+    return query(
+      collection(db, "cash_sessions"),
+      where("status", "==", "CLOSED"),
+      orderBy("date", "desc"),
+      limit(1)
+    );
+  }, [db]);
+  const { data: lastSessions, isLoading: lastSessionLoading } = useCollection(lastSessionQuery);
+  const lastSession = lastSessions?.[0];
+
+  // Initialize balance input when last session is found
+  useEffect(() => {
+    if (lastSession && !session) {
+      setOpeningBalanceInput(lastSession.closingBalanceReal.toString());
+    }
+  }, [lastSession, session]);
 
   // Fetch today's transactions only
   const transactionsQuery = useMemoFirebase(() => {
@@ -89,12 +113,20 @@ export default function CaissePage() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleOpenCash = async () => {
+    if (isModifying && !modificationReason.trim()) {
+      toast({ variant: "destructive", title: "Justification requise", description: "Veuillez expliquer pourquoi vous modifiez le solde initial." });
+      return;
+    }
+
     const amount = parseFloat(openingBalanceInput) || 0;
     const sessionData = {
       openingBalance: amount,
       status: "OPEN",
       openedAt: serverTimestamp(),
-      date: sessionDocId
+      date: sessionDocId,
+      wasModified: isModifying,
+      modificationReason: isModifying ? modificationReason : null,
+      previousClosingBalance: lastSession?.closingBalanceReal || 0
     };
 
     try {
@@ -227,7 +259,7 @@ export default function CaissePage() {
     }
   };
 
-  if (sessionLoading) {
+  if (sessionLoading || lastSessionLoading) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -293,6 +325,8 @@ export default function CaissePage() {
 
   // --- VIEW: CASH NOT OPENED YET ---
   if (!session) {
+    const isSubsequentSession = !!lastSession;
+
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -305,32 +339,92 @@ export default function CaissePage() {
           </div>
           
           <Card className="w-full bg-white border-none shadow-2xl p-8 rounded-[40px] space-y-6">
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Saisir le Fond de Caisse (Solde Initial)</Label>
-              <div className="relative">
-                <input 
-                  type="number" 
-                  autoFocus
-                  className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none focus:border-primary/20 transition-all text-primary"
-                  value={openingBalanceInput}
-                  onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                />
-                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+            {!isSubsequentSession || isModifying ? (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
+                    {isModifying ? "CORRIGER LE FOND DE CAISSE" : "Saisir le Fond de Caisse (Solde Initial)"}
+                  </Label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      autoFocus
+                      className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none focus:border-primary/20 transition-all text-primary"
+                      value={openingBalanceInput}
+                      onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                    />
+                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+                  </div>
+                </div>
+
+                {isModifying && (
+                  <div className="space-y-3 text-left animate-in fade-in slide-in-from-top-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-destructive ml-1">Motif de la modification (Requis)</Label>
+                    <Textarea 
+                      placeholder="Pourquoi le montant est différent de la clôture d'hier ?"
+                      className="min-h-[100px] rounded-2xl bg-slate-50 border-destructive/20 focus:ring-destructive/10 font-bold text-xs"
+                      value={modificationReason}
+                      onChange={(e) => setModificationReason(e.target.value)}
+                    />
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  {isModifying && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => { setIsModifying(false); setOpeningBalanceInput(lastSession?.closingBalanceReal.toString() || "0"); }}
+                      className="h-16 rounded-2xl font-black text-xs px-6 border-slate-200"
+                    >
+                      ANNULER
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={handleOpenCash} 
+                    disabled={opLoading || (isModifying && !modificationReason.trim())}
+                    className="flex-1 h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+                  >
+                    {opLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : isModifying ? "VALIDER LA MODIFICATION" : "OUVRIR LA SESSION"}
+                  </Button>
+                </div>
               </div>
-            </div>
-            
-            <Button 
-              onClick={handleOpenCash} 
-              disabled={opLoading}
-              className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
-            >
-              {opLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "OUVRIR LA SESSION"}
-            </Button>
+            ) : (
+              <div className="space-y-8 py-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-2 text-primary/40 uppercase font-black text-[10px] tracking-[0.2em]">
+                    <History className="h-3 w-3" /> Report de la veille
+                  </div>
+                  <div className="bg-slate-50 rounded-[32px] p-8 border-2 border-primary/5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Solde de Clôture Attendu</p>
+                    <p className="text-5xl font-black text-primary tracking-tighter">{formatCurrency(lastSession.closingBalanceReal)}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={handleOpenCash} 
+                    disabled={opLoading}
+                    className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+                  >
+                    {opLoading ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 h-6 w-6" />}
+                    VALIDER CE MONTANT
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setIsModifying(true)}
+                    className="w-full h-12 rounded-xl font-black text-[10px] uppercase text-slate-400 hover:text-primary hover:bg-primary/5"
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" /> MODIFIER LE MONTANT
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
           
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-8">
             <AlertCircle className="inline-block h-3 w-3 mr-1 mb-0.5" /> 
-            L'ouverture enregistre le montant présent physiquement en caisse.
+            L'ouverture enregistre le montant présent physiquement en caisse. Toute modification par rapport à hier sera tracée.
           </p>
         </div>
       </AppShell>
@@ -487,6 +581,17 @@ export default function CaissePage() {
             </Dialog>
           </div>
         </div>
+
+        {session.wasModified && (
+          <Card className="bg-destructive/5 border-2 border-destructive/20 p-4 rounded-2xl flex items-start gap-4">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase text-destructive tracking-widest">Alerte : Solde d'ouverture modifié manuellement</p>
+              <p className="text-xs font-bold text-slate-700 italic">" {session.modificationReason} "</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Écart à l'ouverture : {formatCurrency(session.openingBalance - session.previousClosingBalance)}</p>
+            </div>
+          </Card>
+        )}
 
         <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-3xl">
