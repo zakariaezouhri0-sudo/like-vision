@@ -18,9 +18,12 @@ function DailyCashReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [printTime, setPrintTime] = useState<string>("");
+  const [generationTimestamp, setGenerationTimestamp] = useState<string>("");
 
   useEffect(() => {
-    setPrintTime(format(new Date(), "HH:mm"));
+    const now = new Date();
+    setPrintTime(format(now, "HH:mm"));
+    setGenerationTimestamp(now.toLocaleString("fr-FR"));
   }, []);
 
   const selectedDate = useMemo(() => {
@@ -242,7 +245,7 @@ function DailyCashReportContent() {
 
         <div className="mt-8 mb-8 text-center border-t border-slate-50 pt-4">
           <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">
-            {shop.name} • Rapport Généré le {new Date().toLocaleString("fr-FR")}
+            {shop.name} {generationTimestamp ? `• Rapport Généré le ${generationTimestamp}` : ""}
           </p>
         </div>
       </div>
