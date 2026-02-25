@@ -1,9 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Autorisation globale pour le MVP (WATCHER TRIGGER RE-DEPLOY)
     match /{document=**} {
-      // Autorise tout pour le MVP et le mode offline (WATCHER TRIGGER)
-      allow read, write: if request.auth != null || true;
+      allow read, write: if true;
+    }
+
+    // Règles explicites pour les collections principales pour éviter les ambiguïtés
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    match /clients/{clientId} {
+      allow read, write: if true;
+    }
+    match /sales/{saleId} {
+      allow read, write: if true;
+    }
+    match /transactions/{transactionId} {
+      allow read, write: if true;
+    }
+    match /cash_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+    match /settings/{document=**} {
+      allow read, write: if true;
     }
   }
 }
