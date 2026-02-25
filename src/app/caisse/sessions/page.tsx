@@ -33,16 +33,14 @@ import { fr } from "date-fns/locale";
 export default function CashSessionsPage() {
   const router = useRouter();
   const db = useFirestore();
+  const [role, setRole] = useState<string>("OPTICIENNE");
   const [loadingRole, setLoadingRole] = useState(true);
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
-      router.push('/dashboard');
-    } else {
-      setLoadingRole(false);
-    }
-  }, [router]);
+    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    setRole(savedRole.toUpperCase());
+    setLoadingRole(false);
+  }, []);
 
   const sessionsQuery = useMemoFirebase(() => {
     return query(collection(db, "cash_sessions"), orderBy("date", "desc"));
@@ -78,13 +76,13 @@ export default function CashSessionsPage() {
               <Table>
                 <TableHeader className="bg-slate-50/80 border-b">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Date & Statut</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest text-center">Utilisateur</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Ouverture</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Flux Net</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Final</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Écart</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Actions</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest text-center whitespace-nowrap">Utilisateur</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouverture</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux Net</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
+                    {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -128,7 +126,7 @@ export default function CashSessionsPage() {
                                 <Clock className="h-3 w-3 text-green-500" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                               </div>
-                              <span className="text-base font-black text-slate-900 tracking-tighter whitespace-nowrap">
+                              <span className="text-base font-black text-slate-900 tracking-tighter">
                                 {formatCurrency(s.openingBalance)}
                               </span>
                             </div>
@@ -141,7 +139,7 @@ export default function CashSessionsPage() {
                                   <TrendingUp className={cn("h-3 w-3", fluxNet >= 0 ? "text-green-500" : "text-destructive")} /> 
                                   Net Jour
                                 </div>
-                                <span className={cn("text-base font-black tracking-tighter whitespace-nowrap", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
+                                <span className={cn("text-base font-black tracking-tighter", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </span>
                               </div>
@@ -157,7 +155,7 @@ export default function CashSessionsPage() {
                                   <Lock className="h-3 w-3 text-slate-300" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <span className="text-base font-black text-slate-900 tracking-tighter whitespace-nowrap">
+                                <span className="text-base font-black text-slate-900 tracking-tighter">
                                   {formatCurrency(s.closingBalanceReal)}
                                 </span>
                               </div>
@@ -166,21 +164,23 @@ export default function CashSessionsPage() {
                             )}
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            {s.status === "CLOSED" ? (
-                              <div className={cn(
-                                "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto whitespace-nowrap",
-                                Math.abs(s.discrepancy) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
-                              )}>
-                                <span className="text-xs font-black tracking-tighter">
-                                  {s.discrepancy > 0 ? "+" : ""}{formatCurrency(s.discrepancy)}
-                                </span>
-                                {Math.abs(s.discrepancy) < 0.01 ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                              </div>
-                            ) : (
-                              <span className="text-xs font-bold text-slate-200">---</span>
-                            )}
-                          </TableCell>
+                          {role === 'ADMIN' && (
+                            <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                              {s.status === "CLOSED" ? (
+                                <div className={cn(
+                                  "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto",
+                                  Math.abs(s.discrepancy) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
+                                )}>
+                                  <span className="text-xs font-black tracking-tighter">
+                                    {s.discrepancy > 0 ? "+" : ""}{formatCurrency(s.discrepancy)}
+                                  </span>
+                                  {Math.abs(s.discrepancy) < 0.01 ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-slate-200">---</span>
+                              )}
+                            </TableCell>
+                          )}
 
                           <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
@@ -207,7 +207,7 @@ export default function CashSessionsPage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-40">
+                      <TableCell colSpan={role === 'ADMIN' ? 7 : 6} className="text-center py-40">
                         <div className="flex flex-col items-center gap-4 opacity-20">
                           <History className="h-12 w-12" />
                           <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session enregistrée.</p>
