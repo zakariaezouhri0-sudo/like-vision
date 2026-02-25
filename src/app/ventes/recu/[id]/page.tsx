@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, Phone, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Suspense } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -91,7 +91,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Optique en premier */}
+      {/* Prescription Optique */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
           Prescription Optique
@@ -122,7 +122,7 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
-      {/* Historique des Versements juste après */}
+      {/* Historique des Versements */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">Historique des Versements</h3>
         <table className="w-full text-[8px]">
@@ -152,26 +152,32 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
-      <div className="mt-auto space-y-2 border-t pt-4">
-        <div className="flex justify-between text-[8px] text-slate-500 font-bold">
-          <span>Total de la commande :</span>
-          <span>{formatCurrency(totalNet)}</span>
+      <div className="mt-auto space-y-6">
+        <div className="w-full space-y-2 border-t pt-4">
+          <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
+            <span>Total Commande :</span>
+            <span>{formatCurrency(totalNet)}</span>
+          </div>
+          <div className="flex justify-between text-[8px] text-green-600 font-black uppercase">
+            <span>Total déjà payé :</span>
+            <span>{formatCurrency(avance)}</span>
+          </div>
+          <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-2">
+            <span className="text-[7px] font-black uppercase tracking-widest">Reste à Régler</span>
+            <span className="text-sm font-black tracking-tighter">{formatCurrency(reste)}</span>
+          </div>
         </div>
-        <div className="flex justify-between text-[8px] text-green-600 font-black">
-          <span>Total déjà payé :</span>
-          <span>{formatCurrency(avance)}</span>
-        </div>
-        <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl">
-          <span className="text-[7px] font-black uppercase tracking-widest">Reste à Régler</span>
-          <span className="text-sm font-black tracking-tighter">{formatCurrency(reste)}</span>
+
+        <div className="flex justify-end pr-4">
+          <div className="w-48 h-24 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50/50">
+            <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50">CACHET DU MAGASIN</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-between items-end mt-8">
-        <div className="text-[6px] text-slate-400 italic">Cachet du magasin requis pour validation.</div>
-        <div className="w-24 h-16 border border-dashed border-slate-200 rounded-lg flex items-center justify-center bg-slate-50/50">
-          <span className="text-[5px] uppercase font-black text-slate-300 rotate-[-15deg]">Cachet</span>
-        </div>
+      {/* Footer with Extra Print Space */}
+      <div className="mt-8 mb-16 text-center border-t border-slate-50 pt-4">
+        <p className="text-[6px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">{shop.name}</p>
       </div>
     </div>
   );

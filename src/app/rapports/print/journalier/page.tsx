@@ -90,7 +90,7 @@ function DailyCashReportContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 print:py-0">
       <div className="no-print w-full max-w-[210mm] flex justify-between mb-8 px-4">
-        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs">
           <Link href="/rapports">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
           </Link>
@@ -232,7 +232,7 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        <div className="mt-8 text-center border-t border-slate-50 pt-4">
+        <div className="mt-8 mb-8 text-center border-t border-slate-50 pt-4">
           <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">
             {shop.name} • Rapport Généré le {new Date().toLocaleString("fr-FR")}
           </p>
