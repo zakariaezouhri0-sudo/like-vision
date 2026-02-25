@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -30,20 +30,28 @@ export default function UnpaidSalesPage() {
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Tri par date de création (du plus récent au plus ancien)
-  const unpaidSalesQuery = useMemoFirebase(() => query(
+  // On récupère toutes les ventes et on filtre en mémoire pour éviter les erreurs d'index Firestore
+  const allSalesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
-    where("reste", ">", 0), 
     orderBy("createdAt", "desc")
   ), [db]);
   
-  const { data: sales, isLoading: loading } = useCollection(unpaidSalesQuery);
+  const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
-  const filteredSales = sales?.filter((sale: any) => 
-    sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''))
-  ) || [];
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+    return sales.filter((sale: any) => {
+      const hasReste = (sale.reste || 0) > 0;
+      if (!hasReste) return false;
+
+      const matchesSearch = 
+        sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
+      
+      return matchesSearch;
+    });
+  }, [sales, searchTerm]);
 
   const handleOpenPayment = (sale: any) => {
     setSelectedSale(sale);
@@ -62,16 +70,14 @@ export default function UnpaidSalesPage() {
     const isFullyPaid = newReste <= 0;
     const newStatut = isFullyPaid ? "Payé" : "Partiel";
 
-    let newInvoiceId = selectedSale.invoiceId;
-    
     const paymentEntry = {
       amount: amount,
       date: new Date().toISOString()
     };
 
     try {
-      await updateDoc(doc(db, "sales", selectedSale.id), { 
-        invoiceId: newInvoiceId,
+      const saleRef = doc(db, "sales", selectedSale.id);
+      await updateDoc(saleRef, { 
         avance: newAvance, 
         reste: newReste, 
         statut: newStatut, 
@@ -81,10 +87,10 @@ export default function UnpaidSalesPage() {
       
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
-        label: `Versement ${newInvoiceId}`,
+        label: `Versement ${selectedSale.invoiceId}`,
         category: "Optique",
         montant: amount,
-        relatedId: newInvoiceId,
+        relatedId: selectedSale.invoiceId,
         createdAt: serverTimestamp()
       });
 
@@ -109,7 +115,7 @@ export default function UnpaidSalesPage() {
         verres: selectedSale.verres || "", 
         date: new Date().toLocaleDateString("fr-FR") 
       });
-      router.push(`/ventes/${page}/${newInvoiceId}?${params.toString()}`);
+      router.push(`/ventes/${page}/${selectedSale.invoiceId}?${params.toString()}`);
       setSelectedSale(null);
     } catch (err) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `sales/${selectedSale.id}`, operation: "update" }));
@@ -124,7 +130,7 @@ export default function UnpaidSalesPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Gestion des créances par date.</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des créances par date décroissante.</p>
           </div>
         </div>
 

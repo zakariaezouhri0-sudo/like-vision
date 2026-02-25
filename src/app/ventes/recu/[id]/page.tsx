@@ -91,6 +91,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
+      {/* Prescription Optique en premier */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
           Prescription Optique
@@ -121,6 +122,7 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
+      {/* Historique des Versements juste après */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">Historique des Versements</h3>
         <table className="w-full text-[8px]">
@@ -174,7 +176,7 @@ function ReceiptPrintContent() {
     </div>
   );
 
-  if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
+  if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">

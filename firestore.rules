@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      // Autorise la lecture et l'écriture pour tout le monde pour garantir le fonctionnement du mode offline et des accès Admin
+      // Autorise tout pour le MVP et le mode offline
       allow read, write: if true;
     }
   }
