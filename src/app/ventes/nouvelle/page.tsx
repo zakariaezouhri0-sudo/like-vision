@@ -198,11 +198,11 @@ function NewSaleForm() {
         await addDoc(collection(db, "sales"), saleData);
       }
 
-      // Transactions for income (Avance)
       if (nAvance > 0 && !editId) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",
-          label: `Vente ${invoiceId} - ${clientName}`,
+          label: `Vente ${invoiceId}`,
+          clientName: clientName,
           category: "Optique",
           montant: nAvance,
           relatedId: invoiceId,
@@ -210,7 +210,6 @@ function NewSaleForm() {
         });
       }
 
-      // Transactions for costs (Depenses)
       if (!editId) {
         if (nPurchaseFrame > 0) {
           await addDoc(collection(db, "transactions"), {

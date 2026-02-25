@@ -75,7 +75,7 @@ function DailyCashReportContent() {
     const totalExpenses = expensesList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
     const totalVersements = versementsList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
     
-    const netFlux = totalSales + totalExpenses + totalVersements; // totalExpenses and totalVersements are already negative in DB
+    const netFlux = totalSales + totalExpenses + totalVersements;
 
     return { 
       sales: salesList, 
@@ -187,18 +187,31 @@ function DailyCashReportContent() {
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
-                  <th className="p-1.5 text-left">Facture / Client</th>
+                  <th className="p-1.5 text-left">Libellé</th>
+                  <th className="p-1.5 text-left">Client</th>
                   <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>
               <tbody>
-                {reportData.sales.length > 0 ? reportData.sales.map((s: any) => (
-                  <tr key={s.id} className="border-b border-slate-50">
-                    <td className="p-1.5 font-bold text-slate-700">{s.label}</td>
-                    <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(s.montant)}</td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>
+                {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
+                  let libelle = s.label;
+                  let client = s.clientName || '---';
+                  
+                  if (!s.clientName && s.label.includes(' - ')) {
+                    const parts = s.label.split(' - ');
+                    libelle = parts[0];
+                    client = parts[1];
+                  }
+
+                  return (
+                    <tr key={s.id} className="border-b border-slate-50">
+                      <td className="p-1.5 font-bold text-slate-700">{libelle}</td>
+                      <td className="p-1.5 font-bold text-slate-700 uppercase">{client}</td>
+                      <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(s.montant)}</td>
+                    </tr>
+                  );
+                }) : (
+                  <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>
                 )}
               </tbody>
             </table>

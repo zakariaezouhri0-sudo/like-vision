@@ -29,7 +29,6 @@ export default function UnpaidSalesPage() {
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Correction: On récupère toutes les ventes et on filtre côté client pour éviter les erreurs d'indexation
   const allSalesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
     orderBy("createdAt", "desc")
@@ -93,7 +92,8 @@ export default function UnpaidSalesPage() {
       
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
-        label: `Vente ${finalInvoiceId} - ${selectedSale.clientName}`,
+        label: `Versement ${finalInvoiceId}`,
+        clientName: selectedSale.clientName,
         category: "Optique",
         montant: amount,
         relatedId: finalInvoiceId,
