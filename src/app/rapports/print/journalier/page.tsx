@@ -4,7 +4,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ArrowRightLeft, PiggyBank, Lock } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -49,7 +49,7 @@ function DailyCashReportContent() {
   };
 
   const reportData = useMemo(() => {
-    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, final: 0 };
+    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, final: 0, netFlux: 0 };
 
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
@@ -72,14 +72,19 @@ function DailyCashReportContent() {
       }
     });
 
-    const dayTotal = [...salesList, ...expensesList, ...versementsList].reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    const totalSales = salesList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    const totalExpenses = expensesList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    const totalVersements = versementsList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    
+    const netFlux = totalSales + totalExpenses + totalVersements; // totalExpenses and totalVersements are already negative in DB
 
     return { 
       sales: salesList, 
       expenses: expensesList, 
       versements: versementsList, 
       initial: initialBalance, 
-      final: initialBalance + dayTotal 
+      final: initialBalance + netFlux,
+      netFlux: netFlux
     };
   }, [transactions, selectedDate]);
 
@@ -92,8 +97,8 @@ function DailyCashReportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center py-6 print:py-0">
-      <div className="no-print w-full max-w-[210mm] flex justify-between mb-6 px-4">
+    <div className="min-h-screen bg-white flex flex-col items-center py-4 print:py-0">
+      <div className="no-print w-full max-w-[210mm] flex justify-between mb-4 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs">
           <Link href="/rapports">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
@@ -104,37 +109,38 @@ function DailyCashReportContent() {
         </Button>
       </div>
 
-      <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[10mm] pt-[8mm] flex flex-col">
-        <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-6">
+      <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[10mm] pt-[5mm] flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-4">
           <div className="flex items-center gap-6">
-            <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
+            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative">
               {shop.logoUrl ? (
                 <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain" />
               ) : (
                 <div className="relative text-primary">
-                  <Glasses className="h-12 w-12" />
-                  <ThumbsUp className="h-6 w-6 absolute -top-2 -right-2 bg-white p-0.5 rounded-full" />
+                  <Glasses className="h-10 w-10" />
+                  <ThumbsUp className="h-5 w-5 absolute -top-1.5 -right-1.5 bg-white p-0.5 rounded-full border border-primary" />
                 </div>
               )}
             </div>
-            <div className="space-y-1 text-left">
-              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
-              <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
-              <div className="mt-2.5 space-y-0.5">
-                <p className="text-[10px] text-slate-500 font-medium leading-tight">{shop.address}</p>
-                <p className="text-[10px] font-bold text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
+            <div className="space-y-0.5 text-left">
+              <h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
+              <p className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
+              <div className="mt-1.5 space-y-0.5">
+                <p className="text-[9px] text-slate-500 font-medium leading-tight">{shop.address}</p>
+                <p className="text-[9px] font-bold text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-base font-black uppercase tracking-widest leading-none border-2 border-slate-900 px-4 py-2 rounded-lg mb-2">Flux de Caisse</h2>
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
+            <h2 className="text-sm font-black uppercase tracking-widest leading-none border-2 border-slate-900 px-3 py-1.5 rounded-lg mb-1.5">Flux de Caisse</h2>
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-600">
                 <Calendar className="h-3 w-3 text-slate-400" />
                 <span>Date: {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
               </div>
               {printTime && (
-                <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
+                <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400">
                   <Clock className="h-3 w-3" />
                   <span>Heure: {printTime}</span>
                 </div>
@@ -143,112 +149,127 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* 1. SOLDE INITIAL */}
-        <div className="mb-6">
-          <div className="p-4 rounded-2xl border border-slate-100 text-center bg-slate-50/30">
-            <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-widest">Solde Initial (Ouverture)</p>
-            <p className="text-xl font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
+        {/* INDICATEURS CLES EN LIGNE */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="p-3 rounded-xl border border-slate-100 text-center bg-slate-50/30">
+            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
+              <PiggyBank className="h-3 w-3" />
+              <p className="text-[7px] font-black uppercase tracking-widest">Ouverture</p>
+            </div>
+            <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
+          </div>
+
+          <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5">
+            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
+              <ArrowRightLeft className="h-3 w-3 text-primary" />
+              <p className="text-[7px] font-black uppercase tracking-widest text-primary">Flux Net Jour</p>
+            </div>
+            <p className={cn("text-sm font-black tracking-tighter", reportData.netFlux >= 0 ? "text-green-600" : "text-destructive")}>
+              {reportData.netFlux > 0 ? "+" : ""}{formatCurrency(reportData.netFlux)}
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl border border-slate-900/10 text-center bg-slate-900 text-white">
+            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-60">
+              <Lock className="h-3 w-3" />
+              <p className="text-[7px] font-black uppercase tracking-widest">Clôture</p>
+            </div>
+            <p className="text-sm font-black tracking-tighter">{formatCurrency(reportData.final)}</p>
           </div>
         </div>
 
-        {/* 2. FLUX DE CAISSE (DÉTAIL) */}
+        {/* DETAILS DES FLUX */}
         <div className="space-y-6 mb-6">
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+            <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Encaissements (Ventes)</span>
               <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
-            <table className="w-full text-[10px]">
-              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
+            <table className="w-full text-[9px]">
+              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
-                  <th className="p-2 text-left">Facture / Libellé</th>
-                  <th className="p-2 text-right">Montant</th>
+                  <th className="p-1.5 text-left">Facture / Libellé</th>
+                  <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>
               <tbody>
                 {reportData.sales.length > 0 ? reportData.sales.map((s: any) => (
                   <tr key={s.id} className="border-b border-slate-50">
-                    <td className="p-2 font-bold text-slate-700">{s.label}</td>
-                    <td className="p-2 text-right font-black text-green-600">+{formatCurrency(s.montant)}</td>
+                    <td className="p-1.5 font-bold text-slate-700">{s.label}</td>
+                    <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(s.montant)}</td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={2} className="p-4 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>
+                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>
                 )}
               </tbody>
             </table>
           </section>
 
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+            <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
               <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + (b.montant || 0), 0)))}</span>
             </h3>
-            <table className="w-full text-[10px]">
-              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
+            <table className="w-full text-[9px]">
+              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
-                  <th className="p-2 text-left">Libellé de la Charge</th>
-                  <th className="p-2 text-right">Montant</th>
+                  <th className="p-1.5 text-left">Libellé de la Charge</th>
+                  <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>
               <tbody>
                 {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                   <tr key={e.id} className="border-b border-slate-50">
-                    <td className="p-2 font-bold text-slate-700">{e.label}</td>
-                    <td className="p-2 text-right font-black text-destructive">{formatCurrency(e.montant)}</td>
+                    <td className="p-1.5 font-bold text-slate-700">{e.label}</td>
+                    <td className="p-1.5 text-right font-black text-destructive">{formatCurrency(e.montant)}</td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={2} className="p-4 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>
+                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>
                 )}
               </tbody>
             </table>
           </section>
 
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+            <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque</span>
               <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
-            <table className="w-full text-[10px]">
-              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
+            <table className="w-full text-[9px]">
+              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
-                  <th className="p-2 text-left">Opération</th>
-                  <th className="p-2 text-right">Montant</th>
+                  <th className="p-1.5 text-left">Opération</th>
+                  <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>
               <tbody>
                 {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                   <tr key={v.id} className="border-b border-slate-50">
-                    <td className="p-2 font-bold text-slate-700">{v.label}</td>
-                    <td className="p-2 text-right font-black text-orange-600">{formatCurrency(v.montant)}</td>
+                    <td className="p-1.5 font-bold text-slate-700">{v.label}</td>
+                    <td className="p-1.5 text-right font-black text-orange-600">{formatCurrency(v.montant)}</td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={2} className="p-4 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>
+                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>
                 )}
               </tbody>
             </table>
           </section>
         </div>
 
-        {/* 3. SOLDE FINAL */}
-        <div className="mb-8">
-          <div className="p-4 rounded-2xl border-2 border-primary/10 text-center bg-primary/5">
-            <p className="text-[8px] font-black uppercase text-primary mb-1 tracking-widest">Solde Final (Clôture)</p>
-            <p className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reportData.final)}</p>
-          </div>
-        </div>
-
-        <div className="mt-auto pt-8 border-t border-slate-100 grid grid-cols-2 gap-20">
-          <div className="space-y-12">
+        {/* Signatures */}
+        <div className="mt-auto pt-6 border-t border-slate-100 grid grid-cols-2 gap-20">
+          <div className="space-y-10">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Caissier</p>
             <div className="border-b border-slate-200 w-full opacity-50"></div>
           </div>
-          <div className="space-y-12 text-right flex flex-col items-end">
+          <div className="space-y-10 text-right flex flex-col items-end">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Direction</p>
-            <div className="w-[60mm] h-[25mm] border border-dashed border-slate-200 rounded-xl bg-white"></div>
+            <div className="w-[50mm] h-[20mm] border border-dashed border-slate-200 rounded-xl bg-white"></div>
           </div>
         </div>
 
-        <div className="mt-6 mb-4 text-center border-t border-slate-50 pt-4">
+        {/* Footer */}
+        <div className="mt-6 mb-2 text-center border-t border-slate-50 pt-3">
           <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
             {shop.name} {generationTimestamp ? `• Rapport Généré le ${generationTimestamp}` : ""}
           </p>
