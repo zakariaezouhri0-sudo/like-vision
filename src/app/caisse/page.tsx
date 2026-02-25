@@ -57,7 +57,7 @@ export default function CaissePage() {
     return query(
       collection(db, "cash_sessions"),
       orderBy("date", "desc"),
-      limit(5)
+      limit(10)
     );
   }, [db]);
   
@@ -96,7 +96,7 @@ export default function CaissePage() {
     montant: ""
   });
 
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
@@ -178,7 +178,7 @@ export default function CaissePage() {
     const transData = {
       type: newOp.type,
       label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : "Vente"),
-      category: newOp.category,
+      category: "Général",
       montant: finalAmount,
       userName: user?.displayName || "Inconnu",
       createdAt: serverTimestamp()
@@ -291,17 +291,19 @@ export default function CaissePage() {
             <p className="text-muted-foreground font-bold">La journée du {format(todayDate, "dd MMMM yyyy")} est terminée.</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 w-full">
+          <div className={cn("grid gap-4 w-full", role === 'ADMIN' ? "grid-cols-2" : "grid-cols-1")}>
             <Card className="bg-white border-none shadow-md p-6 rounded-[24px]">
               <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Solde Final Réel</p>
               <p className="text-2xl font-black text-primary">{formatCurrency(session.closingBalanceReal)}</p>
             </Card>
-            <Card className="bg-white border-none shadow-md p-6 rounded-[24px]">
-              <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Écart constaté</p>
-              <p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-destructive")}>
-                {session.discrepancy > 0 ? "+" : ""}{formatCurrency(session.discrepancy)}
-              </p>
-            </Card>
+            {role === 'ADMIN' && (
+              <Card className="bg-white border-none shadow-md p-6 rounded-[24px]">
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Écart constaté</p>
+                <p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-destructive")}>
+                  {session.discrepancy > 0 ? "+" : ""}{formatCurrency(session.discrepancy)}
+                </p>
+              </Card>
+            )}
           </div>
 
           <div className="flex flex-col gap-4 w-full">
@@ -552,28 +554,33 @@ export default function CaissePage() {
                           <span>Versements (-)</span>
                           <span>{formatCurrency(stats.versements)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
-                          <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
-                          <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
-                        </div>
+                        
+                        {role === 'ADMIN' && (
+                          <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
+                            <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
+                            <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
+                          </div>
+                        )}
                         
                         <div className="flex justify-between items-center bg-primary/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-primary/20">
                           <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary tracking-widest">Total Compté</span>
                           <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter">{formatCurrency(soldeReel)}</span>
                         </div>
                         
-                        <div className={cn(
-                          "flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all",
-                          Math.abs(ecart) < 0.01 ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20"
-                        )}>
-                          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
-                              {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
-                            </span>
-                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
+                        {role === 'ADMIN' && (
+                          <div className={cn(
+                            "flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all",
+                            Math.abs(ecart) < 0.01 ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20"
+                          )}>
+                            <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
+                            <div className="flex items-center gap-2">
+                              <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
+                                {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
+                              </span>
+                              {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       <Button 
@@ -682,7 +689,7 @@ export default function CaissePage() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead>
-                  {role === 'ADMIN' && <TableHead className="text-[10px] uppercase font-black px-6 py-4">Utilisateur</TableHead>}
+                  {role === 'ADMIN' && <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-center">Utilisateur</TableHead>}
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
                 </TableRow>
@@ -716,10 +723,10 @@ export default function CaissePage() {
                         </div>
                       </TableCell>
                       {role === 'ADMIN' && (
-                        <TableCell className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <TableCell className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
                             <UserIcon className="h-3 w-3 text-slate-300" />
-                            <span className="text-[10px] font-bold text-slate-600 uppercase">{t.userName || "---"}</span>
+                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter truncate max-w-[100px]">{t.userName || "---"}</span>
                           </div>
                         </TableCell>
                       )}
