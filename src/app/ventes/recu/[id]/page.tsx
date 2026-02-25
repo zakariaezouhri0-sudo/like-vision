@@ -20,7 +20,6 @@ function ReceiptPrintContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // On récupère la vente réelle pour avoir l'historique des paiements enregistré en DB
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), where("invoiceId", "==", params.id)), [db, params.id]);
   const { data: saleDocs, isLoading: saleLoading } = useCollection(salesQuery);
   const saleData = saleDocs?.[0];

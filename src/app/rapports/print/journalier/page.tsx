@@ -101,7 +101,6 @@ function DailyCashReportContent() {
       </div>
 
       <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[15mm] flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
           <div className="flex gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -132,7 +131,6 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Soldes Section */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
             <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-widest">Solde Initial (Ouverture)</p>
@@ -144,7 +142,6 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Listes Breakdown */}
         <div className="space-y-8 flex-1">
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">

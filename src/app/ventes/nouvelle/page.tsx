@@ -175,7 +175,7 @@ function NewSaleForm() {
       monture,
       verres,
       notes,
-      payments: nAvance > 0 ? [{ amount: nAvance, date: Timestamp.fromDate(saleDate) }] : [],
+      payments: nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString() }] : [],
       createdAt: Timestamp.fromDate(saleDate),
       updatedAt: serverTimestamp(),
     };
