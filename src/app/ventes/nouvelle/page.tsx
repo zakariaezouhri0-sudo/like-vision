@@ -66,7 +66,7 @@ function NewSaleForm() {
       axe: searchParams.get("od_axe") || "" 
     },
     og: { 
-      sph: searchPoints.get("og_sph") || "", 
+      sph: searchParams.get("og_sph") || "", 
       cyl: searchParams.get("og_cyl") || "", 
       axe: searchParams.get("og_axe") || "" 
     }

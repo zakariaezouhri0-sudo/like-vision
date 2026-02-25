@@ -64,7 +64,7 @@ function ReceiptPrintContent() {
         </div>
         <div className="text-right">
           <div className="bg-primary text-white px-3 py-1 rounded-lg inline-block mb-1">
-            <h1 className="text-[8px] font-black uppercase tracking-widest">Reçu d'Avance</h1>
+            <h1 className="text-[8px] font-black uppercase tracking-widest">Reçu</h1>
           </div>
           <p className="text-[8px] font-black text-slate-900">N°: {receiptNo}</p>
           <p className="text-[7px] text-slate-400 font-bold italic">Date: {date}</p>

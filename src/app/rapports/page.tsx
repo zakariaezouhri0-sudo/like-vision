@@ -101,10 +101,10 @@ export default function ReportsPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
           </div>
           
-          <div className="flex flex-col items-stretch gap-3 w-full sm:w-auto">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white w-full">
+                <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white w-full md:w-auto">
                   <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                   {format(dateRange.from, "dd MMM", { locale: fr })} - {format(dateRange.to, "dd MMM yyyy", { locale: fr })}
                 </Button>
@@ -114,12 +114,12 @@ export default function ReportsPage() {
               </PopoverContent>
             </Popover>
             
-            <div className="grid grid-cols-2 gap-3 w-full">
-              <Button onClick={handleExportCSV} className="h-12 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700">
+            <div className="grid grid-cols-2 gap-3 w-full md:flex md:w-auto">
+              <Button onClick={handleExportCSV} className="h-12 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 flex-1 md:flex-none">
                 <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
               </Button>
               
-              <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary">
+              <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 md:flex-none">
                 <FileText className="mr-1.5 h-4 w-4" /> JOURNALIER
               </Button>
             </div>
