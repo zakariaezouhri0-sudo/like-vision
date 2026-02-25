@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2, PiggyBank } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -40,7 +40,7 @@ export default function CaissePage() {
 
   const [soldeInitial, setSoldeInitial] = useState<string>("0");
 
-  const transactionsQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(50)), [db]);
+  const transactionsQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100)), [db]);
   const { data: transactions, isLoading: loading } = useCollection(transactionsQuery);
 
   const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
@@ -221,7 +221,7 @@ export default function CaissePage() {
                               type="number" 
                               className="h-8 sm:h-9 w-16 sm:w-20 text-center font-bold bg-white border-none shadow-inner p-0" 
                               value={denoms[val]} 
-                              onChange={e => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} 
+                              onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} 
                             />
                             <span className="flex-1 text-right font-black text-primary text-[10px] sm:text-[11px]">{formatCurrency(val * (denoms[val] || 0))}</span>
                           </div>
@@ -323,11 +323,14 @@ export default function CaissePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-blue-500">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Solde Initial</p>
+            <div className="flex items-center gap-2 mb-1">
+              <PiggyBank className="h-3 w-3 text-blue-500" />
+              <p className="text-[10px] uppercase font-black text-muted-foreground">Solde Initial</p>
+            </div>
             <div className="flex items-center gap-2">
               <input 
                 type="number" 
-                className="w-full bg-transparent text-2xl font-black text-blue-600 outline-none" 
+                className="w-full bg-slate-50 rounded-lg px-2 py-1 text-2xl font-black text-blue-600 outline-none border border-transparent focus:border-blue-200" 
                 value={soldeInitial} 
                 onChange={(e) => setSoldeInitial(e.target.value)}
               />
