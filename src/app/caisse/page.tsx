@@ -15,7 +15,7 @@ import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, Check
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -52,16 +52,22 @@ export default function CaissePage() {
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
   // Fetch last closed session to get report balance
+  // Simplified query to avoid composite index permission issues
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
-      where("status", "==", "CLOSED"),
       orderBy("date", "desc"),
-      limit(1)
+      limit(5)
     );
   }, [db]);
-  const { data: lastSessions, isLoading: lastSessionLoading } = useCollection(lastSessionQuery);
-  const lastSession = lastSessions?.[0];
+  
+  const { data: recentSessions, isLoading: lastSessionLoading } = useCollection(lastSessionQuery);
+  
+  const lastSession = useMemo(() => {
+    if (!recentSessions) return null;
+    // Find the most recent session that is CLOSED and not today's session
+    return recentSessions.find(s => s.status === "CLOSED" && s.id !== sessionDocId);
+  }, [recentSessions, sessionDocId]);
 
   // Initialize balance input when last session is found
   useEffect(() => {

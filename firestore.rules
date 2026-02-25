@@ -1,8 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Mise à jour forcée pour résoudre l'erreur de permission sur cash_sessions
-    // ID de déploiement : REFRESH_RULES_20240225_1845
+    // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
+    // Mise à jour forcée pour résolution d'erreur : PERM_RESOLVE_V2_20240225
     match /{document=**} {
       allow read, write: if true;
     }
