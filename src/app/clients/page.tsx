@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,10 +26,10 @@ export default function ClientsPage() {
   const router = useRouter();
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [role, setRole] = useState<string>("OPTICIEN");
+  const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIEN");
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
   
   const clientsQuery = useMemoFirebase(() => {

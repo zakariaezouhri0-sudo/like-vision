@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -31,10 +30,10 @@ export default function CaissePage() {
   
   const [todayDate] = useState(new Date());
   const sessionDocId = format(todayDate, "yyyy-MM-dd");
-  const [role, setRole] = useState<string>("OPTICIEN");
+  const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIEN");
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
   
   // State for session management

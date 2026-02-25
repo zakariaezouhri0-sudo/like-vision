@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -16,12 +15,12 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Tableau de Bord", icon: LayoutDashboard, roles: ["ADMIN", "OPTICIEN"] },
-  { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "OPTICIEN"] },
-  { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "OPTICIEN"] },
-  { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "OPTICIEN"] },
-  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "OPTICIEN"] },
-  { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "OPTICIEN"] },
+  { href: "/dashboard", label: "Tableau de Bord", icon: LayoutDashboard, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/rapports", label: "Rapports", icon: TrendingUp, roles: ["ADMIN"] },
   { href: "/import", label: "Importation", icon: Upload, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
@@ -33,7 +32,7 @@ export function SidebarNav({ role = "ADMIN" }: { role?: string }) {
 
   return (
     <nav className="flex flex-col gap-2 p-4">
-      {NAV_ITEMS.filter(item => item.roles.includes(role || "OPTICIEN")).map((item) => {
+      {NAV_ITEMS.filter(item => item.roles.includes(role || "OPTICIENNE")).map((item) => {
         const Icon = item.icon;
         
         const isActive = pathname === item.href || (

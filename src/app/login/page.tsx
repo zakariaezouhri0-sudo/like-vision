@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -71,7 +70,7 @@ export default function LoginPage() {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: userData.name });
-          localStorage.setItem('user_role', userData.role || 'OPTICIEN');
+          localStorage.setItem('user_role', userData.role || 'OPTICIENNE');
         }
         
         toast({

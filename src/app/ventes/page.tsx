@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -31,13 +30,13 @@ export default function SalesHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
-  const [role, setRole] = useState<string>("OPTICIEN");
+  const [role, setRole] = useState<string>("OPTICIENNE");
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIEN");
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
 
   const salesQuery = useMemoFirebase(() => {

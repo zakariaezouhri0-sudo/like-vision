@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -45,7 +44,7 @@ export default function UsersPage() {
   const [newUser, setNewUser] = useState({
     name: "",
     username: "",
-    role: "OPTICIEN",
+    role: "OPTICIENNE",
     password: ""
   });
 
@@ -65,7 +64,7 @@ export default function UsersPage() {
     };
 
     setIsCreateOpen(false);
-    setNewUser({ name: "", username: "", role: "OPTICIEN", password: "" });
+    setNewUser({ name: "", username: "", role: "OPTICIENNE", password: "" });
 
     addDoc(collection(db, "users"), userData)
       .then(() => {
@@ -123,7 +122,7 @@ export default function UsersPage() {
                       <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ADMIN">Administrateur</SelectItem>
-                        <SelectItem value="OPTICIEN">Opticien</SelectItem>
+                        <SelectItem value="OPTICIENNE">Opticienne</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

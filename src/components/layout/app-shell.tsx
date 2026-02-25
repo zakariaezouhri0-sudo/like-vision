@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -19,7 +18,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<string>("OPTICIEN");
+  const [role, setRole] = useState<string>("OPTICIENNE");
   const { user } = useUser();
   const db = useFirestore();
 
