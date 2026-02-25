@@ -12,7 +12,6 @@ import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,17 +33,17 @@ export default function LoginPage() {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
-          await updateProfile(userCredential.user, { displayName: "Admin" });
+          await updateProfile(userCredential.user, { displayName: "Administrateur" });
           localStorage.setItem('user_role', 'ADMIN');
         }
         toast({ 
           variant: "success",
           title: "Connexion réussie", 
-          description: "Bienvenue sur Like Vision (Mode Admin)." 
+          description: "Bienvenue (Mode Admin)." 
         });
         router.push("/dashboard");
       } catch (err) {
-        toast({ variant: "destructive", title: "Erreur Auth", description: "Impossible d'initialiser la session Firebase." });
+        toast({ variant: "destructive", title: "Erreur Auth" });
       } finally {
         setLoading(false);
       }
@@ -64,13 +63,13 @@ export default function LoginPage() {
 
       if (userData.password === password) {
         if (userData.status === "Suspendu") {
-          throw new Error("Votre compte est suspendu.");
+          throw new Error("Compte suspendu.");
         }
         
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: userData.name });
-          localStorage.setItem('user_role', userData.role || 'OPTICIENNE');
+          localStorage.setItem('user_role', (userData.role || 'OPTICIENNE').toUpperCase());
         }
         
         toast({
@@ -94,52 +93,44 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-12">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-md space-y-10">
         <div className="flex flex-col items-center text-center space-y-6">
-          
-          <div className="h-44 w-44 flex items-center justify-center relative">
+          <div className="h-32 w-32 bg-white rounded-[40px] flex items-center justify-center shadow-2xl border border-slate-100 overflow-hidden">
             {settings?.logoUrl ? (
-              <Image 
-                src={settings.logoUrl} 
-                alt="Logo" 
-                fill 
-                className="object-contain"
-              />
+              <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
-              <div className="h-40 w-40 bg-primary rounded-[40px] flex items-center justify-center text-primary-foreground shadow-2xl transform rotate-3">
+              <div className="h-full w-full bg-primary flex items-center justify-center text-white">
                 <div className="relative">
-                  <Glasses className="h-20 w-20" />
-                  <ThumbsUp className="h-10 w-10 absolute -top-4 -right-4 bg-primary p-1 rounded-full border-2 border-white" />
+                  <Glasses className="h-16 w-16" />
+                  <ThumbsUp className="h-8 w-8 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
                 </div>
               </div>
             )}
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-4xl font-headline font-black text-primary tracking-tighter uppercase">{settings?.name || APP_NAME}</h1>
+            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase">{settings?.name || APP_NAME}</h1>
             <p className="text-muted-foreground font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
           </div>
         </div>
 
-        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-sm rounded-3xl overflow-hidden">
-          <CardHeader className="space-y-1 pt-8 text-center border-b bg-muted/10 pb-6">
-            <CardTitle className="text-2xl font-black text-primary uppercase">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase opacity-60">
-              Saisissez vos identifiants magasin
+        <Card className="border-none shadow-2xl bg-white rounded-[32px] overflow-hidden">
+          <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
+            <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-widest">
+              Saisissez vos identifiants
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-5 pt-8">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Identifiant / Login</Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Identifiant</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
+                  <UserIcon className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
                   <Input 
-                    id="username" 
-                    type="text"
-                    placeholder="admin" 
-                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
+                    placeholder="ex: admin" 
+                    className="pl-12 h-12 font-bold rounded-xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
@@ -147,14 +138,13 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mot de passe</Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
+                  <Lock className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
                   <Input 
-                    id="password" 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-10 h-11 font-bold border-muted-foreground/20 focus:border-primary" 
+                    className="pl-12 h-12 font-bold rounded-xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
@@ -162,8 +152,8 @@ export default function LoginPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pb-8 pt-4">
-              <Button className="w-full h-12 text-base font-black shadow-xl rounded-xl" disabled={loading}>
+            <CardFooter className="pb-10 pt-4">
+              <Button className="w-full h-14 text-sm font-black shadow-xl rounded-2xl bg-primary hover:scale-[1.02] transition-transform" disabled={loading}>
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>

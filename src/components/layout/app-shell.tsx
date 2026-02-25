@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import Image from "next/image";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -25,146 +24,129 @@ export function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
     if (savedRole) {
-      setRole(savedRole);
+      setRole(savedRole.toUpperCase());
     }
   }, []);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings } = useDoc(settingsRef);
 
-  const userName = user?.displayName || user?.email?.split('@')[0] || "Personnel";
+  const userName = user?.displayName || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
   };
 
+  const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
+    <div className="flex items-center gap-3 min-w-0">
+      <div className={cn(
+        "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
+        size === "large" ? "h-14 w-14" : "h-10 w-10"
+      )}>
+        {settings?.logoUrl ? (
+          // Utilisation de <img> standard pour les logos en base64 (plus fiable que next/image ici)
+          <img 
+            src={settings.logoUrl} 
+            alt="Logo" 
+            className="h-full w-full object-contain p-1" 
+          />
+        ) : (
+          <div className={cn(
+            "h-full w-full bg-primary flex items-center justify-center text-primary-foreground",
+            size === "large" ? "p-2" : "p-1.5"
+          )}>
+            <div className="relative">
+              <Glasses className={size === "large" ? "h-8 w-8" : "h-6 w-6"} />
+              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white", size === "large" ? "h-4 w-4" : "h-3 w-3")} />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col justify-center min-w-0">
+        <span className={cn(
+          "font-black tracking-tighter text-primary leading-none uppercase truncate block",
+          size === "large" ? "text-lg lg:text-xl" : "text-base"
+        )}>
+          {settings?.name || APP_NAME}
+        </span>
+        <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1 shrink-0">
+          Optique Pro
+        </span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen bg-background text-foreground font-body">
+    <div className="flex min-h-screen bg-slate-50/50 text-foreground font-body overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className="w-64 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-2xl">
+      <aside className="w-72 border-r bg-white hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <Link 
           href="/dashboard" 
-          className="h-32 border-b flex items-center px-6 gap-4 hover:bg-primary/5 transition-all group"
+          className="h-28 border-b flex items-center px-6 hover:bg-slate-50 transition-all"
         >
-          <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
-            {settings?.logoUrl ? (
-              <div className="relative h-14 w-14">
-                <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
-              </div>
-            ) : (
-              <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
-                <div className="relative">
-                  <Glasses className="h-8 w-8" />
-                  <ThumbsUp className="h-4 w-4 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col justify-center min-w-0">
-            <span className="font-headline font-black text-lg lg:text-xl tracking-tighter text-primary leading-none uppercase truncate">
-              {settings?.name || APP_NAME}
-            </span>
-            <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1.5">
-              Optique Pro
-            </span>
-          </div>
+          <LogoContainer size="large" />
         </Link>
-        <div className="flex-1 py-4 overflow-y-auto px-3">
+        <div className="flex-1 py-6 overflow-y-auto px-2">
           <SidebarNav role={role} />
         </div>
-        <div className="p-4 border-t mt-auto bg-slate-50/50">
-          <div className="flex items-center gap-3 px-3 py-3 bg-white rounded-xl border border-primary/10 shadow-sm">
-            <Avatar className="h-9 w-9 border-2 border-primary/5">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-black">{userInitials}</AvatarFallback>
+        <div className="p-4 border-t bg-slate-50/50">
+          <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <Avatar className="h-10 w-10 border-2 border-primary/10 shadow-inner">
+              <AvatarFallback className="bg-primary text-white text-xs font-black">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black truncate capitalize text-slate-900 leading-tight">{userName}</span>
-              <span className="text-[8px] font-black text-primary/60 uppercase tracking-widest">{role}</span>
+              <span className="text-xs font-black truncate capitalize text-slate-900">{userName}</span>
+              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{role}</span>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 border-b bg-card flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm backdrop-blur-xl bg-white/80">
-          <div className="flex items-center gap-3">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
+        <header className="h-20 border-b bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0">
+          <div className="flex items-center gap-4">
             {/* Mobile Menu Trigger */}
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 hover:bg-primary/10 rounded-xl">
+                <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 hover:bg-primary/5 rounded-xl border border-slate-100 shadow-sm">
                   <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72">
-                <SheetHeader className="p-6 border-b text-left bg-slate-50">
-                  <SheetTitle className="flex items-center gap-4">
-                    <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
-                      {settings?.logoUrl ? (
-                        <div className="relative h-14 w-14">
-                          <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
-                        </div>
-                      ) : (
-                        <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
-                          <div className="relative">
-                            <Glasses className="h-7 w-7" />
-                            <ThumbsUp className="h-3.5 w-3.5 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col justify-center">
-                      <span className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase truncate">{settings?.name || APP_NAME}</span>
-                      <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1.5">Optique Pro</span>
-                    </div>
+              <SheetContent side="left" className="p-0 w-80">
+                <SheetHeader className="p-6 border-b text-left bg-white">
+                  <SheetTitle>
+                    <LogoContainer size="large" />
                   </SheetTitle>
                 </SheetHeader>
-                <div className="py-4 overflow-y-auto max-h-[calc(100vh-120px)] px-3" onClick={() => setOpen(false)}>
+                <div className="py-6 overflow-y-auto px-2" onClick={() => setOpen(false)}>
                   <SidebarNav role={role} />
                 </div>
               </SheetContent>
             </Sheet>
 
-            <Link href="/dashboard" className="flex items-center gap-4 group md:hidden">
-              <div className="h-12 w-12 flex items-center justify-center shrink-0 relative">
-                {settings?.logoUrl ? (
-                  <div className="relative h-12 w-12">
-                    <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
-                  </div>
-                ) : (
-                  <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
-                    <div className="relative">
-                      <Glasses className="h-6 w-6" />
-                      <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white" />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-col justify-center">
-                <h2 className="text-lg font-black text-primary tracking-tighter leading-none uppercase">
-                  {settings?.name || APP_NAME}
-                </h2>
-                <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1">Optique Pro</span>
-              </div>
+            <Link href="/dashboard" className="md:hidden">
+              <LogoContainer size="small" />
             </Link>
 
             <div className="hidden md:block">
-              <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Système de Gestion</h2>
-              <p className="text-xl font-black text-slate-800 tracking-tighter">Espace Professionnel</p>
+              <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Tableau de Bord</h2>
+              <p className="text-xl font-black text-slate-800 tracking-tighter">Gestion Magasin</p>
             </div>
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-destructive hover:bg-destructive/5 h-10 px-4 rounded-xl transition-all" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
-                <LogOut className="h-4 w-4 md:mr-2.5" />
-                <span className="hidden md:inline text-[9px] font-black uppercase tracking-[0.2em]">Déconnexion</span>
+                <LogOut className="h-4 w-4 md:mr-3" />
+                <span className="hidden md:inline text-[10px] font-black uppercase tracking-[0.2em]">Déconnexion</span>
               </Link>
             </Button>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-50/70">
+
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-50/30">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
@@ -172,4 +154,9 @@ export function AppShell({ children }: AppShellProps) {
       </div>
     </div>
   );
+}
+
+// Helper pour Tailwind
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }
