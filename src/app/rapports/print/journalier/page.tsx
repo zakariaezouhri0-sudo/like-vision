@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -88,7 +87,7 @@ function DailyCashReportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 print:py-0">
+    <div className="min-h-screen bg-white flex flex-col items-center py-12 print:py-0">
       <div className="no-print w-full max-w-[210mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs">
           <Link href="/rapports">
@@ -100,7 +99,7 @@ function DailyCashReportContent() {
         </Button>
       </div>
 
-      <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[15mm] flex flex-col">
+      <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[15mm] flex flex-col">
         <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
           <div className="flex gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -132,11 +131,11 @@ function DailyCashReportContent() {
         </div>
 
         <div className="grid grid-cols-2 gap-6 mb-8">
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+          <div className="p-4 rounded-2xl border border-slate-100 text-center">
             <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-widest">Solde Initial (Ouverture)</p>
             <p className="text-xl font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
           </div>
-          <div className="bg-primary/5 p-4 rounded-2xl border-2 border-primary/10 text-center">
+          <div className="p-4 rounded-2xl border-2 border-primary/10 text-center">
             <p className="text-[8px] font-black uppercase text-primary mb-1 tracking-widest">Solde Final (Clôture)</p>
             <p className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reportData.final)}</p>
           </div>
@@ -228,7 +227,7 @@ function DailyCashReportContent() {
           </div>
           <div className="space-y-12 text-right flex flex-col items-end">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Direction</p>
-            <div className="w-[60mm] h-[25mm] border border-dashed border-slate-200 rounded-xl bg-slate-50/30"></div>
+            <div className="w-[60mm] h-[25mm] border border-dashed border-slate-200 rounded-xl bg-white"></div>
           </div>
         </div>
 

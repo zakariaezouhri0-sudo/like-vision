@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, Phone, User, Loader2 } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, Phone, User, Loader2, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
@@ -58,11 +57,14 @@ function ReceiptPrintContent() {
     <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex gap-3">
-          <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
+          <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative bg-white">
             {shop.logoUrl ? (
               <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
             ) : (
-              <div className="text-primary"><Glasses className="h-6 w-6" /></div>
+              <div className="relative text-primary">
+                <Glasses className="h-6 w-6" />
+                <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-white p-0.5 rounded-full" />
+              </div>
             )}
           </div>
           <div>
@@ -80,7 +82,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      <div className="mb-6 bg-slate-50 p-3 rounded-xl text-center grid grid-cols-2 gap-4">
+      <div className="mb-6 border-y border-slate-100 py-3 text-center grid grid-cols-2 gap-4">
         <div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
           <p className="text-[9px] font-black text-slate-900 uppercase">{clientName}</p>
@@ -170,9 +172,9 @@ function ReceiptPrintContent() {
         </div>
 
         {/* Message and Stamp Block */}
-        <div className="flex justify-between items-center pr-2 mt-4">
+        <div className="flex justify-between items-end pr-2 mt-4">
           <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
-            <div className="border-l-4 border-primary/20 pl-4 py-1">
+            <div className="border-l-4 border-primary/20 pl-4 py-1.5">
               <p className="text-[9px] font-medium text-primary/80 italic leading-relaxed">
                 "Merci de votre confiance.<br/>
                 Votre vue est notre priorité.<br/>
@@ -180,15 +182,15 @@ function ReceiptPrintContent() {
               </p>
             </div>
           </div>
-          <div className="w-40 h-24 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center bg-slate-50/50 shrink-0">
+          <div className="w-40 h-24 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-white shrink-0">
             <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50 text-center px-4 leading-tight">CACHET & SIGNATURE<br/>OFFICIELS</span>
           </div>
         </div>
       </div>
 
-      {/* Footer with Extra Print Space (4cm) */}
-      <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50">
-        <p className="text-[6px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">{shop.name}</p>
+      {/* Footer Space for printer margin (4cm) */}
+      <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
+        <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em] italic">{shop.name}</p>
       </div>
     </div>
   );
@@ -196,7 +198,7 @@ function ReceiptPrintContent() {
   if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
+    <div className="min-h-screen bg-white flex flex-col items-center py-8">
       <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-12 px-8 shadow-sm border-slate-200"><Link href="/ventes"><ArrowLeft className="mr-3 h-5 w-5" />RETOUR HISTORIQUE</Link></Button>
         <div className="flex items-center gap-6">

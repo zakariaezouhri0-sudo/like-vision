@@ -61,9 +61,6 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
-  }
 }
 
 /* Print Specific Styles */
@@ -85,19 +82,22 @@
   .print-only {
     display: block !important;
   }
+  /* Force everything to white background during print */
+  * {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  .bg-primary, .bg-slate-900, .bg-slate-950, .bg-slate-800 {
+    background-color: #000 !important;
+    color: #fff !important;
+  }
+  .text-primary, .text-slate-900 {
+    color: #000 !important;
+  }
 }
 
 .print-only {
   display: none;
-}
-
-.pdf-a4-portrait {
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  background: white;
-  padding: 15mm;
-  box-sizing: border-box;
 }
 
 .pdf-a4-landscape {
@@ -120,14 +120,24 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: white;
 }
 
 .cutting-line-vertical {
-  border-left: 1px dashed #94a3b8;
+  border-left: 1px dashed #cbd5e1;
   height: 100%;
   width: 1px;
   position: absolute;
   left: 148.5mm;
   top: 0;
   z-index: 50;
+}
+
+.pdf-a4-portrait {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: white;
+  padding: 15mm;
+  box-sizing: border-box;
 }

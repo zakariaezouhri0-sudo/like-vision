@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -83,8 +82,8 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Info Block */}
-      <div className="mb-6 bg-slate-100/80 p-3 rounded-2xl text-center space-y-2">
+      {/* Client Info Block - No Background */}
+      <div className="mb-6 border-y border-slate-100 py-3 text-center space-y-2">
         <div className="grid grid-cols-3 gap-2 items-center">
           <div className="space-y-1">
             <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
@@ -163,26 +162,26 @@ function InvoicePrintContent() {
         </div>
         
         {/* Message and Stamp Block */}
-        <div className="flex justify-between items-center pr-2 mt-4">
+        <div className="flex justify-between items-end pr-2 mt-4">
           <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
-            <div className="border-l-4 border-primary/20 pl-4 py-1">
-              <p className="text-[10px] font-medium text-primary/80 italic leading-relaxed">
+            <div className="border-l-4 border-primary/20 pl-4 py-1.5">
+              <p className="text-[9px] font-medium text-primary/80 italic leading-relaxed">
                 "Merci de votre confiance.<br/>
                 Votre vue est notre priorité.<br/>
                 À bientôt chez Like Vision !"
               </p>
             </div>
           </div>
-          <div className="w-48 h-28 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center relative bg-slate-50/50 overflow-hidden shrink-0">
+          <div className="w-44 h-24 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center relative bg-white overflow-hidden shrink-0">
             <span className="text-[7px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-6 leading-relaxed select-none opacity-50">
-              CACHET & SIGNATURE<br/>OFFICIELS DU MAGASIN
+              CACHET & SIGNATURE<br/>OFFICIELS
             </span>
           </div>
         </div>
       </div>
 
-      {/* Footer with Extra Print Space (4cm) */}
-      <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50">
+      {/* Footer Space for printer margin (4cm) */}
+      <div className="mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
          <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em]">{shop.name}</p>
       </div>
     </div>
@@ -197,7 +196,7 @@ function InvoicePrintContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
+    <div className="min-h-screen bg-white flex flex-col items-center py-8">
       <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 shadow-sm h-12 px-8 rounded-xl font-black text-xs">
           <Link href="/ventes">
