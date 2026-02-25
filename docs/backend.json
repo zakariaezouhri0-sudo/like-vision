@@ -79,6 +79,21 @@
       },
       "required": ["type", "montant", "label"]
     },
+    "CashSession": {
+      "title": "CashSession",
+      "type": "object",
+      "description": "Représente une session journalière de caisse.",
+      "properties": {
+        "openingBalance": { "type": "number" },
+        "status": { "type": "string", "enum": ["OPEN", "CLOSED"] },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "closedAt": { "type": "string", "format": "date-time" },
+        "closingBalanceReal": { "type": "number" },
+        "closingBalanceTheoretical": { "type": "number" },
+        "discrepancy": { "type": "number" },
+        "date": { "type": "string" }
+      }
+    },
     "Settings": {
       "title": "Settings",
       "type": "object",
@@ -111,6 +126,10 @@
     "/transactions/{transactionId}": {
       "schema": "Transaction",
       "description": "Collection des flux de caisse."
+    },
+    "/cash_sessions/{sessionId}": {
+      "schema": "CashSession",
+      "description": "Sessions journalières de caisse."
     },
     "/settings/shop-info": {
       "schema": "Settings",

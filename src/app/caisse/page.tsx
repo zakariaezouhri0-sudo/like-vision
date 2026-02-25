@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2, PiggyBank, FileText } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit, setDoc, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { startOfDay, endOfDay, format } from "date-fns";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -27,10 +28,34 @@ export default function CaissePage() {
   const { toast } = useToast();
   const db = useFirestore();
   const router = useRouter();
+  
+  const [todayDate] = useState(new Date());
+  const sessionDocId = format(todayDate, "yyyy-MM-dd");
+  
+  // State for session management
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [openingBalanceInput, setOpeningBalanceInput] = useState<string>("0");
   
+  // Fetch current session
+  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
+
+  // Fetch today's transactions only
+  const transactionsQuery = useMemoFirebase(() => {
+    const start = startOfDay(todayDate);
+    const end = endOfDay(todayDate);
+    return query(
+      collection(db, "transactions"), 
+      where("createdAt", ">=", Timestamp.fromDate(start)),
+      where("createdAt", "<=", Timestamp.fromDate(end)),
+      orderBy("createdAt", "desc")
+    );
+  }, [db, todayDate]);
+  
+  const { data: transactions, isLoading: loadingTrans } = useCollection(transactionsQuery);
+
   const [newOp, setNewOp] = useState({
     type: "DEPENSE",
     label: "",
@@ -38,12 +63,7 @@ export default function CaissePage() {
     montant: ""
   });
 
-  const [soldeInitial, setSoldeInitial] = useState<string>("0");
-
-  const transactionsQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100)), [db]);
-  const { data: transactions, isLoading: loading } = useCollection(transactionsQuery);
-
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 5, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
@@ -60,9 +80,29 @@ export default function CaissePage() {
     }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
 
-  const initial = parseFloat(soldeInitial) || 0;
-  const soldeTheorique = initial + stats.entrees - stats.depenses - stats.versements;
+  const initialBalance = session?.openingBalance || 0;
+  const soldeTheorique = initialBalance + stats.entrees - stats.depenses - stats.versements;
   const ecart = soldeReel - soldeTheorique;
+
+  const handleOpenCash = async () => {
+    const amount = parseFloat(openingBalanceInput) || 0;
+    const sessionData = {
+      openingBalance: amount,
+      status: "OPEN",
+      openedAt: serverTimestamp(),
+      date: sessionDocId
+    };
+
+    try {
+      setOpLoading(true);
+      await setDoc(sessionRef, sessionData);
+      toast({ variant: "success", title: "Caisse Ouverte", description: `Session démarrée avec ${formatCurrency(amount)}` });
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `cash_sessions/${sessionDocId}`, operation: "create", requestResourceData: sessionData }));
+    } finally {
+      setOpLoading(false);
+    }
+  };
 
   const handleAddOperation = async () => {
     if (!newOp.montant) {
@@ -131,30 +171,148 @@ export default function CaissePage() {
     }
   };
 
-  const handlePrintClosure = () => {
-    const params = new URLSearchParams({
-      date: new Date().toLocaleDateString("fr-FR"),
-      ventes: stats.entrees.toString(),
-      depenses: stats.depenses.toString(),
-      versements: stats.versements.toString(),
-      reel: soldeReel.toString(),
-      initial: initial.toString()
-    });
+  const handleFinalizeClosure = async () => {
+    try {
+      setOpLoading(true);
+      await updateDoc(sessionRef, {
+        status: "CLOSED",
+        closedAt: serverTimestamp(),
+        closingBalanceReal: soldeReel,
+        closingBalanceTheoretical: soldeTheorique,
+        discrepancy: ecart
+      });
+      
+      const params = new URLSearchParams({
+        date: sessionDocId,
+        ventes: stats.entrees.toString(),
+        depenses: stats.depenses.toString(),
+        versements: stats.versements.toString(),
+        reel: soldeReel.toString(),
+        initial: initialBalance.toString()
+      });
 
-    Object.entries(denoms).forEach(([val, qty]) => {
-      params.append(`d${val}`, qty.toString());
-    });
+      Object.entries(denoms).forEach(([val, qty]) => {
+        params.append(`d${val}`, qty.toString());
+      });
 
-    router.push(`/rapports/print/cloture?${params.toString()}`);
+      router.push(`/rapports/print/cloture?${params.toString()}`);
+      toast({ variant: "success", title: "Caisse Clôturée" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la clôture" });
+    } finally {
+      setOpLoading(false);
+    }
   };
 
+  if (sessionLoading) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vérification de la caisse...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // --- VIEW: CASH CLOSED ---
+  if (session?.status === "CLOSED") {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-2xl mx-auto text-center space-y-8 animate-in fade-in zoom-in duration-500">
+          <div className="h-24 w-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-white shadow-2xl">
+            <Lock className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Caisse Clôturée</h1>
+            <p className="text-muted-foreground font-bold">La journée du {format(todayDate, "dd MMMM yyyy")} est terminée.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 w-full">
+            <Card className="bg-white border-none shadow-md p-6 rounded-[24px]">
+              <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Solde Final Réel</p>
+              <p className="text-2xl font-black text-primary">{formatCurrency(session.closingBalanceReal)}</p>
+            </Card>
+            <Card className="bg-white border-none shadow-md p-6 rounded-[24px]">
+              <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Écart constaté</p>
+              <p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-destructive")}>
+                {session.discrepancy > 0 ? "+" : ""}{formatCurrency(session.discrepancy)}
+              </p>
+            </Card>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20">
+              <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT
+            </Button>
+            <Button onClick={() => router.push("/dashboard")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
+              RETOUR AU TABLEAU DE BORD
+            </Button>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // --- VIEW: CASH NOT OPENED YET ---
+  if (!session) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3">
+            <PlayCircle className="h-12 w-12" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture de Caisse</h1>
+            <p className="text-muted-foreground font-bold">Préparez votre journée du {format(todayDate, "dd MMMM yyyy")}.</p>
+          </div>
+          
+          <Card className="w-full bg-white border-none shadow-2xl p-8 rounded-[40px] space-y-6">
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Saisir le Fond de Caisse (Solde Initial)</Label>
+              <div className="relative">
+                <input 
+                  type="number" 
+                  autoFocus
+                  className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none focus:border-primary/20 transition-all text-primary"
+                  value={openingBalanceInput}
+                  onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                />
+                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleOpenCash} 
+              disabled={opLoading}
+              className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+            >
+              {opLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "OUVRIR LA SESSION"}
+            </Button>
+          </Card>
+          
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <AlertCircle className="inline-block h-3 w-3 mr-1 mb-0.5" /> 
+            L'ouverture enregistre le montant présent physiquement en caisse.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // --- VIEW: DASHBOARD (CASH OPENED) ---
   return (
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Gestion de Caisse</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Suivi des flux réels du magasin.</p>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shrink-0">
+              <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Caisse Ouverte</h1>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Journée du {format(todayDate, "dd/MM/yyyy")}</p>
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -198,7 +356,7 @@ export default function CaissePage() {
 
             <Button 
               variant="outline"
-              onClick={() => router.push(`/rapports/print/journalier?date=${new Date().toISOString().split('T')[0]}`)}
+              onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
               className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 text-primary bg-white hover:bg-primary hover:text-white transition-all shadow-sm flex-1 sm:flex-none"
             >
               <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
@@ -213,7 +371,7 @@ export default function CaissePage() {
               <DialogContent className="max-w-[95vw] sm:max-w-3xl rounded-[24px] sm:rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
                  <DialogHeader className="p-4 sm:p-8 bg-slate-900 text-white">
                     <DialogTitle className="font-black uppercase tracking-widest text-center flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base">
-                      <Coins className="h-5 w-5 sm:h-6 sm:h-6 text-primary" /> Clôture & Comptage
+                      <Coins className="h-5 w-5 sm:h-6 text-primary" /> Clôture & Comptage
                     </DialogTitle>
                  </DialogHeader>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
@@ -241,7 +399,7 @@ export default function CaissePage() {
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-slate-400">
                           <span>Solde Initial</span>
-                          <span className="text-slate-900">{formatCurrency(initial)}</span>
+                          <span className="text-slate-900">{formatCurrency(initialBalance)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-green-600">
                           <span>Total Ventes (+)</span>
@@ -274,13 +432,17 @@ export default function CaissePage() {
                             <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
                               {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
                             </span>
-                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />}
+                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
                           </div>
                         </div>
                       </div>
 
-                      <Button onClick={handlePrintClosure} className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-xl mt-2">
-                        VALIDER & IMPRIMER
+                      <Button 
+                        onClick={handleFinalizeClosure} 
+                        disabled={opLoading}
+                        className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-xl mt-2"
+                      >
+                        {opLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER & CLÔTURER LA JOURNÉE"}
                       </Button>
                     </div>
                  </div>
@@ -335,19 +497,13 @@ export default function CaissePage() {
               <PiggyBank className="h-3.5 w-3.5 text-blue-500" />
               <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Solde Initial</p>
             </div>
-            <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-xl">
-              <input 
-                type="number" 
-                className="w-full bg-transparent text-xl font-black text-blue-600 outline-none" 
-                value={soldeInitial} 
-                onChange={(e) => setSoldeInitial(e.target.value)}
-              />
-              <span className="text-[10px] font-black text-slate-400">DH</span>
+            <div className="bg-slate-50/50 p-2 rounded-xl">
+              <p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
             </div>
           </Card>
           
           <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
-            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Entrées (Ventes)</p>
+            <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Ventes du jour</p>
             <p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
           
@@ -362,35 +518,41 @@ export default function CaissePage() {
           </Card>
           
           <Card className="bg-primary text-primary-foreground p-5 rounded-[24px] shadow-lg flex flex-col justify-center">
-            <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Net Final</p>
-            <p className="text-xl font-black">{formatCurrency(initial + stats.entrees - stats.depenses - stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+            <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Théorique</p>
+            <p className="text-xl font-black">{formatCurrency(soldeTheorique).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </Card>
         </div>
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="py-4 px-6 bg-slate-50/50 border-b">
-            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Derniers Flux de Caisse</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Opérations du Jour ({transactions?.length || 0})</CardTitle>
           </CardHeader>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
+                {loadingTrans ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
+                  transactions?.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
                   transactions?.map((t: any) => (
                     <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                       <TableCell className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase text-slate-800">
-                            {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
-                          </span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2", 
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] font-bold text-slate-400">
+                              {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                            </span>
+                            <span className="text-[11px] font-black uppercase text-slate-800">
+                              {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2 py-0", 
                               t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
                               t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
                             )}>
