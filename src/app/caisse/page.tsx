@@ -16,7 +16,7 @@ import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, Check
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit, setDoc, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, limit, setDoc, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -63,7 +63,7 @@ export default function CaissePage() {
     montant: ""
   });
 
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 5, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
