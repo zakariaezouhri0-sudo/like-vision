@@ -11,12 +11,14 @@ import {
   Eye, 
   TrendingUp,
   HandCoins,
-  Upload
+  Upload,
+  CalendarClock
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tableau de Bord", icon: LayoutDashboard, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/caisse", label: "Gestion Caisse", icon: Wallet, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/caisse/sessions", label: "Sessions de Caisse", icon: CalendarClock, roles: ["ADMIN"] },
   { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "OPTICIENNE"] },
