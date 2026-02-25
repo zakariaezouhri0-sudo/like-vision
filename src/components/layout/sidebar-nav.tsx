@@ -29,15 +29,15 @@ const NAV_ITEMS = [
 
 export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
   const pathname = usePathname();
-  // Normalisation du rôle en majuscules pour éviter les erreurs de filtrage
+  
+  // Normalisation : Si ce n'est pas ADMIN, on considère que c'est OPTICIENNE pour l'affichage
   const currentRole = (role || "OPTICIENNE").toUpperCase();
+  const effectiveRole = currentRole === "ADMIN" ? "ADMIN" : "OPTICIENNE";
 
   return (
     <nav className="flex flex-col gap-1.5 p-2">
-      {NAV_ITEMS.filter(item => item.roles.includes(currentRole)).map((item) => {
+      {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
-        
-        // Logique simplifiée pour l'état actif
         const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
         return (

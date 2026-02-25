@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -39,13 +40,12 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
-    <div className="flex items-center gap-3 min-w-0">
+    <div className="flex items-center gap-4 min-w-0">
       <div className={cn(
         "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
         size === "large" ? "h-14 w-14" : "h-10 w-10"
       )}>
         {settings?.logoUrl ? (
-          // Utilisation de <img> standard pour les logos en base64 (plus fiable que next/image ici)
           <img 
             src={settings.logoUrl} 
             alt="Logo" 
@@ -63,14 +63,14 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
       </div>
-      <div className="flex flex-col justify-center min-w-0">
+      <div className="flex flex-col justify-center min-w-0 pr-4">
         <span className={cn(
-          "font-black tracking-tighter text-primary leading-none uppercase truncate block",
+          "font-black tracking-tighter text-primary leading-tight uppercase block break-words",
           size === "large" ? "text-lg lg:text-xl" : "text-base"
         )}>
           {settings?.name || APP_NAME}
         </span>
-        <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1 shrink-0">
+        <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
           Optique Pro
         </span>
       </div>
@@ -154,9 +154,4 @@ export function AppShell({ children }: AppShellProps) {
       </div>
     </div>
   );
-}
-
-// Helper pour Tailwind
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }
