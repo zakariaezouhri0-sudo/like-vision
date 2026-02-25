@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -169,8 +168,8 @@ function DailyCashReportContent() {
             </p>
           </div>
 
-          <div className="p-3 rounded-xl border border-slate-900/10 text-center bg-slate-900 text-white">
-            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-60">
+          <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary text-white shadow-sm">
+            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-80">
               <Lock className="h-3 w-3" />
               <p className="text-[7px] font-black uppercase tracking-widest">Clôture</p>
             </div>
