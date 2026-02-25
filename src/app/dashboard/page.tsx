@@ -13,7 +13,9 @@ import {
   Users, 
   ChevronRight,
   ThumbsUp,
-  Loader2
+  Loader2,
+  Lock,
+  PlayCircle
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { 
@@ -30,9 +32,9 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import Link from "next/link";
-import { collection, query, orderBy, limit, startOfDay, endOfDay, subDays } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -42,14 +44,21 @@ export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
   const [todayStr, setTodayStr] = useState<string>("");
+  const [sessionDocId, setSessionDocId] = useState<string>("");
 
   useEffect(() => {
-    setTodayStr(new Date().toLocaleDateString("fr-FR", { 
+    const now = new Date();
+    setTodayStr(now.toLocaleDateString("fr-FR", { 
       weekday: 'short', 
       day: 'numeric',
       month: 'short'
     }));
+    setSessionDocId(format(now, "yyyy-MM-dd"));
   }, []);
+
+  // Fetch Current Session Status
+  const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
+  const { data: session } = useDoc(sessionRef);
 
   // Fetch Data
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
@@ -119,6 +128,9 @@ export default function DashboardPage() {
     );
   }
 
+  const isSessionOpen = session?.status === "OPEN";
+  const isSessionClosed = session?.status === "CLOSED";
+
   return (
     <div className="space-y-6 md:space-y-8 pb-10">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
@@ -143,10 +155,31 @@ export default function DashboardPage() {
         </div>
         
         <div className="shrink-0 w-full md:w-auto">
-          <div className="bg-green-100 border border-green-200 rounded-2xl px-5 py-3 flex items-center justify-center md:justify-start gap-3 shadow-sm">
-            <div className="h-2.5 w-2.5 rounded-full bg-green-600 animate-pulse" />
-            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Caisse Ouverte</span>
-          </div>
+          <Link href="/caisse">
+            <div className={cn(
+              "border rounded-2xl px-5 py-3 flex items-center justify-center md:justify-start gap-3 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer",
+              isSessionOpen ? "bg-green-100 border-green-200" : 
+              isSessionClosed ? "bg-slate-100 border-slate-200" : 
+              "bg-orange-100 border-orange-200"
+            )}>
+              <div className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                isSessionOpen ? "bg-green-600 animate-pulse" : 
+                isSessionClosed ? "bg-slate-400" : 
+                "bg-orange-500 animate-bounce"
+              )} />
+              <span className={cn(
+                "text-[10px] font-black uppercase tracking-widest",
+                isSessionOpen ? "text-green-700" : 
+                isSessionClosed ? "text-slate-500" : 
+                "text-orange-700"
+              )}>
+                {isSessionOpen ? "Caisse Ouverte" : 
+                 isSessionClosed ? "Caisse Clôturée" : 
+                 "Ouvrir la Caisse"}
+              </span>
+            </div>
+          </Link>
         </div>
       </div>
 
