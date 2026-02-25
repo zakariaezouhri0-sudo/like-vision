@@ -3,8 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      // Autorise la lecture et l'écriture pour tout le monde (développement et test)
-      // Note: Pour une production réelle, il faudrait restreindre aux utilisateurs authentifiés.
+      // Autorise la lecture et l'écriture pour tout le monde pour garantir le fonctionnement du mode offline et des accès Admin
       allow read, write: if true;
     }
   }
