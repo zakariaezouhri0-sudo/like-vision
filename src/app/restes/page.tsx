@@ -12,7 +12,7 @@ import { Search, HandCoins, Loader2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -23,6 +23,7 @@ import { fr } from "date-fns/locale";
 export default function UnpaidSalesPage() {
   const router = useRouter();
   const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSale, setSelectedSale] = useState<any>(null);
@@ -73,10 +74,12 @@ export default function UnpaidSalesPage() {
     }
     
     const newStatut = isFullyPaid ? "Payé" : "Partiel";
+    const currentUserName = user?.displayName || "Inconnu";
 
     const paymentEntry = {
       amount: amount,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      userName: currentUserName
     };
 
     try {
@@ -97,6 +100,7 @@ export default function UnpaidSalesPage() {
         category: "Optique",
         montant: amount,
         relatedId: finalInvoiceId,
+        userName: currentUserName,
         createdAt: serverTimestamp()
       });
 

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -25,6 +25,7 @@ import { fr } from "date-fns/locale";
 
 function NewSaleForm() {
   const { toast } = useToast();
+  const { user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const db = useFirestore();
@@ -156,6 +157,7 @@ function NewSaleForm() {
     const invoiceId = editId ? searchParams.get("invoiceId") || `${prefix}-2026-${suffix}` : `${prefix}-2026-${suffix}`;
 
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
+    const currentUserName = user?.displayName || "Inconnu";
 
     const saleData = {
       invoiceId,
@@ -179,6 +181,7 @@ function NewSaleForm() {
       payments: nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString() }] : [],
       createdAt: Timestamp.fromDate(saleDate),
       updatedAt: serverTimestamp(),
+      createdBy: currentUserName
     };
 
     try {
@@ -206,6 +209,7 @@ function NewSaleForm() {
           category: "Optique",
           montant: nAvance,
           relatedId: invoiceId,
+          userName: currentUserName,
           createdAt: Timestamp.fromDate(saleDate)
         });
       }
@@ -218,6 +222,7 @@ function NewSaleForm() {
             category: "Achats",
             montant: -Math.abs(nPurchaseFrame),
             relatedId: invoiceId,
+            userName: currentUserName,
             createdAt: Timestamp.fromDate(saleDate)
           });
         }
@@ -228,6 +233,7 @@ function NewSaleForm() {
             category: "Achats",
             montant: -Math.abs(nPurchaseLenses),
             relatedId: invoiceId,
+            userName: currentUserName,
             createdAt: Timestamp.fromDate(saleDate)
           });
         }

@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -26,6 +26,7 @@ const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
 export default function CaissePage() {
   const { toast } = useToast();
+  const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
   
@@ -52,7 +53,6 @@ export default function CaissePage() {
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
   // Fetch last closed session to get report balance
-  // Simplified query to avoid composite index permission issues
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -65,7 +65,6 @@ export default function CaissePage() {
   
   const lastSession = useMemo(() => {
     if (!recentSessions) return null;
-    // Find the most recent session that is CLOSED and not today's session
     return recentSessions.find(s => s.status === "CLOSED" && s.id !== sessionDocId);
   }, [recentSessions, sessionDocId]);
 
@@ -132,7 +131,8 @@ export default function CaissePage() {
       date: sessionDocId,
       wasModified: isModifying,
       modificationReason: isModifying ? modificationReason : null,
-      previousClosingBalance: lastSession?.closingBalanceReal || 0
+      previousClosingBalance: lastSession?.closingBalanceReal || 0,
+      openedBy: user?.displayName || "Inconnu"
     };
 
     try {
@@ -180,6 +180,7 @@ export default function CaissePage() {
       label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : "Vente"),
       category: newOp.category,
       montant: finalAmount,
+      userName: user?.displayName || "Inconnu",
       createdAt: serverTimestamp()
     };
 
@@ -240,7 +241,8 @@ export default function CaissePage() {
         closedAt: serverTimestamp(),
         closingBalanceReal: soldeReel,
         closingBalanceTheoretical: soldeTheorique,
-        discrepancy: ecart
+        discrepancy: ecart,
+        closedBy: user?.displayName || "Inconnu"
       });
       
       const params = new URLSearchParams({
@@ -680,13 +682,14 @@ export default function CaissePage() {
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead>
+                  {role === 'ADMIN' && <TableHead className="text-[10px] uppercase font-black px-6 py-4">Utilisateur</TableHead>}
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loadingTrans ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
-                  transactions?.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
+                {loadingTrans ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
+                  transactions?.length === 0 ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
                   transactions?.map((t: any) => (
                     <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                       <TableCell className="px-6 py-4">
@@ -712,6 +715,14 @@ export default function CaissePage() {
                           </div>
                         </div>
                       </TableCell>
+                      {role === 'ADMIN' && (
+                        <TableCell className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <UserIcon className="h-3 w-3 text-slate-300" />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase">{t.userName || "---"}</span>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
                         {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
                       </TableCell>
