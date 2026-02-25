@@ -6,7 +6,6 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
@@ -93,8 +92,8 @@ function DailyCashReportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center py-12 print:py-0">
-      <div className="no-print w-full max-w-[210mm] flex justify-between mb-8 px-4">
+    <div className="min-h-screen bg-white flex flex-col items-center py-6 print:py-0">
+      <div className="no-print w-full max-w-[210mm] flex justify-between mb-6 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs">
           <Link href="/rapports">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
@@ -105,8 +104,8 @@ function DailyCashReportContent() {
         </Button>
       </div>
 
-      <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[15mm] flex flex-col">
-        <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
+      <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[10mm] pt-[8mm] flex flex-col">
+        <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-6">
           <div className="flex items-center gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
               {shop.logoUrl ? (
@@ -144,21 +143,19 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mb-8">
-          <div className="p-4 rounded-2xl border border-slate-100 text-center">
+        {/* 1. SOLDE INITIAL */}
+        <div className="mb-6">
+          <div className="p-4 rounded-2xl border border-slate-100 text-center bg-slate-50/30">
             <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-widest">Solde Initial (Ouverture)</p>
             <p className="text-xl font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
           </div>
-          <div className="p-4 rounded-2xl border-2 border-primary/10 text-center">
-            <p className="text-[8px] font-black uppercase text-primary mb-1 tracking-widest">Solde Final (Clôture)</p>
-            <p className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reportData.final)}</p>
-          </div>
         </div>
 
-        <div className="space-y-8 flex-1">
+        {/* 2. FLUX DE CAISSE (DÉTAIL) */}
+        <div className="space-y-6 mb-6">
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
-              <span>Détail des Ventes (Encaissements)</span>
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+              <span>Détail des Encaissements (Ventes)</span>
               <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[10px]">
@@ -182,7 +179,7 @@ function DailyCashReportContent() {
           </section>
 
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
               <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + (b.montant || 0), 0)))}</span>
             </h3>
@@ -207,7 +204,7 @@ function DailyCashReportContent() {
           </section>
 
           <section>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque</span>
               <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
@@ -232,7 +229,15 @@ function DailyCashReportContent() {
           </section>
         </div>
 
-        <div className="mt-auto pt-12 border-t border-slate-100 grid grid-cols-2 gap-20">
+        {/* 3. SOLDE FINAL */}
+        <div className="mb-8">
+          <div className="p-4 rounded-2xl border-2 border-primary/10 text-center bg-primary/5">
+            <p className="text-[8px] font-black uppercase text-primary mb-1 tracking-widest">Solde Final (Clôture)</p>
+            <p className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reportData.final)}</p>
+          </div>
+        </div>
+
+        <div className="mt-auto pt-8 border-t border-slate-100 grid grid-cols-2 gap-20">
           <div className="space-y-12">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Caissier</p>
             <div className="border-b border-slate-200 w-full opacity-50"></div>
@@ -243,8 +248,8 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        <div className="mt-8 mb-8 text-center border-t border-slate-50 pt-4">
-          <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">
+        <div className="mt-6 mb-4 text-center border-t border-slate-50 pt-4">
+          <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
             {shop.name} {generationTimestamp ? `• Rapport Généré le ${generationTimestamp}` : ""}
           </p>
         </div>
