@@ -158,7 +158,7 @@ function DailyCashReportContent() {
             <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
           </div>
 
-          <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5">
+          <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
               <ArrowRightLeft className="h-3 w-3 text-primary" />
               <p className="text-[7px] font-black uppercase tracking-widest text-primary">Flux Net Jour</p>
@@ -168,12 +168,12 @@ function DailyCashReportContent() {
             </p>
           </div>
 
-          <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary text-white shadow-sm">
-            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-80">
-              <Lock className="h-3 w-3" />
-              <p className="text-[7px] font-black uppercase tracking-widest">Clôture</p>
+          <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary/10 shadow-sm">
+            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-60">
+              <Lock className="h-3 w-3 text-primary" />
+              <p className="text-[7px] font-black uppercase tracking-widest text-primary">Clôture</p>
             </div>
-            <p className="text-sm font-black tracking-tighter">{formatCurrency(reportData.final)}</p>
+            <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.final)}</p>
           </div>
         </div>
 
