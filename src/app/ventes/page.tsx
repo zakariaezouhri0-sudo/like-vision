@@ -439,7 +439,7 @@ export default function SalesHistoryPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Libellé / Note d'achat</Label>
                 <Input 
-                  placeholder="Ex: Facture fournisseur X, Verres Nikon..."
+                  placeholder="Ex: Verres Nikon..."
                   className="h-14 text-sm font-bold rounded-2xl bg-slate-50 border-none shadow-inner"
                   value={purchaseCosts.label}
                   onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})}
