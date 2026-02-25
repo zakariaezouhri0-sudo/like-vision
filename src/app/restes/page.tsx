@@ -60,6 +60,7 @@ export default function UnpaidSalesPage() {
       newInvoiceId = newInvoiceId.replace("RC-", "FLV-");
     }
 
+    // On prépare l'entrée pour l'historique détaillé des paiements
     const paymentEntry = {
       amount: amount,
       date: new Date().toISOString()
@@ -71,7 +72,7 @@ export default function UnpaidSalesPage() {
         avance: newAvance, 
         reste: newReste, 
         statut: newStatut, 
-        payments: arrayUnion(paymentEntry),
+        payments: arrayUnion(paymentEntry), // Ajout à l'historique
         updatedAt: serverTimestamp() 
       });
       
@@ -86,6 +87,7 @@ export default function UnpaidSalesPage() {
 
       toast({ variant: "success", title: "Paiement validé" });
 
+      // On redirige vers l'impression correspondante
       const page = isFullyPaid ? 'facture' : 'recu';
       const params = new URLSearchParams({ 
         client: selectedSale.clientName, 

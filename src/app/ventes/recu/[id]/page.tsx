@@ -20,8 +20,9 @@ function ReceiptPrintContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
+  // On récupère la vente réelle pour avoir l'historique des paiements enregistré en DB
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), where("invoiceId", "==", params.id)), [db, params.id]);
-  const { data: saleDocs } = useCollection(salesQuery);
+  const { data: saleDocs, isLoading: saleLoading } = useCollection(salesQuery);
   const saleData = saleDocs?.[0];
 
   const shop = {
@@ -32,26 +33,26 @@ function ReceiptPrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || "Client";
-  const clientPhone = searchParams.get("phone") || "---";
+  const clientName = searchParams.get("client") || saleData?.clientName || "Client";
+  const clientPhone = searchParams.get("phone") || saleData?.clientPhone || "---";
   const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const receiptNo = params.id as string;
-  const total = Number(searchParams.get("total")) || 0;
-  const remise = Number(searchParams.get("remise")) || 0;
-  const avance = Number(searchParams.get("avance")) || 0;
+  const total = Number(searchParams.get("total")) || saleData?.total || 0;
+  const remise = Number(searchParams.get("remise")) || saleData?.remise || 0;
+  const avance = Number(searchParams.get("avance")) || saleData?.avance || 0;
   
   const totalNet = Math.max(0, total - remise);
   const reste = Math.max(0, totalNet - avance);
 
   const od = {
-    sph: searchParams.get("od_sph") || "---",
-    cyl: searchParams.get("od_cyl") || "---",
-    axe: searchParams.get("od_axe") || "---"
+    sph: searchParams.get("od_sph") || saleData?.prescription?.od?.sph || "---",
+    cyl: searchParams.get("od_cyl") || saleData?.prescription?.od?.cyl || "---",
+    axe: searchParams.get("od_axe") || saleData?.prescription?.od?.axe || "---"
   };
   const og = {
-    sph: searchParams.get("og_sph") || "---",
-    cyl: searchParams.get("og_cyl") || "---",
-    axe: searchParams.get("og_axe") || "---"
+    sph: searchParams.get("og_sph") || saleData?.prescription?.og?.sph || "---",
+    cyl: searchParams.get("og_cyl") || saleData?.prescription?.og?.cyl || "---",
+    axe: searchParams.get("og_axe") || saleData?.prescription?.og?.axe || "---"
   };
 
   const ReceiptCopy = () => (
@@ -91,7 +92,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table Added here */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
           Prescription Optique
@@ -132,14 +132,16 @@ function ReceiptPrintContent() {
             </tr>
           </thead>
           <tbody>
-            {saleData?.payments && saleData.payments.length > 0 ? saleData.payments.map((p: any, i: number) => (
-              <tr key={i} className="border-b border-slate-50">
-                <td className="p-1.5 font-bold text-slate-600">
-                  {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
-                </td>
-                <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(p.amount)}</td>
-              </tr>
-            )) : (
+            {saleData?.payments && saleData.payments.length > 0 ? (
+              saleData.payments.map((p: any, i: number) => (
+                <tr key={i} className="border-b border-slate-50">
+                  <td className="p-1.5 font-bold text-slate-600">
+                    {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
+                  </td>
+                  <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(p.amount)}</td>
+                </tr>
+              ))
+            ) : (
               <tr className="border-b border-slate-50">
                 <td className="p-1.5 font-bold text-slate-600">{date}</td>
                 <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(avance)}</td>
@@ -173,7 +175,7 @@ function ReceiptPrintContent() {
     </div>
   );
 
-  if (settingsLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
+  if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8">
