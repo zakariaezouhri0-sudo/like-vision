@@ -19,7 +19,8 @@ import {
   Calendar as CalendarIcon,
   ChevronRight,
   TrendingUp,
-  History
+  History,
+  Clock
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -79,7 +80,7 @@ export default function CashSessionsPage() {
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Date & Statut</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest text-center">Utilisateur</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Ouverture</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Mouvement</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Flux Net</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Final</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Écart</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Action</TableHead>
@@ -95,10 +96,10 @@ export default function CashSessionsPage() {
                       return (
                         <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                           <TableCell className="px-6 py-6">
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-2">
-                                <CalendarIcon className="h-3.5 w-3.5 text-primary/40" />
-                                <span className="font-black text-xs text-slate-800 uppercase">
+                                <CalendarIcon className="h-4 w-4 text-primary/40" />
+                                <span className="font-black text-sm text-slate-800 uppercase tracking-tight">
                                   {format(new Date(s.date), "dd MMMM yyyy", { locale: fr })}
                                 </span>
                               </div>
@@ -112,9 +113,9 @@ export default function CashSessionsPage() {
                           </TableCell>
 
                           <TableCell className="px-6 py-6 text-center">
-                            <div className="inline-flex flex-col items-center gap-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 min-w-[120px]">
-                              <UserIcon className="h-3 w-3 text-primary/30" />
-                              <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
+                            <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                              <UserIcon className="h-3.5 w-3.5 text-primary/30" />
+                              <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[120px]">
                                 {s.openedBy || "---"}
                               </span>
                             </div>
@@ -122,11 +123,11 @@ export default function CashSessionsPage() {
                           
                           <TableCell className="px-6 py-6">
                             <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                                <PlayCircle className="h-3 w-3 text-green-500" />
+                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <Clock className="h-3 w-3 text-green-500" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                               </div>
-                              <span className="text-sm font-black text-slate-900">{formatCurrency(s.openingBalance)}</span>
+                              <span className="text-base font-black text-slate-900 tracking-tighter">{formatCurrency(s.openingBalance)}</span>
                             </div>
                           </TableCell>
 
@@ -134,45 +135,45 @@ export default function CashSessionsPage() {
                             {s.status === "CLOSED" ? (
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  <TrendingUp className={cn("h-2.5 w-2.5", fluxNet >= 0 ? "text-green-500" : "text-destructive")} /> 
+                                  <TrendingUp className={cn("h-3 w-3", fluxNet >= 0 ? "text-green-500" : "text-destructive")} /> 
                                   Net Jour
                                 </div>
-                                <span className={cn("text-sm font-black tracking-tighter", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
+                                <span className={cn("text-base font-black tracking-tighter", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-[9px] font-black text-primary/20 uppercase italic tracking-widest">Ouverte</span>
+                              <Badge variant="outline" className="text-[9px] font-black text-primary/40 uppercase border-primary/10">Session Ouverte</Badge>
                             )}
                           </TableCell>
 
                           <TableCell className="text-right px-6 py-6">
                             {s.status === "CLOSED" ? (
                               <div className="flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
-                                  {closedDate ? format(closedDate, "HH:mm") : "--:--"}
+                                <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   <Lock className="h-3 w-3 text-slate-300" />
+                                  {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <span className="text-sm font-black text-slate-900">{formatCurrency(s.closingBalanceReal)}</span>
+                                <span className="text-base font-black text-slate-900 tracking-tighter">{formatCurrency(s.closingBalanceReal)}</span>
                               </div>
                             ) : (
-                              <span className="text-[10px] font-bold text-slate-200">---</span>
+                              <span className="text-xs font-bold text-slate-200">---</span>
                             )}
                           </TableCell>
 
                           <TableCell className="text-right px-6 py-6">
                             {s.status === "CLOSED" ? (
                               <div className={cn(
-                                "flex items-center justify-end gap-2 px-3 py-1.5 rounded-lg border-2 w-fit ml-auto",
+                                "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto",
                                 Math.abs(s.discrepancy) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
                               )}>
-                                <span className="text-[11px] font-black tracking-tighter">
+                                <span className="text-xs font-black tracking-tighter">
                                   {s.discrepancy > 0 ? "+" : ""}{formatCurrency(s.discrepancy)}
                                 </span>
-                                {Math.abs(s.discrepancy) < 0.01 ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                                {Math.abs(s.discrepancy) < 0.01 ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                               </div>
                             ) : (
-                              <span className="text-[10px] font-bold text-slate-200">---</span>
+                              <span className="text-xs font-bold text-slate-200">---</span>
                             )}
                           </TableCell>
 
@@ -181,9 +182,9 @@ export default function CashSessionsPage() {
                               variant="outline" 
                               size="sm"
                               onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)}
-                              className="h-10 px-4 rounded-xl font-black text-[9px] uppercase border-slate-200 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:scale-105"
+                              className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-slate-200 text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:scale-105"
                             >
-                              <FileText className="mr-1.5 h-3.5 w-3.5" /> Rapport
+                              <FileText className="mr-1.5 h-4 w-4" /> Rapport
                             </Button>
                           </TableCell>
                         </TableRow>
