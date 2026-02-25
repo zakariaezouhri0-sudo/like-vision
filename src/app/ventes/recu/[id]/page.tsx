@@ -55,7 +55,7 @@ function ReceiptPrintContent() {
   };
 
   const ReceiptCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[15mm] relative">
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex gap-3">
           <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -66,9 +66,9 @@ function ReceiptPrintContent() {
             )}
           </div>
           <div>
-            <h2 className="text-sm font-black text-slate-900 uppercase leading-tight">{shop.name}</h2>
-            <p className="text-[7px] text-slate-500 font-bold leading-tight">ICE: {shop.icePatent}</p>
-            <p className="text-[7px] font-bold text-slate-700">Tél: {shop.phone}</p>
+            <h2 className="text-xs font-black text-slate-900 uppercase leading-tight">{shop.name}</h2>
+            <p className="text-[6px] text-slate-500 font-bold leading-tight">ICE: {shop.icePatent}</p>
+            <p className="text-[6px] font-bold text-slate-700">Tél: {shop.phone}</p>
           </div>
         </div>
         <div className="text-right">
@@ -76,18 +76,18 @@ function ReceiptPrintContent() {
             <h1 className="text-[8px] font-black uppercase tracking-widest">Reçu</h1>
           </div>
           <p className="text-[8px] font-black text-slate-900">N°: {receiptNo}</p>
-          <p className="text-[7px] text-slate-400 font-bold italic">Date: {date}</p>
+          <p className="text-[6px] text-slate-400 font-bold italic">Date: {date}</p>
         </div>
       </div>
 
-      <div className="mb-6 bg-slate-50 p-4 rounded-xl text-center grid grid-cols-2 gap-4">
+      <div className="mb-6 bg-slate-50 p-3 rounded-xl text-center grid grid-cols-2 gap-4">
         <div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
-          <p className="text-[10px] font-black text-slate-900 uppercase">{clientName}</p>
+          <p className="text-[9px] font-black text-slate-900 uppercase">{clientName}</p>
         </div>
         <div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
-          <p className="text-[10px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
+          <p className="text-[9px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
         </div>
       </div>
 
@@ -99,24 +99,24 @@ function ReceiptPrintContent() {
         <table className="w-full text-[8px] border-collapse">
           <thead>
             <tr className="bg-slate-100 text-slate-600">
-              <th className="border border-slate-200 p-1 text-left uppercase">Oeil</th>
-              <th className="border border-slate-200 p-1 text-center uppercase">Sph</th>
-              <th className="border border-slate-200 p-1 text-center uppercase">Cyl</th>
-              <th className="border border-slate-200 p-1 text-center uppercase">Axe</th>
+              <th className="border border-slate-200 p-1 text-left uppercase font-black">Oeil</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black">Sph</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black">Cyl</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black">Axe</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td className="border border-slate-100 p-1.5 font-bold">Droit (OD)</td>
-              <td className="border border-slate-100 p-1.5 text-center">{od.sph}</td>
-              <td className="border border-slate-100 p-1.5 text-center">{od.cyl}</td>
-              <td className="border border-slate-100 p-1.5 text-center">{od.axe}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{od.sph}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{od.cyl}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{od.axe}</td>
             </tr>
             <tr>
               <td className="border border-slate-100 p-1.5 font-bold">Gauche (OG)</td>
-              <td className="border border-slate-100 p-1.5 text-center">{og.sph}</td>
-              <td className="border border-slate-100 p-1.5 text-center">{og.cyl}</td>
-              <td className="border border-slate-100 p-1.5 text-center">{og.axe}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{og.sph}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{og.cyl}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{og.axe}</td>
             </tr>
           </tbody>
         </table>
@@ -128,8 +128,8 @@ function ReceiptPrintContent() {
         <table className="w-full text-[8px]">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
-              <th className="p-1.5 text-left uppercase">Date</th>
-              <th className="p-1.5 text-right uppercase">Montant</th>
+              <th className="p-1.5 text-left uppercase font-black">Date</th>
+              <th className="p-1.5 text-right uppercase font-black">Montant</th>
             </tr>
           </thead>
           <tbody>
@@ -152,8 +152,9 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
-      <div className="mt-auto space-y-6">
-        <div className="w-full space-y-2 border-t pt-4">
+      <div className="mt-auto space-y-4">
+        {/* Totals Block - Full Width */}
+        <div className="w-full space-y-1.5 border-t pt-3">
           <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
             <span>Total Commande :</span>
             <span>{formatCurrency(totalNet)}</span>
@@ -162,29 +163,31 @@ function ReceiptPrintContent() {
             <span>Total déjà payé :</span>
             <span>{formatCurrency(avance)}</span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-2">
-            <span className="text-[7px] font-black uppercase tracking-widest">Reste à Régler</span>
-            <span className="text-sm font-black tracking-tighter">{formatCurrency(reste)}</span>
+          <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-1">
+            <span className="text-[8px] font-black uppercase tracking-widest">Reste à Régler</span>
+            <span className="text-lg font-black tracking-tighter">{formatCurrency(reste)}</span>
           </div>
         </div>
 
         {/* Message and Stamp Block */}
-        <div className="flex justify-between items-end pr-4">
-          <div className="max-w-[180px] pb-4 animate-in fade-in slide-in-from-left-4 duration-1000">
-            <p className="text-[8px] font-black text-primary italic leading-relaxed">
-              "Merci de votre confiance. <br/>
-              Votre vue est notre priorité. <br/>
-              À bientôt chez Like Vision !"
-            </p>
+        <div className="flex justify-between items-center pr-2 mt-4">
+          <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
+            <div className="border-l-4 border-primary/20 pl-4 py-1">
+              <p className="text-[9px] font-medium text-primary/80 italic leading-relaxed">
+                "Merci de votre confiance.<br/>
+                Votre vue est notre priorité.<br/>
+                À bientôt chez Like Vision !"
+              </p>
+            </div>
           </div>
-          <div className="w-48 h-24 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50/50">
-            <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50">CACHET DU MAGASIN</span>
+          <div className="w-40 h-24 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center bg-slate-50/50 shrink-0">
+            <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50 text-center px-4 leading-tight">CACHET & SIGNATURE<br/>OFFICIELS</span>
           </div>
         </div>
       </div>
 
-      {/* Footer with Extra Print Space */}
-      <div className="flex justify-center items-center mt-8 mb-16 pt-4 border-t border-slate-50">
+      {/* Footer with Extra Print Space (4cm) */}
+      <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50">
         <p className="text-[6px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">{shop.name}</p>
       </div>
     </div>
