@@ -95,8 +95,8 @@ export default function CashSessionsPage() {
 
                       return (
                         <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                          <TableCell className="px-6 py-6">
-                            <div className="flex flex-col gap-2">
+                          <TableCell className="px-6 py-6 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4 text-primary/40" />
                                 <span className="font-black text-sm text-slate-800 uppercase tracking-tight">
@@ -104,7 +104,7 @@ export default function CashSessionsPage() {
                                 </span>
                               </div>
                               <Badge className={cn(
-                                "w-fit text-[8px] font-black uppercase px-2 py-0.5 border-none rounded-md",
+                                "text-[8px] font-black uppercase px-2 py-0.5 border-none rounded-md",
                                 s.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
                               )}>
                                 {s.status === "OPEN" ? "En cours" : "Terminée"}
@@ -112,7 +112,7 @@ export default function CashSessionsPage() {
                             </div>
                           </TableCell>
 
-                          <TableCell className="px-6 py-6 text-center">
+                          <TableCell className="px-6 py-6 text-center whitespace-nowrap">
                             <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
                               <UserIcon className="h-3.5 w-3.5 text-primary/30" />
                               <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[120px]">
@@ -121,24 +121,26 @@ export default function CashSessionsPage() {
                             </div>
                           </TableCell>
                           
-                          <TableCell className="px-6 py-6">
+                          <TableCell className="px-6 py-6 whitespace-nowrap">
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 <Clock className="h-3 w-3 text-green-500" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                               </div>
-                              <span className="text-base font-black text-slate-900 tracking-tighter">{formatCurrency(s.openingBalance)}</span>
+                              <span className="text-base font-black text-slate-900 tracking-tighter whitespace-nowrap">
+                                {formatCurrency(s.openingBalance)}
+                              </span>
                             </div>
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6">
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   <TrendingUp className={cn("h-3 w-3", fluxNet >= 0 ? "text-green-500" : "text-destructive")} /> 
                                   Net Jour
                                 </div>
-                                <span className={cn("text-base font-black tracking-tighter", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
+                                <span className={cn("text-base font-black tracking-tighter whitespace-nowrap", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </span>
                               </div>
@@ -147,24 +149,26 @@ export default function CashSessionsPage() {
                             )}
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6">
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   <Lock className="h-3 w-3 text-slate-300" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <span className="text-base font-black text-slate-900 tracking-tighter">{formatCurrency(s.closingBalanceReal)}</span>
+                                <span className="text-base font-black text-slate-900 tracking-tighter whitespace-nowrap">
+                                  {formatCurrency(s.closingBalanceReal)}
+                                </span>
                               </div>
                             ) : (
                               <span className="text-xs font-bold text-slate-200">---</span>
                             )}
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6">
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
                               <div className={cn(
-                                "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto",
+                                "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto whitespace-nowrap",
                                 Math.abs(s.discrepancy) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
                               )}>
                                 <span className="text-xs font-black tracking-tighter">
@@ -177,7 +181,7 @@ export default function CashSessionsPage() {
                             )}
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6">
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             <Button 
                               variant="outline" 
                               size="sm"
