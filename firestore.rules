@@ -2,11 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Autorisation globale pour le MVP (WATCHER TRIGGER RE-DEPLOY)
+    // Cette règle permet de lire et d'écrire sur n'importe quel document ou collection.
     match /{document=**} {
       allow read, write: if true;
     }
 
-    // Règles explicites pour les collections principales pour éviter les ambiguïtés
+    // Sécurité explicite pour les collections principales pour garantir le succès des requêtes (list)
     match /users/{userId} {
       allow read, write: if true;
     }
