@@ -34,16 +34,17 @@ export function AppShell({ children }: AppShellProps) {
 
   const userName = user?.displayName || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
+  const displayRole = role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE";
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
   };
 
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
-    <div className="flex items-center gap-4 min-w-0">
+    <div className="flex items-center gap-3 min-w-0">
       <div className={cn(
         "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
-        size === "large" ? "h-14 w-14" : "h-10 w-10"
+        size === "large" ? "h-12 w-12" : "h-9 w-9"
       )}>
         {settings?.logoUrl ? (
           <img 
@@ -57,20 +58,20 @@ export function AppShell({ children }: AppShellProps) {
             size === "large" ? "p-2" : "p-1.5"
           )}>
             <div className="relative">
-              <Glasses className={size === "large" ? "h-8 w-8" : "h-6 w-6"} />
-              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white", size === "large" ? "h-4 w-4" : "h-3 w-3")} />
+              <Glasses className={size === "large" ? "h-7 w-7" : "h-5 w-5"} />
+              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white", size === "large" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
             </div>
           </div>
         )}
       </div>
-      <div className="flex flex-col justify-center min-w-0 pr-4">
+      <div className="flex flex-col justify-center min-w-0 pr-2">
         <span className={cn(
-          "font-black tracking-tighter text-primary leading-tight uppercase block break-words",
-          size === "large" ? "text-lg lg:text-xl" : "text-base"
+          "font-black tracking-tighter text-primary leading-tight uppercase block whitespace-nowrap",
+          size === "large" ? "text-sm lg:text-base" : "text-xs"
         )}>
           {settings?.name || APP_NAME}
         </span>
-        <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
+        <span className="text-[7px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
           Optique Pro
         </span>
       </div>
@@ -83,7 +84,7 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="w-72 border-r bg-white hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <Link 
           href="/dashboard" 
-          className="h-28 border-b flex items-center px-6 hover:bg-slate-50 transition-all"
+          className="h-24 border-b flex items-center px-6 hover:bg-slate-50 transition-all"
         >
           <LogoContainer size="large" />
         </Link>
@@ -97,7 +98,7 @@ export function AppShell({ children }: AppShellProps) {
             </Avatar>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate capitalize text-slate-900">{userName}</span>
-              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{role}</span>
+              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{displayRole}</span>
             </div>
           </div>
         </div>

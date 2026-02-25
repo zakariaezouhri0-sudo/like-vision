@@ -38,7 +38,19 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
     <nav className="flex flex-col gap-1.5 p-2">
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        
+        // Enhanced active state detection:
+        // 1. Exact match
+        // 2. Sub-path match ONLY IF there isn't a more specific match in NAV_ITEMS
+        const isExact = pathname === item.href;
+        const isSubPath = pathname.startsWith(item.href + "/");
+        const hasBetterMatch = NAV_ITEMS.some(other => 
+          other.href !== item.href && 
+          other.href.length > item.href.length && 
+          pathname.startsWith(other.href)
+        );
+
+        const isActive = isExact || (isSubPath && !hasBetterMatch);
 
         return (
           <Link
