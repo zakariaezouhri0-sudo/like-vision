@@ -54,7 +54,7 @@ function ReceiptPrintContent() {
   };
 
   const ReceiptCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex gap-3">
           <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative bg-white">
@@ -82,10 +82,10 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      <div className="mb-6 border-y border-slate-100 py-3 text-center grid grid-cols-2 gap-4">
+      <div className="mb-6 bg-slate-50 border-y border-slate-200 py-4 px-2 text-center grid grid-cols-2 gap-4 rounded-xl">
         <div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
-          <p className="text-[9px] font-black text-slate-900 uppercase">{clientName}</p>
+          <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{clientName}</p>
         </div>
         <div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>

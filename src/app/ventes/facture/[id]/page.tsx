@@ -52,7 +52,7 @@ function InvoicePrintContent() {
   };
 
   const InvoiceCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[12mm] relative">
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
       {/* Header */}
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex gap-4">
@@ -82,12 +82,12 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Info Block - No Background */}
-      <div className="mb-6 border-y border-slate-100 py-3 text-center space-y-2">
+      {/* Client Info Block - Gray Background requested */}
+      <div className="mb-6 bg-slate-50 border-y border-slate-200 py-4 px-2 text-center rounded-xl space-y-2">
         <div className="grid grid-cols-3 gap-2 items-center">
           <div className="space-y-1">
             <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
-            <p className="text-[9px] font-black text-slate-900 uppercase">{clientName}</p>
+            <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{clientName}</p>
           </div>
           <div className="space-y-1 border-x border-slate-200">
             <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
@@ -95,7 +95,7 @@ function InvoicePrintContent() {
           </div>
           <div className="space-y-1">
             <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Mutuelle</p>
-            <p className="text-[9px] font-black text-slate-900 uppercase">{mutuelle}</p>
+            <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{mutuelle}</p>
           </div>
         </div>
       </div>
