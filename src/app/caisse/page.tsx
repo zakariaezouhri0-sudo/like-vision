@@ -394,7 +394,7 @@ export default function CaissePage() {
             <Button 
               variant="outline"
               onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
-              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 text-primary bg-white hover:bg-primary hover:text-white transition-all shadow-sm flex-1 sm:flex-none"
+              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-accent/20 text-accent bg-accent/5 hover:bg-accent hover:text-white transition-all shadow-md flex-1 sm:flex-none"
             >
               <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
             </Button>
