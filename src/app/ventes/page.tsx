@@ -416,15 +416,6 @@ export default function SalesHistoryPage() {
               <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Facture {costDialogSale?.invoiceId}</p>
             </DialogHeader>
             <div className="p-6 md:p-8 space-y-6 bg-white">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Libellé / Note d'achat</Label>
-                <Input 
-                  placeholder="Ex: Facture fournisseur X, Verres Nikon..."
-                  className="h-14 text-sm font-bold rounded-2xl bg-slate-50 border-none shadow-inner"
-                  value={purchaseCosts.label}
-                  onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})}
-                />
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coût Monture (DH)</Label>
@@ -444,6 +435,15 @@ export default function SalesHistoryPage() {
                     onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} 
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Libellé / Note d'achat</Label>
+                <Input 
+                  placeholder="Ex: Facture fournisseur X, Verres Nikon..."
+                  className="h-14 text-sm font-bold rounded-2xl bg-slate-50 border-none shadow-inner"
+                  value={purchaseCosts.label}
+                  onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})}
+                />
               </div>
               <p className="text-[9px] font-bold text-slate-400 uppercase leading-relaxed text-center px-4 italic">
                 * La validation créera automatiquement des transactions de dépenses en caisse pour ces montants.
