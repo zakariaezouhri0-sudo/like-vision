@@ -153,7 +153,7 @@ function NewSaleForm() {
     const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
     
     const suffix = Date.now().toString().slice(-6);
-    const prefix = isPaid ? "FLV" : "RC";
+    const prefix = isPaid ? "FC" : "RC"; // Mis à jour: FC pour factures, RC pour reçus
     const invoiceId = editId ? searchParams.get("invoiceId") || `${prefix}-2026-${suffix}` : `${prefix}-2026-${suffix}`;
 
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;

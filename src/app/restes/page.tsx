@@ -70,7 +70,7 @@ export default function UnpaidSalesPage() {
     
     let finalInvoiceId = selectedSale.invoiceId;
     if (isFullyPaid && selectedSale.invoiceId.startsWith("RC")) {
-      finalInvoiceId = selectedSale.invoiceId.replace("RC", "FLV");
+      finalInvoiceId = selectedSale.invoiceId.replace("RC", "FC"); // Mis à jour: Passage de RC à FC une fois soldé
     }
     
     const newStatut = isFullyPaid ? "Payé" : "Partiel";
