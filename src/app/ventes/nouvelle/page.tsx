@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -131,6 +130,8 @@ function NewSaleForm() {
   const nTotal = cleanVal(total);
   const nDiscount = cleanVal(discountValue);
   const nAvance = cleanVal(avance);
+  const nPurchaseFrame = cleanVal(purchasePriceFrame);
+  const nPurchaseLenses = cleanVal(purchasePriceLenses);
 
   const remiseAmountValue = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
   const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
@@ -168,8 +169,8 @@ function NewSaleForm() {
       remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
       avance: nAvance,
       reste: resteAPayerValue,
-      purchasePriceFrame: cleanVal(purchasePriceFrame),
-      purchasePriceLenses: cleanVal(purchasePriceLenses),
+      purchasePriceFrame: nPurchaseFrame,
+      purchasePriceLenses: nPurchaseLenses,
       statut,
       prescription,
       monture,
@@ -197,6 +198,7 @@ function NewSaleForm() {
         await addDoc(collection(db, "sales"), saleData);
       }
 
+      // Transactions for income (Avance)
       if (nAvance > 0 && !editId) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",
@@ -206,6 +208,30 @@ function NewSaleForm() {
           relatedId: invoiceId,
           createdAt: Timestamp.fromDate(saleDate)
         });
+      }
+
+      // Transactions for costs (Depenses)
+      if (!editId) {
+        if (nPurchaseFrame > 0) {
+          await addDoc(collection(db, "transactions"), {
+            type: "DEPENSE",
+            label: `Achat Monture ${invoiceId}`,
+            category: "Achats",
+            montant: -Math.abs(nPurchaseFrame),
+            relatedId: invoiceId,
+            createdAt: Timestamp.fromDate(saleDate)
+          });
+        }
+        if (nPurchaseLenses > 0) {
+          await addDoc(collection(db, "transactions"), {
+            type: "DEPENSE",
+            label: `Achat Verres ${invoiceId}`,
+            category: "Achats",
+            montant: -Math.abs(nPurchaseLenses),
+            relatedId: invoiceId,
+            createdAt: Timestamp.fromDate(saleDate)
+          });
+        }
       }
 
       if (!silent) {

@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -34,6 +35,11 @@ export default function SalesHistoryPage() {
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+
+  // State for Purchase Costs Dialog
+  const [costDialogSale, setCostDialogSale] = useState<any>(null);
+  const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "" });
+  const [isSavingCosts, setIsSavingCosts] = useState(false);
 
   useEffect(() => {
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
@@ -122,6 +128,61 @@ export default function SalesHistoryPage() {
       date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "",
     });
     router.push(`/ventes/nouvelle?${params.toString()}`);
+  };
+
+  const handleOpenCosts = (sale: any) => {
+    setCostDialogSale(sale);
+    setPurchaseCosts({
+      frame: (sale.purchasePriceFrame || 0).toString(),
+      lenses: (sale.purchasePriceLenses || 0).toString(),
+    });
+  };
+
+  const handleUpdateCosts = async () => {
+    if (!costDialogSale) return;
+    setIsSavingCosts(true);
+
+    const frameCost = parseFloat(purchaseCosts.frame) || 0;
+    const lensesCost = parseFloat(purchaseCosts.lenses) || 0;
+
+    try {
+      const saleRef = doc(db, "sales", costDialogSale.id);
+      await updateDoc(saleRef, {
+        purchasePriceFrame: frameCost,
+        purchasePriceLenses: lensesCost,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Create transactions for purchase costs if they were added
+      if (frameCost > 0) {
+        await addDoc(collection(db, "transactions"), {
+          type: "DEPENSE",
+          label: `Achat Monture ${costDialogSale.invoiceId}`,
+          category: "Achats",
+          montant: -Math.abs(frameCost),
+          relatedId: costDialogSale.invoiceId,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      if (lensesCost > 0) {
+        await addDoc(collection(db, "transactions"), {
+          type: "DEPENSE",
+          label: `Achat Verres ${costDialogSale.invoiceId}`,
+          category: "Achats",
+          montant: -Math.abs(lensesCost),
+          relatedId: costDialogSale.invoiceId,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      toast({ variant: "success", title: "Coûts mis à jour", description: "Les dépenses ont été enregistrées en caisse." });
+      setCostDialogSale(null);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur" });
+    } finally {
+      setIsSavingCosts(false);
+    }
   };
 
   const handleDelete = async (id: string, invoiceId: string) => {
@@ -314,6 +375,11 @@ export default function SalesHistoryPage() {
                                   {sale.reste <= 0 ? <FileText className="mr-3 h-4 w-4 text-primary" /> : <Printer className="mr-3 h-4 w-4 text-primary" />}
                                   {sale.reste <= 0 ? "Facture" : "Reçu"}
                                 </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => handleOpenCosts(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                  <Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat
+                                </DropdownMenuItem>
+
                                 {role === 'ADMIN' && (
                                   <>
                                     <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
@@ -334,6 +400,49 @@ export default function SalesHistoryPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dialog for Purchase Costs (Allowed for OPTICIENNE) */}
+        <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
+          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+            <DialogHeader className="p-6 md:p-8 bg-primary text-white">
+              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3">
+                <Tag className="h-6 w-6" /> Coûts d'Achat (Interne)
+              </DialogTitle>
+              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Facture {costDialogSale?.invoiceId}</p>
+            </DialogHeader>
+            <div className="p-6 md:p-8 space-y-6 bg-white">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coût Monture (DH)</Label>
+                  <Input 
+                    type="number" 
+                    className="h-14 text-lg font-black rounded-2xl bg-slate-50 border-none shadow-inner text-center" 
+                    value={purchaseCosts.frame} 
+                    onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coût Verres (DH)</Label>
+                  <Input 
+                    type="number" 
+                    className="h-14 text-lg font-black rounded-2xl bg-slate-50 border-none shadow-inner text-center" 
+                    value={purchaseCosts.lenses} 
+                    onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <p className="text-[9px] font-bold text-slate-400 uppercase leading-relaxed text-center px-4 italic">
+                * La validation créera automatiquement des transactions de dépenses en caisse pour ces montants.
+              </p>
+            </div>
+            <DialogFooter className="p-6 md:p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
+              <Button variant="ghost" className="w-full h-12 font-black uppercase text-[10px]" onClick={() => setCostDialogSale(null)}>Annuler</Button>
+              <Button className="w-full h-12 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleUpdateCosts} disabled={isSavingCosts}>
+                {isSavingCosts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />} VALIDER LES COÛTS
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );
