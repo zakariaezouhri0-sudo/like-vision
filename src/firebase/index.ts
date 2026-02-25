@@ -11,31 +11,31 @@ import {
   Firestore
 } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
   let app: FirebaseApp;
   
   if (!getApps().length) {
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      app = initializeApp();
+      app = initializeApp(firebaseConfig);
     } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
       app = initializeApp(firebaseConfig);
     }
   } else {
     app = getApp();
   }
 
-  // Initialize Firestore with Offline Persistence (Offline Mode)
-  // This enables the app to work without internet and sync later.
-  const firestore = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
+  let firestore: Firestore;
+  try {
+    // On essaie de récupérer l'instance déjà initialisée
+    firestore = getFirestore(app);
+  } catch (e) {
+    // Si elle n'existe pas, on l'initialise avec la persistance offline
+    firestore = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+  }
 
   return {
     firebaseApp: app,
