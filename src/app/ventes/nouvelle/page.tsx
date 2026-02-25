@@ -175,7 +175,6 @@ function NewSaleForm() {
       monture,
       verres,
       notes,
-      // On initialise l'historique des paiements avec le premier versement s'il existe
       payments: nAvance > 0 ? [{ amount: nAvance, date: Timestamp.fromDate(saleDate) }] : [],
       createdAt: Timestamp.fromDate(saleDate),
       updatedAt: serverTimestamp(),

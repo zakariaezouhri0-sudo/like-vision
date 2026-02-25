@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, HandCoins, Loader2 } from "lucide-react";
+import { Search, HandCoins, Loader2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
@@ -18,6 +18,8 @@ import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, add
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function UnpaidSalesPage() {
   const router = useRouter();
@@ -28,7 +30,13 @@ export default function UnpaidSalesPage() {
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const unpaidSalesQuery = useMemoFirebase(() => query(collection(db, "sales"), where("reste", ">", 0), orderBy("reste", "desc")), [db]);
+  // Tri par date de création (du plus récent au plus ancien)
+  const unpaidSalesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"), 
+    where("reste", ">", 0), 
+    orderBy("createdAt", "desc")
+  ), [db]);
+  
   const { data: sales, isLoading: loading } = useCollection(unpaidSalesQuery);
 
   const filteredSales = sales?.filter((sale: any) => 
@@ -54,13 +62,8 @@ export default function UnpaidSalesPage() {
     const isFullyPaid = newReste <= 0;
     const newStatut = isFullyPaid ? "Payé" : "Partiel";
 
-    // Si totalement payé, on transforme le préfixe RC en FLV
     let newInvoiceId = selectedSale.invoiceId;
-    if (isFullyPaid && newInvoiceId.startsWith("RC-")) {
-      newInvoiceId = newInvoiceId.replace("RC-", "FLV-");
-    }
-
-    // On prépare l'entrée pour l'historique détaillé des paiements
+    
     const paymentEntry = {
       amount: amount,
       date: new Date().toISOString()
@@ -72,7 +75,7 @@ export default function UnpaidSalesPage() {
         avance: newAvance, 
         reste: newReste, 
         statut: newStatut, 
-        payments: arrayUnion(paymentEntry), // Ajout à l'historique
+        payments: arrayUnion(paymentEntry),
         updatedAt: serverTimestamp() 
       });
       
@@ -87,7 +90,6 @@ export default function UnpaidSalesPage() {
 
       toast({ variant: "success", title: "Paiement validé" });
 
-      // On redirige vers l'impression correspondante
       const page = isFullyPaid ? 'facture' : 'recu';
       const params = new URLSearchParams({ 
         client: selectedSale.clientName, 
@@ -122,7 +124,7 @@ export default function UnpaidSalesPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Gestion des créances clients.</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Gestion des créances par date.</p>
           </div>
         </div>
 
@@ -131,7 +133,7 @@ export default function UnpaidSalesPage() {
             <div className="relative max-w-md">
               <Search className="absolute left-4 top-3.5 md:top-4 h-5 w-5 text-primary/40" />
               <input 
-                placeholder="Chercher par nom, téléphone..." 
+                placeholder="Chercher client, document..." 
                 className="w-full pl-12 h-12 md:h-14 text-sm md:text-base font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none" 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
@@ -148,7 +150,7 @@ export default function UnpaidSalesPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 whitespace-nowrap">Client</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 whitespace-nowrap">Date & Client</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 whitespace-nowrap">Total Net</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600 whitespace-nowrap">Payé</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive whitespace-nowrap">Reste</TableHead>
@@ -159,13 +161,15 @@ export default function UnpaidSalesPage() {
                     {filteredSales.length > 0 ? filteredSales.map((sale: any) => (
                       <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                         <TableCell className="px-3 md:px-6 py-4 md:py-5">
-                          <div className="flex flex-col min-w-[120px]">
+                          <div className="flex flex-col min-w-[140px]">
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
+                              <Calendar className="h-2.5 w-2.5" />
+                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
+                            </div>
                             <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
                               {sale.clientName}
                             </span>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[9px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded uppercase">{sale.invoiceId}</span>
-                            </div>
+                            <span className="text-[9px] font-black text-primary/40 uppercase mt-0.5">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 font-black text-[11px] md:text-sm whitespace-nowrap">
@@ -190,7 +194,7 @@ export default function UnpaidSalesPage() {
                     )) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
-                          Tout est à jour !
+                          Aucun reste à régler trouvé.
                         </TableCell>
                       </TableRow>
                     )}
@@ -207,12 +211,12 @@ export default function UnpaidSalesPage() {
               <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3">
                 <HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Versement
               </DialogTitle>
-              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Facture {selectedSale?.invoiceId}</p>
+              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
             </DialogHeader>
             <div className="p-6 md:p-8 space-y-6">
               <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                  <span>Client :</span><span className="text-slate-900">{selectedSale?.clientName}</span>
+                  <span>Client :</span><span className="text-slate-900 font-bold">{selectedSale?.clientName}</span>
                 </div>
                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
                   <span>Reste à payer :</span><span className="text-destructive font-black text-sm">{formatCurrency(selectedSale?.reste || 0)}</span>

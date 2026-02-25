@@ -146,7 +146,6 @@ function DailyCashReportContent() {
 
         {/* Listes Breakdown */}
         <div className="space-y-8 flex-1">
-          {/* Ventes */}
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Ventes (Encaissements)</span>
@@ -172,7 +171,6 @@ function DailyCashReportContent() {
             </table>
           </section>
 
-          {/* Dépenses */}
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
@@ -198,7 +196,6 @@ function DailyCashReportContent() {
             </table>
           </section>
 
-          {/* Versements */}
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque / Apports</span>
@@ -227,7 +224,6 @@ function DailyCashReportContent() {
           </section>
         </div>
 
-        {/* Footer */}
         <div className="mt-auto pt-12 border-t border-slate-100 grid grid-cols-2 gap-20">
           <div className="space-y-12">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Caissier</p>

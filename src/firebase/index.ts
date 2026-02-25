@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -26,10 +27,10 @@ export function initializeFirebase() {
 
   let firestore: Firestore;
   try {
-    // On essaie de récupérer l'instance déjà initialisée
+    // Tentative de récupération de l'instance existante
     firestore = getFirestore(app);
   } catch (e) {
-    // Si elle n'existe pas, on l'initialise avec la persistance offline
+    // Initialisation avec persistance offline
     firestore = initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager()
