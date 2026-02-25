@@ -10,7 +10,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
-import { format, startOfDay, endOfDay, isBefore, isWithinInterval as isWithinDateInterval } from "date-fns";
+import { format, startOfDay, endOfDay, isBefore, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function DailyCashReportContent() {
@@ -58,7 +58,7 @@ function DailyCashReportContent() {
 
       if (isBefore(tDate, start)) {
         initialBalance += t.montant;
-      } else if (isWithinDateInterval(tDate, { start, end })) {
+      } else if (isWithinInterval(tDate, { start, end })) {
         if (t.type === "VENTE") salesList.push(t);
         else if (t.type === "DEPENSE") expensesList.push(t);
         else if (t.type === "VERSEMENT") versementsList.push(t);
@@ -66,7 +66,7 @@ function DailyCashReportContent() {
       }
     });
 
-    const dayTransactions = transactions.filter((t: any) => t.createdAt?.toDate && isWithinDateInterval(t.createdAt.toDate(), { start, end }));
+    const dayTransactions = transactions.filter((t: any) => t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start, end }));
     const totalDay = dayTransactions.reduce((acc: number, curr: any) => acc + curr.montant, 0);
 
     return { 
