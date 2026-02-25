@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon, Calendar, ArrowLeft } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon, Calendar, ArrowLeft, ArrowRightLeft, TrendingUp, TrendingDown, Landmark } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
@@ -303,14 +303,14 @@ function CaisseContent() {
   // --- VIEW: CASH CLOSED ---
   if (session?.status === "CLOSED") {
     return (
-      <div className="space-y-8 animate-in fade-in zoom-in duration-500">
+      <div className="space-y-8 animate-in fade-in zoom-in duration-500 pb-20">
         {!isToday && (
           <Button variant="ghost" onClick={() => router.push('/caisse/sessions')} className="font-black text-xs uppercase text-primary mb-2">
             <ArrowLeft className="mr-2 h-4 w-4" /> RETOUR AU JOURNAL
           </Button>
         )}
         
-        <div className="flex flex-col items-center justify-center max-w-2xl mx-auto text-center space-y-8">
+        <div className="flex flex-col items-center justify-center max-w-4xl mx-auto text-center space-y-8">
           <div className="h-24 w-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-white shadow-2xl">
             <Lock className="h-10 w-10" />
           </div>
@@ -334,20 +334,97 @@ function CaisseContent() {
             )}
           </div>
 
-          <Card className="w-full bg-white border shadow-sm p-6 rounded-[32px]">
-             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-4 text-left">RÉCAPITULATIF DES OPÉRATIONS</h3>
-             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="text-left"><p className="text-[8px] font-black uppercase text-slate-400">Ouverture</p><p className="font-black text-sm">{formatCurrency(session.openingBalance)}</p></div>
-                <div className="text-left"><p className="text-[8px] font-black uppercase text-green-600">Ventes</p><p className="font-black text-sm text-green-600">+{formatCurrency(stats.entrees)}</p></div>
-                <div className="text-left"><p className="text-[8px] font-black uppercase text-destructive">Dépenses</p><p className="font-black text-sm text-destructive">-{formatCurrency(stats.depenses)}</p></div>
-                <div className="text-left"><p className="text-[8px] font-black uppercase text-orange-600">Versements</p><p className="font-black text-sm text-orange-600">-{formatCurrency(stats.versements)}</p></div>
-             </div>
-          </Card>
+          {/* Grouped Operations Summary like in Report */}
+          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            {/* VENTES */}
+            <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
+              <div className="bg-green-50 px-5 py-4 border-b border-green-100 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Ventes</span>
+                </div>
+                <span className="text-xs font-black text-green-700">+{formatCurrency(stats.entrees)}</span>
+              </div>
+              <div className="p-5 space-y-3 max-h-[300px] overflow-y-auto">
+                {transactions?.filter(t => t.type === 'VENTE').length > 0 ? (
+                  transactions?.filter(t => t.type === 'VENTE').map(t => (
+                    <div key={t.id} className="flex flex-col border-b border-slate-50 pb-2 last:border-0">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-black text-slate-700 uppercase leading-tight flex-1 pr-2">{t.label}</span>
+                        <span className="text-[10px] font-black text-green-600 whitespace-nowrap">{formatCurrency(t.montant)}</span>
+                      </div>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                        {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[9px] text-slate-300 italic text-center py-4 uppercase font-black">Aucune vente</p>
+                )}
+              </div>
+            </Card>
+
+            {/* CHARGES / DEPENSES */}
+            <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
+              <div className="bg-red-50 px-5 py-4 border-b border-red-100 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-red-600" />
+                  <span className="text-[10px] font-black text-red-700 uppercase tracking-widest">Dépenses</span>
+                </div>
+                <span className="text-xs font-black text-red-700">-{formatCurrency(stats.depenses)}</span>
+              </div>
+              <div className="p-5 space-y-3 max-h-[300px] overflow-y-auto">
+                {transactions?.filter(t => t.type === 'DEPENSE').length > 0 ? (
+                  transactions?.filter(t => t.type === 'DEPENSE').map(t => (
+                    <div key={t.id} className="flex flex-col border-b border-slate-50 pb-2 last:border-0">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-black text-slate-700 uppercase leading-tight flex-1 pr-2">{t.label}</span>
+                        <span className="text-[10px] font-black text-red-600 whitespace-nowrap">{formatCurrency(t.montant)}</span>
+                      </div>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                        {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[9px] text-slate-300 italic text-center py-4 uppercase font-black">Aucune dépense</p>
+                )}
+              </div>
+            </Card>
+
+            {/* VERSEMENTS */}
+            <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
+              <div className="bg-orange-50 px-5 py-4 border-b border-orange-100 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Landmark className="h-4 w-4 text-orange-600" />
+                  <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Banque</span>
+                </div>
+                <span className="text-xs font-black text-orange-700">-{formatCurrency(stats.versements)}</span>
+              </div>
+              <div className="p-5 space-y-3 max-h-[300px] overflow-y-auto">
+                {transactions?.filter(t => t.type === 'VERSEMENT').length > 0 ? (
+                  transactions?.filter(t => t.type === 'VERSEMENT').map(t => (
+                    <div key={t.id} className="flex flex-col border-b border-slate-50 pb-2 last:border-0">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-black text-slate-700 uppercase leading-tight flex-1 pr-2">{t.label}</span>
+                        <span className="text-[10px] font-black text-orange-600 whitespace-nowrap">{formatCurrency(t.montant)}</span>
+                      </div>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                        {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[9px] text-slate-300 italic text-center py-4 uppercase font-black">Aucun versement</p>
+                )}
+              </div>
+            </Card>
+          </div>
 
           <div className="flex flex-col gap-4 w-full">
             <div className="flex flex-col sm:flex-row gap-4 w-full">
-              <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20">
-                <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT
+              <Button onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-xs border-primary/20 bg-white">
+                <FileText className="mr-2 h-5 w-5" /> REVOIR LE RAPPORT COMPLET
               </Button>
               <Button onClick={() => isToday ? router.push("/dashboard") : router.push("/caisse/sessions")} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs shadow-xl">
                 RETOUR {isToday ? "AU TABLEAU DE BORD" : "AU JOURNAL"}
