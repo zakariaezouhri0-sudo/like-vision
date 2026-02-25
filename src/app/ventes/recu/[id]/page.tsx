@@ -168,7 +168,15 @@ function ReceiptPrintContent() {
           </div>
         </div>
 
-        <div className="flex justify-end pr-4">
+        {/* Message and Stamp Block */}
+        <div className="flex justify-between items-end pr-4">
+          <div className="max-w-[180px] pb-4 animate-in fade-in slide-in-from-left-4 duration-1000">
+            <p className="text-[8px] font-black text-primary italic leading-relaxed">
+              "Merci de votre confiance. <br/>
+              Votre vue est notre priorité. <br/>
+              À bientôt chez Like Vision !"
+            </p>
+          </div>
           <div className="w-48 h-24 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50/50">
             <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50">CACHET DU MAGASIN</span>
           </div>
@@ -176,7 +184,7 @@ function ReceiptPrintContent() {
       </div>
 
       {/* Footer with Extra Print Space */}
-      <div className="mt-8 mb-16 text-center border-t border-slate-50 pt-4">
+      <div className="flex justify-center items-center mt-8 mb-16 pt-4 border-t border-slate-50">
         <p className="text-[6px] text-slate-300 font-bold uppercase tracking-[0.4em] italic">{shop.name}</p>
       </div>
     </div>

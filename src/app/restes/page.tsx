@@ -64,10 +64,17 @@ export default function UnpaidSalesPage() {
     if (isNaN(amount) || amount <= 0) return;
 
     setIsProcessing(true);
-    const newAvance = (selectedSale.avance || 0) + amount;
     const totalNet = selectedSale.total - (selectedSale.remise || 0);
+    const newAvance = (selectedSale.avance || 0) + amount;
     const newReste = Math.max(0, totalNet - newAvance);
     const isFullyPaid = newReste <= 0;
+    
+    // Si c'est totalement payé, on change le préfixe en FLV, sinon on garde l'actuel
+    let finalInvoiceId = selectedSale.invoiceId;
+    if (isFullyPaid && selectedSale.invoiceId.startsWith("RC")) {
+      finalInvoiceId = selectedSale.invoiceId.replace("RC", "FLV");
+    }
+    
     const newStatut = isFullyPaid ? "Payé" : "Partiel";
 
     const paymentEntry = {
@@ -78,6 +85,7 @@ export default function UnpaidSalesPage() {
     try {
       const saleRef = doc(db, "sales", selectedSale.id);
       await updateDoc(saleRef, { 
+        invoiceId: finalInvoiceId,
         avance: newAvance, 
         reste: newReste, 
         statut: newStatut, 
@@ -87,10 +95,10 @@ export default function UnpaidSalesPage() {
       
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
-        label: `Versement ${selectedSale.invoiceId}`,
+        label: `Versement ${finalInvoiceId}`,
         category: "Optique",
         montant: amount,
-        relatedId: selectedSale.invoiceId,
+        relatedId: finalInvoiceId,
         createdAt: serverTimestamp()
       });
 
@@ -115,7 +123,7 @@ export default function UnpaidSalesPage() {
         verres: selectedSale.verres || "", 
         date: new Date().toLocaleDateString("fr-FR") 
       });
-      router.push(`/ventes/${page}/${selectedSale.invoiceId}?${params.toString()}`);
+      router.push(`/ventes/${page}/${finalInvoiceId}?${params.toString()}`);
       setSelectedSale(null);
     } catch (err) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `sales/${selectedSale.id}`, operation: "update" }));

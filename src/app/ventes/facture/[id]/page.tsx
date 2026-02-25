@@ -155,15 +155,22 @@ function InvoicePrintContent() {
           </div>
           
           <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-4 rounded-2xl mt-2">
-            <span className="text-[10px] font-black uppercase tracking-widest">Reste à régler</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Total payé (Soldé)</span>
             <span className="text-xl font-black tracking-tighter">
-              {formatCurrency(reste)}
+              {formatCurrency(totalNet)}
             </span>
           </div>
         </div>
         
-        {/* Stamp Block - Below Totals, pushed to right */}
-        <div className="flex justify-end pr-4">
+        {/* Message and Stamp Block */}
+        <div className="flex justify-between items-end pr-4">
+          <div className="max-w-[220px] pb-4 animate-in fade-in slide-in-from-left-4 duration-1000">
+            <p className="text-[9px] font-black text-primary italic leading-relaxed">
+              "Merci de votre confiance. <br/>
+              Votre vue est notre priorité. <br/>
+              À bientôt chez Like Vision !"
+            </p>
+          </div>
           <div className="w-56 h-32 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center relative bg-slate-50/50 overflow-hidden">
             <span className="text-[8px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-6 leading-relaxed select-none opacity-50">
               CACHET & SIGNATURE<br/>OFFICIELS DU MAGASIN
