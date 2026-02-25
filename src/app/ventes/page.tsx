@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ import { Calendar } from "@/components/ui/calendar";
 export default function SalesHistoryPage() {
   const router = useRouter();
   const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
@@ -38,7 +39,7 @@ export default function SalesHistoryPage() {
 
   // State for Purchase Costs Dialog
   const [costDialogSale, setCostDialogSale] = useState<any>(null);
-  const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "" });
+  const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function SalesHistoryPage() {
     setPurchaseCosts({
       frame: (sale.purchasePriceFrame || 0).toString(),
       lenses: (sale.purchasePriceLenses || 0).toString(),
+      label: "",
     });
   };
 
@@ -144,6 +146,7 @@ export default function SalesHistoryPage() {
 
     const frameCost = parseFloat(purchaseCosts.frame) || 0;
     const lensesCost = parseFloat(purchaseCosts.lenses) || 0;
+    const currentUserName = user?.displayName || "Inconnu";
 
     try {
       const saleRef = doc(db, "sales", costDialogSale.id);
@@ -157,10 +160,11 @@ export default function SalesHistoryPage() {
       if (frameCost > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "DEPENSE",
-          label: `Achat Monture ${costDialogSale.invoiceId}`,
+          label: purchaseCosts.label ? `Achat Monture - ${purchaseCosts.label}` : `Achat Monture ${costDialogSale.invoiceId}`,
           category: "Achats",
           montant: -Math.abs(frameCost),
           relatedId: costDialogSale.invoiceId,
+          userName: currentUserName,
           createdAt: serverTimestamp()
         });
       }
@@ -168,10 +172,11 @@ export default function SalesHistoryPage() {
       if (lensesCost > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "DEPENSE",
-          label: `Achat Verres ${costDialogSale.invoiceId}`,
+          label: purchaseCosts.label ? `Achat Verres - ${purchaseCosts.label}` : `Achat Verres ${costDialogSale.invoiceId}`,
           category: "Achats",
           montant: -Math.abs(lensesCost),
           relatedId: costDialogSale.invoiceId,
+          userName: currentUserName,
           createdAt: serverTimestamp()
         });
       }
@@ -401,7 +406,7 @@ export default function SalesHistoryPage() {
           </CardContent>
         </Card>
 
-        {/* Dialog for Purchase Costs (Allowed for OPTICIENNE) */}
+        {/* Dialog for Purchase Costs */}
         <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
             <DialogHeader className="p-6 md:p-8 bg-primary text-white">
@@ -411,6 +416,15 @@ export default function SalesHistoryPage() {
               <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Facture {costDialogSale?.invoiceId}</p>
             </DialogHeader>
             <div className="p-6 md:p-8 space-y-6 bg-white">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Libellé / Note d'achat</Label>
+                <Input 
+                  placeholder="Ex: Facture fournisseur X, Verres Nikon..."
+                  className="h-14 text-sm font-bold rounded-2xl bg-slate-50 border-none shadow-inner"
+                  value={purchaseCosts.label}
+                  onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coût Monture (DH)</Label>
