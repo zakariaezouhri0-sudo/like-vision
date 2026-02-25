@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2, PiggyBank } from "lucide-react";
+import { PlusCircle, Wallet, LogOut, ArrowUpRight, ArrowDownRight, Printer, Coins, Loader2, AlertCircle, CheckCircle2, History, MoreVertical, Edit2, Trash2, PiggyBank, FileText } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -157,10 +157,10 @@ export default function CaissePage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Suivi des flux réels du magasin.</p>
           </div>
           
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg">
+                <Button className="bg-primary h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg flex-1 sm:flex-none">
                   <PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION
                 </Button>
               </DialogTrigger>
@@ -196,9 +196,17 @@ export default function CaissePage() {
               </DialogContent>
             </Dialog>
 
+            <Button 
+              variant="outline"
+              onClick={() => router.push(`/rapports/print/journalier?date=${new Date().toISOString().split('T')[0]}`)}
+              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 text-primary bg-white hover:bg-primary hover:text-white transition-all shadow-sm flex-1 sm:flex-none"
+            >
+              <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
+            </Button>
+
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-destructive text-destructive">
+                <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-destructive text-destructive flex-1 sm:flex-none">
                   <LogOut className="mr-2 h-4 w-4" /> CLÔTURE DE JOURNÉE
                 </Button>
               </DialogTrigger>
