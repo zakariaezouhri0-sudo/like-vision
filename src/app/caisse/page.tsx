@@ -49,14 +49,12 @@ export default function CaissePage() {
   const stats = useMemo(() => {
     if (!transactions) return { entrees: 0, depenses: 0, versements: 0 };
     return transactions.reduce((acc: any, t: any) => {
-      if (t.montant > 0) {
-        acc.entrees += t.montant;
-      } else {
-        if (t.type === "VERSEMENT") {
-          acc.versements += Math.abs(t.montant);
-        } else {
-          acc.depenses += Math.abs(t.montant);
-        }
+      if (t.type === "VENTE") {
+        acc.entrees += Math.abs(t.montant);
+      } else if (t.type === "VERSEMENT") {
+        acc.versements += Math.abs(t.montant);
+      } else if (t.type === "DEPENSE") {
+        acc.depenses += Math.abs(t.montant);
       }
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
@@ -78,7 +76,7 @@ export default function CaissePage() {
 
     const transData = {
       type: newOp.type,
-      label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : newOp.type === "APPORT" ? "Apport" : "Vente"),
+      label: newOp.label || (newOp.type === "DEPENSE" ? "Dépense" : newOp.type === "VERSEMENT" ? "Versement Banque" : "Vente"),
       category: newOp.category,
       montant: finalAmount,
       createdAt: serverTimestamp()
@@ -139,7 +137,6 @@ export default function CaissePage() {
       ventes: stats.entrees.toString(),
       depenses: stats.depenses.toString(),
       versements: stats.versements.toString(),
-      apports: "0", 
       reel: soldeReel.toString(),
       initial: initial.toString()
     });
@@ -178,7 +175,6 @@ export default function CaissePage() {
                         <SelectContent>
                           <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense (Charge)</SelectItem>
                           <SelectItem value="VERSEMENT" className="font-bold text-orange-600">Versement (Banque)</SelectItem>
-                          <SelectItem value="APPORT" className="font-bold text-blue-600">Apport (Entrée)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -240,7 +236,7 @@ export default function CaissePage() {
                           <span className="text-slate-900">{formatCurrency(initial)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-green-600">
-                          <span>Total Entrées (+)</span>
+                          <span>Total Ventes (+)</span>
                           <span>{formatCurrency(stats.entrees)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-destructive">
@@ -298,7 +294,6 @@ export default function CaissePage() {
                       <SelectContent>
                         <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense (Charge)</SelectItem>
                         <SelectItem value="VERSEMENT" className="font-bold text-orange-600">Versement (Banque)</SelectItem>
-                        <SelectItem value="APPORT" className="font-bold text-blue-600">Apport (Entrée)</SelectItem>
                         <SelectItem value="VENTE" className="font-bold text-green-600">Vente</SelectItem>
                       </SelectContent>
                     </Select>
@@ -326,9 +321,21 @@ export default function CaissePage() {
           </DialogContent>
         </Dialog>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-blue-500">
+            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Solde Initial</p>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                className="w-full bg-transparent text-2xl font-black text-blue-600 outline-none" 
+                value={soldeInitial} 
+                onChange={(e) => setSoldeInitial(e.target.value)}
+              />
+              <span className="text-[10px] font-black text-slate-400">DH</span>
+            </div>
+          </Card>
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-green-500">
-            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Entrées (Ventes/Apports)</p>
+            <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">Entrées (Ventes)</p>
             <p className="text-2xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p>
           </Card>
           <Card className="bg-white border-none p-6 rounded-[32px] shadow-lg border-l-8 border-l-destructive">
@@ -340,8 +347,8 @@ export default function CaissePage() {
             <p className="text-2xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p>
           </Card>
           <Card className="bg-primary text-primary-foreground p-6 rounded-[32px] shadow-lg">
-            <p className="text-[10px] uppercase font-black opacity-60 mb-1">Solde Net des Flux</p>
-            <p className="text-2xl font-black">{formatCurrency(stats.entrees - stats.depenses - stats.versements)}</p>
+            <p className="text-[10px] uppercase font-black opacity-60 mb-1">Solde Net Final</p>
+            <p className="text-2xl font-black">{formatCurrency(initial + stats.entrees - stats.depenses - stats.versements)}</p>
           </Card>
         </div>
 
@@ -367,7 +374,7 @@ export default function CaissePage() {
                           <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2", 
-                              t.type === 'APPORT' || t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
+                              t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
                               t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
                             )}>
                               {t.type}

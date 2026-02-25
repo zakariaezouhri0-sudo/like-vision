@@ -34,10 +34,9 @@ function CashClosurePrintContent() {
   const ventes = Number(searchParams.get("ventes")) || 0;
   const depenses = Number(searchParams.get("depenses")) || 0;
   const versements = Number(searchParams.get("versements")) || 0;
-  const apports = Number(searchParams.get("apports")) || 0;
   const reel = Number(searchParams.get("reel")) || 0;
   
-  const theorique = initial + ventes + apports - depenses - versements;
+  const theorique = initial + ventes - depenses - versements;
   const ecart = reel - theorique;
 
   const cashDetail = DENOMINATIONS.map(val => ({
@@ -55,12 +54,10 @@ function CashClosurePrintContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12">
-      {/* Controls Overlay */}
       <div className="no-print w-[210mm] flex justify-between mb-8 px-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black">
           <Link href="/caisse">
-            <ArrowLeft className="mr-3 h-5 w-5" />
-            RETOUR
+            <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
           </Link>
         </Button>
         <div className="flex items-center gap-4">
@@ -68,15 +65,12 @@ function CashClosurePrintContent() {
             A4 Portrait • Rapport Officiel
           </span>
           <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-10 rounded-2xl font-black text-base">
-            <Printer className="mr-3 h-5 w-5" />
-            IMPRIMER LE RAPPORT
+            <Printer className="mr-3 h-5 w-5" /> IMPRIMER LE RAPPORT
           </Button>
         </div>
       </div>
 
-      {/* Actual A4 Page */}
       <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[15mm]">
-        {/* Header with Logo Clean */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
           <div className="flex gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -113,17 +107,19 @@ function CashClosurePrintContent() {
           </div>
         </div>
 
-        {/* Financial Summary Grid - Lighter and Cleaner */}
         <div className="grid grid-cols-2 gap-10 mb-12">
           <div className="space-y-6">
             <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-100 pb-2 tracking-[0.2em] flex items-center gap-2">
-              <FileText className="h-3.5 w-3.5" />
-              Analyse des Flux
+              <FileText className="h-3.5 w-3.5" /> Analyse des Flux
             </h3>
             <div className="space-y-3 bg-slate-50/30 p-6 rounded-2xl border border-slate-100">
+              <div className="flex justify-between text-xs font-bold text-slate-600">
+                <span>Solde Initial :</span>
+                <span>{formatCurrency(initial)}</span>
+              </div>
               <div className="flex justify-between text-xs font-bold text-green-600">
-                <span>Total Entrées :</span>
-                <span>+{formatCurrency(ventes + apports)}</span>
+                <span>Total Ventes :</span>
+                <span>+{formatCurrency(ventes)}</span>
               </div>
               <div className="flex justify-between text-xs font-bold text-destructive">
                 <span>Dépenses :</span>
@@ -149,8 +145,7 @@ function CashClosurePrintContent() {
 
           <div className="bg-slate-50/50 p-8 rounded-2xl border border-slate-100 space-y-6">
             <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-200/50 pb-3 flex items-center gap-2 tracking-[0.2em]">
-              <Coins className="h-3.5 w-3.5 text-primary" />
-              Détail du Comptage
+              <Coins className="h-3.5 w-3.5 text-primary" /> Détail du Comptage
             </h3>
             <div className="space-y-2">
               {cashDetail.length > 0 ? (
@@ -175,7 +170,6 @@ function CashClosurePrintContent() {
           </div>
         </div>
 
-        {/* Footer Signatures */}
         <div className="mt-auto pt-12 border-t border-slate-100 grid grid-cols-2 gap-20">
           <div className="space-y-16">
             <div className="space-y-1">

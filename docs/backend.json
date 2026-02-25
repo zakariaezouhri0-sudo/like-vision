@@ -68,9 +68,9 @@
     "Transaction": {
       "title": "Transaction",
       "type": "object",
-      "description": "Représente un mouvement de flux de caisse (dépense, apport, versement, paiement vente).",
+      "description": "Représente un mouvement de flux de caisse (dépense, versement, paiement vente).",
       "properties": {
-        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "APPORT", "VERSEMENT"] },
+        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "VERSEMENT"] },
         "category": { "type": "string" },
         "label": { "type": "string" },
         "montant": { "type": "number" },

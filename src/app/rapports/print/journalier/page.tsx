@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -41,7 +42,7 @@ function DailyCashReportContent() {
   };
 
   const reportData = useMemo(() => {
-    if (!transactions) return { sales: [], expenses: [], versements: [], apports: [], initial: 0, final: 0 };
+    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, final: 0 };
 
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
@@ -50,7 +51,6 @@ function DailyCashReportContent() {
     const salesList: any[] = [];
     const expensesList: any[] = [];
     const versementsList: any[] = [];
-    const apportsList: any[] = [];
 
     transactions.forEach((t: any) => {
       const tDate = t.createdAt?.toDate ? t.createdAt.toDate() : null;
@@ -62,17 +62,15 @@ function DailyCashReportContent() {
         if (t.type === "VENTE") salesList.push(t);
         else if (t.type === "DEPENSE") expensesList.push(t);
         else if (t.type === "VERSEMENT") versementsList.push(t);
-        else if (t.type === "APPORT") apportsList.push(t);
       }
     });
 
-    const dayTotal = [...salesList, ...expensesList, ...versementsList, ...apportsList].reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    const dayTotal = [...salesList, ...expensesList, ...versementsList].reduce((acc, curr) => acc + (curr.montant || 0), 0);
 
     return { 
       sales: salesList, 
       expenses: expensesList, 
       versements: versementsList, 
-      apports: apportsList, 
       initial: initialBalance, 
       final: initialBalance + dayTotal 
     };
@@ -194,8 +192,8 @@ function DailyCashReportContent() {
 
           <section>
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-3 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
-              <span>Versements en Banque / Apports</span>
-              <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0) + reportData.apports.reduce((a, b) => a + (b.montant || 0), 0))}</span>
+              <span>Versements en Banque</span>
+              <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[10px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
@@ -205,12 +203,10 @@ function DailyCashReportContent() {
                 </tr>
               </thead>
               <tbody>
-                {[...reportData.versements, ...reportData.apports].length > 0 ? [...reportData.versements, ...reportData.apports].map((v: any) => (
+                {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                   <tr key={v.id} className="border-b border-slate-50">
                     <td className="p-2 font-bold text-slate-700">{v.label}</td>
-                    <td className={cn("p-2 text-right font-black", v.montant >= 0 ? "text-green-600" : "text-orange-600")}>
-                      {formatCurrency(v.montant)}
-                    </td>
+                    <td className="p-2 text-right font-black text-orange-600">{formatCurrency(v.montant)}</td>
                   </tr>
                 )) : (
                   <tr><td colSpan={2} className="p-4 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>

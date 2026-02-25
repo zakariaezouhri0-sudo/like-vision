@@ -49,14 +49,12 @@ export default function ReportsPage() {
     const costs = filteredSales.reduce((acc, s) => acc + (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0), 0);
     const expenses = filteredTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(t.montant), 0);
-    const apports = filteredTrans.filter(t => t.type === "APPORT").reduce((acc, t) => acc + t.montant, 0);
 
     return {
       ca,
       marge: ca - costs,
       expenses,
       versements,
-      apports,
       count: filteredSales.length,
       filteredSales,
       filteredTrans
@@ -143,7 +141,7 @@ export default function ReportsPage() {
           </Card>
           <Card className="bg-white border-none shadow-lg p-6 rounded-[32px] border-l-8 border-l-green-500">
             <p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde de Période</p>
-            <p className="text-2xl font-black text-green-600 whitespace-nowrap">{formatCurrency(stats.ca + stats.apports - stats.expenses - stats.versements)}</p>
+            <p className="text-2xl font-black text-green-600 whitespace-nowrap">{formatCurrency(stats.ca - stats.expenses - stats.versements)}</p>
           </Card>
         </div>
 
