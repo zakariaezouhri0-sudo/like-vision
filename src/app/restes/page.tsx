@@ -164,7 +164,7 @@ export default function UnpaidSalesPage() {
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 whitespace-nowrap">Date & Client</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 whitespace-nowrap">Total Net</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600 whitespace-nowrap">Payé</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600 whitespace-nowrap">Versé</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive whitespace-nowrap">Reste</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5">Action</TableHead>
                     </TableRow>
@@ -231,7 +231,7 @@ export default function UnpaidSalesPage() {
                   <span>Client :</span><span className="text-slate-900 font-bold">{selectedSale?.clientName}</span>
                 </div>
                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                  <span>Reste à payer :</span><span className="text-destructive font-black text-sm">{formatCurrency(selectedSale?.reste || 0)}</span>
+                  <span>Reste à verser :</span><span className="text-destructive font-black text-sm">{formatCurrency(selectedSale?.reste || 0)}</span>
                 </div>
               </div>
               <div className="space-y-3">
