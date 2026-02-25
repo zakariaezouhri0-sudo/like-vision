@@ -16,7 +16,7 @@ import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, Check
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, limit, setDoc, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -31,6 +31,11 @@ export default function CaissePage() {
   
   const [todayDate] = useState(new Date());
   const sessionDocId = format(todayDate, "yyyy-MM-dd");
+  const [role, setRole] = useState<string>("CAISSIER");
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role') || "CAISSIER");
+  }, []);
   
   // State for session management
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
@@ -568,21 +573,25 @@ export default function CaissePage() {
                         {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
                       </TableCell>
                       <TableCell className="text-right px-6 py-4">
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {role === 'ADMIN' ? (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
+                              <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="text-[8px] font-black text-slate-300 uppercase">Verrouillé</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -7,26 +8,37 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Glasses, ThumbsUp, Menu } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Image from "next/image";
 
 interface AppShellProps {
   children: React.ReactNode;
-  role?: string;
 }
 
-export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
+export function AppShell({ children }: AppShellProps) {
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<string>("CAISSIER");
   const { user } = useUser();
   const db = useFirestore();
+
+  useEffect(() => {
+    const savedRole = localStorage.getItem('user_role');
+    if (savedRole) {
+      setRole(savedRole);
+    }
+  }, []);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings } = useDoc(settingsRef);
 
   const userName = user?.displayName || user?.email?.split('@')[0] || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_role');
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body">
@@ -38,7 +50,9 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
         >
           <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
             {settings?.logoUrl ? (
-              <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+              <div className="relative h-14 w-14">
+                <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+              </div>
             ) : (
               <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-xl group-hover:scale-105 transition-all">
                 <div className="relative">
@@ -49,7 +63,7 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             )}
           </div>
           <div className="flex flex-col justify-center min-w-0">
-            <span className="font-headline font-black text-lg lg:text-xl tracking-tighter text-primary leading-none uppercase">
+            <span className="font-headline font-black text-lg lg:text-xl tracking-tighter text-primary leading-none uppercase truncate">
               {settings?.name || APP_NAME}
             </span>
             <span className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mt-1.5">
@@ -89,7 +103,9 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
                   <SheetTitle className="flex items-center gap-4">
                     <div className="h-14 w-14 flex items-center justify-center shrink-0 relative">
                       {settings?.logoUrl ? (
-                        <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                        <div className="relative h-14 w-14">
+                          <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                        </div>
                       ) : (
                         <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg">
                           <div className="relative">
@@ -100,7 +116,7 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
                       )}
                     </div>
                     <div className="flex flex-col justify-center">
-                      <span className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase">{settings?.name || APP_NAME}</span>
+                      <span className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase truncate">{settings?.name || APP_NAME}</span>
                       <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.3em] mt-1.5">Optique Pro</span>
                     </div>
                   </SheetTitle>
@@ -114,7 +130,9 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
             <Link href="/dashboard" className="flex items-center gap-4 group md:hidden">
               <div className="h-12 w-12 flex items-center justify-center shrink-0 relative">
                 {settings?.logoUrl ? (
-                  <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                  <div className="relative h-12 w-12">
+                    <Image src={settings.logoUrl} alt="Logo" fill className="object-contain" />
+                  </div>
                 ) : (
                   <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-all">
                     <div className="relative">
@@ -139,7 +157,7 @@ export function AppShell({ children, role = "ADMIN" }: AppShellProps) {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-destructive hover:bg-destructive/5 h-10 px-4 rounded-xl transition-all">
+            <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-destructive hover:bg-destructive/5 h-10 px-4 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-2.5" />
                 <span className="hidden md:inline text-[9px] font-black uppercase tracking-[0.2em]">Déconnexion</span>

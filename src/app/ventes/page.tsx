@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,14 @@ export default function SalesHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TOUS");
+  const [role, setRole] = useState<string>("CAISSIER");
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role') || "CAISSIER");
+  }, []);
 
   const salesQuery = useMemoFirebase(() => {
     return query(collection(db, "sales"), orderBy("createdAt", "desc"));
@@ -69,7 +74,7 @@ export default function SalesHistoryPage() {
   }, [sales, searchTerm, statusFilter, dateFrom, dateTo]);
 
   const handlePrint = (sale: any) => {
-    const isPaid = sale.reste <= 0;
+    const isPaid = (sale.reste || 0) <= 0;
     const page = isPaid ? 'facture' : 'recu';
     
     const params = new URLSearchParams({
@@ -310,8 +315,12 @@ export default function SalesHistoryPage() {
                                   {sale.reste <= 0 ? <FileText className="mr-3 h-4 w-4 text-primary" /> : <Printer className="mr-3 h-4 w-4 text-primary" />}
                                   {sale.reste <= 0 ? "Facture" : "Reçu"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDelete(sale.id, sale.invoiceId)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
+                                {role === 'ADMIN' && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDelete(sale.id, sale.invoiceId)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ export default function ClientsPage() {
   const router = useRouter();
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [role, setRole] = useState<string>("CAISSIER");
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role') || "CAISSIER");
+  }, []);
   
   const clientsQuery = useMemoFirebase(() => {
     return query(collection(db, "clients"), orderBy("createdAt", "desc"));
@@ -261,15 +266,19 @@ export default function ClientsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
-                                <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
-                                  <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
-                                  <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                                </DropdownMenuItem>
+                                {role === 'ADMIN' && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                      <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
+                                      <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

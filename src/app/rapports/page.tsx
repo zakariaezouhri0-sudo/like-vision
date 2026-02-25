@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,17 @@ import { useRouter } from "next/navigation";
 export default function ReportsPage() {
   const router = useRouter();
   const db = useFirestore();
+  const [loadingRole, setLoadingRole] = useState(true);
+
+  useEffect(() => {
+    const role = localStorage.getItem('user_role');
+    if (role !== 'ADMIN') {
+      router.push('/dashboard');
+    } else {
+      setLoadingRole(false);
+    }
+  }, [router]);
+
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: startOfMonth(new Date()),
     to: new Date(),
@@ -89,6 +100,8 @@ export default function ReportsPage() {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (loadingRole) return null;
 
   return (
     <AppShell>
