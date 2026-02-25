@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -56,7 +57,7 @@ function ReceiptPrintContent() {
   const ReceiptCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative bg-white">
             {shop.logoUrl ? (
               <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
@@ -67,7 +68,7 @@ function ReceiptPrintContent() {
               </div>
             )}
           </div>
-          <div>
+          <div className="text-center">
             <h2 className="text-xs font-black text-slate-900 uppercase leading-tight">{shop.name}</h2>
             <p className="text-[6px] text-slate-500 font-bold leading-tight">ICE: {shop.icePatent}</p>
             <p className="text-[6px] font-bold text-slate-700">Tél: {shop.phone}</p>

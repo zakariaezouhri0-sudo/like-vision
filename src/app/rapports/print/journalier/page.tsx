@@ -107,7 +107,7 @@ function DailyCashReportContent() {
 
       <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[15mm] flex flex-col">
         <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
-          <div className="flex gap-6">
+          <div className="flex items-center gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
               {shop.logoUrl ? (
                 <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain" />
@@ -118,7 +118,7 @@ function DailyCashReportContent() {
                 </div>
               )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 text-center">
               <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
               <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
               <div className="mt-2.5 space-y-0.5">

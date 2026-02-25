@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -55,7 +56,7 @@ function InvoicePrintContent() {
     <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
       {/* Header */}
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0 overflow-hidden relative bg-white">
             {shop.logoUrl ? (
               <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
@@ -66,7 +67,7 @@ function InvoicePrintContent() {
               </div>
             )}
           </div>
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 text-center">
             <h2 className="text-sm font-black text-slate-900 leading-none uppercase tracking-tighter">{shop.name}</h2>
             <p className="text-[7px] text-slate-500 max-w-[180px] leading-tight font-medium">{shop.address}</p>
             <p className="text-[7px] font-bold text-slate-700">Tél: {shop.phone}</p>
