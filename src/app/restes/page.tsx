@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -94,7 +93,7 @@ export default function UnpaidSalesPage() {
       
       await addDoc(collection(db, "transactions"), {
         type: "VENTE",
-        label: `Vente ${finalInvoiceId}`,
+        label: `Vente ${finalInvoiceId} - ${selectedSale.clientName}`,
         category: "Optique",
         montant: amount,
         relatedId: finalInvoiceId,

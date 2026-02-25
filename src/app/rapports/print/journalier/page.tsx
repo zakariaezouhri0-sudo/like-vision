@@ -187,7 +187,7 @@ function DailyCashReportContent() {
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
-                  <th className="p-1.5 text-left">Facture / Libellé</th>
+                  <th className="p-1.5 text-left">Facture / Client</th>
                   <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>

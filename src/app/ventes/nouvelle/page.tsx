@@ -202,7 +202,7 @@ function NewSaleForm() {
       if (nAvance > 0 && !editId) {
         await addDoc(collection(db, "transactions"), {
           type: "VENTE",
-          label: `Vente ${invoiceId}`,
+          label: `Vente ${invoiceId} - ${clientName}`,
           category: "Optique",
           montant: nAvance,
           relatedId: invoiceId,
