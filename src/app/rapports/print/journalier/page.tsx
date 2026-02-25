@@ -150,7 +150,7 @@ function DailyCashReportContent() {
 
         {/* INDICATEURS CLES EN LIGNE */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="p-3 rounded-xl border border-slate-100 text-center bg-slate-50/30">
+          <div className="p-3 rounded-xl border border-slate-200 text-center bg-slate-100/50 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
               <PiggyBank className="h-3 w-3" />
               <p className="text-[7px] font-black uppercase tracking-widest">Ouverture</p>
