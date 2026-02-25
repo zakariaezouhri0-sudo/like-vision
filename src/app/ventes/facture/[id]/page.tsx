@@ -59,7 +59,7 @@ function InvoicePrintContent() {
         <div className="flex items-center gap-4">
           <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0 overflow-hidden relative bg-white">
             {shop.logoUrl ? (
-              <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
+              <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
             ) : (
               <div className="relative">
                 <Glasses className="h-8 w-8" />
@@ -67,7 +67,7 @@ function InvoicePrintContent() {
               </div>
             )}
           </div>
-          <div className="space-y-0.5 text-center">
+          <div className="space-y-0.5 text-left">
             <h2 className="text-sm font-black text-slate-900 leading-none uppercase tracking-tighter">{shop.name}</h2>
             <p className="text-[7px] text-slate-500 max-w-[180px] leading-tight font-medium">{shop.address}</p>
             <p className="text-[7px] font-bold text-slate-700">Tél: {shop.phone}</p>

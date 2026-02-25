@@ -118,7 +118,7 @@ function DailyCashReportContent() {
                 </div>
               )}
             </div>
-            <div className="space-y-1 text-center">
+            <div className="space-y-1 text-left">
               <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
               <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
               <div className="mt-2.5 space-y-0.5">

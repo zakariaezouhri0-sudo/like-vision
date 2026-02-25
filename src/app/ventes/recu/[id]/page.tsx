@@ -60,7 +60,7 @@ function ReceiptPrintContent() {
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative bg-white">
             {shop.logoUrl ? (
-              <Image src={shop.logoUrl} alt="Logo" fill className="object-contain p-1" />
+              <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
             ) : (
               <div className="relative text-primary">
                 <Glasses className="h-6 w-6" />
@@ -68,7 +68,7 @@ function ReceiptPrintContent() {
               </div>
             )}
           </div>
-          <div className="text-center">
+          <div className="text-left">
             <h2 className="text-xs font-black text-slate-900 uppercase leading-tight">{shop.name}</h2>
             <p className="text-[6px] text-slate-500 font-bold leading-tight">ICE: {shop.icePatent}</p>
             <p className="text-[6px] font-bold text-slate-700">Tél: {shop.phone}</p>
