@@ -91,9 +91,10 @@ export default function CashSessionsPage() {
                       const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                       const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
                       
+                      // Flux Opérationnel = Ventes - Dépenses
                       const fluxOp = (s.totalSales !== undefined && s.totalExpenses !== undefined) 
                         ? (s.totalSales - s.totalExpenses) 
-                        : (s.status === "CLOSED" ? (s.closingBalanceTheoretical - s.openingBalance + (s.totalVersements || 0)) : null);
+                        : null;
                       
                       const versement = s.totalVersements !== undefined ? s.totalVersements : null;
 
@@ -110,7 +111,7 @@ export default function CashSessionsPage() {
                               <div 
                                 className={cn(
                                   "h-2.5 w-2.5 rounded-full shrink-0 transition-colors",
-                                  s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-red-500"
+                                  s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]"
                                 )} 
                                 title={s.status === "OPEN" ? "Ouverte" : "Clôturée"}
                               />
@@ -118,13 +119,13 @@ export default function CashSessionsPage() {
                           </TableCell>
 
                           <TableCell className="px-6 py-6 whitespace-nowrap">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                <Clock className="h-3 w-3 text-green-500" />
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-1 text-[9px] font-black text-green-600 uppercase tracking-widest mb-0.5">
+                                <Clock className="h-3 w-3" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                               </div>
-                              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 w-fit">
-                                <UserIcon className="h-3 w-3 text-primary/30" />
+                              <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
+                                <UserIcon className="h-2.5 w-2.5 text-primary/30" />
                                 <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
                                   {s.openedBy || "---"}
                                 </span>
@@ -175,13 +176,13 @@ export default function CashSessionsPage() {
 
                           <TableCell className="px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  <Lock className="h-3 w-3 text-red-500" />
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1 text-[9px] font-black text-red-500 uppercase tracking-widest mb-0.5">
+                                  <Lock className="h-3 w-3" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 w-fit">
-                                  <UserIcon className="h-3 w-3 text-primary/30" />
+                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
+                                  <UserIcon className="h-2.5 w-2.5 text-primary/30" />
                                   <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
                                     {s.closedBy || "---"}
                                   </span>

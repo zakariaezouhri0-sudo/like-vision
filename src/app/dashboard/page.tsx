@@ -121,7 +121,6 @@ export default function DashboardPage() {
 
   const userName = user?.displayName || "Utilisateur";
 
-  // Unified loading check to prevent flickering
   if (!isClientReady || loadingSales || loadingClients || sessionLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
