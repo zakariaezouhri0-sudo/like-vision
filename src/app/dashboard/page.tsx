@@ -15,7 +15,8 @@ import {
   ThumbsUp,
   Loader2,
   Lock,
-  PlayCircle
+  PlayCircle,
+  Eye
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { 
@@ -61,6 +62,10 @@ export default function DashboardPage() {
   }, []);
 
   const isPrepaMode = role === "PREPA";
+
+  // Fetch Shop Settings
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
 
   // Fetch Current Session Status
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
@@ -146,11 +151,17 @@ export default function DashboardPage() {
     <div className="space-y-6 md:space-y-8 pb-10">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
         <div className="flex items-center gap-6 min-w-0">
-          <div className="h-14 w-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shrink-0 transform rotate-2">
-            <div className="relative">
-              <Glasses className="h-8 w-8" />
-              <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-primary p-0.5 rounded-full border border-white" />
-            </div>
+          <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-slate-100 shrink-0 overflow-hidden group">
+            {settings?.logoUrl ? (
+              <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-primary to-slate-800 flex items-center justify-center text-white transform -rotate-3 transition-transform group-hover:rotate-0 duration-500">
+                <div className="relative">
+                  <Eye className="h-9 w-9" />
+                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-accent rounded-full border-2 border-primary animate-pulse" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-xl md:text-3xl font-black text-slate-900 truncate tracking-tight capitalize">
