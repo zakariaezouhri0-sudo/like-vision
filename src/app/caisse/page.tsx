@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -256,7 +257,10 @@ function CaisseContent() {
         closingBalanceReal: soldeReel,
         closingBalanceTheoretical: soldeTheorique,
         discrepancy: ecart,
-        closedBy: user?.displayName || "Inconnu"
+        closedBy: user?.displayName || "Inconnu",
+        totalSales: stats.entrees,
+        totalExpenses: stats.depenses,
+        totalVersements: stats.versements
       });
       
       const params = new URLSearchParams({

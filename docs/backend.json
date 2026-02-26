@@ -91,7 +91,10 @@
         "closingBalanceReal": { "type": "number" },
         "closingBalanceTheoretical": { "type": "number" },
         "discrepancy": { "type": "number" },
-        "date": { "type": "string" }
+        "date": { "type": "string" },
+        "totalSales": { "type": "number" },
+        "totalExpenses": { "type": "number" },
+        "totalVersements": { "type": "number" }
       }
     },
     "Settings": {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -17,7 +18,8 @@ import {
   TrendingDown,
   History,
   Clock,
-  Eye
+  Eye,
+  Landmark
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -75,7 +77,8 @@ export default function CashSessionsPage() {
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouvert par</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Initial</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux (Op)</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Versement</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
                     {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
@@ -87,7 +90,13 @@ export default function CashSessionsPage() {
                     sessions.map((s: any) => {
                       const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                       const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
-                      const netFlux = (s.closingBalanceTheoretical || 0) - (s.openingBalance || 0);
+                      
+                      // Calcul du flux opérationnel : Ventes - Dépenses
+                      const fluxOp = (s.totalSales !== undefined && s.totalExpenses !== undefined) 
+                        ? (s.totalSales - s.totalExpenses) 
+                        : (s.status === "CLOSED" ? (s.closingBalanceTheoretical - s.openingBalance + (s.totalVersements || 0)) : null);
+                      
+                      const versement = s.totalVersements !== undefined ? s.totalVersements : null;
 
                       return (
                         <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
@@ -131,13 +140,24 @@ export default function CashSessionsPage() {
                           </TableCell>
 
                           <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            {s.status === "CLOSED" ? (
+                            {s.status === "CLOSED" && fluxOp !== null ? (
                               <div className={cn(
                                 "flex items-center justify-end gap-1.5 font-black text-sm",
-                                netFlux >= 0 ? "text-green-600" : "text-destructive"
+                                fluxOp >= 0 ? "text-green-600" : "text-destructive"
                               )}>
-                                {netFlux > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                                {formatCurrency(netFlux)}
+                                {fluxOp > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                                {formatCurrency(fluxOp)}
+                              </div>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-200">---</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            {s.status === "CLOSED" && versement !== null ? (
+                              <div className="flex items-center justify-end gap-1.5 font-black text-sm text-orange-600">
+                                <Landmark className="h-3.5 w-3.5" />
+                                {formatCurrency(versement)}
                               </div>
                             ) : (
                               <span className="text-xs font-bold text-slate-200">---</span>
@@ -215,7 +235,7 @@ export default function CashSessionsPage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={role === 'ADMIN' ? 8 : 7} className="text-center py-40">
+                      <TableCell colSpan={role === 'ADMIN' ? 9 : 8} className="text-center py-40">
                         <div className="flex flex-col items-center gap-4 opacity-20">
                           <History className="h-12 w-12" />
                           <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session enregistrée.</p>
