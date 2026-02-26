@@ -18,12 +18,6 @@ function DailyCashReportContent() {
   const [printTime, setPrintTime] = useState<string>("");
   const [generationTimestamp, setGenerationTimestamp] = useState<string>("");
 
-  useEffect(() => {
-    const now = new Date();
-    setPrintTime(format(now, "HH:mm"));
-    setGenerationTimestamp(now.toLocaleString("fr-FR"));
-  }, []);
-
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
     try {
@@ -32,6 +26,20 @@ function DailyCashReportContent() {
       return new Date();
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const now = new Date();
+    setPrintTime(format(now, "HH:mm"));
+    setGenerationTimestamp(now.toLocaleString("fr-FR"));
+    
+    // Définir le titre du document pour que le nom du fichier PDF soit correct lors du téléchargement
+    const dateStr = format(selectedDate, "dd-MM-yyyy");
+    document.title = `Like Vision - ${dateStr}`;
+
+    return () => {
+      document.title = "Like Vision"; // Réinitialiser en quittant la page
+    };
+  }, [selectedDate]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
