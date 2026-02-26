@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ArrowRightLeft, PiggyBank, Lock } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ArrowRightLeft, PiggyBank, Lock, FileText, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -97,15 +97,20 @@ function DailyCashReportContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center py-4 print:py-0">
-      <div className="no-print w-full max-w-[210mm] flex justify-between mb-4 px-4">
-        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs">
+      <div className="no-print w-full max-w-[210mm] flex flex-col md:flex-row justify-between items-center mb-6 px-4 gap-4">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs w-full md:w-auto">
           <Link href="/rapports">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
           </Link>
         </Button>
-        <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-10 rounded-2xl font-black text-base text-white">
-          <Printer className="mr-3 h-5 w-5" /> IMPRIMER LE RAPPORT
-        </Button>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <Button onClick={() => window.print()} variant="outline" className="bg-white border-primary/20 text-primary h-12 px-6 rounded-2xl shadow-sm font-black text-xs flex-1 md:flex-none">
+            <Printer className="mr-2 h-4 w-4" /> IMPRIMER
+          </Button>
+          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-8 rounded-2xl font-black text-sm text-white flex-1 md:flex-none">
+            <Download className="mr-2 h-5 w-5" /> TÉLÉCHARGER PDF
+          </Button>
+        </div>
       </div>
 
       <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[10mm] pt-[5mm] flex flex-col">
