@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -314,7 +314,7 @@ export default function SalesHistoryPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Date</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Date & Heure</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Document</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Client</TableHead>
                       <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest whitespace-nowrap">Total Net</TableHead>
@@ -329,11 +329,19 @@ export default function SalesHistoryPage() {
                       filteredSales.map((sale: any) => (
                         <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
                           <TableCell className="px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-[11px] font-bold text-slate-600">
-                                {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}
-                              </span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <CalendarIcon className="h-3 w-3 text-primary/40" />
+                                <span className="text-[11px] font-bold text-slate-600">
+                                  {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3 w-3 text-primary/40" />
+                                <span className="text-[10px] font-black text-primary/60">
+                                  {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}
+                                </span>
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="font-black text-xs md:text-sm text-primary px-4 md:px-8 py-5 md:py-6 whitespace-nowrap">
