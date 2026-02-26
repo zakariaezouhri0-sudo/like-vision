@@ -60,7 +60,7 @@ export default function CashSessionsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions</h1>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique complet des ouvertures et clôtures.</p>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique des responsables d'ouverture et clôture.</p>
             </div>
           </div>
         </div>
@@ -77,9 +77,9 @@ export default function CashSessionsPage() {
                 <TableHeader className="bg-slate-50/80 border-b">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest text-center whitespace-nowrap">Utilisateur</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouverture</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux Net</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouvert par</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Initial</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
                     {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Actions</TableHead>
@@ -88,7 +88,6 @@ export default function CashSessionsPage() {
                 <TableBody>
                   {sessions && sessions.length > 0 ? (
                     sessions.map((s: any) => {
-                      const fluxNet = s.status === "CLOSED" ? (s.closingBalanceTheoretical - s.openingBalance) : 0;
                       const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                       const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
 
@@ -112,54 +111,51 @@ export default function CashSessionsPage() {
                             </div>
                           </TableCell>
 
-                          <TableCell className="px-6 py-6 text-center whitespace-nowrap">
-                            <div className="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                              <UserIcon className="h-3.5 w-3.5 text-primary/30" />
-                              <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[120px]">
-                                {s.openedBy || "---"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          
                           <TableCell className="px-6 py-6 whitespace-nowrap">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 <Clock className="h-3 w-3 text-green-500" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                               </div>
-                              <span className="text-base font-black text-slate-900 tracking-tighter">
-                                {formatCurrency(s.openingBalance)}
-                              </span>
+                              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 w-fit">
+                                <UserIcon className="h-3 w-3 text-primary/30" />
+                                <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
+                                  {s.openedBy || "---"}
+                                </span>
+                              </div>
                             </div>
                           </TableCell>
 
-                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                          <TableCell className="px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
-                              <div className="flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  <TrendingUp className={cn("h-3 w-3", fluxNet >= 0 ? "text-green-500" : "text-destructive")} /> 
-                                  Net Jour
-                                </div>
-                                <span className={cn("text-base font-black tracking-tighter", fluxNet >= 0 ? "text-green-600" : "text-destructive")}>
-                                  {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
-                                </span>
-                              </div>
-                            ) : (
-                              <Badge variant="outline" className="text-[9px] font-black text-primary/40 uppercase border-primary/10">Session Ouverte</Badge>
-                            )}
-                          </TableCell>
-
-                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            {s.status === "CLOSED" ? (
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex flex-col gap-1.5">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   <Lock className="h-3 w-3 text-slate-300" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <span className="text-base font-black text-slate-900 tracking-tighter">
-                                  {formatCurrency(s.closingBalanceReal)}
-                                </span>
+                                <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 w-fit">
+                                  <UserIcon className="h-3 w-3 text-primary/30" />
+                                  <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
+                                    {s.closedBy || "---"}
+                                  </span>
+                                </div>
                               </div>
+                            ) : (
+                              <span className="text-[9px] font-black text-slate-200 uppercase tracking-[0.2em]">Caisse Ouverte</span>
+                            )}
+                          </TableCell>
+                          
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            <span className="text-base font-black text-slate-900 tracking-tighter">
+                              {formatCurrency(s.openingBalance)}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            {s.status === "CLOSED" ? (
+                              <span className="text-base font-black text-slate-900 tracking-tighter">
+                                {formatCurrency(s.closingBalanceReal)}
+                              </span>
                             ) : (
                               <span className="text-xs font-bold text-slate-200">---</span>
                             )}
