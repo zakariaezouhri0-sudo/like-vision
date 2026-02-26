@@ -73,25 +73,25 @@ function NewSaleForm() {
     }
   });
 
-  // Détection automatique du reçu en cours
   useEffect(() => {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          const unpaidQuery = query(
+          // Requête simplifiée pour éviter l'erreur d'index (on filtre en mémoire ensuite)
+          const allSalesQ = query(
             collection(db, "sales"), 
-            where("clientPhone", "==", cleanPhone), 
-            where("statut", "!=", "Payé")
+            where("clientPhone", "==", cleanPhone)
           );
-          const unpaidSnap = await getDocs(unpaidQuery);
+          const allSalesSnapshot = await getDocs(allSalesQ);
+          
+          // Identifier s'il y a une vente impayée en mémoire
+          const unpaidSale = allSalesSnapshot.docs.find(doc => doc.data().statut !== "Payé");
 
-          if (!unpaidSnap.empty) {
-            const saleDoc = unpaidSnap.docs[0];
-            const data = saleDoc.data();
-            
-            setActiveEditId(saleDoc.id);
+          if (unpaidSale) {
+            const data = unpaidSale.data();
+            setActiveEditId(unpaidSale.id);
             setClientName(data.clientName);
             setTotal(data.total);
             setAvance(data.avance);
@@ -118,6 +118,7 @@ function NewSaleForm() {
               description: `Modification du reçu ${data.invoiceId} activée.`,
             });
           } else {
+            // Si aucune vente en cours, chercher au moins le profil client pour le nom et la mutuelle
             const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
             const querySnapshot = await getDocs(q);
             
@@ -136,8 +137,7 @@ function NewSaleForm() {
             }
           }
 
-          const allSalesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
-          const allSalesSnapshot = await getDocs(allSalesQ);
+          // Calcul de l'historique financier à partir du même snapshot
           let unpaid = 0;
           let count = 0;
           allSalesSnapshot.forEach(doc => {
@@ -267,7 +267,6 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Créer l'opération de caisse si de l'argent est reçu
         if (deltaAvance > 0) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
