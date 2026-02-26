@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -25,14 +25,16 @@ export default function SettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [isReseting, setIsReseting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
+  const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
+    const savedRole = localStorage.getItem('user_role');
+    if (!savedRole || (savedRole !== 'ADMIN' && savedRole !== 'PREPA')) {
       router.push('/dashboard');
     } else {
+      setRole(savedRole.toUpperCase());
       setLoadingRole(false);
     }
   }, [router]);
@@ -60,9 +62,52 @@ export default function SettingsPage() {
       await setDoc(settingsRef, settings, { merge: true });
       toast({ variant: "success", title: "Paramètres Enregistrés" });
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: "settings/shop-info", operation: 'write', requestResourceData: settings }));
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncDrafts = async () => {
+    setIsSyncing(true);
+    try {
+      const batch = writeBatch(db);
+      let count = 0;
+
+      // 1. Sync Sales
+      const salesQ = query(collection(db, "sales"), where("isDraft", "==", true));
+      const salesSnap = await getDocs(salesQ);
+      salesSnap.forEach(d => {
+        batch.update(d.ref, { isDraft: false });
+        count++;
+      });
+
+      // 2. Sync Transactions
+      const transQ = query(collection(db, "transactions"), where("isDraft", "==", true));
+      const transSnap = await getDocs(transQ);
+      transSnap.forEach(d => {
+        batch.update(d.ref, { isDraft: false });
+        count++;
+      });
+
+      // 3. Sync Cash Sessions
+      const sessionsQ = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
+      const sessionsSnap = await getDocs(sessionsQ);
+      sessionsSnap.forEach(d => {
+        batch.update(d.ref, { isDraft: false });
+        count++;
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        toast({ variant: "success", title: "Synchronisation Terminée", description: `${count} documents ont été publiés.` });
+      } else {
+        toast({ title: "Aucun brouillon à synchroniser" });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur de synchronisation" });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -79,7 +124,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
+          <div className="md:col-span-1 space-y-6">
             <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
               <CardHeader className="bg-slate-50/50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Logo</CardTitle></CardHeader>
               <CardContent className="flex flex-col items-center gap-6 p-8">
@@ -97,6 +142,29 @@ export default function SettingsPage() {
                 <Button variant="outline" className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white" onClick={() => fileInputRef.current?.click()}>IMPORTER</Button>
               </CardContent>
             </Card>
+
+            {role === 'ADMIN' && (
+              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-orange-50 border-orange-100">
+                <CardHeader className="bg-orange-100/50 border-b p-6">
+                  <CardTitle className="text-[11px] font-black uppercase tracking-widest text-orange-700 flex items-center gap-2">
+                    <Database className="h-4 w-4" /> Maintenance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <p className="text-[10px] font-bold text-orange-800 leading-relaxed uppercase">
+                    Utilisez ce bouton pour publier toutes les données saisies en Mode Préparation vers l'historique réel.
+                  </p>
+                  <Button 
+                    onClick={handleSyncDrafts} 
+                    disabled={isSyncing}
+                    className="w-full h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black text-[10px] uppercase shadow-lg shadow-orange-200"
+                  >
+                    {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
+                    Synchroniser le brouillon
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="md:col-span-2 space-y-6">

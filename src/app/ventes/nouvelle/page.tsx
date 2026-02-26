@@ -31,10 +31,17 @@ function NewSaleForm() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   
+  const [role, setRole] = useState<string>("OPTICIENNE");
   const [loading, setLoading] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
   const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+  }, []);
+
+  const isPrepaMode = role === "PREPA";
 
   const [saleDate, setSaleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
@@ -96,17 +103,17 @@ function NewSaleForm() {
             }
           }
 
-          const allSalesQ = query(
-            collection(db, "sales"), 
-            where("clientPhone", "==", cleanPhone)
-          );
+          const allSalesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
           const allSalesSnapshot = await getDocs(allSalesQ);
           let unpaid = 0;
           let count = 0;
           allSalesSnapshot.forEach(doc => {
             const data = doc.data();
-            unpaid += (data.reste || 0);
-            count++;
+            // Filtrer l'historique selon le mode pour être cohérent
+            if (isPrepaMode ? data.isDraft : !data.isDraft) {
+              unpaid += (data.reste || 0);
+              count++;
+            }
           });
           setClientHistory({ totalUnpaid: unpaid, orderCount: count, hasUnpaid: unpaid > 0 });
 
@@ -120,7 +127,7 @@ function NewSaleForm() {
 
     const timer = setTimeout(searchClient, 600);
     return () => clearTimeout(timer);
-  }, [clientPhone, db, searchParams]);
+  }, [clientPhone, db, searchParams, isPrepaMode]);
 
   const cleanVal = (val: string | number) => {
     if (typeof val === 'number') return val;
@@ -156,7 +163,9 @@ function NewSaleForm() {
 
     try {
       const result = await runTransaction(db, async (transaction) => {
-        const counterRef = doc(db, "settings", "counters");
+        // En mode PREPA, on utilise des compteurs différents pour ne pas perturber la numérotation réelle
+        const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
+        const counterRef = doc(db, "settings", counterDocPath);
         const counterSnap = await transaction.get(counterRef);
         let counters = { fc: 0, rc: 0 };
         if (counterSnap.exists()) {
@@ -167,12 +176,13 @@ function NewSaleForm() {
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
 
         if (!activeEditId) {
+          const prefix = isPrepaMode ? "PREPA-" : "";
           if (isPaid) {
             counters.fc += 1;
-            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
           } else {
             counters.rc += 1;
-            invoiceId = `RC-2026-${counters.rc.toString().padStart(4, '0')}`;
+            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`;
           }
           transaction.set(counterRef, counters, { merge: true });
         } else {
@@ -180,9 +190,10 @@ function NewSaleForm() {
           if (currentSaleSnap.exists()) {
             const currentData = currentSaleSnap.data();
             invoiceId = currentData.invoiceId;
-            if (invoiceId.startsWith("RC") && isPaid) {
+            const prefix = isPrepaMode ? "PREPA-" : "";
+            if (invoiceId.includes("RC") && isPaid) {
               counters.fc += 1;
-              invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+              invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
               transaction.set(counterRef, counters, { merge: true });
             }
           }
@@ -207,6 +218,7 @@ function NewSaleForm() {
           monture,
           verres,
           notes,
+          isDraft: isPrepaMode, // Marquage Brouillon
           updatedAt: serverTimestamp(),
         };
 
@@ -228,29 +240,8 @@ function NewSaleForm() {
             montant: nAvance,
             relatedId: invoiceId,
             userName: currentUserName,
-            createdAt: serverTimestamp()
-          });
-        }
-
-        const clientsRef = collection(db, "clients");
-        const clientQuery = query(clientsRef, where("phone", "==", saleData.clientPhone));
-        const clientSnap = await getDocs(clientQuery);
-        
-        if (clientSnap.empty) {
-          const newClientRef = doc(collection(db, "clients"));
-          transaction.set(newClientRef, { 
-            name: clientName, 
-            phone: saleData.clientPhone, 
-            mutuelle: finalMutuelle || "Aucun", 
-            lastVisit: saleDate.toLocaleDateString("fr-FR"), 
-            ordersCount: 1, 
-            createdAt: serverTimestamp() 
-          });
-        } else {
-          transaction.update(doc(db, "clients", clientSnap.docs[0].id), { 
-            lastVisit: saleDate.toLocaleDateString("fr-FR"), 
-            name: clientName, 
-            mutuelle: finalMutuelle || "Aucun" 
+            isDraft: isPrepaMode, // Marquage Brouillon
+            createdAt: Timestamp.fromDate(saleDate)
           });
         }
 
@@ -275,27 +266,14 @@ function NewSaleForm() {
   const handlePrint = async () => {
     const saleData = await handleSave(true);
     if (!saleData) return;
-    
     const isPaid = saleData.reste <= 0;
     const page = isPaid ? 'facture' : 'recu';
-    
     const params = new URLSearchParams({ 
-      client: saleData.clientName, 
-      phone: saleData.clientPhone, 
-      mutuelle: saleData.mutuelle, 
-      total: saleData.total.toString(), 
-      remise: saleData.remise.toString(), 
-      remisePercent: saleData.remisePercent, 
-      avance: saleData.avance.toString(), 
-      od_sph: saleData.prescription.od.sph, 
-      od_cyl: saleData.prescription.od.cyl, 
-      od_axe: saleData.prescription.od.axe, 
-      og_sph: saleData.prescription.og.sph, 
-      og_cyl: saleData.prescription.og.cyl, 
-      og_axe: saleData.prescription.og.axe, 
-      monture: saleData.monture, 
-      verres: saleData.verres, 
-      date: saleDate.toLocaleDateString("fr-FR") 
+      client: saleData.clientName, phone: saleData.clientPhone, mutuelle: saleData.mutuelle, 
+      total: saleData.total.toString(), remise: saleData.remise.toString(), remisePercent: saleData.remisePercent, 
+      avance: saleData.avance.toString(), od_sph: saleData.prescription.od.sph, od_cyl: saleData.prescription.od.cyl, 
+      od_axe: saleData.prescription.od.axe, og_sph: saleData.prescription.og.sph, og_cyl: saleData.prescription.og.cyl, 
+      og_axe: saleData.prescription.og.axe, monture: saleData.monture, verres: saleData.verres, date: saleDate.toLocaleDateString("fr-FR") 
     });
     router.push(`/ventes/${page}/${saleData.invoiceId}?${params.toString()}`);
   };
@@ -305,15 +283,15 @@ function NewSaleForm() {
       <div className="space-y-4 max-w-5xl mx-auto pb-24">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] border shadow-sm">
           <div className="flex items-center gap-4">
-            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", activeEditId ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}>
-              {activeEditId ? <History className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", isPrepaMode ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}>
+              {isPrepaMode ? <AlertTriangle className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">
-                {activeEditId ? "Mise à jour Dossier" : "Nouvelle Vente"}
+                {isPrepaMode ? "Saisie Historique (Brouillon)" : (activeEditId ? "Mise à jour Dossier" : "Nouvelle Vente")}
               </h1>
               <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">
-                {activeEditId ? "Modification de facture" : "Saisie client & ordonnance"}
+                {isPrepaMode ? "Travail sur les mois 1 & 2" : (activeEditId ? "Modification de facture" : "Saisie client & ordonnance")}
               </p>
             </div>
           </div>
@@ -358,29 +336,16 @@ function NewSaleForm() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
-                    <Select onValueChange={setMutuelle} value={mutuelle}>
-                      <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {mutuelle === "Autre" && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-left-4">
-                      <Label className="text-[10px] uppercase text-primary font-black tracking-widest ml-1">Précisez la mutuelle</Label>
-                      <Input 
-                        className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-primary/20 shadow-inner" 
-                        value={customMutuelle} 
-                        onChange={(e) => setCustomMutuelle(e.target.value)} 
-                        placeholder="Ex: Wafa Assurance"
-                      />
-                    </div>
-                  )}
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
+                  <Select onValueChange={setMutuelle} value={mutuelle}>
+                    <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -388,7 +353,7 @@ function NewSaleForm() {
             {clientHistory && (
               <div className={cn("p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500", clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Attention : Reste à régler détecté" : "Situation financière à jour"}</p></div></div>
+                  <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client {isPrepaMode ? "(Brouillon)" : ""}</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Attention : Reste à régler détecté" : "Situation financière à jour"}</p></div></div>
                   <div className="grid grid-cols-2 gap-8 w-full md:w-auto"><div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span><span className={cn("text-2xl font-black tracking-tighter", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{formatCurrency(clientHistory.totalUnpaid)}</span></div><div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span><div className="flex items-center gap-2"><span className="text-2xl font-black text-slate-900 tracking-tighter">{clientHistory.orderCount}</span><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div></div></div>
                 </div>
               </div>
@@ -399,14 +364,14 @@ function NewSaleForm() {
 
           <div className="space-y-6">
             <Card className="shadow-2xl border-none bg-primary p-2 rounded-[32px] md:rounded-[40px] lg:sticky lg:top-24">
-              <CardHeader className="py-6 px-8 text-white/60"><CardTitle className="text-[10px] font-black uppercase tracking-[0.3em]">Calcul Financier</CardTitle></CardHeader>
+              <CardHeader className="py-6 px-8 text-white/60"><CardTitle className="text-[10px] font-black uppercase tracking-[0.3em]">Calcul Financier {isPrepaMode ? "(Brouillon)" : ""}</CardTitle></CardHeader>
               <CardContent className="p-4 md:p-6 space-y-5">
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Vente Brut</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={total} onChange={(e) => setTotal(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
                 <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-destructive">{formatCurrency(resteAPayerValue)}</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-red-500">{formatCurrency(resteAPayerValue)}</span></div></div>
 
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">

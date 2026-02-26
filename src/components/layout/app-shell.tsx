@@ -1,10 +1,11 @@
+
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Glasses, ThumbsUp, Menu } from "lucide-react";
+import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
@@ -34,7 +35,9 @@ export function AppShell({ children }: AppShellProps) {
 
   const userName = user?.displayName || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
-  const displayRole = role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE";
+  
+  const isPrepa = role === "PREPA";
+  const displayRole = isPrepa ? "PRÉPARATION HISTORIQUE" : (role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE");
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
@@ -98,7 +101,9 @@ export function AppShell({ children }: AppShellProps) {
             </Avatar>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate capitalize text-slate-900">{userName}</span>
-              <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{displayRole}</span>
+              <span className={cn("text-[9px] font-black uppercase tracking-widest", isPrepa ? "text-orange-600" : "text-primary/60")}>
+                {displayRole}
+              </span>
             </div>
           </div>
         </div>
@@ -106,6 +111,13 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen">
+        {isPrepa && (
+          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0">
+            <AlertTriangle className="h-4 w-4" />
+            Attention : Vous êtes en Mode Préparation. Les données saisies sont des brouillons.
+          </div>
+        )}
+        
         <header className="h-20 border-b bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Trigger */}

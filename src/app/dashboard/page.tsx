@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [todayStr, setTodayStr] = useState<string>("");
   const [sessionDocId, setSessionDocId] = useState<string>("");
   const [isClientReady, setIsClientReady] = useState(false);
+  const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
     const now = new Date();
@@ -55,8 +56,11 @@ export default function DashboardPage() {
       month: 'short'
     }));
     setSessionDocId(format(now, "yyyy-MM-dd"));
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     setIsClientReady(true);
   }, []);
+
+  const isPrepaMode = role === "PREPA";
 
   // Fetch Current Session Status
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
@@ -64,13 +68,16 @@ export default function DashboardPage() {
 
   // Fetch Data
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
-  const { data: allSales, isLoading: loadingSales } = useCollection(salesQuery);
+  const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
 
   const clientsQuery = useMemoFirebase(() => query(collection(db, "clients")), [db]);
   const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
 
-  const recentSalesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc"), limit(5)), [db]);
-  const { data: recentSales } = useCollection(recentSalesQuery);
+  // Filter Sales based on Mode
+  const allSales = useMemo(() => {
+    if (!rawSales) return [];
+    return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : !s.isDraft);
+  }, [rawSales, isPrepaMode]);
 
   // Statistics Calculation
   const stats = useMemo(() => {
@@ -118,6 +125,8 @@ export default function DashboardPage() {
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [allSales]);
+
+  const recentSales = useMemo(() => allSales.slice(0, 5), [allSales]);
 
   const userName = user?.displayName || "Utilisateur";
 
@@ -188,7 +197,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
           <TrendingUp className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Chiffre d'Affaire</p>
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Chiffre d'Affaire {isPrepaMode ? "(Brouillon)" : ""}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-black tracking-tighter">{new Intl.NumberFormat('fr-FR').format(stats.ca)}</span>
             <span className="text-lg font-black opacity-60">DH</span>
@@ -197,13 +206,13 @@ export default function DashboardPage() {
         
         <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
           <ShoppingCart className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Ventes totales</p>
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Ventes totales {isPrepaMode ? "(Brouillon)" : ""}</p>
           <p className="text-4xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive">
           <AlertCircle className="absolute -right-6 -top-6 h-40 w-40 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer</p>
+          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer {isPrepaMode ? "(Brouillon)" : ""}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-black text-destructive tracking-tighter">{new Intl.NumberFormat('fr-FR').format(stats.reste)}</span>
             <span className="text-lg font-black text-destructive opacity-60">DH</span>
@@ -222,7 +231,7 @@ export default function DashboardPage() {
           <CardHeader className="p-8 border-b bg-slate-50/50">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
               <TrendingUp className="h-5 w-5" />
-              Performance Hebdo
+              Performance Hebdo {isPrepaMode ? "(Brouillon)" : ""}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] p-8">
@@ -240,7 +249,7 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3 shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-8 border-b bg-slate-50/50">
-            <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">PARTS DE MUTUELLE</CardTitle>
+            <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">PARTS DE MUTUELLE {isPrepaMode ? "(Brouillon)" : ""}</CardTitle>
           </CardHeader>
           <CardContent className="p-8 flex flex-col items-center">
              <div className="w-full h-[220px]">
@@ -269,7 +278,7 @@ export default function DashboardPage() {
 
       <Card className="shadow-sm border-none overflow-hidden rounded-[40px] bg-white">
         <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-slate-50/50">
-          <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes Réelles</CardTitle>
+          <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}</CardTitle>
           <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap uppercase tracking-widest">
             <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR <ChevronRight className="h-3 w-3" /></Link>
           </Button>

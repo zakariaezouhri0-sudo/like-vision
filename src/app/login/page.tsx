@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -29,6 +30,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
+    // Mode Admin Standard
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -36,11 +38,25 @@ export default function LoginPage() {
           await updateProfile(userCredential.user, { displayName: "Administrateur" });
           localStorage.setItem('user_role', 'ADMIN');
         }
-        toast({ 
-          variant: "success",
-          title: "Connexion réussie", 
-          description: "Bienvenue (Mode Admin)." 
-        });
+        toast({ variant: "success", title: "Connexion réussie", description: "Bienvenue (Mode Admin)." });
+        router.push("/dashboard");
+      } catch (err) {
+        toast({ variant: "destructive", title: "Erreur Auth" });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // NOUVEAU : Mode Préparation (Brouillon)
+    if (username.toLowerCase() === "prepa" && password === "prepa123") {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: "Préparation Historique" });
+          localStorage.setItem('user_role', 'PREPA');
+        }
+        toast({ variant: "success", title: "Mode Préparation Actif", description: "Vous travaillez sur un espace brouillon isolé." });
         router.push("/dashboard");
       } catch (err) {
         toast({ variant: "destructive", title: "Erreur Auth" });
