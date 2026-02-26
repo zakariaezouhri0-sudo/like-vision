@@ -281,7 +281,6 @@ function CaisseContent() {
     }
   };
 
-  // BLOCK: Unified loading state to avoid flickering
   if (!isClientReady || sessionLoading || (isToday && lastSessionLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -291,7 +290,6 @@ function CaisseContent() {
     );
   }
 
-  // View for past date not opened
   if (!isToday && !session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -309,7 +307,6 @@ function CaisseContent() {
     );
   }
 
-  // --- VIEW: CASH CLOSED ---
   if (session?.status === "CLOSED") {
     return (
       <div className="space-y-8 animate-in fade-in zoom-in duration-500 pb-20">
@@ -343,9 +340,7 @@ function CaisseContent() {
             )}
           </div>
 
-          {/* Grouped Operations Summary like in Report */}
           <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            {/* VENTES */}
             <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
               <div className="bg-green-50 px-5 py-4 border-b border-green-100 flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -373,7 +368,6 @@ function CaisseContent() {
               </div>
             </Card>
 
-            {/* CHARGES / DEPENSES */}
             <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
               <div className="bg-red-50 px-5 py-4 border-b border-red-100 flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -401,7 +395,6 @@ function CaisseContent() {
               </div>
             </Card>
 
-            {/* VERSEMENTS */}
             <Card className="bg-white border-none shadow-lg rounded-[24px] overflow-hidden">
               <div className="bg-orange-50 px-5 py-4 border-b border-orange-100 flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -457,7 +450,6 @@ function CaisseContent() {
     );
   }
 
-  // --- VIEW: CASH NOT OPENED YET (TODAY ONLY) ---
   if (!session && isToday) {
     const isSubsequentSession = !!lastSession;
 
@@ -563,7 +555,6 @@ function CaisseContent() {
     );
   }
 
-  // --- VIEW: DASHBOARD (CASH OPENED) ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -647,14 +638,14 @@ function CaisseContent() {
                       <div className="space-y-1.5 sm:space-y-2">
                         {DENOMINATIONS.map(val => (
                           <div key={val} className="flex items-center gap-2 sm:gap-3 bg-slate-50 p-1.5 sm:p-2 rounded-xl border border-slate-100">
-                            <span className="w-12 sm:w-16 text-right font-black text-[10px] sm:text-[11px] text-slate-400">{val} DH</span>
+                            <span className="w-12 sm:w-16 text-right font-black text-[10px] sm:text-[11px] text-slate-400 whitespace-nowrap">{val} DH</span>
                             <Input 
                               type="number" 
                               className="h-8 sm:h-9 w-16 sm:w-20 text-center font-bold bg-white border-none shadow-inner p-0" 
                               value={denoms[val]} 
                               onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} 
                             />
-                            <span className="flex-1 text-right font-black text-primary text-[10px] sm:text-[11px]">{formatCurrency(val * (denoms[val] || 0))}</span>
+                            <span className="flex-1 text-right font-black text-primary text-[10px] sm:text-[11px] whitespace-nowrap">{formatCurrency(val * (denoms[val] || 0))}</span>
                           </div>
                         ))}
                       </div>
@@ -664,29 +655,29 @@ function CaisseContent() {
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-slate-400">
                           <span>Solde Initial</span>
-                          <span className="text-slate-900">{formatCurrency(initialBalance)}</span>
+                          <span className="text-slate-900 whitespace-nowrap">{formatCurrency(initialBalance)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-green-600">
                           <span>Total Ventes (+)</span>
-                          <span>{formatCurrency(stats.entrees)}</span>
+                          <span className="whitespace-nowrap">{formatCurrency(stats.entrees)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-destructive">
                           <span>Dépenses (-)</span>
-                          <span>{formatCurrency(stats.depenses)}</span>
+                          <span className="whitespace-nowrap">{formatCurrency(stats.depenses)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-orange-600">
                           <span>Versements (-)</span>
-                          <span>{formatCurrency(stats.versements)}</span>
+                          <span className="whitespace-nowrap">{formatCurrency(stats.versements)}</span>
                         </div>
                         
                         <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
                           <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
-                          <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
+                          <span className="text-base sm:text-lg font-black text-slate-900 whitespace-nowrap">{formatCurrency(soldeTheorique)}</span>
                         </div>
                         
                         <div className="flex justify-between items-center bg-primary/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-primary/20">
                           <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary tracking-widest">Total Compté</span>
-                          <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter">{formatCurrency(soldeReel)}</span>
+                          <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter whitespace-nowrap">{formatCurrency(soldeReel)}</span>
                         </div>
                         
                         <div className={cn(
@@ -695,7 +686,7 @@ function CaisseContent() {
                         )}>
                           <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
+                            <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap", ecart >= 0 ? "text-green-600" : "text-destructive")}>
                               {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
                             </span>
                             {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
@@ -778,28 +769,28 @@ function CaisseContent() {
             <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Solde Initial</p>
           </div>
           <div className="bg-slate-50/50 p-2 rounded-xl">
-            <p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+            <p className="text-xl font-black text-blue-600 whitespace-nowrap">{formatCurrency(initialBalance).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
           </div>
         </Card>
         
         <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
           <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Ventes du jour</p>
-          <p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+          <p className="text-xl font-black text-green-600 whitespace-nowrap">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
         </Card>
         
         <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-destructive">
           <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Dépenses (Charges)</p>
-          <p className="text-xl font-black text-destructive">-{formatCurrency(stats.depenses).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+          <p className="text-xl font-black text-destructive whitespace-nowrap">-{formatCurrency(stats.depenses).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
         </Card>
         
         <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-orange-500">
           <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Versements (Banque)</p>
-          <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+          <p className="text-xl font-black text-orange-600 whitespace-nowrap">-{formatCurrency(stats.versements).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
         </Card>
         
         <Card className="bg-primary text-primary-foreground p-5 rounded-[24px] shadow-lg flex flex-col justify-center">
           <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-widest">Solde Théorique</p>
-          <p className="text-xl font-black">{formatCurrency(soldeTheorique).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
+          <p className="text-xl font-black whitespace-nowrap">{formatCurrency(soldeTheorique).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
         </Card>
       </div>
 
@@ -853,7 +844,7 @@ function CaisseContent() {
                         </div>
                       </TableCell>
                     )}
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
                       {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">

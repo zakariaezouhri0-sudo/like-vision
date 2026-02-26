@@ -102,12 +102,13 @@ export default function CashSessionsPage() {
                                   {format(new Date(s.date), "dd MMMM yyyy", { locale: fr })}
                                 </span>
                               </div>
-                              <Badge className={cn(
-                                "text-[8px] font-black uppercase px-2 py-0.5 border-none rounded-md",
-                                s.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
-                              )}>
-                                {s.status === "OPEN" ? "En cours" : "Terminée"}
-                              </Badge>
+                              <div 
+                                className={cn(
+                                  "h-2.5 w-2.5 rounded-full shrink-0",
+                                  s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-slate-300"
+                                )} 
+                                title={s.status === "OPEN" ? "Ouverte" : "Clôturée"}
+                              />
                             </div>
                           </TableCell>
 
