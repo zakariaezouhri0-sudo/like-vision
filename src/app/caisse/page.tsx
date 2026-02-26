@@ -111,7 +111,7 @@ function CaisseContent() {
     montant: ""
   });
 
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
@@ -349,25 +349,30 @@ function CaisseContent() {
               <div className="bg-green-50 px-5 py-4 border-b border-green-100 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Ventes</span>
+                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Encaissements (Ventes)</span>
                 </div>
                 <span className="text-xs font-black text-green-700">+{formatCurrency(stats.entrees)}</span>
               </div>
               <div className="p-5 space-y-3 max-h-[300px] overflow-y-auto">
                 {transactions?.filter(t => t.type === 'VENTE').length > 0 ? (
-                  transactions?.filter(t => t.type === 'VENTE').map(t => (
-                    <div key={t.id} className="flex flex-col border-b border-slate-50 pb-2 last:border-0">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-black text-slate-700 uppercase leading-tight flex-1 pr-2">{t.label}</span>
-                        <span className="text-[10px] font-black text-green-600 whitespace-nowrap">{formatCurrency(t.montant)}</span>
+                  transactions?.filter(t => t.type === 'VENTE').map(t => {
+                    const isReceipt = t.relatedId?.startsWith('RC');
+                    const displayLabel = isReceipt ? `REÇU ${t.relatedId}` : (t.relatedId ? `VENTE ${t.relatedId}` : t.label);
+                    
+                    return (
+                      <div key={t.id} className="flex flex-col border-b border-slate-50 pb-2 last:border-0">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[10px] font-black text-slate-700 uppercase leading-tight flex-1 pr-2">{displayLabel}</span>
+                          <span className="text-[10px] font-black text-green-600 whitespace-nowrap">{formatCurrency(t.montant)}</span>
+                        </div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                          {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                        </span>
                       </div>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-                        {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
-                  <p className="text-[9px] text-slate-300 italic text-center py-4 uppercase font-black">Aucune vente</p>
+                  <p className="text-[9px] text-slate-300 italic text-center py-4 uppercase font-black">Aucune entrée</p>
                 )}
               </div>
             </Card>
@@ -586,13 +591,14 @@ function CaisseContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
-                      <Select value={newOp.type} onValueChange={v => setNewOp({...newOp, type: v})}>
-                        <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense (Charge)</SelectItem>
-                          <SelectItem value="VERSEMENT" className="font-bold text-orange-600">Versement (Banque)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select 
+                        className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none"
+                        value={newOp.type} 
+                        onChange={e => setNewOp({...newOp, type: e.target.value})}
+                      >
+                        <option value="DEPENSE" className="text-destructive">Dépense (Charge)</option>
+                        <option value="VERSEMENT" className="text-orange-600">Versement (Banque)</option>
+                      </select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
@@ -662,7 +668,7 @@ function CaisseContent() {
                           <span className="text-slate-900 whitespace-nowrap">{formatCurrency(initialBalance)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-green-600">
-                          <span>Total Ventes (+)</span>
+                          <span>Total Encaissements (+)</span>
                           <span className="whitespace-nowrap">{formatCurrency(stats.entrees)}</span>
                         </div>
                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase text-destructive">
@@ -674,7 +680,7 @@ function CaisseContent() {
                           <span className="whitespace-nowrap">{formatCurrency(stats.versements)}</span>
                         </div>
                         
-                        <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
+                        <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100 mt-2">
                           <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
                           <span className="text-base sm:text-lg font-black text-slate-900 whitespace-nowrap">{formatCurrency(soldeTheorique)}</span>
                         </div>
@@ -733,14 +739,15 @@ function CaisseContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
-                    <Select value={editingTransaction.type} onValueChange={v => setEditingTransaction({...editingTransaction, type: v})}>
-                      <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DEPENSE" className="font-bold text-destructive">Dépense (Charge)</SelectItem>
-                        <SelectItem value="VERSEMENT" className="font-bold text-orange-600">Versement (Banque)</SelectItem>
-                        <SelectItem value="VENTE" className="font-bold text-green-600">Vente</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select 
+                      className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none"
+                      value={editingTransaction.type} 
+                      onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}
+                    >
+                      <option value="DEPENSE" className="text-destructive">Dépense (Charge)</option>
+                      <option value="VERSEMENT" className="text-orange-600">Versement (Banque)</option>
+                      <option value="VENTE" className="text-green-600">Encaissement</option>
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
@@ -778,7 +785,7 @@ function CaisseContent() {
         </Card>
         
         <Card className="bg-white border-none p-5 rounded-[24px] shadow-md border-l-4 border-l-green-500">
-          <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Ventes du jour</p>
+          <p className="text-[9px] uppercase font-black text-muted-foreground mb-3 tracking-widest">Encaissements du jour</p>
           <p className="text-xl font-black text-green-600 whitespace-nowrap">+{formatCurrency(stats.entrees).replace(' DH', '')} <span className="text-[10px] opacity-40">DH</span></p>
         </Card>
         
@@ -815,65 +822,70 @@ function CaisseContent() {
             <TableBody>
               {loadingTrans ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
                 transactions?.length === 0 ? <TableRow><TableCell colSpan={role === 'ADMIN' ? 4 : 3} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune opération aujourd'hui.</TableCell></TableRow> :
-                transactions?.map((t: any) => (
-                  <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                    <TableCell className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-bold text-slate-400">
-                            {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
-                          </span>
-                          <span className="text-[11px] font-black uppercase text-slate-800">
-                            {t.type === 'VENTE' && t.relatedId ? `Vente ${t.relatedId}` : t.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2 py-0", 
-                            t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
-                            t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                          )}>
-                            {t.type}
-                          </Badge>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                            {t.category ? `• ${t.category}` : ""}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    {role === 'ADMIN' && (
-                      <TableCell className="px-6 py-4 text-center">
-                        <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                          <UserIcon className="h-3 w-3 text-slate-300" />
-                          <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter truncate max-w-[100px]">{t.userName || "---"}</span>
+                transactions?.map((t: any) => {
+                  const isReceipt = t.type === 'VENTE' && t.relatedId?.startsWith('RC');
+                  const displayLabel = t.type === 'VENTE' && t.relatedId ? (isReceipt ? `REÇU ${t.relatedId}` : `VENTE ${t.relatedId}`) : t.label;
+
+                  return (
+                    <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                      <TableCell className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] font-bold text-slate-400">
+                              {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
+                            </span>
+                            <span className="text-[11px] font-black uppercase text-slate-800">
+                              {displayLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={cn("text-[8px] font-black border-none px-2 py-0", 
+                              t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
+                              t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                            )}>
+                              {t.type === 'VENTE' ? (isReceipt ? 'ACOMPTE' : 'VENTE') : t.type}
+                            </Badge>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                              {t.category ? `• ${t.category}` : ""}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
-                    )}
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
-                      {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
-                    </TableCell>
-                    <TableCell className="text-right px-6 py-4">
-                      {role === 'ADMIN' && isToday ? (
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span className="text-[8px] font-black text-slate-300 uppercase">Verrouillé</span>
+                      {role === 'ADMIN' && (
+                        <TableCell className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                            <UserIcon className="h-3 w-3 text-slate-300" />
+                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter truncate max-w-[100px]">{t.userName || "---"}</span>
+                          </div>
+                        </TableCell>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      <TableCell className={cn("text-right px-6 py-4 font-black text-xs whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-destructive")}>
+                        {t.montant > 0 ? "+" : ""}{formatCurrency(t.montant)}
+                      </TableCell>
+                      <TableCell className="text-right px-6 py-4">
+                        {role === 'ADMIN' && isToday ? (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 rounded-xl transition-all">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[160px]">
+                              <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteOperation(t.id, t.label)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="text-[8px] font-black text-slate-300 uppercase">Verrouillé</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               }
             </TableBody>
           </Table>
