@@ -105,25 +105,32 @@ export default function ReportsPage() {
   return (
     <AppShell>
       <div className="space-y-6 pb-10">
-        <div className="bg-white p-6 rounded-[32px] border shadow-sm space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-white p-6 rounded-[32px] border shadow-sm">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div>
               <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Rapports d'Activité {isPrepaMode ? "(Brouillon)" : ""}</h1>
               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Analyses et exports financiers.</p>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white w-full justify-start overflow-hidden">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-primary shrink-0" />
-                  <span className="truncate">{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start"><Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} numberOfMonths={1} locale={fr} /></PopoverContent>
-            </Popover>
-            <Button onClick={handleExportCSV} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 text-white w-full"><FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL</Button>
-            <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary w-full whitespace-nowrap"><FileText className="mr-1.5 h-4 w-4" /> RAPPORT JOURNALIER</Button>
+            
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-12 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white min-w-[180px] justify-start overflow-hidden">
+                    <CalendarIcon className="mr-2 h-4 w-4 text-primary shrink-0" />
+                    <span className="truncate">{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="end">
+                  <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} numberOfMonths={1} locale={fr} />
+                </PopoverContent>
+              </Popover>
+              <Button onClick={handleExportCSV} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase shadow-lg bg-green-600 hover:bg-green-700 text-white min-w-[140px] flex-1 sm:flex-none">
+                <FileSpreadsheet className="mr-1.5 h-4 w-4" /> EXCEL
+              </Button>
+              <Button onClick={handlePrintDaily} variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary min-w-[180px] flex-1 sm:flex-none whitespace-nowrap">
+                <FileText className="mr-1.5 h-4 w-4" /> RAPPORT JOURNALIER
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -135,7 +142,10 @@ export default function ReportsPage() {
         </div>
 
         <Tabs defaultValue="flux" className="w-full">
-          <TabsList className="bg-white p-1 rounded-2xl shadow-sm border h-14 w-full md:w-auto grid grid-cols-2"><TabsTrigger value="flux" className="rounded-xl font-black text-[10px] uppercase">Flux de Caisse</TabsTrigger><TabsTrigger value="marges" className="rounded-xl font-black text-[10px] uppercase">Détail Marges</TabsTrigger></TabsList>
+          <TabsList className="bg-white p-1 rounded-2xl shadow-sm border h-14 w-full md:w-auto grid grid-cols-2">
+            <TabsTrigger value="flux" className="rounded-xl font-black text-[10px] uppercase">Flux de Caisse</TabsTrigger>
+            <TabsTrigger value="marges" className="rounded-xl font-black text-[10px] uppercase">Détail Marges</TabsTrigger>
+          </TabsList>
           <TabsContent value="flux" className="mt-6">
             <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
               <Table>
@@ -144,7 +154,7 @@ export default function ReportsPage() {
                   {(salesLoading || transLoading) ? <TableRow><TableCell colSpan={3} className="text-center py-20"><Loader2 className="h-6 w-6 animate-spin mx-auto opacity-20" /></TableCell></TableRow> : 
                     stats.filteredTrans.length > 0 ? stats.filteredTrans.map((t: any) => (
                       <TableRow key={t.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
-                        <TableCell className="text-[10px] font-bold text-muted-foreground px-6 py-4">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell>
+                        <TableCell className="text-[10px] font-bold text-muted-foreground px-6 py-4">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM HH:mm") : "---"}</TableCell>
                         <TableCell className="px-6 py-4">
                           <div className="flex flex-col"><span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{t.label}</span><Badge variant="outline" className={cn("text-[8px] font-black w-fit mt-1 border-none", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : t.type === 'DEPENSE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>{t.type}</Badge></div>
                         </TableCell>
