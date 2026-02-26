@@ -167,7 +167,7 @@ export default function DashboardPage() {
               <div className={cn(
                 "h-2.5 w-2.5 rounded-full",
                 isSessionOpen ? "bg-green-600 animate-pulse" : 
-                isSessionClosed ? "bg-red-500" : 
+                isSessionClosed ? "bg-red-400" : 
                 "bg-orange-500 animate-bounce"
               )} />
               <span className={cn(
