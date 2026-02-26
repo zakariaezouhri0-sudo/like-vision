@@ -16,7 +16,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, arrayUnion } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -80,7 +80,6 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // Chercher d'abord si le client a un reçu en cours (statut != Payé)
           const unpaidQuery = query(
             collection(db, "sales"), 
             where("clientPhone", "==", cleanPhone), 
@@ -92,7 +91,6 @@ function NewSaleForm() {
             const saleDoc = unpaidSnap.docs[0];
             const data = saleDoc.data();
             
-            // Charger les données de la vente existante
             setActiveEditId(saleDoc.id);
             setClientName(data.clientName);
             setTotal(data.total);
@@ -116,11 +114,10 @@ function NewSaleForm() {
             }
 
             toast({
-              title: "Reçu en cours détecté",
-              description: `Modification du reçu ${data.invoiceId} activée pour ce client.`,
+              title: "Dossier en cours",
+              description: `Modification du reçu ${data.invoiceId} activée.`,
             });
           } else {
-            // Si pas de reçu en cours, chercher les infos de base du client
             const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
             const querySnapshot = await getDocs(q);
             
@@ -139,7 +136,6 @@ function NewSaleForm() {
             }
           }
 
-          // Calculer l'historique global
           const allSalesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
           const allSalesSnapshot = await getDocs(allSalesQ);
           let unpaid = 0;
@@ -206,10 +202,11 @@ function NewSaleForm() {
 
         let invoiceId = searchParams.get("invoiceId") || "";
         let isNewSequence = false;
+        let oldAvance = 0;
 
-        // Gestion du numéro de document
+        const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
+
         if (!activeEditId) {
-          // Nouvelle vente
           if (isPaid) {
             counters.fc += 1;
             invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
@@ -219,17 +216,16 @@ function NewSaleForm() {
           }
           isNewSequence = true;
         } else {
-          // Modification d'une vente existante
-          const currentSaleRef = doc(db, "sales", activeEditId);
-          const currentSaleSnap = await transaction.get(currentSaleRef);
-          const currentData = currentSaleSnap.data();
-          invoiceId = currentData?.invoiceId;
-
-          // Si c'était un RC et qu'il devient Payé, on lui donne un numéro FC
-          if (invoiceId.startsWith("RC") && isPaid) {
-            counters.fc += 1;
-            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
-            isNewSequence = true;
+          const currentSaleSnap = await transaction.get(saleRef);
+          if (currentSaleSnap.exists()) {
+            const currentData = currentSaleSnap.data();
+            invoiceId = currentData.invoiceId;
+            oldAvance = currentData.avance || 0;
+            if (invoiceId.startsWith("RC") && isPaid) {
+              counters.fc += 1;
+              invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+              isNewSequence = true;
+            }
           }
         }
 
@@ -237,7 +233,9 @@ function NewSaleForm() {
           transaction.set(counterRef, counters, { merge: true });
         }
 
-        const saleData = {
+        const deltaAvance = nAvance - oldAvance;
+
+        const saleData: any = {
           invoiceId,
           clientName,
           clientPhone: clientPhone.toString().replace(/\s/g, ""),
@@ -257,17 +255,33 @@ function NewSaleForm() {
           verres,
           notes,
           updatedAt: serverTimestamp(),
-          ...(activeEditId ? {} : { 
-            createdAt: Timestamp.fromDate(saleDate),
-            createdBy: currentUserName,
-            payments: nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : []
-          })
         };
 
-        const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
+        if (!activeEditId) {
+          saleData.createdAt = Timestamp.fromDate(saleDate);
+          saleData.createdBy = currentUserName;
+          saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : [];
+        } else if (deltaAvance > 0) {
+          saleData.payments = arrayUnion({ amount: deltaAvance, date: new Date().toISOString(), userName: currentUserName });
+        }
+
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Mise à jour client
+        // Créer l'opération de caisse si de l'argent est reçu
+        if (deltaAvance > 0) {
+          const transRef = doc(collection(db, "transactions"));
+          transaction.set(transRef, {
+            type: "VENTE",
+            label: isPaid ? `Encaissement Final ${invoiceId}` : `Acompte Reçu ${invoiceId}`,
+            clientName: clientName,
+            category: "Optique",
+            montant: deltaAvance,
+            relatedId: invoiceId,
+            userName: currentUserName,
+            createdAt: serverTimestamp()
+          });
+        }
+
         const clientsRef = collection(db, "clients");
         const clientQuery = query(clientsRef, where("phone", "==", saleData.clientPhone));
         const clientSnap = await getDocs(clientQuery);
@@ -294,7 +308,7 @@ function NewSaleForm() {
       });
 
       if (!silent) {
-        toast({ variant: "success", title: "Opération réussie", description: `Document ${result.invoiceId} enregistré.` });
+        toast({ variant: "success", title: "Enregistrement réussi", description: `Document ${result.invoiceId} sauvegardé.` });
         router.push("/ventes");
       }
       return result;
@@ -346,10 +360,10 @@ function NewSaleForm() {
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">
-                {activeEditId ? "Modification Reçu" : "Nouvelle Vente"}
+                {activeEditId ? "Mise à jour Dossier" : "Nouvelle Vente"}
               </h1>
               <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">
-                {activeEditId ? "Mise à jour du dossier client" : "Saisie client & ordonnance"}
+                {activeEditId ? "Ajout d'acompte ou modification" : "Saisie client & ordonnance"}
               </p>
             </div>
           </div>
