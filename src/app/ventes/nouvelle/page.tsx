@@ -77,11 +77,9 @@ function NewSaleForm() {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       
-      // On ne lance la recherche que si on n'est pas déjà en mode "Modification" (via URL)
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // Chercher dans la collection clients pour le nom et la mutuelle
           const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone));
           const clientSnapshot = await getDocs(clientQ);
           
@@ -98,7 +96,6 @@ function NewSaleForm() {
             }
           }
 
-          // Récupérer l'historique financier pour l'alerte visuelle
           const allSalesQ = query(
             collection(db, "sales"), 
             where("clientPhone", "==", cleanPhone)
@@ -409,7 +406,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-2xl md:text-3xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-destructive">{formatCurrency(resteAPayerValue)}</span></div></div>
 
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
