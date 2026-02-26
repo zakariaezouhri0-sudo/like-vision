@@ -679,32 +679,28 @@ function CaisseContent() {
                           <span>{formatCurrency(stats.versements)}</span>
                         </div>
                         
-                        {role === 'ADMIN' && (
-                          <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
-                            <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
-                            <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
-                          </div>
-                        )}
+                        <div className="flex justify-between items-center bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-100">
+                          <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary/40 tracking-widest">Solde Théorique</span>
+                          <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(soldeTheorique)}</span>
+                        </div>
                         
                         <div className="flex justify-between items-center bg-primary/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-primary/20">
                           <span className="text-[9px] sm:text-[10px] font-black uppercase text-primary tracking-widest">Total Compté</span>
                           <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter">{formatCurrency(soldeReel)}</span>
                         </div>
                         
-                        {role === 'ADMIN' && (
-                          <div className={cn(
-                            "flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all",
-                            Math.abs(ecart) < 0.01 ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20"
-                          )}>
-                            <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
-                            <div className="flex items-center gap-2">
-                              <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
-                                {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
-                              </span>
-                              {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
-                            </div>
+                        <div className={cn(
+                          "flex flex-col items-center justify-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all",
+                          Math.abs(ecart) < 0.01 ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20"
+                        )}>
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Écart de Caisse</span>
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-2xl sm:text-3xl font-black tracking-tighter", ecart >= 0 ? "text-green-600" : "text-destructive")}>
+                              {ecart > 0 ? "+" : ""}{formatCurrency(ecart)}
+                            </span>
+                            {Math.abs(ecart) < 0.01 ? <CheckCircle2 className="h-4 w-4 sm:h-5 text-green-500" /> : <AlertCircle className="h-4 w-4 sm:h-5 text-destructive" />}
                           </div>
-                        )}
+                        </div>
                       </div>
 
                       <Button 
