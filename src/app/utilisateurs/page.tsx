@@ -27,7 +27,8 @@ export default function UsersPage() {
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
+    // Autoriser ADMIN et PREPA
+    if (role !== 'ADMIN' && role !== 'PREPA') {
       router.push('/dashboard');
     } else {
       setLoadingRole(false);
@@ -38,7 +39,7 @@ export default function UsersPage() {
     return query(collection(db, "users"), orderBy("createdAt", "desc"));
   }, [db]);
 
-  const { data: users, loading } = useCollection(usersQuery);
+  const { data: users, isLoading } = useCollection(usersQuery);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({
@@ -143,7 +144,9 @@ export default function UsersPage() {
                   <TableRow><TableHead className="text-sm uppercase font-black px-6 py-4">Nom complet</TableHead><TableHead className="text-sm uppercase font-black px-6 py-4">Identifiant</TableHead><TableHead className="text-sm uppercase font-black px-6 py-4">Accès</TableHead><TableHead className="text-right text-sm uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users?.map((u: any) => (
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                  ) : users?.map((u: any) => (
                     <TableRow key={u.id} className="hover:bg-muted/10 border-b last:border-0">
                       <TableCell className="px-6 py-5"><span className="text-sm font-bold text-slate-900">{u.name}</span></TableCell>
                       <TableCell className="text-sm font-black text-primary px-6 py-5 uppercase">{u.username}</TableCell>

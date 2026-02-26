@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -38,6 +37,8 @@ export default function CashSessionsPage() {
     setRole(savedRole.toUpperCase());
     setLoadingRole(false);
   }, []);
+
+  const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
   const sessionsQuery = useMemoFirebase(() => {
     return query(collection(db, "cash_sessions"), orderBy("date", "desc"));
@@ -81,7 +82,7 @@ export default function CashSessionsPage() {
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Versement</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
-                      {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
+                      {isAdminOrPrepa && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -195,7 +196,7 @@ export default function CashSessionsPage() {
                               )}
                             </TableCell>
 
-                            {role === 'ADMIN' && (
+                            {isAdminOrPrepa && (
                               <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                                 {s.status === "CLOSED" ? (
                                   <div className={cn(
@@ -237,7 +238,7 @@ export default function CashSessionsPage() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={role === 'ADMIN' ? 9 : 8} className="text-center py-40">
+                        <TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="text-center py-40">
                           <div className="flex flex-col items-center gap-4 opacity-20">
                             <History className="h-12 w-12" />
                             <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session enregistrée.</p>

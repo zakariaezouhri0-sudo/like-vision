@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -27,7 +26,8 @@ export default function ImportPage() {
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    if (role !== 'ADMIN') {
+    // Autoriser ADMIN et PREPA
+    if (role !== 'ADMIN' && role !== 'PREPA') {
       router.push('/dashboard');
     } else {
       setLoadingRole(false);
@@ -122,6 +122,8 @@ export default function ImportPage() {
     if (data.length === 0) return;
     setIsProcessing(true);
     setProgress(0);
+    const role = localStorage.getItem('user_role');
+    const isDraft = role === 'PREPA';
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -152,7 +154,8 @@ export default function ImportPage() {
             createdAt: Timestamp.fromDate(createdAtDate),
             updatedAt: serverTimestamp(),
             remise: 0,
-            notes: "Importé depuis historique"
+            notes: "Importé depuis historique",
+            isDraft: isDraft
           };
           await addDoc(collection(db, "sales"), saleData);
         } else {

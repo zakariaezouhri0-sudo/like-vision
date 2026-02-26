@@ -32,18 +32,15 @@ const NAV_ITEMS = [
 export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
   const pathname = usePathname();
   
-  // Normalisation : Si ce n'est pas ADMIN, on considère que c'est OPTICIENNE pour l'affichage
+  // Normalisation : PREPA a les mêmes droits de visibilité que ADMIN
   const currentRole = (role || "OPTICIENNE").toUpperCase();
-  const effectiveRole = currentRole === "ADMIN" ? "ADMIN" : "OPTICIENNE";
+  const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
 
   return (
     <nav className="flex flex-col gap-1.5 p-2">
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        // Enhanced active state detection:
-        // 1. Exact match
-        // 2. Sub-path match ONLY IF there isn't a more specific match in NAV_ITEMS
         const isExact = pathname === item.href;
         const isSubPath = pathname.startsWith(item.href + "/");
         const hasBetterMatch = NAV_ITEMS.some(other => 
