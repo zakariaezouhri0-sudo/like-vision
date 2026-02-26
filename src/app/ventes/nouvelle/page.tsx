@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -9,13 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag } from "lucide-react";
+import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,11 +30,11 @@ function NewSaleForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const db = useFirestore();
+  
   const [loading, setLoading] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
   const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
-
-  const editId = searchParams.get("editId");
 
   const [saleDate, setSaleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
@@ -72,19 +73,40 @@ function NewSaleForm() {
     }
   });
 
+  // Détection automatique du reçu en cours
   useEffect(() => {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
-      if (cleanPhone.length >= 10 && !editId) {
+      if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            const clientData = querySnapshot.docs[0].data();
-            setClientName(clientData.name);
-            const clientMutuelle = clientData.mutuelle || "Aucun";
+          // Chercher d'abord si le client a un reçu en cours (statut != Payé)
+          const unpaidQuery = query(
+            collection(db, "sales"), 
+            where("clientPhone", "==", cleanPhone), 
+            where("statut", "!=", "Payé")
+          );
+          const unpaidSnap = await getDocs(unpaidQuery);
+
+          if (!unpaidSnap.empty) {
+            const saleDoc = unpaidSnap.docs[0];
+            const data = saleDoc.data();
+            
+            // Charger les données de la vente existante
+            setActiveEditId(saleDoc.id);
+            setClientName(data.clientName);
+            setTotal(data.total);
+            setAvance(data.avance);
+            setDiscountValue(data.discountValue || 0);
+            setDiscountType(data.discountType || "percent");
+            setMonture(data.monture || "");
+            setVerres(data.verres || "");
+            setNotes(data.notes || "");
+            setPurchasePriceFrame(data.purchasePriceFrame || "");
+            setPurchasePriceLenses(data.purchasePriceLenses || "");
+            setPrescription(data.prescription);
+            
+            const clientMutuelle = data.mutuelle || "Aucun";
             if (MUTUELLES.includes(clientMutuelle)) {
               setMutuelle(clientMutuelle);
               setCustomMutuelle("");
@@ -93,34 +115,53 @@ function NewSaleForm() {
               setCustomMutuelle(clientMutuelle);
             }
 
-            const salesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
-            const salesSnapshot = await getDocs(salesQ);
-            
-            let unpaid = 0;
-            let count = 0;
-            salesSnapshot.forEach(doc => {
-              const data = doc.data();
-              unpaid += (data.reste || 0);
-              count++;
+            toast({
+              title: "Reçu en cours détecté",
+              description: `Modification du reçu ${data.invoiceId} activée pour ce client.`,
             });
-
-            setClientHistory({ totalUnpaid: unpaid, orderCount: count, hasUnpaid: unpaid > 0 });
           } else {
-            setClientHistory(null);
+            // Si pas de reçu en cours, chercher les infos de base du client
+            const q = query(collection(db, "clients"), where("phone", "==", cleanPhone));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const clientData = querySnapshot.docs[0].data();
+              setClientName(clientData.name);
+              const clientMutuelle = clientData.mutuelle || "Aucun";
+              if (MUTUELLES.includes(clientMutuelle)) {
+                setMutuelle(clientMutuelle);
+                setCustomMutuelle("");
+              } else {
+                setMutuelle("Autre");
+                setCustomMutuelle(clientMutuelle);
+              }
+              setActiveEditId(null);
+            }
           }
+
+          // Calculer l'historique global
+          const allSalesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
+          const allSalesSnapshot = await getDocs(allSalesQ);
+          let unpaid = 0;
+          let count = 0;
+          allSalesSnapshot.forEach(doc => {
+            const data = doc.data();
+            unpaid += (data.reste || 0);
+            count++;
+          });
+          setClientHistory({ totalUnpaid: unpaid, orderCount: count, hasUnpaid: unpaid > 0 });
+
         } catch (error) {
-          console.error("Erreur recherche client:", error);
+          console.error("Erreur recherche:", error);
         } finally {
           setIsSearchingClient(false);
         }
-      } else if (cleanPhone.length < 10) {
-        setClientHistory(null);
       }
     };
 
-    const timer = setTimeout(searchClient, 500);
+    const timer = setTimeout(searchClient, 600);
     return () => clearTimeout(timer);
-  }, [clientPhone, db, editId]);
+  }, [clientPhone, db, searchParams, toast]);
 
   const cleanVal = (val: string | number) => {
     if (typeof val === 'number') return val;
@@ -151,101 +192,116 @@ function NewSaleForm() {
     setLoading(true);
     const isPaid = resteAPayerValue <= 0;
     const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
-    
-    const suffix = Date.now().toString().slice(-6);
-    const prefix = isPaid ? "FC" : "RC"; // Mis à jour: FC pour factures, RC pour reçus
-    const invoiceId = editId ? searchParams.get("invoiceId") || `${prefix}-2026-${suffix}` : `${prefix}-2026-${suffix}`;
-
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
-    const saleData = {
-      invoiceId,
-      clientName,
-      clientPhone: clientPhone.toString().replace(/\s/g, ""),
-      mutuelle: finalMutuelle || "Aucun",
-      total: nTotal,
-      remise: remiseAmountValue,
-      discountType,
-      discountValue: nDiscount,
-      remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
-      avance: nAvance,
-      reste: resteAPayerValue,
-      purchasePriceFrame: nPurchaseFrame,
-      purchasePriceLenses: nPurchaseLenses,
-      statut,
-      prescription,
-      monture,
-      verres,
-      notes,
-      payments: nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString() }] : [],
-      createdAt: Timestamp.fromDate(saleDate),
-      updatedAt: serverTimestamp(),
-      createdBy: currentUserName
-    };
-
     try {
-      const clientsRef = collection(db, "clients");
-      const cleanPhone = clientPhone.toString().replace(/\s/g, "");
-      const clientSnapshot = await getDocs(query(clientsRef, where("phone", "==", cleanPhone)));
+      const result = await runTransaction(db, async (transaction) => {
+        const counterRef = doc(db, "settings", "counters");
+        const counterSnap = await transaction.get(counterRef);
+        let counters = { fc: 0, rc: 0 };
+        if (counterSnap.exists()) {
+          counters = counterSnap.data() as any;
+        }
 
-      if (clientSnapshot.empty) {
-        await addDoc(clientsRef, { name: clientName, phone: cleanPhone, mutuelle: finalMutuelle || "Aucun", lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: 1, createdAt: serverTimestamp() });
-      } else {
-        await updateDoc(doc(db, "clients", clientSnapshot.docs[0].id), { lastVisit: saleDate.toLocaleDateString("fr-FR"), ordersCount: increment(1), name: clientName, mutuelle: finalMutuelle || "Aucun" });
-      }
+        let invoiceId = searchParams.get("invoiceId") || "";
+        let isNewSequence = false;
 
-      if (editId) {
-        await updateDoc(doc(db, "sales", editId), saleData);
-      } else {
-        await addDoc(collection(db, "sales"), saleData);
-      }
+        // Gestion du numéro de document
+        if (!activeEditId) {
+          // Nouvelle vente
+          if (isPaid) {
+            counters.fc += 1;
+            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+          } else {
+            counters.rc += 1;
+            invoiceId = `RC-2026-${counters.rc.toString().padStart(4, '0')}`;
+          }
+          isNewSequence = true;
+        } else {
+          // Modification d'une vente existante
+          const currentSaleRef = doc(db, "sales", activeEditId);
+          const currentSaleSnap = await transaction.get(currentSaleRef);
+          const currentData = currentSaleSnap.data();
+          invoiceId = currentData?.invoiceId;
 
-      if (nAvance > 0 && !editId) {
-        await addDoc(collection(db, "transactions"), {
-          type: "VENTE",
-          label: `Vente ${invoiceId}`,
-          clientName: clientName,
-          category: "Optique",
-          montant: nAvance,
-          relatedId: invoiceId,
-          userName: currentUserName,
-          createdAt: Timestamp.fromDate(saleDate)
-        });
-      }
+          // Si c'était un RC et qu'il devient Payé, on lui donne un numéro FC
+          if (invoiceId.startsWith("RC") && isPaid) {
+            counters.fc += 1;
+            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+            isNewSequence = true;
+          }
+        }
 
-      if (!editId) {
-        if (nPurchaseFrame > 0) {
-          await addDoc(collection(db, "transactions"), {
-            type: "DEPENSE",
-            label: `Achat Monture ${invoiceId}`,
-            category: "Achats",
-            montant: -Math.abs(nPurchaseFrame),
-            relatedId: invoiceId,
-            userName: currentUserName,
-            createdAt: Timestamp.fromDate(saleDate)
+        if (isNewSequence) {
+          transaction.set(counterRef, counters, { merge: true });
+        }
+
+        const saleData = {
+          invoiceId,
+          clientName,
+          clientPhone: clientPhone.toString().replace(/\s/g, ""),
+          mutuelle: finalMutuelle || "Aucun",
+          total: nTotal,
+          remise: remiseAmountValue,
+          discountType,
+          discountValue: nDiscount,
+          remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
+          avance: nAvance,
+          reste: resteAPayerValue,
+          purchasePriceFrame: nPurchaseFrame,
+          purchasePriceLenses: nPurchaseLenses,
+          statut,
+          prescription,
+          monture,
+          verres,
+          notes,
+          updatedAt: serverTimestamp(),
+          ...(activeEditId ? {} : { 
+            createdAt: Timestamp.fromDate(saleDate),
+            createdBy: currentUserName,
+            payments: nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : []
+          })
+        };
+
+        const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
+        transaction.set(saleRef, saleData, { merge: true });
+
+        // Mise à jour client
+        const clientsRef = collection(db, "clients");
+        const clientQuery = query(clientsRef, where("phone", "==", saleData.clientPhone));
+        const clientSnap = await getDocs(clientQuery);
+        
+        if (clientSnap.empty) {
+          const newClientRef = doc(collection(db, "clients"));
+          transaction.set(newClientRef, { 
+            name: clientName, 
+            phone: saleData.clientPhone, 
+            mutuelle: finalMutuelle || "Aucun", 
+            lastVisit: saleDate.toLocaleDateString("fr-FR"), 
+            ordersCount: 1, 
+            createdAt: serverTimestamp() 
+          });
+        } else {
+          transaction.update(doc(db, "clients", clientSnap.docs[0].id), { 
+            lastVisit: saleDate.toLocaleDateString("fr-FR"), 
+            name: clientName, 
+            mutuelle: finalMutuelle || "Aucun" 
           });
         }
-        if (nPurchaseLenses > 0) {
-          await addDoc(collection(db, "transactions"), {
-            type: "DEPENSE",
-            label: `Achat Verres ${invoiceId}`,
-            category: "Achats",
-            montant: -Math.abs(nPurchaseLenses),
-            relatedId: invoiceId,
-            userName: currentUserName,
-            createdAt: Timestamp.fromDate(saleDate)
-          });
-        }
-      }
+
+        return { ...saleData, id: saleRef.id };
+      });
 
       if (!silent) {
-        toast({ variant: "success", title: "Vente Enregistrée" });
+        toast({ variant: "success", title: "Opération réussie", description: `Document ${result.invoiceId} enregistré.` });
         router.push("/ventes");
       }
-      return saleData;
+      return result;
+
     } catch (err) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: editId ? `sales/${editId}` : "sales", operation: editId ? "update" : "create", requestResourceData: saleData }));
+      console.error(err);
+      toast({ variant: "destructive", title: "Erreur technique" });
       return null;
     } finally {
       setLoading(false);
@@ -284,7 +340,19 @@ function NewSaleForm() {
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-24">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] border shadow-sm">
-          <div><h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">{editId ? "Modifier la Vente" : "Nouvelle Vente"}</h1><p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">Saisie client & ordonnance.</p></div>
+          <div className="flex items-center gap-4">
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", activeEditId ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}>
+              {activeEditId ? <History className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tighter">
+                {activeEditId ? "Modification Reçu" : "Nouvelle Vente"}
+              </h1>
+              <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">
+                {activeEditId ? "Mise à jour du dossier client" : "Saisie client & ordonnance"}
+              </p>
+            </div>
+          </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" size="lg" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs border-primary/20 bg-white" disabled={loading}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
             <Button size="lg" onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs shadow-xl px-6 text-white" disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -13,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -63,72 +64,92 @@ export default function UnpaidSalesPage() {
     if (isNaN(amount) || amount <= 0) return;
 
     setIsProcessing(true);
-    const totalNet = selectedSale.total - (selectedSale.remise || 0);
-    const newAvance = (selectedSale.avance || 0) + amount;
-    const newReste = Math.max(0, totalNet - newAvance);
-    const isFullyPaid = newReste <= 0;
-    
-    let finalInvoiceId = selectedSale.invoiceId;
-    if (isFullyPaid && selectedSale.invoiceId.startsWith("RC")) {
-      finalInvoiceId = selectedSale.invoiceId.replace("RC", "FC"); // Mis à jour: Passage de RC à FC une fois soldé
-    }
-    
-    const newStatut = isFullyPaid ? "Payé" : "Partiel";
     const currentUserName = user?.displayName || "Inconnu";
 
-    const paymentEntry = {
-      amount: amount,
-      date: new Date().toISOString(),
-      userName: currentUserName
-    };
-
     try {
-      const saleRef = doc(db, "sales", selectedSale.id);
-      await updateDoc(saleRef, { 
-        invoiceId: finalInvoiceId,
-        avance: newAvance, 
-        reste: newReste, 
-        statut: newStatut, 
-        payments: arrayUnion(paymentEntry),
-        updatedAt: serverTimestamp() 
-      });
-      
-      await addDoc(collection(db, "transactions"), {
-        type: "VENTE",
-        label: `Versement ${finalInvoiceId}`,
-        clientName: selectedSale.clientName,
-        category: "Optique",
-        montant: amount,
-        relatedId: finalInvoiceId,
-        userName: currentUserName,
-        createdAt: serverTimestamp()
+      await runTransaction(db, async (transaction) => {
+        const saleRef = doc(db, "sales", selectedSale.id);
+        const saleSnap = await transaction.get(saleRef);
+        if (!saleSnap.exists()) throw new Error("Vente inexistante.");
+
+        const currentData = saleSnap.data();
+        const totalNet = currentData.total - (currentData.remise || 0);
+        const newAvance = (currentData.avance || 0) + amount;
+        const newReste = Math.max(0, totalNet - newAvance);
+        const isFullyPaid = newReste <= 0;
+        
+        let finalInvoiceId = currentData.invoiceId;
+
+        // Si passage de RC à FC (Soldé)
+        if (isFullyPaid && finalInvoiceId.startsWith("RC")) {
+          const counterRef = doc(db, "settings", "counters");
+          const counterSnap = await transaction.get(counterRef);
+          let counters = { fc: 0, rc: 0 };
+          if (counterSnap.exists()) {
+            counters = counterSnap.data() as any;
+          }
+          counters.fc += 1;
+          finalInvoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+          transaction.set(counterRef, counters, { merge: true });
+        }
+
+        const paymentEntry = {
+          amount: amount,
+          date: new Date().toISOString(),
+          userName: currentUserName
+        };
+
+        transaction.update(saleRef, { 
+          invoiceId: finalInvoiceId,
+          avance: newAvance, 
+          reste: newReste, 
+          statut: isFullyPaid ? "Payé" : "Partiel", 
+          payments: arrayUnion(paymentEntry),
+          updatedAt: serverTimestamp() 
+        });
+
+        // Ajouter la transaction de caisse
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, {
+          type: "VENTE",
+          label: isFullyPaid ? `Solde Facture ${finalInvoiceId}` : `Acompte Reçu ${finalInvoiceId}`,
+          clientName: currentData.clientName,
+          category: "Optique",
+          montant: amount,
+          relatedId: finalInvoiceId,
+          userName: currentUserName,
+          createdAt: serverTimestamp()
+        });
+
+        return { finalInvoiceId, isFullyPaid, newAvance, currentData };
+      }).then((res) => {
+        toast({ variant: "success", title: "Paiement validé", description: `Document ${res.finalInvoiceId}` });
+        const page = res.isFullyPaid ? 'facture' : 'recu';
+        const params = new URLSearchParams({ 
+          client: res.currentData.clientName, 
+          phone: res.currentData.clientPhone, 
+          mutuelle: res.currentData.mutuelle, 
+          total: res.currentData.total.toString(), 
+          remise: (res.currentData.remise || 0).toString(), 
+          remisePercent: res.currentData.remisePercent || "0", 
+          avance: res.newAvance.toString(), 
+          od_sph: res.currentData.prescription?.od?.sph || "", 
+          od_cyl: res.currentData.prescription?.od?.cyl || "", 
+          od_axe: res.currentData.prescription?.od?.axe || "", 
+          og_sph: res.currentData.prescription?.og?.sph || "", 
+          og_cyl: res.currentData.prescription?.og?.cyl || "", 
+          og_axe: res.currentData.prescription?.og?.axe || "", 
+          monture: res.currentData.monture || "", 
+          verres: res.currentData.verres || "", 
+          date: new Date().toLocaleDateString("fr-FR") 
+        });
+        router.push(`/ventes/${page}/${res.finalInvoiceId}?${params.toString()}`);
       });
 
-      toast({ variant: "success", title: "Paiement validé" });
-
-      const page = isFullyPaid ? 'facture' : 'recu';
-      const params = new URLSearchParams({ 
-        client: selectedSale.clientName, 
-        phone: selectedSale.clientPhone, 
-        mutuelle: selectedSale.mutuelle, 
-        total: selectedSale.total.toString(), 
-        remise: (selectedSale.remise || 0).toString(), 
-        remisePercent: selectedSale.remisePercent || "0", 
-        avance: newAvance.toString(), 
-        od_sph: selectedSale.prescription?.od?.sph || "", 
-        od_cyl: selectedSale.prescription?.od?.cyl || "", 
-        od_axe: selectedSale.prescription?.od?.axe || "", 
-        og_sph: selectedSale.prescription?.og?.sph || "", 
-        og_cyl: selectedSale.prescription?.og?.cyl || "", 
-        og_axe: selectedSale.prescription?.og?.axe || "", 
-        monture: selectedSale.monture || "", 
-        verres: selectedSale.verres || "", 
-        date: new Date().toLocaleDateString("fr-FR") 
-      });
-      router.push(`/ventes/${page}/${finalInvoiceId}?${params.toString()}`);
       setSelectedSale(null);
     } catch (err) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `sales/${selectedSale.id}`, operation: "update" }));
+      console.error(err);
+      toast({ variant: "destructive", title: "Erreur de transaction" });
     } finally {
       setIsProcessing(false);
     }
