@@ -32,7 +32,15 @@ function CaisseContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Date handling: current day or from param
+  // State to track if component is fully hydrated and ready
+  const [isClientReady, setIsHydrated] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setIsHydrated(true);
+    setCurrentDate(new Date());
+  }, []);
+
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
     if (dateParam) {
@@ -43,7 +51,9 @@ function CaisseContent() {
   }, [dateParam]);
 
   const sessionDocId = format(selectedDate, "yyyy-MM-dd");
-  const isToday = format(new Date(), "yyyy-MM-dd") === sessionDocId;
+  // isToday is only true if we are on client and the date matches
+  const isToday = isClientReady && currentDate && format(currentDate, "yyyy-MM-dd") === sessionDocId;
+  
   const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
@@ -273,7 +283,8 @@ function CaisseContent() {
     }
   };
 
-  if (sessionLoading || lastSessionLoading) {
+  // Critical: Don't show anything until session status is known
+  if (!isClientReady || sessionLoading || lastSessionLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />

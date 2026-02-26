@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -45,6 +44,7 @@ export default function DashboardPage() {
   const db = useFirestore();
   const [todayStr, setTodayStr] = useState<string>("");
   const [sessionDocId, setSessionDocId] = useState<string>("");
+  const [isClientReady, setIsClientReady] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -54,11 +54,12 @@ export default function DashboardPage() {
       month: 'short'
     }));
     setSessionDocId(format(now, "yyyy-MM-dd"));
+    setIsClientReady(true);
   }, []);
 
   // Fetch Current Session Status
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
-  const { data: session } = useDoc(sessionRef);
+  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
   // Fetch Data
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
@@ -119,7 +120,8 @@ export default function DashboardPage() {
 
   const userName = user?.displayName || "Utilisateur";
 
-  if (loadingSales || loadingClients) {
+  // Unified loading check to prevent flickering
+  if (!isClientReady || loadingSales || loadingClients || sessionLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
