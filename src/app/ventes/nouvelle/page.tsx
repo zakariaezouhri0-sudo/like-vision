@@ -109,7 +109,6 @@ function NewSaleForm() {
           let count = 0;
           allSalesSnapshot.forEach(doc => {
             const data = doc.data();
-            // Filtrer l'historique selon le mode pour être cohérent
             if (isPrepaMode ? data.isDraft : !data.isDraft) {
               unpaid += (data.reste || 0);
               count++;
@@ -163,7 +162,6 @@ function NewSaleForm() {
 
     try {
       const result = await runTransaction(db, async (transaction) => {
-        // En mode PREPA, on utilise des compteurs différents pour ne pas perturber la numérotation réelle
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
         const counterRef = doc(db, "settings", counterDocPath);
         const counterSnap = await transaction.get(counterRef);
@@ -218,7 +216,7 @@ function NewSaleForm() {
           monture,
           verres,
           notes,
-          isDraft: isPrepaMode, // Marquage Brouillon
+          isDraft: isPrepaMode,
           updatedAt: serverTimestamp(),
         };
 
@@ -240,7 +238,7 @@ function NewSaleForm() {
             montant: nAvance,
             relatedId: invoiceId,
             userName: currentUserName,
-            isDraft: isPrepaMode, // Marquage Brouillon
+            isDraft: isPrepaMode,
             createdAt: Timestamp.fromDate(saleDate)
           });
         }
@@ -371,7 +369,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-red-500">{formatCurrency(resteAPayerValue)}</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
 
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
