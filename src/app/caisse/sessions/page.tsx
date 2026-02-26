@@ -11,14 +11,10 @@ import {
   FileText, 
   Loader2, 
   User as UserIcon, 
-  ArrowRightLeft, 
   Lock, 
-  PlayCircle,
-  AlertCircle,
-  CheckCircle2,
   Calendar as CalendarIcon,
-  ChevronRight,
   TrendingUp,
+  TrendingDown,
   History,
   Clock,
   Eye
@@ -60,7 +56,7 @@ export default function CashSessionsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions</h1>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique des responsables d'ouverture et clôture.</p>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique des responsables et flux de caisse.</p>
             </div>
           </div>
         </div>
@@ -79,6 +75,7 @@ export default function CashSessionsPage() {
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouvert par</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Initial</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
                     {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
@@ -90,6 +87,7 @@ export default function CashSessionsPage() {
                     sessions.map((s: any) => {
                       const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                       const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
+                      const netFlux = (s.closingBalanceTheoretical || 0) - (s.openingBalance || 0);
 
                       return (
                         <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
@@ -112,7 +110,7 @@ export default function CashSessionsPage() {
                           </TableCell>
 
                           <TableCell className="px-6 py-6 whitespace-nowrap">
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                 <Clock className="h-3 w-3 text-green-500" />
                                 {openedDate ? format(openedDate, "HH:mm") : "--:--"}
@@ -134,6 +132,20 @@ export default function CashSessionsPage() {
 
                           <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
+                              <div className={cn(
+                                "flex items-center justify-end gap-1.5 font-black text-sm",
+                                netFlux >= 0 ? "text-green-600" : "text-destructive"
+                              )}>
+                                {netFlux > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                                {formatCurrency(netFlux)}
+                              </div>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-200">---</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            {s.status === "CLOSED" ? (
                               <span className="text-base font-black text-slate-900 tracking-tighter">
                                 {formatCurrency(s.closingBalanceReal)}
                               </span>
@@ -144,7 +156,7 @@ export default function CashSessionsPage() {
 
                           <TableCell className="px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
-                              <div className="flex flex-col gap-1.5">
+                              <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                   <Lock className="h-3 w-3 text-slate-300" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
@@ -171,7 +183,6 @@ export default function CashSessionsPage() {
                                   <span className="text-xs font-black tracking-tighter">
                                     {s.discrepancy > 0 ? "+" : ""}{formatCurrency(s.discrepancy)}
                                   </span>
-                                  {Math.abs(s.discrepancy) < 0.01 ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                                 </div>
                               ) : (
                                 <span className="text-xs font-bold text-slate-200">---</span>
@@ -204,7 +215,7 @@ export default function CashSessionsPage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={role === 'ADMIN' ? 7 : 6} className="text-center py-40">
+                      <TableCell colSpan={role === 'ADMIN' ? 8 : 7} className="text-center py-40">
                         <div className="flex flex-col items-center gap-4 opacity-20">
                           <History className="h-12 w-12" />
                           <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session enregistrée.</p>
