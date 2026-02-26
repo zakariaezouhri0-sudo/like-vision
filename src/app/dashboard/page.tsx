@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -161,19 +162,19 @@ export default function DashboardPage() {
             <div className={cn(
               "border rounded-2xl px-5 py-3 flex items-center justify-center md:justify-start gap-3 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer",
               isSessionOpen ? "bg-green-100 border-green-200" : 
-              isSessionClosed ? "bg-slate-100 border-slate-200" : 
+              isSessionClosed ? "bg-red-100 border-red-200" : 
               "bg-orange-100 border-orange-200"
             )}>
               <div className={cn(
                 "h-2.5 w-2.5 rounded-full",
                 isSessionOpen ? "bg-green-600 animate-pulse" : 
-                isSessionClosed ? "bg-slate-400" : 
+                isSessionClosed ? "bg-red-500" : 
                 "bg-orange-500 animate-bounce"
               )} />
               <span className={cn(
                 "text-[10px] font-black uppercase tracking-widest",
                 isSessionOpen ? "text-green-700" : 
-                isSessionClosed ? "text-slate-500" : 
+                isSessionClosed ? "text-red-700" : 
                 "text-orange-700"
               )}>
                 {isSessionOpen ? "Caisse Ouverte" : 

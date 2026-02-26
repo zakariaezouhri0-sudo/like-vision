@@ -75,12 +75,12 @@ export default function CashSessionsPage() {
                 <TableHeader className="bg-slate-50/80 border-b">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouvert par</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouverture</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Initial</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Flux (Op)</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Versement</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôture</TableHead>
                     {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Actions</TableHead>
                   </TableRow>
@@ -91,7 +91,6 @@ export default function CashSessionsPage() {
                       const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                       const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
                       
-                      // Calcul du flux opérationnel : Ventes - Dépenses
                       const fluxOp = (s.totalSales !== undefined && s.totalExpenses !== undefined) 
                         ? (s.totalSales - s.totalExpenses) 
                         : (s.status === "CLOSED" ? (s.closingBalanceTheoretical - s.openingBalance + (s.totalVersements || 0)) : null);
@@ -110,8 +109,8 @@ export default function CashSessionsPage() {
                               </div>
                               <div 
                                 className={cn(
-                                  "h-2.5 w-2.5 rounded-full shrink-0",
-                                  s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-slate-300"
+                                  "h-2.5 w-2.5 rounded-full shrink-0 transition-colors",
+                                  s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-red-500"
                                 )} 
                                 title={s.status === "OPEN" ? "Ouverte" : "Clôturée"}
                               />
@@ -178,7 +177,7 @@ export default function CashSessionsPage() {
                             {s.status === "CLOSED" ? (
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                  <Lock className="h-3 w-3 text-slate-300" />
+                                  <Lock className="h-3 w-3 text-red-500" />
                                   {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                 </div>
                                 <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 w-fit">
