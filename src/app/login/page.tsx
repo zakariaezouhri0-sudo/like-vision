@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
-  const { data: settings } = useDoc(settingsRef);
+  const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +113,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-10">
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="h-32 w-32 bg-white rounded-[40px] flex items-center justify-center shadow-2xl border border-slate-100 overflow-hidden">
-            {settings?.logoUrl ? (
+            {settingsLoading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-primary/20" />
+            ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
               <div className="h-full w-full bg-primary flex items-center justify-center text-white">
@@ -126,7 +128,9 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase">{settings?.name || APP_NAME}</h1>
+            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase min-h-[40px]">
+              {settingsLoading ? "" : (settings?.name || APP_NAME)}
+            </h1>
             <p className="text-muted-foreground font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
           </div>
         </div>

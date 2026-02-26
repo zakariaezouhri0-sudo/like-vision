@@ -5,7 +5,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle } from "lucide-react";
+import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
@@ -31,7 +31,7 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
-  const { data: settings } = useDoc(settingsRef);
+  const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
   const userName = user?.displayName || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
@@ -49,7 +49,11 @@ export function AppShell({ children }: AppShellProps) {
         "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
         size === "large" ? "h-12 w-12" : "h-9 w-9"
       )}>
-        {settings?.logoUrl ? (
+        {settingsLoading ? (
+          <div className="h-full w-full bg-slate-50 flex items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin text-primary/20" />
+          </div>
+        ) : settings?.logoUrl ? (
           <img 
             src={settings.logoUrl} 
             alt="Logo" 
@@ -72,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
           "font-black tracking-tighter text-primary leading-tight uppercase block whitespace-nowrap",
           size === "large" ? "text-sm lg:text-base" : "text-xs"
         )}>
-          {settings?.name || APP_NAME}
+          {settingsLoading ? <div className="h-4 w-24 bg-slate-100 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
         </span>
         <span className="text-[7px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
           Optique Pro

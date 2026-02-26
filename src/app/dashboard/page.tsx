@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
   // Fetch Shop Settings
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
-  const { data: settings } = useDoc(settingsRef);
+  const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
   // Fetch Current Session Status
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
@@ -152,7 +152,9 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
         <div className="flex items-center gap-6 min-w-0">
           <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-slate-100 shrink-0 overflow-hidden group">
-            {settings?.logoUrl ? (
+            {settingsLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-primary/20" />
+            ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
             ) : (
               <div className="h-full w-full bg-gradient-to-br from-primary to-slate-800 flex items-center justify-center text-white transform -rotate-3 transition-transform group-hover:rotate-0 duration-500">
