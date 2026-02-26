@@ -60,6 +60,8 @@ export function useCollection<T = any>(
       return;
     }
 
+    // CRITICAL: Reset data and set loading to true when query changes to avoid flickering
+    setData(null);
     setIsLoading(true);
     setError(null);
 

@@ -32,13 +32,12 @@ function CaisseContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // State to track if component is fully hydrated and ready
   const [isClientReady, setIsHydrated] = useState(false);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [todayId, setTodayId] = useState("");
 
   useEffect(() => {
     setIsHydrated(true);
-    setCurrentDate(new Date());
+    setTodayId(format(new Date(), "yyyy-MM-dd"));
   }, []);
 
   const dateParam = searchParams.get("date");
@@ -51,8 +50,7 @@ function CaisseContent() {
   }, [dateParam]);
 
   const sessionDocId = format(selectedDate, "yyyy-MM-dd");
-  // isToday is only true if we are on client and the date matches
-  const isToday = isClientReady && currentDate && format(currentDate, "yyyy-MM-dd") === sessionDocId;
+  const isToday = isClientReady && todayId === sessionDocId;
   
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -283,8 +281,8 @@ function CaisseContent() {
     }
   };
 
-  // Critical: Don't show anything until session status is known
-  if (!isClientReady || sessionLoading || lastSessionLoading) {
+  // BLOCK: Unified loading state to avoid flickering
+  if (!isClientReady || sessionLoading || (isToday && lastSessionLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />

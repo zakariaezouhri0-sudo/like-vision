@@ -45,6 +45,8 @@ export function useDoc<T = any>(
       return;
     }
 
+    // CRITICAL: Reset data and set loading to true when ref changes to avoid flickering
+    setData(null);
     setIsLoading(true);
     setError(null);
 
