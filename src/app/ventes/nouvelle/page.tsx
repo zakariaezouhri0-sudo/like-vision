@@ -81,7 +81,7 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // 1. Chercher d'abord dans la collection clients pour le nom et la mutuelle
+          // Chercher dans la collection clients pour le nom et la mutuelle
           const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone));
           const clientSnapshot = await getDocs(clientQ);
           
@@ -96,30 +96,9 @@ function NewSaleForm() {
               setMutuelle("Autre");
               setCustomMutuelle(clientMutuelle);
             }
-          } else {
-            // 2. Fallback: Chercher dans la dernière vente pour le nom
-            const lastSaleQ = query(
-              collection(db, "sales"), 
-              where("clientPhone", "==", cleanPhone),
-              orderBy("createdAt", "desc"),
-              limit(1)
-            );
-            const lastSaleSnapshot = await getDocs(lastSaleQ);
-            if (!lastSaleSnapshot.empty) {
-              const data = lastSaleSnapshot.docs[0].data();
-              setClientName(data.clientName);
-              const clientMutuelle = data.mutuelle || "Aucun";
-              if (MUTUELLES.includes(clientMutuelle)) {
-                setMutuelle(clientMutuelle);
-                setCustomMutuelle("");
-              } else {
-                setMutuelle("Autre");
-                setCustomMutuelle(clientMutuelle);
-              }
-            }
           }
 
-          // 3. Récupérer l'historique financier pour l'alerte visuelle (uniquement)
+          // Récupérer l'historique financier pour l'alerte visuelle
           const allSalesQ = query(
             collection(db, "sales"), 
             where("clientPhone", "==", cleanPhone)
@@ -238,14 +217,10 @@ function NewSaleForm() {
           saleData.createdAt = Timestamp.fromDate(saleDate);
           saleData.createdBy = currentUserName;
           saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : [];
-        } else {
-          // Pour une modification, on ne gère que le delta si l'avance a augmenté
-          // (Logique simplifiée pour ce cas précis)
         }
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Transaction de caisse
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -260,7 +235,6 @@ function NewSaleForm() {
           });
         }
 
-        // Mise à jour ou création du profil client
         const clientsRef = collection(db, "clients");
         const clientQuery = query(clientsRef, where("phone", "==", saleData.clientPhone));
         const clientSnap = await getDocs(clientQuery);
@@ -435,7 +409,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-3xl md:text-4xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-2xl md:text-3xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
 
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
