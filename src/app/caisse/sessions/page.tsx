@@ -78,9 +78,9 @@ export default function CashSessionsPage() {
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Date & Statut</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Ouvert par</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Initial</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Solde Final</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Clôturé par</TableHead>
                     {role === 'ADMIN' && <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Écart</TableHead>}
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest whitespace-nowrap">Actions</TableHead>
                   </TableRow>
@@ -125,6 +125,22 @@ export default function CashSessionsPage() {
                               </div>
                             </div>
                           </TableCell>
+                          
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            <span className="text-base font-black text-slate-900 tracking-tighter">
+                              {formatCurrency(s.openingBalance)}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
+                            {s.status === "CLOSED" ? (
+                              <span className="text-base font-black text-slate-900 tracking-tighter">
+                                {formatCurrency(s.closingBalanceReal)}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-200">---</span>
+                            )}
+                          </TableCell>
 
                           <TableCell className="px-6 py-6 whitespace-nowrap">
                             {s.status === "CLOSED" ? (
@@ -141,23 +157,7 @@ export default function CashSessionsPage() {
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-[9px] font-black text-slate-200 uppercase tracking-[0.2em]">Caisse Ouverte</span>
-                            )}
-                          </TableCell>
-                          
-                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            <span className="text-base font-black text-slate-900 tracking-tighter">
-                              {formatCurrency(s.openingBalance)}
-                            </span>
-                          </TableCell>
-
-                          <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                            {s.status === "CLOSED" ? (
-                              <span className="text-base font-black text-slate-900 tracking-tighter">
-                                {formatCurrency(s.closingBalanceReal)}
-                              </span>
-                            ) : (
-                              <span className="text-xs font-bold text-slate-200">---</span>
+                              <span className="text-[9px] font-black text-slate-200 uppercase tracking-[0.2em]">En cours...</span>
                             )}
                           </TableCell>
 
