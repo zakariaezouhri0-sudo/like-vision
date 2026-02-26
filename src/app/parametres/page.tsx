@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -74,7 +75,6 @@ export default function SettingsPage() {
       const batch = writeBatch(db);
       let count = 0;
 
-      // 1. Sync Sales
       const salesQ = query(collection(db, "sales"), where("isDraft", "==", true));
       const salesSnap = await getDocs(salesQ);
       salesSnap.forEach(d => {
@@ -82,7 +82,6 @@ export default function SettingsPage() {
         count++;
       });
 
-      // 2. Sync Transactions
       const transQ = query(collection(db, "transactions"), where("isDraft", "==", true));
       const transSnap = await getDocs(transQ);
       transSnap.forEach(d => {
@@ -90,7 +89,6 @@ export default function SettingsPage() {
         count++;
       });
 
-      // 3. Sync Cash Sessions
       const sessionsQ = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
       const sessionsSnap = await getDocs(sessionsQ);
       sessionsSnap.forEach(d => {
@@ -108,6 +106,40 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur de synchronisation" });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleResetAllData = async () => {
+    setIsResetting(true);
+    try {
+      const collections = ["sales", "transactions", "clients", "cash_sessions"];
+      for (const collName of collections) {
+        const q = query(collection(db, collName));
+        const snap = await getDocs(q);
+        if (snap.empty) continue;
+        
+        // Firestore batches are limited to 500 operations
+        const chunks = [];
+        for (let i = 0; i < snap.docs.length; i += 500) {
+          chunks.push(snap.docs.slice(i, i + 500));
+        }
+
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+      }
+
+      // Reset counters
+      await setDoc(doc(db, "settings", "counters"), { fc: 0, rc: 0 });
+      await setDoc(doc(db, "settings", "counters_draft"), { fc: 0, rc: 0 });
+
+      toast({ variant: "success", title: "Réinitialisation réussie", description: "Toutes les données ont été supprimées." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -143,25 +175,70 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {role === 'ADMIN' && (
+            {(role === 'ADMIN' || role === 'PREPA') && (
               <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-orange-50 border-orange-100">
                 <CardHeader className="bg-orange-100/50 border-b p-6">
                   <CardTitle className="text-[11px] font-black uppercase tracking-widest text-orange-700 flex items-center gap-2">
                     <Database className="h-4 w-4" /> Maintenance
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <p className="text-[10px] font-bold text-orange-800 leading-relaxed uppercase">
-                    Utilisez ce bouton pour publier toutes les données saisies en Mode Préparation vers l'historique réel.
-                  </p>
-                  <Button 
-                    onClick={handleSyncDrafts} 
-                    disabled={isSyncing}
-                    className="w-full h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black text-[10px] uppercase shadow-lg shadow-orange-200"
-                  >
-                    {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-                    Synchroniser le brouillon
-                  </Button>
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-3">
+                    <p className="text-[9px] font-black text-orange-800 uppercase leading-relaxed tracking-wider">
+                      Synchronisation
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
+                      Publie les données du Mode Préparation vers l'historique réel.
+                    </p>
+                    <Button 
+                      onClick={handleSyncDrafts} 
+                      disabled={isSyncing}
+                      className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-[10px] uppercase shadow-lg shadow-orange-200"
+                    >
+                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
+                      Synchroniser brouillon
+                    </Button>
+                  </div>
+
+                  <Separator className="bg-orange-200/50" />
+
+                  <div className="space-y-3">
+                    <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
+                      Zone de danger
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
+                      Supprime TOUTES les données (ventes, clients, caisse) pour repartir à zéro.
+                    </p>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive"
+                          disabled={isResetting}
+                          className="w-full h-12 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100"
+                        >
+                          {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                          Réinitialiser tout
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-[32px] p-8">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-2xl font-black text-primary uppercase tracking-tighter">Action Irréversible</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sm font-bold text-slate-500 uppercase leading-relaxed pt-2">
+                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse. Voulez-vous vraiment continuer ?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="pt-6">
+                          <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleResetAllData}
+                            className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]"
+                          >
+                            Confirmer la suppression
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardContent>
               </Card>
             )}
