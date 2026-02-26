@@ -13,12 +13,10 @@ Désormais, à chaque fois que vous faites une modification ici :
 3. Tapez ces 3 commandes :
    ```bash
    git add .
-   git commgit addit -m "Description de ma mise à jour"
+   git commit -m "Description de ma mise à jour"
    git push origin main
    ```
-    .
-git commit -m "Mise à jour du système"
-git push origin main
+
 4. **Vercel** mettra à jour votre site automatiquement en 1 minute.
 
 ## Fonctionnalités Clés
