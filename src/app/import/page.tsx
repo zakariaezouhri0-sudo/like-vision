@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -11,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Table as TableIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -26,7 +27,6 @@ export default function ImportPage() {
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    // Autoriser ADMIN et PREPA
     if (role !== 'ADMIN' && role !== 'PREPA') {
       router.push('/dashboard');
     } else {
@@ -60,31 +60,6 @@ export default function ImportPage() {
 
   const currentFields = importType === "sales" ? SALES_FIELDS : CLIENTS_FIELDS;
 
-  const downloadTemplate = () => {
-    const templateData = importType === "sales" ? [
-      {
-        "N° Facture": "OPT-2026-2316",
-        "Nom Client": "ACHTOUK HANAE",
-        "Téléphone": "0661000000",
-        "Total Brut": 500,
-        "Avance Payée": 200,
-        "Date": "2026-01-29",
-        "Mutuelle": "CNOPS"
-      }
-    ] : [
-      {
-        "Nom Complet": "Ahmed Alami",
-        "Téléphone": "0661000000",
-        "Mutuelle": "CNOPS"
-      }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Modèle");
-    XLSX.writeFile(wb, `modele_import_${importType}.xlsx`);
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -94,10 +69,7 @@ export default function ImportPage() {
         try {
           const bstr = evt.target?.result;
           const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
-          const wsname = wb.SheetNames[0];
-          const ws = wb.Sheets[wsname];
-          const jsonData = XLSX.utils.sheet_to_json(ws);
-          
+          const jsonData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
           if (jsonData.length > 0) {
             setData(jsonData);
             setHeaders(Object.keys(jsonData[0] as object));
@@ -125,6 +97,7 @@ export default function ImportPage() {
     const role = localStorage.getItem('user_role');
     const isDraft = role === 'PREPA';
 
+    // Parcourir les lignes par petits lots pour Firestore
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       try {
@@ -136,39 +109,45 @@ export default function ImportPage() {
           const invoiceId = row[mapping.invoiceId]?.toString() || `OPT-IMP-${Date.now().toString().slice(-4)}-${i}`;
           
           let createdAtDate = new Date();
-          const rawDate = row[mapping.createdAt];
-          if (rawDate) {
-            const parsedDate = new Date(rawDate);
-            if (!isNaN(parsedDate.getTime())) createdAtDate = parsedDate;
+          if (row[mapping.createdAt]) {
+            const parsed = new Date(row[mapping.createdAt]);
+            if (!isNaN(parsed.getTime())) createdAtDate = parsed;
           }
 
           const saleData = {
-            invoiceId,
-            clientName,
-            clientPhone,
-            total,
-            avance,
+            invoiceId, clientName, clientPhone, total, avance,
             reste: Math.max(0, total - avance),
             statut: avance >= total ? "Payé" : (avance > 0 ? "Partiel" : "En attente"),
             mutuelle: row[mapping.mutuelle] || "Aucun",
             createdAt: Timestamp.fromDate(createdAtDate),
             updatedAt: serverTimestamp(),
-            remise: 0,
-            notes: "Importé depuis historique",
-            isDraft: isDraft
+            remise: 0, notes: "Importé depuis historique", isDraft
           };
+
+          // Ajouter la vente
           await addDoc(collection(db, "sales"), saleData);
+
+          // CRUCIAL : Ajouter la transaction de caisse pour l'avance importée
+          if (avance > 0) {
+            await addDoc(collection(db, "transactions"), {
+              type: "VENTE",
+              label: `Import Historique - ${invoiceId}`,
+              clientName,
+              category: "Optique",
+              montant: avance,
+              relatedId: invoiceId,
+              userName: "Système (Import)",
+              isDraft,
+              createdAt: Timestamp.fromDate(createdAtDate) // On garde la date d'origine pour la caisse aussi
+            });
+          }
         } else {
           const name = row[mapping.name];
           const phone = (row[mapping.phone]?.toString() || "").replace(/\s/g, "");
           if (name && phone) {
             await addDoc(collection(db, "clients"), {
-              name,
-              phone,
-              mutuelle: row[mapping.mutuelle] || "Aucun",
-              createdAt: serverTimestamp(),
-              lastVisit: new Date().toLocaleDateString("fr-FR"),
-              ordersCount: 0
+              name, phone, mutuelle: row[mapping.mutuelle] || "Aucun",
+              createdAt: serverTimestamp(), lastVisit: new Date().toLocaleDateString("fr-FR"), ordersCount: 0
             });
           }
         }
@@ -177,7 +156,7 @@ export default function ImportPage() {
     }
 
     setIsProcessing(false);
-    toast({ variant: "success", title: "Importation Terminée" });
+    toast({ variant: "success", title: "Importation Réussie", description: "Ventes et Transactions synchronisées." });
     setData([]);
     setFile(null);
   };
@@ -190,11 +169,8 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Importation Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Intégrez vos fichiers Excel facilement.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Les avances seront automatiquement ajoutées à la caisse.</p>
           </div>
-          <Button onClick={downloadTemplate} variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary">
-            <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER LE MODÈLE
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

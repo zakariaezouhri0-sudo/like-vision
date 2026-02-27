@@ -64,36 +64,39 @@ export default function DashboardPage() {
 
   const isPrepaMode = role === "PREPA";
 
-  // Fetch Shop Settings
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // Fetch Current Session Status
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
-  // Fetch Data
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
   const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
+
+  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc")), [db]);
+  const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
   const clientsQuery = useMemoFirebase(() => query(collection(db, "clients")), [db]);
   const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
 
-  // Filter Sales based on Mode
   const allSales = useMemo(() => {
     if (!rawSales) return [];
     return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : !s.isDraft);
   }, [rawSales, isPrepaMode]);
 
-  // Statistics Calculation - Focusing on collected cash
+  const allTransactions = useMemo(() => {
+    if (!rawTransactions) return [];
+    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : !t.isDraft);
+  }, [rawTransactions, isPrepaMode]);
+
   const stats = useMemo(() => {
-    if (!allSales) return { ca: 0, count: 0, reste: 0, volume: 0, newClients: allClients?.length || 0 };
-    
-    // CA = Somme des avances (argent réel encaissé) - C'est ce que l'utilisateur veut voir
-    const ca = allSales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
-    // Volume = Valeur totale des factures signées (Total - Remise)
+    // CA = Argent RÉELLEMENT encaissé (Somme des transactions de type VENTE)
+    // C'est ce qui garantit la correspondance avec la Gestion de Caisse
+    const ca = allTransactions
+      .filter(t => t.type === "VENTE")
+      .reduce((acc, t) => acc + (Number(t.montant) || 0), 0);
+
     const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
-    // Reste = Somme des restes à payer
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
     return {
@@ -103,33 +106,27 @@ export default function DashboardPage() {
       reste,
       newClients: allClients?.length || 0
     };
-  }, [allSales, allClients]);
+  }, [allSales, allTransactions, allClients]);
 
-  // Weekly Chart Data - Based on daily collections (avances)
   const weeklyData = useMemo(() => {
-    if (!allSales) return [];
     const now = new Date();
     const start = startOfWeek(now, { weekStartsOn: 1 });
     const end = endOfWeek(now, { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start, end });
 
     return days.map(day => {
-      const daySales = allSales.filter(s => {
-        if (!s.createdAt?.toDate) return false;
-        return isSameDay(s.createdAt.toDate(), day);
+      const dayTrans = allTransactions.filter(t => {
+        if (!t.createdAt?.toDate || t.type !== "VENTE") return false;
+        return isSameDay(t.createdAt.toDate(), day);
       });
-      // On affiche les encaissements réels par jour
-      const totalAvance = daySales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
       return {
         name: format(day, "EEE", { locale: fr }),
-        total: totalAvance
+        total: dayTrans.reduce((acc, t) => acc + (Number(t.montant) || 0), 0)
       };
     });
-  }, [allSales]);
+  }, [allTransactions]);
 
-  // Mutuelle Pie Data
   const mutuelleData = useMemo(() => {
-    if (!allSales) return [];
     const counts: Record<string, number> = {};
     allSales.forEach(s => {
       const m = s.mutuelle || "AUCUN";
@@ -140,13 +137,11 @@ export default function DashboardPage() {
 
   const recentSales = useMemo(() => allSales.slice(0, 5), [allSales]);
 
-  const userName = user?.displayName || "Utilisateur";
-
-  if (!isClientReady || loadingSales || loadingClients || sessionLoading) {
+  if (!isClientReady || loadingSales || loadingClients || sessionLoading || loadingTrans) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initialisation du système...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Synchronisation en cours...</p>
       </div>
     );
   }
@@ -174,7 +169,7 @@ export default function DashboardPage() {
           </div>
           <div className="min-w-0">
             <h1 className="text-xl md:text-3xl font-black text-slate-900 truncate tracking-tight capitalize">
-              Bonjour, {userName}
+              Bonjour, {user?.displayName || "Utilisateur"}
             </h1>
             {todayStr && (
               <p className="text-[10px] md:text-xs text-muted-foreground font-black flex items-center gap-1.5 capitalize opacity-70 tracking-widest mt-1">
@@ -250,7 +245,7 @@ export default function DashboardPage() {
           <CardHeader className="p-8 border-b bg-slate-50/50">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
               <TrendingUp className="h-5 w-5" />
-              Encaissements Hebdo {isPrepaMode ? "(Brouillon)" : ""}
+              Recettes (Ventes) Hebdo {isPrepaMode ? "(Brouillon)" : ""}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] p-8">
@@ -297,7 +292,7 @@ export default function DashboardPage() {
 
       <Card className="shadow-sm border-none overflow-hidden rounded-[40px] bg-white">
         <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8 border-b bg-slate-50/50">
-          <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}</CardTitle>
+          <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">Dernières Factures {isPrepaMode ? "(Brouillon)" : "Réelles"}</CardTitle>
           <Button variant="outline" size="sm" asChild className="text-[10px] h-9 px-4 font-black bg-white rounded-xl shadow-sm border-primary/20 hover:bg-primary hover:text-white transition-all whitespace-nowrap uppercase tracking-widest">
             <Link href="/ventes" className="flex items-center gap-1.5">TOUT VOIR <ChevronRight className="h-3 w-3" /></Link>
           </Button>
