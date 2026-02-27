@@ -29,7 +29,9 @@ Pour que vos modifications soient visibles sur internet, vous devez **obligatoir
 - **Ventes & Factures :** Impression A4 paysage (2x A5) avec heure précise et design pro.
 - **Suivi Optique :** Gestion précise des corrections OD/OG et historique des versements.
 - **Gestion de Caisse :** Journal des transactions et clôture journalière avec comptage.
-- **Mode Préparation :** Un espace "Brouillon" (Login: prepa / Pass: prepa123) pour saisir l'historique sans fausser la caisse du jour.
+- **Mode Préparation :** Un espace "Brouillon" pour saisir l'historique sans fausser la caisse du jour.
+  - **Login :** `prepa`
+  - **Pass :** `prepa123`
 
 ---
 *Propulsé par Next.js, Firebase & Vercel*
