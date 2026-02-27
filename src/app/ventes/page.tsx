@@ -58,7 +58,6 @@ export default function SalesHistoryPage() {
   const filteredSales = useMemo(() => {
     if (!rawSales) return [];
     return rawSales.filter((sale: any) => {
-      // Filtrage par Mode Préparation
       const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
       if (!matchesMode) return false;
 
@@ -126,7 +125,6 @@ export default function SalesHistoryPage() {
       const saleRef = doc(db, "sales", costDialogSale.id);
       await updateDoc(saleRef, { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
       
-      // Ajout des dépenses en caisse avec libellé simplifié comme demandé
       if (frameCost > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "DEPENSE", 
@@ -271,9 +269,10 @@ export default function SalesHistoryPage() {
                             <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">{sale.reste <= 0 ? <FileText className="mr-3 h-4 w-4 text-primary" /> : <Printer className="mr-3 h-4 w-4 text-primary" />}{sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
                               
+                              <DropdownMenuItem onClick={() => handleOpenCosts(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
+                              
                               {isAdminOrPrepa && (
                                 <>
-                                  <DropdownMenuItem onClick={() => handleOpenCosts(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleDelete(sale.id, sale.invoiceId)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
                                 </>
