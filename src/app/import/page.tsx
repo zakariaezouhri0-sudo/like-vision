@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
 import { collection, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
@@ -69,6 +69,40 @@ export default function ImportPage() {
 
   const currentFields = importType === "sales" ? SALES_FIELDS : (importType === "clients" ? CLIENTS_FIELDS : TRANSACTIONS_FIELDS);
 
+  const downloadTemplate = () => {
+    const headers = currentFields.map(f => f.label);
+    const sampleRow = currentFields.reduce((acc, f) => ({ ...acc, [f.label]: "" }), {});
+    
+    // Exemple de données pour aider l'utilisateur
+    if (importType === "sales") {
+      Object.assign(sampleRow, {
+        "N° Facture": "OPT-2023-001",
+        "Nom Client": "Ex: Mohamed Alami",
+        "Téléphone": "0600112233",
+        "Total Brut": "1500",
+        "Avance Payée (Entre en CA)": "500",
+        "Avance Antérieure (Hors CA)": "1000",
+        "Date": "01/01/2024",
+        "Mutuelle": "CNOPS",
+        "Coût Monture (Achat)": "200",
+        "Coût Verres (Achat)": "300"
+      });
+    } else if (importType === "transactions") {
+      Object.assign(sampleRow, {
+        "Type (VENTE/DEPENSE/VERSEMENT)": "DEPENSE",
+        "Libellé / Description": "Ex: Loyer Janvier",
+        "Montant": "3000",
+        "Date": "05/01/2024",
+        "Catégorie": "Charges"
+      });
+    }
+
+    const ws = XLSX.utils.json_to_sheet([sampleRow]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modèle");
+    XLSX.writeFile(wb, `modele_import_${importType}.xlsx`);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -115,14 +149,9 @@ export default function ImportPage() {
           const clientName = row[mapping.clientName] || "Client Importé";
           const clientPhone = (row[mapping.clientPhone]?.toString() || "").replace(/\s/g, "");
           const total = parseFloat(row[mapping.total]) || 0;
-          
-          // Avance qui entre en caisse
           const currentAvance = parseFloat(row[mapping.avance]) || 0;
-          // Avance historique qui n'entre PAS en caisse
           const historicalAvance = parseFloat(row[mapping.historicalAdvance]) || 0;
-          
           const totalAvanceCumulee = currentAvance + historicalAvance;
-          
           const purchaseFrame = parseFloat(row[mapping.purchasePriceFrame]) || 0;
           const purchaseLenses = parseFloat(row[mapping.purchasePriceLenses]) || 0;
           const invoiceId = row[mapping.invoiceId]?.toString() || `OPT-IMP-${Date.now().toString().slice(-4)}-${i}`;
@@ -133,23 +162,12 @@ export default function ImportPage() {
             if (!isNaN(parsed.getTime())) createdAtDate = parsed;
           }
 
-          // Construction de l'historique des paiements
           const payments = [];
           if (historicalAvance > 0) {
-            payments.push({ 
-              amount: historicalAvance, 
-              date: createdAtDate.toISOString(), 
-              userName: "Import (Historique)", 
-              note: "Avance antérieure" 
-            });
+            payments.push({ amount: historicalAvance, date: createdAtDate.toISOString(), userName: "Import (Historique)", note: "Avance antérieure" });
           }
           if (currentAvance > 0) {
-            payments.push({ 
-              amount: currentAvance, 
-              date: createdAtDate.toISOString(), 
-              userName: "Import (Caisse)", 
-              note: "Versement du jour" 
-            });
+            payments.push({ amount: currentAvance, date: createdAtDate.toISOString(), userName: "Import (Caisse)", note: "Versement du jour" });
           }
 
           const saleData = {
@@ -168,18 +186,10 @@ export default function ImportPage() {
 
           await addDoc(collection(db, "sales"), saleData);
 
-          // CRUCIAL: Seule l'avance "actuelle" génère une transaction de caisse
           if (currentAvance > 0) {
             await addDoc(collection(db, "transactions"), {
-              type: "VENTE",
-              label: `Import Vente - ${invoiceId}`,
-              clientName,
-              category: "Optique",
-              montant: currentAvance,
-              relatedId: invoiceId,
-              userName: "Système (Import)",
-              isDraft,
-              createdAt: Timestamp.fromDate(createdAtDate)
+              type: "VENTE", label: `Import Vente - ${invoiceId}`, clientName, category: "Optique", montant: currentAvance,
+              relatedId: invoiceId, userName: "Système (Import)", isDraft, createdAt: Timestamp.fromDate(createdAtDate)
             });
           }
         } 
@@ -195,14 +205,10 @@ export default function ImportPage() {
             if (!isNaN(parsed.getTime())) createdAtDate = parsed;
           }
 
-          const finalAmount = (type === "DEPENSE" || type === "ACHAT VERRES" || type === "VERSEMENT") 
-            ? -Math.abs(montant) 
-            : Math.abs(montant);
+          const finalAmount = (type === "DEPENSE" || type === "ACHAT VERRES" || type === "VERSEMENT") ? -Math.abs(montant) : Math.abs(montant);
 
           await addDoc(collection(db, "transactions"), {
-            type, label, category, montant: finalAmount,
-            isDraft, createdAt: Timestamp.fromDate(createdAtDate),
-            userName: "Import Manuel"
+            type, label, category, montant: finalAmount, isDraft, createdAt: Timestamp.fromDate(createdAtDate), userName: "Import Manuel"
           });
         }
         else if (importType === "clients") {
@@ -232,63 +238,93 @@ export default function ImportPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-5xl mx-auto pb-10">
+      <div className="space-y-6 max-w-6xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Importation de Données</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Ventes, Dépenses et Fichier Clients.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Saisie massive depuis Excel.</p>
           </div>
+          <Button onClick={downloadTemplate} variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+            <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER LE MODÈLE
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1 rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6">
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest">1. Type d'import</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Que voulez-vous importer ?</Label>
-                <Select value={importType} onValueChange={(v: any) => { setImportType(v); setMapping({}); setData([]); setFile(null); }}>
-                  <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="sales" className="font-bold">Historique de Ventes</SelectItem>
-                    <SelectItem value="transactions" className="font-bold">Journal de Caisse (Dépenses/Flux)</SelectItem>
-                    <SelectItem value="clients" className="font-bold">Fichier Clients Seul</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="md:col-span-2 rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6">
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest">2. Fichier Excel (.xlsx)</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8">
-              <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] bg-slate-50/30 p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
-                <div className="h-20 w-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-4 shadow-inner">
-                  <FileSpreadsheet className="h-10 w-10 text-primary" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
+              <CardHeader className="bg-slate-50 border-b p-6">
+                <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2">
+                  <TableIcon className="h-4 w-4" /> 1. Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground">Type d'import</Label>
+                  <Select value={importType} onValueChange={(v: any) => { setImportType(v); setMapping({}); setData([]); setFile(null); }}>
+                    <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="sales" className="font-bold">Historique de Ventes</SelectItem>
+                      <SelectItem value="transactions" className="font-bold">Caisse (Dépenses/Flux)</SelectItem>
+                      <SelectItem value="clients" className="font-bold">Fichier Clients</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Cliquez pour choisir votre fichier"}</h3>
-                <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Format Excel uniquement</p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-blue-900 uppercase">Colonnes requises :</p>
+                      <ul className="text-[8px] font-bold text-blue-700/70 space-y-1">
+                        {currentFields.map(f => <li key={f.key}>• {f.label}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="rounded-[32px] border-none shadow-lg bg-white overflow-hidden h-full flex flex-col">
+              <CardHeader className="bg-slate-50 border-b p-6">
+                <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2">
+                  <Upload className="h-4 w-4" /> 2. Fichier Excel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 flex-1 flex flex-col justify-center">
+                <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] bg-slate-50/30 p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                  <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
+                  <div className="h-20 w-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-4 shadow-inner">
+                    <FileSpreadsheet className="h-10 w-10 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Cliquez pour choisir votre fichier"}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Format .xlsx recommandé</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {data.length > 0 && (
           <Card className="rounded-[32px] border-none shadow-2xl bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-500">
             <CardHeader className="bg-primary text-white p-8">
-              <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">
-                {isProcessing ? `Importation... ${progress}%` : "Mapping des Colonnes"}
-              </CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">
+                  {isProcessing ? `Importation... ${progress}%` : "Mapping des Colonnes"}
+                </CardTitle>
+                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">
+                  {data.length} lignes détectées
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                 {currentFields.map(field => (
                   <div key={field.key} className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">{field.label}</Label>
+                    <div className="flex justify-between">
+                      <Label className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">{field.label}</Label>
+                      {mapping[field.key] && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                    </div>
                     <Select value={mapping[field.key] || ""} onValueChange={(v) => setMapping({...mapping, [field.key]: v})}>
                       <SelectTrigger className="h-14 rounded-2xl font-black text-slate-900 border-none bg-slate-50 shadow-inner px-6">
                         <SelectValue placeholder="Choisir la colonne Excel..." />
