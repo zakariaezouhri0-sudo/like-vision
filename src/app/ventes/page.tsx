@@ -70,12 +70,55 @@ export default function SalesHistoryPage() {
 
   const handlePrint = (sale: any) => {
     const page = sale.reste <= 0 ? 'facture' : 'recu';
-    const params = new URLSearchParams({ client: sale.clientName, phone: sale.clientPhone, mutuelle: sale.mutuelle, total: sale.total.toString(), remise: (sale.remise || 0).toString(), remisePercent: sale.remisePercent || "0", avance: sale.avance.toString(), od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", od_axe: sale.prescription?.od?.axe || "", og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", og_axe: sale.prescription?.og?.axe || "", monture: sale.monture || "", verres: sale.verres || "", date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : new Date().toLocaleDateString("fr-FR") });
+    const params = new URLSearchParams({ 
+      client: sale.clientName, 
+      phone: sale.clientPhone, 
+      mutuelle: sale.mutuelle, 
+      total: sale.total.toString(), 
+      remise: (sale.remise || 0).toString(), 
+      remisePercent: sale.remisePercent || "0", 
+      avance: sale.avance.toString(), 
+      od_sph: sale.prescription?.od?.sph || "", 
+      od_cyl: sale.prescription?.od?.cyl || "", 
+      od_axe: sale.prescription?.od?.axe || "", 
+      od_add: sale.prescription?.od?.add || "",
+      og_sph: sale.prescription?.og?.sph || "", 
+      og_cyl: sale.prescription?.og?.cyl || "", 
+      og_axe: sale.prescription?.og?.axe || "", 
+      og_add: sale.prescription?.og?.add || "",
+      monture: sale.monture || "", 
+      verres: sale.verres || "", 
+      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : new Date().toLocaleDateString("fr-FR") 
+    });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
 
   const handleEdit = (sale: any) => {
-    const params = new URLSearchParams({ editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName, phone: sale.clientPhone, mutuelle: sale.mutuelle, total: sale.total.toString(), avance: (sale.avance || 0).toString(), discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "percent", purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(), purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(), monture: sale.monture || "", verres: sale.verres || "", notes: sale.notes || "", od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", od_axe: sale.prescription?.od?.axe || "", og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", og_axe: sale.prescription?.og?.axe || "", date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "" });
+    const params = new URLSearchParams({ 
+      editId: sale.id, 
+      invoiceId: sale.invoiceId, 
+      client: sale.clientName, 
+      phone: sale.clientPhone, 
+      mutuelle: sale.mutuelle, 
+      total: sale.total.toString(), 
+      avance: (sale.avance || 0).toString(), 
+      discountValue: sale.discountValue?.toString() || "0", 
+      discountType: sale.discountType || "percent", 
+      purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(), 
+      purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(), 
+      monture: sale.monture || "", 
+      verres: sale.verres || "", 
+      notes: sale.notes || "", 
+      od_sph: sale.prescription?.od?.sph || "", 
+      od_cyl: sale.prescription?.od?.cyl || "", 
+      od_axe: sale.prescription?.od?.axe || "", 
+      od_add: sale.prescription?.od?.add || "",
+      og_sph: sale.prescription?.og?.sph || "", 
+      og_cyl: sale.prescription?.og?.cyl || "", 
+      og_axe: sale.prescription?.og?.axe || "", 
+      og_add: sale.prescription?.og?.add || "",
+      date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "" 
+    });
     router.push(`/ventes/nouvelle?${params.toString()}`);
   };
 
@@ -189,7 +232,7 @@ export default function SalesHistoryPage() {
         </Card>
 
         <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
-          <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="max-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
             <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase flex items-center gap-3">Coûts d'Achat</DialogTitle></DialogHeader>
             <div className="p-6 space-y-6 bg-white">
               <div className="grid grid-cols-2 gap-4">

@@ -44,17 +44,18 @@ function InvoicePrintContent() {
   const od = {
     sph: searchParams.get("od_sph") || "---",
     cyl: searchParams.get("od_cyl") || "---",
-    axe: searchParams.get("od_axe") || "---"
+    axe: searchParams.get("od_axe") || "---",
+    add: searchParams.get("od_add") || "---"
   };
   const og = {
     sph: searchParams.get("og_sph") || "---",
     cyl: searchParams.get("og_cyl") || "---",
-    axe: searchParams.get("og_axe") || "---"
+    axe: searchParams.get("og_axe") || "---",
+    add: searchParams.get("og_add") || "---"
   };
 
   const InvoiceCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
-      {/* Header */}
       <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-4">
           <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0 overflow-hidden relative bg-white">
@@ -83,7 +84,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Info Block - Gray Background requested */}
       <div className="mb-6 bg-slate-50 border-y border-slate-200 py-4 px-2 text-center rounded-xl space-y-2">
         <div className="grid grid-cols-3 gap-2 items-center">
           <div className="space-y-1">
@@ -101,7 +101,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2 border-b pb-1">
           Prescription Optique
@@ -113,6 +112,7 @@ function InvoicePrintContent() {
               <th className="border border-slate-300 p-1 text-center uppercase font-black">Sphère</th>
               <th className="border border-slate-300 p-1 text-center uppercase font-black">Cylindre</th>
               <th className="border border-slate-300 p-1 text-center uppercase font-black">Axe</th>
+              <th className="border border-slate-300 p-1 text-center uppercase font-black">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -121,19 +121,20 @@ function InvoicePrintContent() {
               <td className="border border-slate-200 p-1.5 text-center font-bold">{od.sph}</td>
               <td className="border border-slate-200 p-1.5 text-center font-bold">{od.cyl}</td>
               <td className="border border-slate-200 p-1.5 text-center font-bold">{od.axe}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-bold">{od.add}</td>
             </tr>
             <tr>
               <td className="border border-slate-200 p-1.5 font-black text-slate-700">Gauche (OG)</td>
               <td className="border border-slate-200 p-1.5 text-center font-bold">{og.sph}</td>
               <td className="border border-slate-200 p-1.5 text-center font-bold">{og.cyl}</td>
               <td className="border border-slate-200 p-1.5 text-center font-bold">{og.axe}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-bold">{og.add}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div className="mt-auto space-y-4">
-        {/* Totals Block - Full Width */}
         <div className="w-full space-y-1.5 border-t pt-3">
           <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
             <span>Total Brut :</span>
@@ -162,7 +163,6 @@ function InvoicePrintContent() {
           </div>
         </div>
         
-        {/* Message and Stamp Block */}
         <div className="flex justify-between items-end pr-2 mt-4">
           <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
             <div className="border-l-4 border-primary/20 pl-4 py-1.5">
@@ -181,7 +181,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Footer Space for printer margin (4cm) */}
       <div className="mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
          <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em]">{shop.name}</p>
       </div>

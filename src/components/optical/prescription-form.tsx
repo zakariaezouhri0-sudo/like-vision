@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ interface PrescriptionFieldProps {
     sph: string;
     cyl: string;
     axe: string;
+    add: string;
   };
   onChange: (side: "OD" | "OG", field: string, value: string) => void;
 }
@@ -19,7 +21,7 @@ function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
       <h3 className="text-xs font-black text-primary border-b pb-1 mb-2 uppercase tracking-wider">
         {side === "OD" ? "Oeil Droit (OD)" : "Oeil Gauche (OG)"}
       </h3>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <div className="space-y-1">
           <Label className="text-[10px] uppercase font-bold text-muted-foreground">Sphère</Label>
           <Input 
@@ -45,6 +47,15 @@ function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
             className="h-8 text-xs px-2"
             value={values.axe} 
             onChange={(e) => onChange(side, "axe", e.target.value)} 
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">ADD</Label>
+          <Input 
+            placeholder="+0.00" 
+            className="h-8 text-xs px-2"
+            value={values.add} 
+            onChange={(e) => onChange(side, "add", e.target.value)} 
           />
         </div>
       </div>

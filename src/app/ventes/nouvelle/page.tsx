@@ -70,8 +70,8 @@ function NewSaleForm() {
   const [purchasePriceLenses, setPurchasePriceLenses] = useState<number | string>(searchParams.get("purchasePriceLenses") || "");
 
   const [prescription, setPrescription] = useState({
-    od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "" },
-    og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "" }
+    od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
+    og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
   useEffect(() => {
@@ -89,7 +89,6 @@ function NewSaleForm() {
         return;
       }
 
-      // Validation
       const isValidFormat = /^(06|07|08)\d{8}$/.test(cleanPhone);
       if (cleanPhone.length === 10 && !isValidFormat) {
         setPhoneError("Numéro invalide (06, 07 ou 08 requis)");
@@ -186,7 +185,6 @@ function NewSaleForm() {
     const currentUserName = user?.displayName || "Inconnu";
 
     try {
-      // Find existing client before transaction
       let existingClientId = null;
       const clientQuerySnap = await getDocs(query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1)));
       if (!clientQuerySnap.empty) {
@@ -232,7 +230,6 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Auto-register/Update Client
         const clientRef = existingClientId ? doc(db, "clients", existingClientId) : doc(collection(db, "clients"));
         const clientData = {
           name: clientName,
@@ -268,7 +265,26 @@ function NewSaleForm() {
     const res = await handleSave(true);
     if (!res) return;
     const page = res.reste <= 0 ? 'facture' : 'recu';
-    const params = new URLSearchParams({ client: res.clientName, phone: res.clientPhone, mutuelle: res.mutuelle, total: res.total.toString(), remise: res.remise.toString(), remisePercent: res.remisePercent, avance: res.avance.toString(), od_sph: res.prescription.od.sph, od_cyl: res.prescription.od.cyl, od_axe: res.prescription.od.axe, og_sph: res.prescription.og.sph, og_cyl: res.prescription.og.cyl, og_axe: res.prescription.og.axe, monture: res.monture, verres: res.verres, date: saleDate.toLocaleDateString("fr-FR") });
+    const params = new URLSearchParams({ 
+      client: res.clientName, 
+      phone: res.clientPhone, 
+      mutuelle: res.mutuelle, 
+      total: res.total.toString(), 
+      remise: res.remise.toString(), 
+      remisePercent: res.remisePercent, 
+      avance: res.avance.toString(), 
+      od_sph: res.prescription.od.sph, 
+      od_cyl: res.prescription.od.cyl, 
+      od_axe: res.prescription.od.axe, 
+      od_add: res.prescription.od.add,
+      og_sph: res.prescription.og.sph, 
+      og_cyl: res.prescription.og.cyl, 
+      og_axe: res.prescription.og.axe, 
+      og_add: res.prescription.og.add,
+      monture: res.monture, 
+      verres: res.verres, 
+      date: saleDate.toLocaleDateString("fr-FR") 
+    });
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };
 

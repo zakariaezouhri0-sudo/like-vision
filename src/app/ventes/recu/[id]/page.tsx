@@ -46,12 +46,14 @@ function ReceiptPrintContent() {
   const od = {
     sph: searchParams.get("od_sph") || saleData?.prescription?.od?.sph || "---",
     cyl: searchParams.get("od_cyl") || saleData?.prescription?.od?.cyl || "---",
-    axe: searchParams.get("od_axe") || saleData?.prescription?.od?.axe || "---"
+    axe: searchParams.get("od_axe") || saleData?.prescription?.od?.axe || "---",
+    add: searchParams.get("od_add") || saleData?.prescription?.od?.add || "---"
   };
   const og = {
     sph: searchParams.get("og_sph") || saleData?.prescription?.og?.sph || "---",
     cyl: searchParams.get("og_cyl") || saleData?.prescription?.og?.cyl || "---",
-    axe: searchParams.get("og_axe") || saleData?.prescription?.og?.axe || "---"
+    axe: searchParams.get("og_axe") || saleData?.prescription?.og?.axe || "---",
+    add: searchParams.get("og_add") || saleData?.prescription?.og?.add || "---"
   };
 
   const ReceiptCopy = () => (
@@ -64,7 +66,7 @@ function ReceiptPrintContent() {
             ) : (
               <div className="relative text-primary">
                 <Glasses className="h-6 w-6" />
-                <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-white p-0.5 rounded-full" />
+                <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" />
               </div>
             )}
           </div>
@@ -94,7 +96,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Optique */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
           Prescription Optique
@@ -106,6 +107,7 @@ function ReceiptPrintContent() {
               <th className="border border-slate-200 p-1 text-center uppercase font-black">Sph</th>
               <th className="border border-slate-200 p-1 text-center uppercase font-black">Cyl</th>
               <th className="border border-slate-200 p-1 text-center uppercase font-black">Axe</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -114,18 +116,19 @@ function ReceiptPrintContent() {
               <td className="border border-slate-100 p-1.5 text-center font-black">{od.sph}</td>
               <td className="border border-slate-100 p-1.5 text-center font-black">{od.cyl}</td>
               <td className="border border-slate-100 p-1.5 text-center font-black">{od.axe}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{od.add}</td>
             </tr>
             <tr>
               <td className="border border-slate-100 p-1.5 font-bold">Gauche (OG)</td>
               <td className="border border-slate-100 p-1.5 text-center font-black">{og.sph}</td>
               <td className="border border-slate-100 p-1.5 text-center font-black">{og.cyl}</td>
               <td className="border border-slate-100 p-1.5 text-center font-black">{og.axe}</td>
+              <td className="border border-slate-100 p-1.5 text-center font-black">{og.add}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Historique des Versements */}
       <div className="mb-6">
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">Historique des Versements</h3>
         <table className="w-full text-[8px]">
@@ -156,7 +159,6 @@ function ReceiptPrintContent() {
       </div>
 
       <div className="mt-auto space-y-4">
-        {/* Totals Block - Full Width */}
         <div className="w-full space-y-1.5 border-t pt-3">
           <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
             <span>Total Commande :</span>
@@ -172,7 +174,6 @@ function ReceiptPrintContent() {
           </div>
         </div>
 
-        {/* Message and Stamp Block */}
         <div className="flex justify-between items-end pr-2 mt-4">
           <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
             <div className="border-l-4 border-primary/20 pl-4 py-1.5">
@@ -189,7 +190,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Footer Space for printer margin (4cm) */}
       <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
         <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em] italic">{shop.name}</p>
       </div>
