@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -100,14 +99,14 @@ function ReceiptPrintContent() {
         <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
           Prescription Optique
         </h3>
-        <table className="w-full text-[8px] border-collapse">
+        <table className="w-full text-[8px] border-collapse table-fixed">
           <thead>
             <tr className="bg-slate-100 text-slate-600">
-              <th className="border border-slate-200 p-1 text-left uppercase font-black">Oeil</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black">Sph</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black">Cyl</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black">Axe</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black">ADD</th>
+              <th className="border border-slate-200 p-1 text-left uppercase font-black w-[24%]">Oeil</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Sph</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Cyl</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Axe</th>
+              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -145,13 +144,13 @@ function ReceiptPrintContent() {
                   <td className="p-1.5 font-bold text-slate-600">
                     {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
                   </td>
-                  <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(p.amount)}</td>
+                  <td className="p-1.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                 </tr>
               ))
             ) : (
               <tr className="border-b border-slate-50">
                 <td className="p-1.5 font-bold text-slate-600">{date}</td>
-                <td className="p-1.5 text-right font-black text-slate-900">{formatCurrency(avance)}</td>
+                <td className="p-1.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(avance)}</td>
               </tr>
             )}
           </tbody>
@@ -162,15 +161,15 @@ function ReceiptPrintContent() {
         <div className="w-full space-y-1.5 border-t pt-3">
           <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
             <span>Total Commande :</span>
-            <span>{formatCurrency(totalNet)}</span>
+            <span className="tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
           <div className="flex justify-between text-[8px] text-green-600 font-black uppercase">
             <span>Total déjà payé :</span>
-            <span>{formatCurrency(avance)}</span>
+            <span className="tabular-nums">{formatCurrency(avance)}</span>
           </div>
           <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-1">
             <span className="text-[8px] font-black uppercase tracking-widest">Reste à Régler</span>
-            <span className="text-lg font-black tracking-tighter">{formatCurrency(reste)}</span>
+            <span className="text-lg font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
           </div>
         </div>
 

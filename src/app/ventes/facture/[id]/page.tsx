@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -105,14 +104,14 @@ function InvoicePrintContent() {
         <h3 className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2 border-b pb-1">
           Prescription Optique
         </h3>
-        <table className="w-full text-[8px] border-collapse">
+        <table className="w-full text-[8px] border-collapse table-fixed">
           <thead>
             <tr className="bg-slate-800 text-white">
-              <th className="border border-slate-300 p-1 text-left uppercase font-black">Oeil</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black">Sphère</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black">Cylindre</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black">Axe</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black">ADD</th>
+              <th className="border border-slate-300 p-1 text-left uppercase font-black w-[24%]">Oeil</th>
+              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Sphère</th>
+              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Cylindre</th>
+              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Axe</th>
+              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -138,26 +137,26 @@ function InvoicePrintContent() {
         <div className="w-full space-y-1.5 border-t pt-3">
           <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
             <span>Total Brut :</span>
-            <span>{formatCurrency(total)}</span>
+            <span className="tabular-nums">{formatCurrency(total)}</span>
           </div>
           {remise > 0 && (
             <div className="flex justify-between text-[8px] text-destructive font-black uppercase">
               <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
-              <span>-{formatCurrency(remise)}</span>
+              <span className="tabular-nums">-{formatCurrency(remise)}</span>
             </div>
           )}
           <div className="flex justify-between text-[9px] text-slate-900 font-black uppercase">
             <span>Total Net :</span>
-            <span>{formatCurrency(totalNet)}</span>
+            <span className="tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
           <div className="flex justify-between text-[9px] text-green-600 font-black uppercase">
             <span>Avance payée :</span>
-            <span>{formatCurrency(avance)}</span>
+            <span className="tabular-nums">{formatCurrency(avance)}</span>
           </div>
           
           <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-1">
             <span className="text-[8px] font-black uppercase tracking-widest">Total payé (Soldé)</span>
-            <span className="text-lg font-black tracking-tighter">
+            <span className="text-lg font-black tracking-tighter tabular-nums">
               {formatCurrency(totalNet)}
             </span>
           </div>
