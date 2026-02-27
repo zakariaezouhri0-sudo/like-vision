@@ -141,7 +141,7 @@ function InvoicePrintContent() {
               <span className="tabular-nums">-{formatCurrency(remise)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center pt-4 border-t-2 border-slate-900 bg-slate-950 text-white p-4 rounded-2xl mt-2 shadow-xl">
+          <div className="flex justify-between items-center pt-4 border border-slate-300 bg-slate-100 text-slate-950 p-4 rounded-2xl mt-2">
             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Total payé (Soldé)</span>
             <span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(totalNet)}</span>
           </div>

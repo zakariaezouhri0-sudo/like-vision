@@ -82,16 +82,20 @@
   .print-only {
     display: block !important;
   }
-  /* Force everything to white background during print */
+  
+  /* Désactivation des ombres pour l'impression */
   * {
-    background-color: transparent !important;
     box-shadow: none !important;
   }
-  .bg-primary, .bg-slate-900, .bg-slate-950, .bg-slate-800 {
-    background-color: #000 !important;
-    color: #fff !important;
+
+  /* Préservation des fonds gris légers pour les blocs de total */
+  .bg-slate-50, .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
   }
-  .text-primary, .text-slate-900 {
+  
+  /* Forçage noir pour les textes importants */
+  .text-slate-900, .text-slate-950, .font-black {
     color: #000 !important;
   }
 }
