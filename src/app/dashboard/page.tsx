@@ -84,12 +84,12 @@ export default function DashboardPage() {
     return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : !s.isDraft);
   }, [rawSales, isPrepaMode]);
 
-  // Statistics Calculation
+  // Statistics Calculation - Robust with Number conversion
   const stats = useMemo(() => {
     if (!allSales) return { ca: 0, count: 0, reste: 0, newClients: allClients?.length || 0 };
     
-    const ca = allSales.reduce((acc, s) => acc + (s.total - (s.remise || 0)), 0);
-    const reste = allSales.reduce((acc, s) => acc + (s.reste || 0), 0);
+    const ca = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+    const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
     return {
       ca,
@@ -112,7 +112,7 @@ export default function DashboardPage() {
         if (!s.createdAt?.toDate) return false;
         return isSameDay(s.createdAt.toDate(), day);
       });
-      const total = daySales.reduce((acc, s) => acc + (s.total - (s.remise || 0)), 0);
+      const total = daySales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
       return {
         name: format(day, "EEE", { locale: fr }),
         total: total
@@ -211,9 +211,8 @@ export default function DashboardPage() {
         <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
           <TrendingUp className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Chiffre d'Affaire {isPrepaMode ? "(Brouillon)" : ""}</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black tracking-tighter">{new Intl.NumberFormat('fr-FR').format(stats.ca)}</span>
-            <span className="text-lg font-black opacity-60">DH</span>
+          <div className="flex items-baseline">
+            <span className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
           </div>
         </Card>
         
@@ -226,9 +225,8 @@ export default function DashboardPage() {
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive">
           <AlertCircle className="absolute -right-6 -top-6 h-40 w-40 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer {isPrepaMode ? "(Brouillon)" : ""}</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-destructive tracking-tighter">{new Intl.NumberFormat('fr-FR').format(stats.reste)}</span>
-            <span className="text-lg font-black text-destructive opacity-60">DH</span>
+          <div className="flex items-baseline">
+            <span className="text-3xl md:text-4xl font-black text-destructive tracking-tighter tabular-nums">{formatCurrency(stats.reste)}</span>
           </div>
         </Card>
         
@@ -314,12 +312,9 @@ export default function DashboardPage() {
                       <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">{sale.invoiceId}</TableCell>
                       <TableCell className="text-xs md:text-sm font-black text-slate-800 px-4 md:px-8 py-5 md:py-7 whitespace-nowrap uppercase">{sale.clientName}</TableCell>
                       <TableCell className="text-right px-4 md:px-8 py-5 md:py-7 whitespace-nowrap">
-                        <div className="flex items-baseline justify-end gap-1.5">
-                          <span className="text-sm md:text-lg font-black text-slate-900">
-                            {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sale.total - (sale.remise || 0))}
-                          </span>
-                          <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">DH</span>
-                        </div>
+                        <span className="text-sm md:text-lg font-black text-slate-900 tabular-nums">
+                          {formatCurrency(Number(sale.total) - (Number(sale.remise) || 0))}
+                        </span>
                       </TableCell>
                       <TableCell className="text-center px-4 md:px-8 py-5 md:py-7">
                         <Badge 
