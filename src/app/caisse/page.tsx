@@ -172,7 +172,7 @@ function CaisseContent() {
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Caisse Clôturée {isPrepaMode ? "(Mode PREPA)" : ""}</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Solde Final Réel</p><p className="text-2xl font-black text-primary">{formatCurrency(session.closingBalanceReal)}</p></Card>
-            {role === 'ADMIN' && <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Écart</p><p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(session.discrepancy)}</p></Card>}
+            {(role === 'ADMIN' || role === 'PREPA') && <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Écart</p><p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(session.discrepancy)}</p></Card>}
           </div>
           <Button onClick={() => router.push("/dashboard")} className="h-14 px-10 rounded-2xl font-black">RETOUR AU TABLEAU DE BORD</Button>
         </div>
@@ -233,6 +233,16 @@ function CaisseContent() {
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER L'OPÉRATION</Button></DialogFooter>
               </DialogContent>
             </Dialog>
+          )}
+
+          {session && (
+            <Button 
+              variant="outline" 
+              onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
+              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"
+            >
+              <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
+            </Button>
           )}
 
           <Dialog open={!!editingTransaction} onOpenChange={(o) => !o && setEditingTransaction(null)}>
