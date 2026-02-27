@@ -314,7 +314,7 @@ function CaisseContent() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
-              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Opération</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
+              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Libellé</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {loadingTrans ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
