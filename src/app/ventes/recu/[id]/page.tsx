@@ -169,8 +169,13 @@ function ReceiptPrintContent() {
           </div>
         </div>
 
+        {/* Footer Moved Up */}
+        <div className="mt-2 pt-2 border-t border-slate-100 text-center">
+          <p className="text-[7px] font-black text-slate-300 uppercase tracking-[0.6em] italic leading-none">{shop.name} • SYSTÈME LIKE VISION</p>
+        </div>
+
         {/* Signature Area */}
-        <div className="flex justify-between items-end mt-6">
+        <div className="flex justify-between items-end mt-4">
           <div className="flex-1 pr-8">
             <div className="border-l-4 border-primary/20 pl-4 py-3 bg-slate-50/50 rounded-r-2xl">
               <p className="text-[9px] font-black text-primary/80 italic leading-tight">Merci de votre confiance.<br/>Votre vue est notre priorité absolue !</p>
@@ -182,12 +187,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Footer & Space Reserved */}
-      <div className="mt-10 pt-4 border-t border-slate-100 text-center">
-        <p className="text-[7px] font-black text-slate-200 uppercase tracking-[0.6em] italic leading-none">{shop.name} • SYSTÈME LIKE VISION</p>
-      </div>
-      
-      {/* Target Margin: 3cm empty space */}
+      {/* Target Margin: 3cm empty space at the bottom */}
       <div className="h-[30mm] w-full shrink-0"></div>
     </div>
   );
