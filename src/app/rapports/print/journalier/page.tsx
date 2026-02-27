@@ -166,7 +166,7 @@ function DailyCashReportContent() {
           <div className="p-3 rounded-xl border border-slate-200 text-center bg-slate-100/50 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
               <PiggyBank className="h-3 w-3" />
-              <p className="text-[7px] font-black uppercase tracking-widest">Ouverture</p>
+              <p className="text-[7px] font-black uppercase tracking-widest">SOLDE INITIAL</p>
             </div>
             <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
           </div>
