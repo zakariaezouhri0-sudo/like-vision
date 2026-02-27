@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History } from "lucide-react";
+import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History, Landmark } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -59,7 +59,11 @@ function NewSaleForm() {
   const [total, setTotal] = useState<number | string>(searchParams.get("total") || "");
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
+  
+  // NOUVEAU : État pour l'avance historique (déjà payé avant aujourd'hui)
+  const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
   const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
+  
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
@@ -138,13 +142,18 @@ function NewSaleForm() {
 
   const nTotal = cleanVal(total);
   const nDiscount = cleanVal(discountValue);
+  const nHistorical = cleanVal(historicalAdvance);
   const nAvance = cleanVal(avance);
   const nPurchaseFrame = cleanVal(purchasePriceFrame);
   const nPurchaseLenses = cleanVal(purchasePriceLenses);
 
   const remiseAmountValue = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
   const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
-  const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
+  
+  // Calcul du reste avant le versement d'aujourd'hui
+  const resteAvantVersement = Math.max(0, totalNetValue - nHistorical);
+  // Reste final après tout
+  const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
     setPrescription(prev => ({ ...prev, [side.toLowerCase()]: { ...prev[side.toLowerCase() as keyof typeof prev], [field]: value } }));
@@ -161,7 +170,6 @@ function NewSaleForm() {
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
-    // Étape 1 : Rechercher le client avant la transaction pour savoir s'il faut le créer ou l'updater
     let clientRefToSync: any = null;
     let isNewClient = false;
     try {
@@ -178,18 +186,14 @@ function NewSaleForm() {
     }
 
     const isPaid = resteAPayerValue <= 0;
-    const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
+    const statut = isPaid ? "Payé" : ((nAvance + nHistorical) > 0 ? "Partiel" : "En attente");
 
     try {
       const result = await runTransaction(db, async (transaction) => {
-        // --- 1. TOUTES LES LECTURES (READS) EN PREMIER ---
-        
-        // Lecture du compteur
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
         const counterRef = doc(db, "settings", counterDocPath);
         const counterSnap = await transaction.get(counterRef);
         
-        // Lecture de la vente existante si modification
         let existingSaleData = null;
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
         if (activeEditId) {
@@ -199,8 +203,6 @@ function NewSaleForm() {
           }
         }
 
-        // --- 2. LOGIQUE ET CALCULS ---
-        
         let counters = { fc: 0, rc: 0 };
         if (counterSnap.exists()) {
           counters = counterSnap.data() as any;
@@ -222,7 +224,6 @@ function NewSaleForm() {
         } else if (existingSaleData) {
           invoiceId = existingSaleData.invoiceId;
           const prefix = isPrepaMode ? "PREPA-" : "";
-          // Si une commande en attente (RC) devient totalement payée (FC) lors de la modification
           if (invoiceId.includes("RC") && isPaid) {
             needCounterUpdate = true;
             counters.fc += 1;
@@ -230,9 +231,6 @@ function NewSaleForm() {
           }
         }
 
-        // --- 3. TOUTES LES ÉCRITURES (WRITES) ---
-
-        // Mise à jour du client
         if (clientRefToSync) {
           if (isNewClient) {
             transaction.set(clientRefToSync, {
@@ -256,12 +254,10 @@ function NewSaleForm() {
           }
         }
 
-        // Mise à jour du compteur si nécessaire
         if (needCounterUpdate) {
           transaction.set(counterRef, counters, { merge: true });
         }
 
-        // Préparation des données de la vente
         const saleData: any = {
           invoiceId,
           clientName,
@@ -272,7 +268,7 @@ function NewSaleForm() {
           discountType,
           discountValue: nDiscount,
           remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
-          avance: nAvance,
+          avance: nHistorical + nAvance, // Somme des deux pour le document
           reste: resteAPayerValue,
           purchasePriceFrame: nPurchaseFrame,
           purchasePriceLenses: nPurchaseLenses,
@@ -288,13 +284,28 @@ function NewSaleForm() {
         if (!activeEditId) {
           saleData.createdAt = Timestamp.fromDate(saleDate);
           saleData.createdBy = currentUserName;
-          saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : [];
+          const payments = [];
+          if (nHistorical > 0) {
+            payments.push({ 
+              amount: nHistorical, 
+              date: saleDate.toISOString(), 
+              userName: "Historique",
+              note: "Avance antérieure"
+            });
+          }
+          if (nAvance > 0) {
+            payments.push({ 
+              amount: nAvance, 
+              date: new Date().toISOString(), 
+              userName: currentUserName 
+            });
+          }
+          saleData.payments = payments;
         }
 
-        // Écriture de la vente
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Ajouter transaction de caisse si acompte lors de la création initiale
+        // SEULE l'avance du jour est comptabilisée dans la caisse
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -306,7 +317,7 @@ function NewSaleForm() {
             relatedId: invoiceId,
             userName: currentUserName,
             isDraft: isPrepaMode,
-            createdAt: Timestamp.fromDate(saleDate)
+            createdAt: serverTimestamp()
           });
         }
 
@@ -435,8 +446,33 @@ function NewSaleForm() {
                 <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Avance</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
+                {/* NOUVEAU : Champ Avance Historique */}
+                <div className="pt-4 border-t border-white/10 space-y-4">
+                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div className="space-y-1">
+                      <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Déjà Versé (Ancien)</Label>
+                      <p className="text-[8px] font-bold text-accent uppercase">Avance antérireure</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                      <input 
+                        className="w-full h-8 text-right font-black bg-transparent text-white outline-none text-lg" 
+                        type="number" 
+                        value={historicalAdvance} 
+                        onChange={(e) => setHistoricalAdvance(e.target.value)} 
+                        placeholder="0"
+                      />
+                      <span className="text-[9px] font-black text-white/20">DH</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center px-4">
+                    <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Reste à percevoir :</span>
+                    <span className="text-xs font-black text-white tracking-tighter">{formatCurrency(resteAvantVersement)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Versé ce jour</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler final</span><div className="flex items-center gap-2"><span className="text-xl md:text-2xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div></div>
 
                 <div className="pt-6 border-t border-white/10 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 flex items-center gap-2">
