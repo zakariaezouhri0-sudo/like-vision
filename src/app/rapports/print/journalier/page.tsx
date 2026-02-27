@@ -120,7 +120,7 @@ function DailyCashReportContent() {
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-xs font-black uppercase tracking-widest leading-none border-2 border-slate-900 px-2 py-1 rounded-md mb-1">Rapport de Caisse</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest leading-none border-2 border-slate-900 px-2 py-1 rounded-md mb-1">Rapport Journalier</h2>
             <div className="flex flex-col items-end gap-0">
               <div className="flex items-center justify-end gap-1 text-[9px] font-bold text-slate-600">
                 <Calendar className="h-2.5 w-2.5 text-slate-400" />
@@ -205,7 +205,7 @@ function DailyCashReportContent() {
               <span className="text-orange-600 tabular-nums">-{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[9px]">
-              <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
+              <thead className="bg-slate-50 text-slate-500 text-[6px]">
                 <tr><th className="p-1 text-left">Opération</th><th className="p-1 text-right">Montant</th></tr>
               </thead>
               <tbody>
@@ -225,7 +225,7 @@ function DailyCashReportContent() {
           <div className="text-right flex flex-col items-end">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1 mr-1">Signature du Magasin</p>
             <div className="w-[50mm] h-[20mm] border border-dashed border-slate-300 rounded-xl bg-slate-50/30 flex items-center justify-center relative">
-              <span className="text-[7px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-[0.2em] opacity-40 select-none">
+              <span className="text-[7px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-2em] opacity-40 select-none">
                 Espace Réservé
               </span>
             </div>
