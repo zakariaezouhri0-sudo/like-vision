@@ -3,9 +3,8 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Phone, User, ShieldCheck, Loader2 } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, ThumbsUp, Loader2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Suspense } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -27,7 +26,7 @@ function InvoicePrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || "Client de passage";
+  const clientName = searchParams.get("client") || "Client";
   const clientPhone = searchParams.get("phone") || "---";
   const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const invoiceNo = params.id as string || "OPT-2024-XXX";
@@ -36,9 +35,7 @@ function InvoicePrintContent() {
   const remise = Number(searchParams.get("remise")) || 0;
   const remisePercent = searchParams.get("remisePercent") || "0";
   const avance = Number(searchParams.get("avance")) || 0;
-  
   const totalNet = Math.max(0, total - remise);
-  const reste = Math.max(0, totalNet - avance);
 
   const od = {
     sph: searchParams.get("od_sph") || "---",
@@ -54,179 +51,142 @@ function InvoicePrintContent() {
   };
 
   const InvoiceCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
-      <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center text-primary shrink-0 overflow-hidden relative bg-white">
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[8mm] relative h-[210mm] max-h-[210mm] overflow-hidden">
+      {/* Header Compact */}
+      <div className="flex justify-between items-start mb-4 pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white">
             {shop.logoUrl ? (
               <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
             ) : (
-              <div className="relative">
-                <Glasses className="h-8 w-8" />
-                <ThumbsUp className="h-4 w-4 absolute -top-1.5 -right-1.5 bg-white text-primary p-0.5 rounded-full border border-primary" />
+              <div className="relative text-primary">
+                <Glasses className="h-7 w-7" />
+                <ThumbsUp className="h-3 w-3 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" />
               </div>
             )}
           </div>
-          <div className="space-y-0.5 text-left">
-            <h2 className="text-sm font-black text-slate-900 leading-none uppercase tracking-tighter">{shop.name}</h2>
-            <p className="text-[7px] text-slate-500 max-w-[180px] leading-tight font-medium">{shop.address}</p>
-            <p className="text-[7px] font-bold text-slate-700">Tél: {shop.phone}</p>
-            <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">ICE: {shop.icePatent}</p>
+          <div className="space-y-0">
+            <h2 className="text-xs font-black text-slate-900 leading-tight uppercase tracking-tighter">{shop.name}</h2>
+            <p className="text-[6px] text-slate-500 max-w-[150px] leading-tight font-medium">{shop.address}</p>
+            <p className="text-[6px] font-bold text-slate-700">Tél: {shop.phone}</p>
+            <p className="text-[6px] font-black text-slate-900 tracking-widest uppercase">ICE: {shop.icePatent}</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-slate-900 text-white px-3 py-1 rounded-full inline-block mb-1">
-            <h1 className="text-[8px] font-black uppercase tracking-widest">Facture</h1>
+          <div className="bg-slate-900 text-white px-2 py-0.5 rounded-md inline-block mb-1">
+            <h1 className="text-[7px] font-black uppercase tracking-widest">Facture</h1>
           </div>
-          <p className="text-[8px] font-black text-slate-900">N°: {invoiceNo}</p>
-          <p className="text-[7px] text-slate-400 font-bold italic">Date: {date}</p>
+          <p className="text-[7px] font-black text-slate-900 leading-none">N°: {invoiceNo}</p>
+          <p className="text-[6px] text-slate-400 font-bold italic">Date: {date}</p>
         </div>
       </div>
 
-      <div className="mb-6 bg-slate-50 border-y border-slate-200 py-4 px-2 text-center rounded-xl space-y-2">
-        <div className="grid grid-cols-3 gap-2 items-center">
-          <div className="space-y-1">
-            <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
-            <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{clientName}</p>
-          </div>
-          <div className="space-y-1 border-x border-slate-200">
-            <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
-            <p className="text-[9px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Mutuelle</p>
-            <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{mutuelle}</p>
-          </div>
+      {/* Client Info Compact */}
+      <div className="mb-4 bg-slate-50 border-y border-slate-200 py-2 px-1 text-center grid grid-cols-3 gap-1 rounded-lg">
+        <div>
+          <p className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Client</p>
+          <p className="text-[8px] font-black text-slate-900 uppercase leading-tight truncate">{clientName}</p>
+        </div>
+        <div className="border-x border-slate-200">
+          <p className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
+          <p className="text-[8px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
+        </div>
+        <div>
+          <p className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Mutuelle</p>
+          <p className="text-[8px] font-black text-slate-900 uppercase leading-tight truncate">{mutuelle}</p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2 border-b pb-1">
-          Prescription Optique
-        </h3>
-        <table className="w-full text-[8px] border-collapse table-fixed">
+      {/* Prescription Table Compact */}
+      <div className="mb-4">
+        <h3 className="text-[6px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1 border-b pb-0.5">Prescription Optique</h3>
+        <table className="w-full text-[7px] border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-800 text-white">
-              <th className="border border-slate-300 p-1 text-left uppercase font-black w-[24%]">Oeil</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Sphère</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Cylindre</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">Axe</th>
-              <th className="border border-slate-300 p-1 text-center uppercase font-black w-[19%]">ADD</th>
+            <tr className="bg-slate-800 text-white text-[6px]">
+              <th className="border border-slate-300 p-0.5 text-left w-[24%] uppercase">Oeil</th>
+              <th className="border border-slate-300 p-0.5 text-center w-[19%] uppercase">Sph</th>
+              <th className="border border-slate-300 p-0.5 text-center w-[19%] uppercase">Cyl</th>
+              <th className="border border-slate-300 p-0.5 text-center w-[19%] uppercase">Axe</th>
+              <th className="border border-slate-300 p-0.5 text-center w-[19%] uppercase">ADD</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-200 p-1.5 font-black text-slate-700">Droit (OD)</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{od.sph}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{od.cyl}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{od.axe}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{od.add}</td>
+              <td className="border border-slate-200 p-1 font-black">Droit (OD)</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.sph}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.cyl}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.axe}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{od.add}</td>
             </tr>
             <tr>
-              <td className="border border-slate-200 p-1.5 font-black text-slate-700">Gauche (OG)</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{og.sph}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{og.cyl}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{og.axe}</td>
-              <td className="border border-slate-200 p-1.5 text-center font-bold">{og.add}</td>
+              <td className="border border-slate-200 p-1 font-black">Gauche (OG)</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.sph}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.cyl}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.axe}</td>
+              <td className="border border-slate-200 p-1 text-center font-bold">{og.add}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div className="mt-auto space-y-4">
-        <div className="w-full space-y-1.5 border-t pt-3">
-          <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
-            <span>Total Brut :</span>
-            <span className="tabular-nums">{formatCurrency(total)}</span>
+      {/* Totals Area Compact */}
+      <div className="mt-auto space-y-2">
+        <div className="w-full space-y-1 border-t pt-2">
+          <div className="flex justify-between text-[7px] text-slate-500 font-bold uppercase">
+            <span>Total Brut :</span><span className="tabular-nums">{formatCurrency(total)}</span>
           </div>
           {remise > 0 && (
-            <div className="flex justify-between text-[8px] text-destructive font-black uppercase">
+            <div className="flex justify-between text-[7px] text-destructive font-black uppercase">
               <span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span>
               <span className="tabular-nums">-{formatCurrency(remise)}</span>
             </div>
           )}
-          <div className="flex justify-between text-[9px] text-slate-900 font-black uppercase">
-            <span>Total Net :</span>
-            <span className="tabular-nums">{formatCurrency(totalNet)}</span>
+          <div className="flex justify-between text-[8px] text-slate-900 font-black uppercase">
+            <span>Total Net :</span><span className="tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
-          <div className="flex justify-between text-[9px] text-green-600 font-black uppercase">
-            <span>Avance payée :</span>
-            <span className="tabular-nums">{formatCurrency(avance)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-1">
-            <span className="text-[8px] font-black uppercase tracking-widest">Total payé (Soldé)</span>
-            <span className="text-lg font-black tracking-tighter tabular-nums">
-              {formatCurrency(totalNet)}
-            </span>
+          <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 bg-slate-950 text-white p-2 rounded-lg mt-1">
+            <span className="text-[7px] font-black uppercase tracking-widest">Total payé (Soldé)</span>
+            <span className="text-base font-black tracking-tighter tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
         </div>
         
-        <div className="flex justify-between items-end pr-2 mt-4">
-          <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
-            <div className="border-l-4 border-primary/20 pl-4 py-1.5">
-              <p className="text-[9px] font-medium text-primary/80 italic leading-relaxed">
-                "Merci de votre confiance.<br/>
-                Votre vue est notre priorité.<br/>
-                À bientôt chez Like Vision !"
-              </p>
+        {/* Signature Area Compact */}
+        <div className="flex justify-between items-end mt-2">
+          <div className="flex-1 pr-4">
+            <div className="border-l-2 border-primary/20 pl-2 py-1">
+              <p className="text-[7px] font-medium text-primary/80 italic leading-tight">Merci de votre confiance. Votre vue est notre priorité !</p>
             </div>
           </div>
-          <div className="w-44 h-24 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center relative bg-white overflow-hidden shrink-0">
-            <span className="text-[7px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-6 leading-relaxed select-none opacity-50">
-              CACHET & SIGNATURE<br/>OFFICIELS
-            </span>
+          <div className="w-32 h-16 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center relative bg-white overflow-hidden shrink-0">
+            <span className="text-[6px] uppercase text-slate-200 font-black rotate-[-15deg] text-center px-4 leading-none select-none opacity-50">CACHET & SIGNATURE</span>
           </div>
         </div>
       </div>
 
-      <div className="mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
-         <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em]">{shop.name}</p>
+      {/* Footer Minimalist */}
+      <div className="mt-4 pt-2 border-t border-slate-50 text-center">
+         <p className="text-[5px] font-black text-slate-200 uppercase tracking-[0.5em]">{shop.name}</p>
       </div>
     </div>
   );
 
-  if (settingsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-      </div>
-    );
-  }
+  if (settingsLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center py-8">
-      <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
-        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 shadow-sm h-12 px-8 rounded-xl font-black text-xs">
-          <Link href="/ventes">
-            <ArrowLeft className="mr-3 h-5 w-5" />
-            RETOUR HISTORIQUE
-          </Link>
+    <div className="min-h-screen bg-white flex flex-col items-center py-4">
+      <div className="no-print w-[297mm] flex justify-between mb-4 px-4">
+        <Button variant="outline" asChild className="bg-white hover:bg-slate-50 h-10 px-6 rounded-xl font-black text-xs">
+          <Link href="/ventes"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR</Link>
         </Button>
-        <div className="flex items-center gap-6">
-          <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm tracking-widest">
-            A4 Paysage • 2 Copies A5
-          </span>
-          <Button onClick={() => window.print()} className="bg-slate-900 shadow-2xl hover:bg-slate-800 px-12 h-12 text-base font-black rounded-xl text-white">
-            <Printer className="mr-3 h-5 w-5" />
-            IMPRIMER
-          </Button>
-        </div>
+        <Button onClick={() => window.print()} className="bg-slate-900 px-10 h-10 text-sm font-black rounded-xl text-white"><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
       </div>
-
-      <div className="pdf-a4-landscape shadow-2xl overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
-        <InvoiceCopy />
-        <div className="cutting-line-vertical" />
-        <InvoiceCopy />
+      <div className="pdf-a4-landscape shadow-none overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
+        <InvoiceCopy /><div className="cutting-line-vertical" /><InvoiceCopy />
       </div>
     </div>
   );
 }
 
 export default function InvoicePrintPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}>
-      <InvoicePrintContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}><InvoicePrintContent /></Suspense>;
 }

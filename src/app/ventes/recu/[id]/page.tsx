@@ -3,12 +3,11 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, Phone, User, Loader2, ThumbsUp } from "lucide-react";
+import { Printer, ArrowLeft, Glasses, Loader2, ThumbsUp } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Suspense } from "react";
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { useFirestore, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 
 function ReceiptPrintContent() {
@@ -38,7 +37,6 @@ function ReceiptPrintContent() {
   const total = Number(searchParams.get("total")) || saleData?.total || 0;
   const remise = Number(searchParams.get("remise")) || saleData?.remise || 0;
   const avance = Number(searchParams.get("avance")) || saleData?.avance || 0;
-  
   const totalNet = Math.max(0, total - remise);
   const reste = Math.max(0, totalNet - avance);
 
@@ -56,10 +54,11 @@ function ReceiptPrintContent() {
   };
 
   const ReceiptCopy = () => (
-    <div className="pdf-a5-portrait bg-white flex flex-col p-[10mm] relative">
-      <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
+    <div className="pdf-a5-portrait bg-white flex flex-col p-[8mm] relative h-[210mm] max-h-[210mm] overflow-hidden">
+      {/* Header Compact */}
+      <div className="flex justify-between items-start mb-4 pb-2 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative bg-white">
+          <div className="h-10 w-10 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white">
             {shop.logoUrl ? (
               <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
             ) : (
@@ -70,127 +69,121 @@ function ReceiptPrintContent() {
             )}
           </div>
           <div className="text-left">
-            <h2 className="text-xs font-black text-slate-900 uppercase leading-tight">{shop.name}</h2>
-            <p className="text-[6px] text-slate-500 font-bold leading-tight">ICE: {shop.icePatent}</p>
-            <p className="text-[6px] font-bold text-slate-700">Tél: {shop.phone}</p>
+            <h2 className="text-[10px] font-black text-slate-900 uppercase leading-tight tracking-tighter">{shop.name}</h2>
+            <p className="text-[5px] font-bold text-slate-700 leading-none">ICE: {shop.icePatent} • Tél: {shop.phone}</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-slate-900 text-white px-3 py-1 rounded-lg inline-block mb-1">
-            <h1 className="text-[8px] font-black uppercase tracking-widest">Reçu</h1>
+          <div className="bg-slate-900 text-white px-2 py-0.5 rounded-md inline-block mb-1">
+            <h1 className="text-[7px] font-black uppercase tracking-widest">Reçu</h1>
           </div>
-          <p className="text-[8px] font-black text-slate-900">N°: {receiptNo}</p>
+          <p className="text-[7px] font-black text-slate-900 leading-none">N°: {receiptNo}</p>
           <p className="text-[6px] text-slate-400 font-bold italic">Date: {date}</p>
         </div>
       </div>
 
-      <div className="mb-6 bg-slate-50 border-y border-slate-200 py-4 px-2 text-center grid grid-cols-2 gap-4 rounded-xl">
+      {/* Client Info Compact */}
+      <div className="mb-4 bg-slate-50 border-y border-slate-200 py-2 px-1 text-center grid grid-cols-2 gap-2 rounded-lg">
         <div>
-          <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Client</p>
-          <p className="text-[9px] font-black text-slate-900 uppercase leading-tight">{clientName}</p>
+          <p className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Client</p>
+          <p className="text-[8px] font-black text-slate-900 uppercase leading-tight truncate">{clientName}</p>
         </div>
         <div>
-          <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
-          <p className="text-[9px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
+          <p className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Téléphone</p>
+          <p className="text-[8px] font-black text-slate-900">{formatPhoneNumber(clientPhone)}</p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">
-          Prescription Optique
-        </h3>
-        <table className="w-full text-[8px] border-collapse table-fixed">
+      {/* Prescription Compact */}
+      <div className="mb-4">
+        <h3 className="text-[6px] font-black uppercase text-slate-400 mb-1 border-b pb-0.5 tracking-widest">Prescription Optique</h3>
+        <table className="w-full text-[7px] border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-100 text-slate-600">
-              <th className="border border-slate-200 p-1 text-left uppercase font-black w-[24%]">Oeil</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Sph</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Cyl</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">Axe</th>
-              <th className="border border-slate-200 p-1 text-center uppercase font-black w-[19%]">ADD</th>
+            <tr className="bg-slate-100 text-slate-600 text-[6px]">
+              <th className="border border-slate-200 p-0.5 text-left w-[24%] uppercase">Oeil</th>
+              <th className="border border-slate-200 p-0.5 text-center w-[19%] uppercase">Sph</th>
+              <th className="border border-slate-200 p-0.5 text-center w-[19%] uppercase">Cyl</th>
+              <th className="border border-slate-200 p-0.5 text-center w-[19%] uppercase">Axe</th>
+              <th className="border border-slate-200 p-0.5 text-center w-[19%] uppercase">ADD</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-100 p-1.5 font-bold">Droit (OD)</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{od.sph}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{od.cyl}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{od.axe}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{od.add}</td>
+              <td className="border border-slate-100 p-1 font-bold">Droit (OD)</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{od.sph}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{od.cyl}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{od.axe}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{od.add}</td>
             </tr>
             <tr>
-              <td className="border border-slate-100 p-1.5 font-bold">Gauche (OG)</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{og.sph}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{og.cyl}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{og.axe}</td>
-              <td className="border border-slate-100 p-1.5 text-center font-black">{og.add}</td>
+              <td className="border border-slate-100 p-1 font-bold">Gauche (OG)</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{og.sph}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{og.cyl}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{og.axe}</td>
+              <td className="border border-slate-100 p-1 text-center font-black">{og.add}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-[7px] font-black uppercase text-slate-400 mb-2 border-b pb-1 tracking-widest">Historique des Versements</h3>
-        <table className="w-full text-[8px]">
-          <thead className="bg-slate-50 text-slate-500">
-            <tr>
-              <th className="p-1.5 text-left uppercase font-black">Date</th>
-              <th className="p-1.5 text-right uppercase font-black">Montant</th>
-            </tr>
+      {/* Payments Compact */}
+      <div className="mb-4">
+        <h3 className="text-[6px] font-black uppercase text-slate-400 mb-1 border-b pb-0.5 tracking-widest">Historique Versements</h3>
+        <table className="w-full text-[7px]">
+          <thead className="bg-slate-50 text-slate-500 text-[6px]">
+            <tr><th className="p-0.5 text-left uppercase">Date</th><th className="p-0.5 text-right uppercase">Montant</th></tr>
           </thead>
           <tbody>
             {saleData?.payments && saleData.payments.length > 0 ? (
               saleData.payments.map((p: any, i: number) => (
                 <tr key={i} className="border-b border-slate-50">
-                  <td className="p-1.5 font-bold text-slate-600">
+                  <td className="p-0.5 font-bold text-slate-600">
                     {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
                   </td>
-                  <td className="p-1.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
+                  <td className="p-0.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                 </tr>
               ))
             ) : (
               <tr className="border-b border-slate-50">
-                <td className="p-1.5 font-bold text-slate-600">{date}</td>
-                <td className="p-1.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(avance)}</td>
+                <td className="p-0.5 font-bold text-slate-600">{date}</td>
+                <td className="p-0.5 text-right font-black text-slate-900 tabular-nums">{formatCurrency(avance)}</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-auto space-y-4">
-        <div className="w-full space-y-1.5 border-t pt-3">
-          <div className="flex justify-between text-[8px] text-slate-500 font-bold uppercase">
-            <span>Total Commande :</span>
-            <span className="tabular-nums">{formatCurrency(totalNet)}</span>
+      {/* Totals Area Compact */}
+      <div className="mt-auto space-y-2">
+        <div className="w-full space-y-1 border-t pt-2">
+          <div className="flex justify-between text-[7px] text-slate-500 font-bold uppercase">
+            <span>Commande :</span><span className="tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
-          <div className="flex justify-between text-[8px] text-green-600 font-black uppercase">
-            <span>Total déjà payé :</span>
-            <span className="tabular-nums">{formatCurrency(avance)}</span>
+          <div className="flex justify-between text-[7px] text-green-600 font-black uppercase">
+            <span>Déjà payé :</span><span className="tabular-nums">{formatCurrency(avance)}</span>
           </div>
-          <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 bg-slate-950 text-white p-3 rounded-xl mt-1">
-            <span className="text-[8px] font-black uppercase tracking-widest">Reste à Régler</span>
-            <span className="text-lg font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
+          <div className="flex justify-between items-center pt-2 border-t-2 border-slate-900 bg-slate-950 text-white p-2 rounded-lg mt-1">
+            <span className="text-[7px] font-black uppercase tracking-widest">Reste à Régler</span>
+            <span className="text-base font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
           </div>
         </div>
 
-        <div className="flex justify-between items-end pr-2 mt-4">
-          <div className="flex-1 pr-6 animate-in fade-in slide-in-from-left-4 duration-1000">
-            <div className="border-l-4 border-primary/20 pl-4 py-1.5">
-              <p className="text-[9px] font-medium text-primary/80 italic leading-relaxed">
-                "Merci de votre confiance.<br/>
-                Votre vue est notre priorité.<br/>
-                À bientôt chez Like Vision !"
-              </p>
+        {/* Signature Area Compact */}
+        <div className="flex justify-between items-end mt-2">
+          <div className="flex-1 pr-4">
+            <div className="border-l-2 border-primary/20 pl-2 py-1">
+              <p className="text-[7px] font-medium text-primary/80 italic leading-tight">Merci de votre confiance. Votre vue est notre priorité !</p>
             </div>
           </div>
-          <div className="w-40 h-24 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-white shrink-0">
-            <span className="text-[6px] uppercase font-black text-slate-300 rotate-[-15deg] opacity-50 text-center px-4 leading-tight">CACHET & SIGNATURE<br/>OFFICIELS</span>
+          <div className="w-32 h-16 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-white shrink-0">
+            <span className="text-[6px] uppercase font-black text-slate-200 rotate-[-15deg] opacity-50 text-center px-4 leading-none">CACHET & SIGNATURE</span>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-center items-center mt-12 mb-24 pt-4 border-t border-slate-50 text-center">
-        <p className="text-[6px] font-black text-slate-200 uppercase tracking-[0.5em] italic">{shop.name}</p>
+      {/* Footer Minimalist */}
+      <div className="mt-4 pt-2 border-t border-slate-50 text-center">
+        <p className="text-[5px] font-black text-slate-200 uppercase tracking-[0.5em] italic">{shop.name}</p>
       </div>
     </div>
   );
@@ -198,20 +191,15 @@ function ReceiptPrintContent() {
   if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center py-8">
-      <div className="no-print w-[297mm] flex justify-between mb-8 px-4">
-        <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-12 px-8 shadow-sm border-slate-200"><Link href="/ventes"><ArrowLeft className="mr-3 h-5 w-5" />RETOUR HISTORIQUE</Link></Button>
-        <div className="flex items-center gap-6">
-          <span className="text-[10px] font-black uppercase text-slate-500 bg-white px-6 py-3 rounded-full border shadow-sm tracking-widest">
-            A4 Paysage • 2 Copies A5
-          </span>
-          <Button onClick={() => window.print()} className="bg-slate-900 px-12 h-12 font-black rounded-xl text-white shadow-2xl"><Printer className="mr-3 h-5 w-5" />IMPRIMER</Button>
-        </div>
+    <div className="min-h-screen bg-white flex flex-col items-center py-4">
+      <div className="no-print w-[297mm] flex justify-between mb-4 px-4">
+        <Button variant="outline" asChild className="bg-white rounded-xl font-black text-xs h-10 px-6 shadow-sm border-slate-200">
+          <Link href="/ventes"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR</Link>
+        </Button>
+        <Button onClick={() => window.print()} className="bg-slate-900 px-10 h-10 text-sm font-black rounded-xl text-white shadow-2xl"><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
       </div>
-      <div className="pdf-a4-landscape shadow-2xl overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
-        <ReceiptCopy />
-        <div className="cutting-line-vertical" />
-        <ReceiptCopy />
+      <div className="pdf-a4-landscape shadow-none overflow-hidden print:shadow-none bg-white print:m-0 border border-slate-200">
+        <ReceiptCopy /><div className="cutting-line-vertical" /><ReceiptCopy />
       </div>
     </div>
   );
