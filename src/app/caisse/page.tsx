@@ -123,9 +123,21 @@ function CaisseContent() {
     if (!newOp.montant) return;
     setOpLoading(true);
     const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
+    
+    // Libellé formaté pour les achats de verres
+    let finalLabel = newOp.label || newOp.type;
+    if (newOp.type === "ACHAT VERRES") {
+      finalLabel = `ACHAT VERRES - ${newOp.label || "DIVERS"}`;
+    }
+
     const transData = {
-      type: newOp.type, label: newOp.label || newOp.type, category: "Général", montant: finalAmount,
-      userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp()
+      type: newOp.type, 
+      label: finalLabel, 
+      category: "Général", 
+      montant: finalAmount,
+      userName: user?.displayName || "Inconnu", 
+      isDraft: isPrepaMode, 
+      createdAt: serverTimestamp()
     };
     try {
       await addDoc(collection(db, "transactions"), transData);
@@ -140,10 +152,16 @@ function CaisseContent() {
     setOpLoading(true);
     const transRef = doc(db, "transactions", editingTransaction.id);
     const finalAmount = editingTransaction.type === "VENTE" ? Math.abs(parseFloat(editingTransaction.montant_raw)) : -Math.abs(parseFloat(editingTransaction.montant_raw));
+    
+    let finalLabel = editingTransaction.label;
+    if (editingTransaction.type === "ACHAT VERRES" && !editingTransaction.label.startsWith("ACHAT VERRES -")) {
+      finalLabel = `ACHAT VERRES - ${editingTransaction.label}`;
+    }
+
     try {
       await updateDoc(transRef, { 
         type: editingTransaction.type, 
-        label: editingTransaction.label, 
+        label: finalLabel, 
         montant: finalAmount 
       });
       toast({ variant: "success", title: "Mis à jour avec succès" });
