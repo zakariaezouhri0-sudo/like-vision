@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { MUTUELLES } from "@/lib/constants";
-import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History, Landmark } from "lucide-react";
+import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History, Landmark, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -34,6 +34,7 @@ function NewSaleForm() {
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
   const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
@@ -77,6 +78,24 @@ function NewSaleForm() {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       
+      // Validation du téléphone
+      if (cleanPhone.length > 0) {
+        if (cleanPhone.length === 10) {
+          const isValidPrefix = /^(06|07|08)/.test(cleanPhone);
+          if (!isValidPrefix) {
+            setPhoneError("Numéro non valide (06, 07 ou 08 requis)");
+          } else {
+            setPhoneError(null);
+          }
+        } else if (cleanPhone.length > 10) {
+          setPhoneError("Numéro trop long (10 chiffres requis)");
+        } else {
+          setPhoneError(null);
+        }
+      } else {
+        setPhoneError(null);
+      }
+
       if (cleanPhone.length < 10) {
         if (!searchParams.get("editId")) {
           setClientName("");
@@ -112,7 +131,8 @@ function NewSaleForm() {
           let count = 0;
           allSalesSnapshot.forEach(doc => {
             const data = doc.data();
-            if (isPrepaMode ? data.isDraft : !data.isDraft) {
+            const matchesMode = isPrepaMode ? data.isDraft === true : !data.isDraft;
+            if (matchesMode) {
               unpaid += (data.reste || 0);
               count++;
             }
@@ -144,12 +164,21 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
+    const cleanPhone = clientPhone.toString().replace(/\s/g, "");
+    const isValidPhone = cleanPhone.length === 10 && /^(06|07|08)/.test(cleanPhone);
+
     if (!clientName || !clientPhone) {
       toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom et le téléphone du client." });
       return null;
     }
+
+    if (!isValidPhone) {
+      toast({ variant: "destructive", title: "Téléphone non valide", description: "Le numéro doit comporter 10 chiffres et commencer par 06, 07 ou 08." });
+      setPhoneError("Numéro non valide");
+      return null;
+    }
+
     setLoading(true);
-    const cleanPhone = clientPhone.toString().replace(/\s/g, "");
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
@@ -243,8 +272,27 @@ function NewSaleForm() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Téléphone {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin" />}</Label>
-                    <div className="relative"><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10 tabular-nums" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" /><Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" /></div>
+                    <Label className={cn("text-[10px] uppercase font-black tracking-widest ml-1 transition-colors", phoneError ? "text-destructive" : "text-muted-foreground")}>
+                      Téléphone {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin inline ml-1" />}
+                    </Label>
+                    <div className="relative">
+                      <Input 
+                        className={cn(
+                          "h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10 tabular-nums transition-all",
+                          phoneError ? "ring-2 ring-destructive bg-red-50" : "focus:ring-2 focus:ring-primary/20"
+                        )} 
+                        value={clientPhone} 
+                        onChange={(e) => setClientPhone(e.target.value)} 
+                        placeholder="06 00 00 00 00" 
+                      />
+                      <Search className={cn("absolute left-3 top-3.5 h-5 w-5 transition-colors", phoneError ? "text-destructive" : "text-primary/30")} />
+                      {phoneError && (
+                        <div className="absolute -bottom-5 left-1 flex items-center gap-1 text-destructive animate-in fade-in slide-in-from-top-1">
+                          <XCircle className="h-2.5 w-2.5" />
+                          <span className="text-[8px] font-black uppercase tracking-tighter">{phoneError}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner uppercase" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
                   <div className="space-y-2">
@@ -260,7 +308,7 @@ function NewSaleForm() {
             </Card>
 
             {clientHistory && (
-              <div className={cn("p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg", clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
+              <div className={cn("p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg transition-colors", clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Reste à régler détecté" : "Situation à jour"}</p></div></div>
                   <div className="grid grid-cols-2 gap-8 w-full md:w-auto">
