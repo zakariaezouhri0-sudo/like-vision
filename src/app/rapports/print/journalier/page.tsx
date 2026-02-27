@@ -44,7 +44,6 @@ function DailyCashReportContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // Récupération de la session de caisse pour le solde d'ouverture
   const sessionDocId = format(selectedDate, "yyyy-MM-dd");
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
@@ -65,8 +64,6 @@ function DailyCashReportContent() {
 
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
-
-    // Utilisation du solde d'ouverture de la session
     const initialBalance = session?.openingBalance || 0;
     
     const salesList: any[] = [];
@@ -84,11 +81,11 @@ function DailyCashReportContent() {
       }
     });
 
-    const totalSales = salesList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
-    const totalExpenses = expensesList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
-    const totalVersements = versementsList.reduce((acc, curr) => acc + (curr.montant || 0), 0);
+    const totalSales = salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
+    const totalExpenses = expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
+    const totalVersements = versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
     
-    const netFlux = totalSales + totalExpenses + totalVersements;
+    const netFlux = totalSales - totalExpenses - totalVersements;
 
     return { 
       sales: salesList, 
@@ -112,7 +109,7 @@ function DailyCashReportContent() {
     <div className="min-h-screen bg-white flex flex-col items-center py-4 print:py-0">
       <div className="no-print w-full max-w-[210mm] flex flex-col md:flex-row justify-between items-center mb-6 px-4 gap-4">
         <Button variant="outline" asChild className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 h-12 px-6 rounded-2xl shadow-sm font-black text-xs w-full md:w-auto">
-          <Link href="/rapports">
+          <Link href="/caisse">
             <ArrowLeft className="mr-3 h-5 w-5" /> RETOUR
           </Link>
         </Button>
@@ -127,7 +124,6 @@ function DailyCashReportContent() {
       </div>
 
       <div className="pdf-a4-portrait shadow-none bg-white print:m-0 border border-slate-100 rounded-sm p-[10mm] pt-[5mm] flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-4">
           <div className="flex items-center gap-6">
             <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative">
@@ -156,17 +152,14 @@ function DailyCashReportContent() {
                 <Calendar className="h-3 w-3 text-slate-400" />
                 <span>Date: {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
               </div>
-              {printTime && (
-                <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400">
-                  <Clock className="h-3 w-3" />
-                  <span>Heure: {printTime}</span>
-                </div>
-              )}
+              <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400">
+                <Clock className="h-3 w-3" />
+                <span>Heure: {printTime}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* INDICATEURS CLES EN LIGNE */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="p-3 rounded-xl border border-slate-200 text-center bg-slate-100/50 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
@@ -175,7 +168,6 @@ function DailyCashReportContent() {
             </div>
             <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
           </div>
-
           <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
               <ArrowRightLeft className="h-3 w-3 text-primary" />
@@ -185,7 +177,6 @@ function DailyCashReportContent() {
               {reportData.netFlux > 0 ? "+" : ""}{formatCurrency(reportData.netFlux)}
             </p>
           </div>
-
           <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary/10 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-60">
               <Lock className="h-3 w-3 text-primary" />
@@ -195,42 +186,24 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* DETAILS DES FLUX */}
         <div className="space-y-6 mb-6">
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Encaissements (Ventes)</span>
-              <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + (b.montant || 0), 0))}</span>
+              <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
-                <tr>
-                  <th className="p-1.5 text-left">Libellé</th>
-                  <th className="p-1.5 text-left">Client</th>
-                  <th className="p-1.5 text-right">Montant</th>
-                </tr>
+                <tr><th className="p-1.5 text-left">Libellé</th><th className="p-1.5 text-left">Client</th><th className="p-1.5 text-right">Montant</th></tr>
               </thead>
               <tbody>
-                {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
-                  let libelle = s.label;
-                  let client = s.clientName || '---';
-                  
-                  if (!s.clientName && s.label.includes(' - ')) {
-                    const parts = s.label.split(' - ');
-                    libelle = parts[0];
-                    client = parts[1];
-                  }
-
-                  return (
-                    <tr key={s.id} className="border-b border-slate-50">
-                      <td className="p-1.5 font-bold text-slate-700">{libelle}</td>
-                      <td className="p-1.5 font-bold text-slate-700 uppercase">{client}</td>
-                      <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(s.montant)}</td>
-                    </tr>
-                  );
-                }) : (
-                  <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>
-                )}
+                {reportData.sales.length > 0 ? reportData.sales.map((s: any) => (
+                  <tr key={s.id} className="border-b border-slate-50">
+                    <td className="p-1.5 font-bold text-slate-700">{s.label}</td>
+                    <td className="p-1.5 font-bold text-slate-700 uppercase">{s.clientName || '---'}</td>
+                    <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(Math.abs(s.montant))}</td>
+                  </tr>
+                )) : <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>}
               </tbody>
             </table>
           </section>
@@ -238,26 +211,20 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
-              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + (b.montant || 0), 0)))}</span>
+              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
-                <tr>
-                  <th className="p-1.5 text-left">Libellé de la Charge</th>
-                  <th className="p-1.5 text-left">Client</th>
-                  <th className="p-1.5 text-right">Montant</th>
-                </tr>
+                <tr><th className="p-1.5 text-left">Libellé</th><th className="p-1.5 text-left">Client</th><th className="p-1.5 text-right">Montant</th></tr>
               </thead>
               <tbody>
                 {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                   <tr key={e.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{e.label}</td>
                     <td className="p-1.5 font-bold text-slate-700 uppercase">{e.clientName || '---'}</td>
-                    <td className="p-1.5 text-right font-black text-destructive">{formatCurrency(e.montant)}</td>
+                    <td className="p-1.5 text-right font-black text-destructive">-{formatCurrency(Math.abs(e.montant))}</td>
                   </tr>
-                )) : (
-                  <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>
-                )}
+                )) : <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>}
               </tbody>
             </table>
           </section>
@@ -265,42 +232,29 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque</span>
-              <span className="text-orange-600">{formatCurrency(reportData.versements.reduce((a, b) => a + (b.montant || 0), 0))}</span>
+              <span className="text-orange-600">{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
-                <tr>
-                  <th className="p-1.5 text-left">Opération</th>
-                  <th className="p-1.5 text-right">Montant</th>
-                </tr>
+                <tr><th className="p-1.5 text-left">Opération</th><th className="p-1.5 text-right">Montant</th></tr>
               </thead>
               <tbody>
                 {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                   <tr key={v.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{v.label}</td>
-                    <td className="p-1.5 text-right font-black text-orange-600">{formatCurrency(v.montant)}</td>
+                    <td className="p-1.5 text-right font-black text-orange-600">-{formatCurrency(Math.abs(v.montant))}</td>
                   </tr>
-                )) : (
-                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>
-                )}
+                )) : <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>}
               </tbody>
             </table>
           </section>
         </div>
 
-        {/* Signatures */}
         <div className="mt-auto pt-6 border-t border-slate-100 grid grid-cols-2 gap-20">
-          <div className="space-y-10">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Caissier</p>
-            <div className="border-b border-slate-200 w-full opacity-50"></div>
-          </div>
-          <div className="space-y-10 text-right flex flex-col items-end">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Direction</p>
-            <div className="w-[50mm] h-[20mm] border border-dashed border-slate-200 rounded-xl bg-white"></div>
-          </div>
+          <div className="space-y-10"><p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Caissier</p><div className="border-b border-slate-200 w-full opacity-50"></div></div>
+          <div className="space-y-10 text-right flex flex-col items-end"><p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Visa Direction</p><div className="w-[50mm] h-[20mm] border border-dashed border-slate-200 rounded-xl bg-white"></div></div>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 mb-2 text-center border-t border-slate-50 pt-3">
           <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
             {shop.name} {generationTimestamp ? `• Rapport Généré le ${generationTimestamp}` : ""}
@@ -312,9 +266,5 @@ function DailyCashReportContent() {
 }
 
 export default function DailyCashReportPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}>
-      <DailyCashReportContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Chargement...</div>}><DailyCashReportContent /></Suspense>;
 }

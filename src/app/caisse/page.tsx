@@ -61,10 +61,6 @@ function CaisseContent() {
   const [opLoading, setOpLoading] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
-  const [isModifying, setIsModifying] = useState(false);
-  const [openingBalanceInput, setOpeningBalanceInput] = useState<string>("0");
-  const [modificationReason, setModificationReason] = useState("");
-  
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
@@ -81,14 +77,13 @@ function CaisseContent() {
   
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transactionsQuery);
 
-  // Filtrage selon le Mode Préparation
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : !t.isDraft);
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
   const stats = useMemo(() => {
@@ -105,10 +100,9 @@ function CaisseContent() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleOpenCash = async () => {
-    const amount = parseFloat(openingBalanceInput) || 0;
+    const amount = parseFloat(session?.openingBalance?.toString() || "0");
     const sessionData = {
       openingBalance: amount, status: "OPEN", openedAt: serverTimestamp(), date: sessionDocId,
-      wasModified: isModifying, modificationReason: isModifying ? modificationReason : null,
       openedBy: user?.displayName || "Inconnu",
       isDraft: isPrepaMode
     };
@@ -124,7 +118,6 @@ function CaisseContent() {
     setOpLoading(true);
     const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
     
-    // Libellé formaté pour les achats de verres
     let finalLabel = newOp.label || newOp.type;
     if (newOp.type === "ACHAT VERRES") {
       finalLabel = `ACHAT VERRES - ${newOp.label || "DIVERS"}`;
@@ -199,6 +192,7 @@ function CaisseContent() {
   }
 
   if (!session && isToday) {
+    const [openingVal, setOpeningVal] = useState("0");
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
         <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
@@ -206,9 +200,15 @@ function CaisseContent() {
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
           <div className="space-y-3">
             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
-            <div className="relative"><input type="number" className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none" value={openingBalanceInput} onChange={(e) => setOpeningBalanceInput(e.target.value)} /><span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span></div>
+            <div className="relative"><input type="number" className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none" value={openingVal} onChange={(e) => setOpeningVal(e.target.value)} /><span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span></div>
           </div>
-          <Button onClick={handleOpenCash} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">OUVRIR LA SESSION</Button>
+          <Button onClick={async () => {
+            try {
+              setOpLoading(true);
+              await setDoc(sessionRef, { openingBalance: parseFloat(openingVal) || 0, status: "OPEN", openedAt: serverTimestamp(), date: sessionDocId, openedBy: user?.displayName || "Inconnu", isDraft: isPrepaMode });
+              toast({ variant: "success", title: "Caisse Ouverte" });
+            } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+          }} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">OUVRIR LA SESSION</Button>
         </Card>
       </div>
     );
