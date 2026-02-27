@@ -130,8 +130,10 @@ function NewSaleForm() {
 
   const cleanVal = (val: string | number) => {
     if (typeof val === 'number') return val;
+    if (!val) return 0;
     const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
-    return parseFloat(cleaned) || 0;
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
   const nTotal = cleanVal(total);
@@ -159,7 +161,7 @@ function NewSaleForm() {
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
-    // Étape 1 : Rechercher le client avant la transaction
+    // Étape 1 : Rechercher le client avant la transaction pour savoir s'il faut le créer ou l'updater
     let clientRefToSync: any = null;
     let isNewClient = false;
     try {
@@ -180,7 +182,7 @@ function NewSaleForm() {
 
     try {
       const result = await runTransaction(db, async (transaction) => {
-        // --- GESTION DU CLIENT ---
+        // --- GESTION DU CLIENT AUTOMATIQUE ---
         if (clientRefToSync) {
           if (isNewClient) {
             transaction.set(clientRefToSync, {
@@ -192,7 +194,6 @@ function NewSaleForm() {
               createdAt: serverTimestamp()
             });
           } else {
-            // Mise à jour client existant
             const updateObj: any = {
               name: clientName,
               mutuelle: finalMutuelle || "Aucun",
@@ -233,7 +234,7 @@ function NewSaleForm() {
             const currentData = currentSaleSnap.data();
             invoiceId = currentData.invoiceId;
             const prefix = isPrepaMode ? "PREPA-" : "";
-            // Si RC devient FC (payé)
+            // Si une commande en attente (RC) devient totalement payée (FC)
             if (invoiceId.includes("RC") && isPaid) {
               counters.fc += 1;
               invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
@@ -273,7 +274,7 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Ajouter transaction de caisse si acompte lors de la création
+        // Ajouter transaction de caisse si acompte lors de la création initiale
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -293,7 +294,7 @@ function NewSaleForm() {
       });
 
       if (!silent) {
-        toast({ variant: "success", title: "Enregistrement réussi", description: `Dossier ${result.invoiceId} et client enregistrés.` });
+        toast({ variant: "success", title: "Enregistrement réussi", description: `Dossier ${result.invoiceId} enregistré.` });
         router.push("/ventes");
       }
       return result;
@@ -335,7 +336,7 @@ function NewSaleForm() {
                 {isPrepaMode ? "Saisie Historique (Brouillon)" : (activeEditId ? "Mise à jour Dossier" : "Nouvelle Vente")}
               </h1>
               <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 uppercase font-black tracking-[0.2em] opacity-60">
-                {isPrepaMode ? "Travail sur les mois 1 & 2" : (activeEditId ? "Modification de facture" : "Saisie client & ordonnance")}
+                {isPrepaMode ? "Travail sur l'historique" : (activeEditId ? "Modification de facture" : "Saisie client & ordonnance")}
               </p>
             </div>
           </div>
