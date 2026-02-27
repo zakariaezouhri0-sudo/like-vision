@@ -58,7 +58,9 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
   
+  // NOUVEAU: Avance historique (déjà versée auparavant)
   const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
+  // Avance du jour (comptabilisée en caisse)
   const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
   
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
@@ -244,6 +246,7 @@ function NewSaleForm() {
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
 
+        // CRUCIAL: Seule l'avance du jour (nAvance) génère une transaction de caisse
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
