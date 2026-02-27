@@ -5,7 +5,6 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, ThumbsUp, Loader2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Suspense } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -30,7 +29,7 @@ function InvoicePrintContent() {
   const clientName = searchParams.get("client") || "Client";
   const clientPhone = searchParams.get("phone") || "---";
   const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
-  const dateDisplay = rawDate.includes(" ") ? rawDate.replace(" ", " à ") : rawDate;
+  const dateDisplay = rawDate.includes("à") ? rawDate : rawDate.replace(" ", " à ");
   
   const invoiceNo = params.id as string || "OPT-2024-XXX";
   const mutuelle = searchParams.get("mutuelle") || "Aucune";
@@ -100,10 +99,10 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Centered */}
+      {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-12 flex-1">
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
-        <table className="w-full text-[11px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-200">
+        <table className="w-full text-[12px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
           <thead>
             <tr className="bg-slate-900 text-white">
               <th className="border border-slate-800 p-3 text-left w-[24%] uppercase tracking-widest">Oeil</th>
@@ -116,17 +115,17 @@ function InvoicePrintContent() {
           <tbody>
             <tr className="bg-white">
               <td className="border border-slate-200 p-4 font-black text-slate-700">Droit (OD)</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{od.sph}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{od.cyl}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{od.axe}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{od.add}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{od.sph}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{od.cyl}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{od.axe}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{od.add}</td>
             </tr>
             <tr className="bg-slate-50/30">
               <td className="border border-slate-200 p-4 font-black text-slate-700">Gauche (OG)</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{og.sph}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{og.cyl}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{og.axe}</td>
-              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-sm">{og.add}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{og.sph}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{og.cyl}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{og.axe}</td>
+              <td className="border border-slate-200 p-4 text-center font-black tabular-nums text-base">{og.add}</td>
             </tr>
           </tbody>
         </table>

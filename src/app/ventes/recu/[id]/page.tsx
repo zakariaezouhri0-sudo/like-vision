@@ -33,7 +33,7 @@ function ReceiptPrintContent() {
   const clientName = searchParams.get("client") || saleData?.clientName || "Client";
   const clientPhone = searchParams.get("phone") || saleData?.clientPhone || "---";
   const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
-  const dateDisplay = rawDate.includes(" ") ? rawDate.replace(" ", " à ") : rawDate;
+  const dateDisplay = rawDate.includes("à") ? rawDate : rawDate.replace(" ", " à ");
   
   const receiptNo = params.id as string;
   const total = Number(searchParams.get("total")) || saleData?.total || 0;
@@ -97,10 +97,10 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Centered */}
+      {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-10">
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
-        <table className="w-full text-[10px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-100">
+        <table className="w-full text-[11px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
           <thead>
             <tr className="bg-slate-100 text-slate-600">
               <th className="border border-slate-200 p-2 text-left w-[24%] uppercase tracking-widest">Oeil</th>
@@ -141,7 +141,7 @@ function ReceiptPrintContent() {
               saleData.payments.map((p: any, i: number) => (
                 <tr key={i} className="border-b border-slate-50">
                   <td className="p-2 font-bold text-slate-600">
-                    {p.date ? (typeof p.date === 'string' ? p.date.includes(" ") ? p.date.replace(" ", " à ") : p.date : p.date.toDate().toLocaleString("fr-FR", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ')) : dateDisplay}
+                    {p.date ? (typeof p.date === 'string' ? p.date.includes("à") ? p.date : p.date.replace(" ", " à ") : p.date.toDate().toLocaleString("fr-FR", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ')) : dateDisplay}
                   </td>
                   <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                 </tr>
