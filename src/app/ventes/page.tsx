@@ -121,6 +121,10 @@ export default function SalesHistoryPage() {
     const frameCost = parseFloat(purchaseCosts.frame) || 0;
     const lensesCost = parseFloat(purchaseCosts.lenses) || 0;
     const currentUserName = user?.displayName || "Inconnu";
+    
+    // Libellé de base ou personnalisé
+    const labelSuffix = purchaseCosts.label ? purchaseCosts.label : costDialogSale.invoiceId;
+
     try {
       const saleRef = doc(db, "sales", costDialogSale.id);
       await updateDoc(saleRef, { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
@@ -128,7 +132,8 @@ export default function SalesHistoryPage() {
       if (frameCost > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "DEPENSE", 
-          label: `Achat Monture - ${costDialogSale.invoiceId}`,
+          label: `Achat Monture - ${labelSuffix}`,
+          clientName: costDialogSale.clientName || '---',
           category: "Achats", 
           montant: -Math.abs(frameCost), 
           relatedId: costDialogSale.invoiceId, 
@@ -140,7 +145,8 @@ export default function SalesHistoryPage() {
       if (lensesCost > 0) {
         await addDoc(collection(db, "transactions"), {
           type: "DEPENSE", 
-          label: `Achat Verres - ${costDialogSale.invoiceId}`,
+          label: `Achat Verres - ${labelSuffix}`,
+          clientName: costDialogSale.clientName || '---',
           category: "Achats", 
           montant: -Math.abs(lensesCost), 
           relatedId: costDialogSale.invoiceId, 
