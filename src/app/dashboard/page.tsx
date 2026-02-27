@@ -212,28 +212,28 @@ export default function DashboardPage() {
           <TrendingUp className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Chiffre d'Affaire {isPrepaMode ? "(Brouillon)" : ""}</p>
           <div className="flex items-baseline">
-            <span className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
+            <span className="text-2xl md:text-3xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
           </div>
         </Card>
         
         <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
           <ShoppingCart className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Ventes totales {isPrepaMode ? "(Brouillon)" : ""}</p>
-          <p className="text-4xl font-black tracking-tighter">{stats.count}</p>
+          <p className="text-3xl md:text-4xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive">
           <AlertCircle className="absolute -right-6 -top-6 h-40 w-40 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer {isPrepaMode ? "(Brouillon)" : ""}</p>
           <div className="flex items-baseline">
-            <span className="text-3xl md:text-4xl font-black text-destructive tracking-tighter tabular-nums">{formatCurrency(stats.reste)}</span>
+            <span className="text-2xl md:text-3xl font-black text-destructive tracking-tighter tabular-nums">{formatCurrency(stats.reste)}</span>
           </div>
         </Card>
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500">
           <Users className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Fichier Clients</p>
-          <p className="text-4xl font-black text-green-600 tracking-tighter">{stats.newClients}</p>
+          <p className="text-3xl md:text-4xl font-black text-green-600 tracking-tighter">{stats.newClients}</p>
         </Card>
       </div>
 
