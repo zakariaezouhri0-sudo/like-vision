@@ -13,7 +13,7 @@ Pour que vos modifications soient visibles sur internet, vous devez **obligatoir
    ```bash
    git add .
    ```
-2. **Valider les changements (avec un petit mot) :**
+2. **Valider les changements :**
    ```bash
    git commit -m "Mise à jour des factures"
    ```
@@ -22,16 +22,35 @@ Pour que vos modifications soient visibles sur internet, vous devez **obligatoir
    git push origin main
    ```
 
-**Note :** Le `git push` seul ne suffit pas, car il n'envoie que ce qui a été validé par les deux étapes précédentes.
+## Accès Mode Préparation (Historique)
+Pour saisir vos anciennes données sans fausser la caisse réelle :
+- **Login :** `prepa`
+- **Pass :** `prepa123`
 
-## Fonctionnalités Clés
-- **Tableau de Bord :** Chiffre d'Affaire réel (basé sur les encaissements) et reste à recouvrer.
-- **Ventes & Factures :** Impression A4 paysage (2x A5) avec heure précise et design pro.
-- **Suivi Optique :** Gestion précise des corrections OD/OG et historique des versements.
-- **Gestion de Caisse :** Journal des transactions et clôture journalière avec comptage.
-- **Mode Préparation :** Un espace "Brouillon" pour saisir l'historique sans fausser la caisse du jour.
-  - **Login :** `prepa`
-  - **Pass :** `prepa123`
+---
+
+## 📊 Modèles d'Importation Excel
+
+### 1. Historique des Ventes (Sales)
+Utilisez ces colonnes pour importer vos anciennes factures :
+- `N° Facture`
+- `Nom Client`
+- `Téléphone`
+- `Total Brut`
+- `Avance Payée (Entre en CA)` : Argent reçu ce jour.
+- `Avance Antérieure (Hors CA)` : Argent déjà versé par le passé.
+- `Date` (format JJ/MM/AAAA)
+- `Mutuelle`
+- `Coût Monture (Achat)`
+- `Coût Verres (Achat)`
+
+### 2. Journal de Caisse (Transactions)
+Pour importer vos dépenses, versements ou achats groupés :
+- `Type` : (VENTE, DEPENSE, VERSEMENT, ACHAT VERRES)
+- `Libellé / Description`
+- `Montant`
+- `Date`
+- `Catégorie` (Optionnel)
 
 ---
 *Propulsé par Next.js, Firebase & Vercel*
