@@ -124,23 +124,40 @@ export default function SalesHistoryPage() {
     try {
       const saleRef = doc(db, "sales", costDialogSale.id);
       await updateDoc(saleRef, { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
+      
+      // Ajout des dépenses en caisse avec libellé simplifié comme demandé
       if (frameCost > 0) {
         await addDoc(collection(db, "transactions"), {
-          type: "DEPENSE", label: purchaseCosts.label ? `Achat Monture - ${purchaseCosts.label}` : `Achat Monture ${costDialogSale.invoiceId}`,
-          category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: currentUserName,
-          isDraft: isPrepaMode, createdAt: serverTimestamp()
+          type: "DEPENSE", 
+          label: `Achat Monture - ${costDialogSale.invoiceId}`,
+          category: "Achats", 
+          montant: -Math.abs(frameCost), 
+          relatedId: costDialogSale.invoiceId, 
+          userName: currentUserName,
+          isDraft: isPrepaMode, 
+          createdAt: serverTimestamp()
         });
       }
       if (lensesCost > 0) {
         await addDoc(collection(db, "transactions"), {
-          type: "DEPENSE", label: purchaseCosts.label ? `Achat Verres - ${purchaseCosts.label}` : `Achat Verres ${costDialogSale.invoiceId}`,
-          category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: currentUserName,
-          isDraft: isPrepaMode, createdAt: serverTimestamp()
+          type: "DEPENSE", 
+          label: `Achat Verres - ${costDialogSale.invoiceId}`,
+          category: "Achats", 
+          montant: -Math.abs(lensesCost), 
+          relatedId: costDialogSale.invoiceId, 
+          userName: currentUserName,
+          isDraft: isPrepaMode, 
+          createdAt: serverTimestamp()
         });
       }
+      
       toast({ variant: "success", title: "Coûts mis à jour" });
       setCostDialogSale(null);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur" }); 
+    } finally { 
+      setIsSavingCosts(false); 
+    }
   };
 
   const handleDelete = async (id: string, invoiceId: string) => {
