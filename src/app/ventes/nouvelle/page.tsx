@@ -430,7 +430,20 @@ function NewSaleForm() {
               <div className={cn("p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500", clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client {isPrepaMode ? "(Brouillon)" : ""}</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Attention : Reste à régler détecté" : "Situation financière à jour"}</p></div></div>
-                  <div className="grid grid-cols-2 gap-8 w-full md:w-auto"><div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span><span className={cn("text-2xl font-black tracking-tighter", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{formatCurrency(clientHistory.totalUnpaid)}</span></div><div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span><div className="flex items-center gap-2"><span className="text-2xl font-black text-slate-900 tracking-tighter">{clientHistory.orderCount}</span><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div></div></div>
+                  <div className="grid grid-cols-2 gap-8 w-full md:w-auto">
+                    <div className="flex flex-col items-center md:items-end">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={cn("text-2xl font-black tracking-tighter", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>
+                          {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(clientHistory.totalUnpaid)}
+                        </span>
+                        <span className={cn("text-[10px] font-black uppercase opacity-60", clientHistory.hasUnpaid ? "text-red-500" : "text-green-500")}>
+                          DH
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span><div className="flex items-center gap-2"><span className="text-2xl font-black text-slate-900 tracking-tighter">{clientHistory.orderCount}</span><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div></div>
+                  </div>
                 </div>
               </div>
             )}
