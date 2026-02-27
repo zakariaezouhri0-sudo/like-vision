@@ -114,20 +114,58 @@ export default function SalesHistoryPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               {loading ? <div className="py-24 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto opacity-20" /></div> : (
-                <Table>
+                <Table className="min-w-[1100px]">
                   <TableHeader className="bg-slate-50/80">
-                    <TableRow><TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Date</TableHead><TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Document</TableHead><TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Client</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Total Net</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Versé</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Reste</TableHead><TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5">Statut</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Actions</TableHead></TableRow>
+                    <TableRow>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Date</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Document</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Client</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Total Net</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Versé</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Reste</TableHead>
+                      <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5">Statut</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Actions</TableHead>
+                    </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSales.map((sale: any) => (
                       <TableRow key={sale.id} className="hover:bg-primary/5 transition-all">
-                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex flex-col gap-1"><div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span></div><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-primary/40" /><span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span></div></div></TableCell>
-                        <TableCell className="font-black text-xs text-primary px-4 md:px-8 py-5">{sale.invoiceId}</TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate">{sale.clientName}</span><span className="text-[10px] font-black text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 font-black text-xs">{formatCurrency(sale.total - (sale.remise || 0))}</TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 font-black text-xs text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 font-black text-xs text-red-500">{formatCurrency(sale.reste || 0)}</TableCell>
-                        <TableCell className="text-center px-4 md:px-8 py-5"><Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="h-3 w-3 text-primary/40" />
+                              <span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3 w-3 text-primary/40" />
+                              <span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
+                            <span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]">
+                          <div className="flex flex-col">
+                            <span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span>
+                            <span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                          <span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                          <span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                          <span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-center px-4 md:px-8 py-5">
+                          <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge>
+                        </TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5">
                           <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>

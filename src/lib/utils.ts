@@ -7,17 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formate un montant en DH selon les spécifications : 1 500,00 DH
- * (Espace pour les milliers, virgule pour les décimales)
+ * Utilise des espaces insécables pour éviter le retour à la ligne entre le montant et DH.
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', {
+  const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
-    .format(amount)
-    .replace(/\s/g, ' ') // Assure un espace insécable standard
-    .replace(',', ',')   // Garde la virgule
-    + ' DH';
+  }).format(amount);
+  
+  // Utilisation de \u00A0 (espace insécable)
+  return formatted.replace(/\s/g, '\u00A0') + '\u00A0DH';
 }
 
 /**

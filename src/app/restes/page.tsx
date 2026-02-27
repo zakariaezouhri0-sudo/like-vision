@@ -184,13 +184,14 @@ export default function UnpaidSalesPage() {
                   <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
                 </div>
               ) : (
-                <Table>
+                <Table className="min-w-[900px]">
                   <TableHeader className="bg-slate-50/80">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 whitespace-nowrap">Date & Client</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 whitespace-nowrap">Total Net</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600 whitespace-nowrap">Versé</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive whitespace-nowrap">Reste</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Date & Client</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Document</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5">Total Net</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600">Versé</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive">Reste</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -206,17 +207,19 @@ export default function UnpaidSalesPage() {
                             <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
                               {sale.clientName}
                             </span>
-                            <span className="text-[9px] font-black text-primary/40 uppercase mt-0.5">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 font-black text-[11px] md:text-sm whitespace-nowrap">
-                          {formatCurrency(sale.total - (sale.remise || 0))}
+                        <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
                         </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 font-black text-[11px] md:text-sm text-green-600 whitespace-nowrap">
-                          {formatCurrency(sale.avance || 0)}
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
                         </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 font-black text-[11px] md:text-sm text-destructive whitespace-nowrap">
-                          {formatCurrency(sale.reste || 0)}
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
                         </TableCell>
                         <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
                           <Button 
@@ -230,7 +233,7 @@ export default function UnpaidSalesPage() {
                       </TableRow>
                     )) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
+                        <TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
                           Aucun reste à régler trouvé.
                         </TableCell>
                       </TableRow>
@@ -253,17 +256,17 @@ export default function UnpaidSalesPage() {
             <div className="p-6 md:p-8 space-y-6">
               <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                  <span>Client :</span><span className="text-slate-900 font-bold">{selectedSale?.clientName}</span>
+                  <span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span>
                 </div>
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                  <span>Reste à verser :</span><span className="text-destructive font-black text-sm">{formatCurrency(selectedSale?.reste || 0)}</span>
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">
+                  <span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span>
                 </div>
               </div>
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                 <input 
                   type="number" 
-                  className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30" 
+                  className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
                   value={paymentAmount} 
                   onChange={(e) => setPaymentAmount(e.target.value)} 
                   autoFocus 

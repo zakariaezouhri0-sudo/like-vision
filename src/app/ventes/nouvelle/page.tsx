@@ -244,9 +244,9 @@ function NewSaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Téléphone {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin" />}</Label>
-                    <div className="relative"><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" /><Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" /></div>
+                    <div className="relative"><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10 tabular-nums" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="06 00 00 00 00" /><Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" /></div>
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner uppercase" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Date</Label>
                     <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold text-sm px-4"><CalendarIcon className="mr-2 h-4 w-4 text-primary" />{format(saleDate, "dd/MM/yyyy")}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover>
@@ -266,12 +266,12 @@ function NewSaleForm() {
                   <div className="grid grid-cols-2 gap-8 w-full md:w-auto">
                     <div className="flex flex-col items-center md:items-end">
                       <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className={cn("text-2xl font-black tracking-tighter", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(clientHistory.totalUnpaid)}</span>
+                      <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                        <span className={cn("text-2xl font-black tracking-tighter tabular-nums", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(clientHistory.totalUnpaid)}</span>
                         <span className={cn("text-[10px] font-black uppercase opacity-60", clientHistory.hasUnpaid ? "text-red-500" : "text-green-500")}>DH</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span><div className="flex items-center gap-2"><span className="text-2xl font-black text-slate-900 tracking-tighter">{clientHistory.orderCount}</span><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div></div>
+                    <div className="flex flex-col items-center md:items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Score Fidélité</span><div className="flex items-center gap-2"><span className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{clientHistory.orderCount}</span><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div></div>
                   </div>
                 </div>
               </div>
@@ -283,16 +283,84 @@ function NewSaleForm() {
             <Card className="shadow-2xl border-none bg-primary p-2 rounded-[32px] md:rounded-[40px] lg:sticky lg:top-24">
               <CardHeader className="py-6 px-8 text-white/60"><CardTitle className="text-[10px] font-black uppercase tracking-[0.3em]">Calcul Financier</CardTitle></CardHeader>
               <CardContent className="p-4 md:p-6 space-y-5">
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-[10px] font-black uppercase text-primary tracking-widest">Prix Vente Brut</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={total} onChange={(e) => setTotal(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
-                <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
-                <div className="pt-4 border-t border-white/10 space-y-4">
-                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10"><div className="space-y-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Déjà Versé (Ancien)</Label><p className="text-[8px] font-bold text-accent uppercase">Avance antérieure</p></div><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-white outline-none text-lg" type="number" value={historicalAdvance} onChange={(e) => setHistoricalAdvance(e.target.value)} placeholder="0" /><span className="text-[9px] font-black text-white/20">DH</span></div></div>
-                  <div className="flex justify-between items-center px-4"><span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Reste à percevoir :</span><span className="text-xs font-black text-white tracking-tighter">{formatCurrency(resteAvantVersement)}</span></div>
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
+                  <Label className="text-[10px] font-black uppercase text-primary tracking-widest shrink-0">Prix Brut</Label>
+                  <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" value={total} onChange={(e) => setTotal(e.target.value)} />
+                    <span className="text-[9px] font-black text-slate-400">DH</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm"><Label className="text-primary text-[10px] font-black uppercase tracking-widest">Versé ce jour</Label><div className="flex items-center gap-1.5 flex-1 justify-end ml-4"><input className="w-full h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} /><span className="text-[9px] font-black text-slate-400">DH</span></div></div>
-                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2"><span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler final</span><span className="text-xl md:text-2xl font-black tracking-tighter text-accent">{formatCurrency(resteAPayerValue)}</span></div>
-                <div className="pt-6 border-t border-white/10 space-y-3"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2"><Tag className="h-3 w-3" /> Coûts d'Achat (Interne)</p><div className="grid grid-cols-2 gap-3"><div className="bg-white/5 p-3 rounded-xl border border-white/10"><Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Monture</Label><div className="flex items-center gap-1"><input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(e.target.value)} /><span className="text-[8px] font-black text-white/20">DH</span></div></div><div className="bg-white/5 p-3 rounded-xl border border-white/10"><Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Verres</Label><div className="flex items-center gap-1"><input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(e.target.value)} /><span className="text-[8px] font-black text-white/20">DH</span></div></div></div></div>
+                
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                  <div className="flex justify-between items-center px-1">
+                    <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label>
+                    <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7">
+                      <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg">
+                        <TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger>
+                        <TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm">
+                    <input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg tabular-nums" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+                    <span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5 whitespace-nowrap">
+                  <Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label>
+                  <span className="font-black text-xl text-white tracking-tighter tabular-nums">{formatCurrency(totalNetValue)}</span>
+                </div>
+
+                <div className="pt-4 border-t border-white/10 space-y-4">
+                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div className="space-y-1">
+                      <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Déjà Versé (Ancien)</Label>
+                      <p className="text-[8px] font-bold text-accent uppercase">Historique</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                      <input className="w-full max-w-[100px] h-8 text-right font-black bg-transparent text-white outline-none text-lg tabular-nums" type="number" value={historicalAdvance} onChange={(e) => setHistoricalAdvance(e.target.value)} placeholder="0" />
+                      <span className="text-[9px] font-black text-white/20">DH</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center px-4 whitespace-nowrap">
+                    <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Reste à percevoir :</span>
+                    <span className="text-xs font-black text-white tracking-tighter tabular-nums">{formatCurrency(resteAvantVersement)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
+                  <Label className="text-primary text-[10px] font-black uppercase tracking-widest shrink-0">Versé ce jour</Label>
+                  <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
+                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} />
+                    <span className="text-[9px] font-black text-slate-400">DH</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950 text-white p-6 rounded-[24px] md:rounded-[32px] flex flex-col items-center gap-1 shadow-2xl border border-white/5 mt-2 whitespace-nowrap">
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Reste à régler final</span>
+                  <span className="text-xl md:text-2xl font-black tracking-tighter text-accent tabular-nums">{formatCurrency(resteAPayerValue)}</span>
+                </div>
+
+                <div className="pt-6 border-t border-white/10 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2"><Tag className="h-3 w-3" /> Coûts d'Achat (Interne)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                      <Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Monture</Label>
+                      <div className="flex items-center gap-1">
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(e.target.value)} />
+                        <span className="text-[8px] font-black text-white/20">DH</span>
+                      </div>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                      <Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Verres</Label>
+                      <div className="flex items-center gap-1">
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(e.target.value)} />
+                        <span className="text-[8px] font-black text-white/20">DH</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
