@@ -45,7 +45,8 @@ export default function ImportPage() {
     { key: "clientName", label: "Nom Client" },
     { key: "clientPhone", label: "Téléphone" },
     { key: "total", label: "Total Brut" },
-    { key: "avance", label: "Avance Payée" },
+    { key: "avance", label: "Avance Payée (Entre en CA)" },
+    { key: "historicalAdvance", label: "Avance Antérieure (Hors CA)" },
     { key: "createdAt", label: "Date" },
     { key: "mutuelle", label: "Mutuelle" },
     { key: "purchasePriceFrame", label: "Coût Monture (Achat)" },
@@ -114,7 +115,14 @@ export default function ImportPage() {
           const clientName = row[mapping.clientName] || "Client Importé";
           const clientPhone = (row[mapping.clientPhone]?.toString() || "").replace(/\s/g, "");
           const total = parseFloat(row[mapping.total]) || 0;
-          const avance = parseFloat(row[mapping.avance]) || 0;
+          
+          // Avance qui entre en caisse
+          const currentAvance = parseFloat(row[mapping.avance]) || 0;
+          // Avance historique qui n'entre PAS en caisse
+          const historicalAvance = parseFloat(row[mapping.historicalAdvance]) || 0;
+          
+          const totalAvanceCumulee = currentAvance + historicalAvance;
+          
           const purchaseFrame = parseFloat(row[mapping.purchasePriceFrame]) || 0;
           const purchaseLenses = parseFloat(row[mapping.purchasePriceLenses]) || 0;
           const invoiceId = row[mapping.invoiceId]?.toString() || `OPT-IMP-${Date.now().toString().slice(-4)}-${i}`;
@@ -125,28 +133,49 @@ export default function ImportPage() {
             if (!isNaN(parsed.getTime())) createdAtDate = parsed;
           }
 
+          // Construction de l'historique des paiements
+          const payments = [];
+          if (historicalAvance > 0) {
+            payments.push({ 
+              amount: historicalAvance, 
+              date: createdAtDate.toISOString(), 
+              userName: "Import (Historique)", 
+              note: "Avance antérieure" 
+            });
+          }
+          if (currentAvance > 0) {
+            payments.push({ 
+              amount: currentAvance, 
+              date: createdAtDate.toISOString(), 
+              userName: "Import (Caisse)", 
+              note: "Versement du jour" 
+            });
+          }
+
           const saleData = {
-            invoiceId, clientName, clientPhone, total, avance,
-            reste: Math.max(0, total - avance),
-            statut: avance >= total ? "Payé" : (avance > 0 ? "Partiel" : "En attente"),
+            invoiceId, clientName, clientPhone, total, 
+            avance: totalAvanceCumulee,
+            reste: Math.max(0, total - totalAvanceCumulee),
+            statut: totalAvanceCumulee >= total ? "Payé" : (totalAvanceCumulee > 0 ? "Partiel" : "En attente"),
             mutuelle: row[mapping.mutuelle] || "Aucun",
             purchasePriceFrame: purchaseFrame,
             purchasePriceLenses: purchaseLenses,
             createdAt: Timestamp.fromDate(createdAtDate),
             updatedAt: serverTimestamp(),
             remise: 0, notes: "Importé depuis historique", isDraft,
-            payments: avance > 0 ? [{ amount: avance, date: createdAtDate.toISOString(), userName: "Import" }] : []
+            payments: payments
           };
 
           await addDoc(collection(db, "sales"), saleData);
 
-          if (avance > 0) {
+          // CRUCIAL: Seule l'avance "actuelle" génère une transaction de caisse
+          if (currentAvance > 0) {
             await addDoc(collection(db, "transactions"), {
               type: "VENTE",
-              label: `Import Historique - ${invoiceId}`,
+              label: `Import Vente - ${invoiceId}`,
               clientName,
               category: "Optique",
-              montant: avance,
+              montant: currentAvance,
               relatedId: invoiceId,
               userName: "Système (Import)",
               isDraft,
@@ -166,7 +195,6 @@ export default function ImportPage() {
             if (!isNaN(parsed.getTime())) createdAtDate = parsed;
           }
 
-          // Inverser le signe pour les dépenses si nécessaire (on stocke en négatif en base)
           const finalAmount = (type === "DEPENSE" || type === "ACHAT VERRES" || type === "VERSEMENT") 
             ? -Math.abs(montant) 
             : Math.abs(montant);
