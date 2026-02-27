@@ -166,14 +166,14 @@ function DailyCashReportContent() {
               <PiggyBank className="h-3 w-3" />
               <p className="text-[7px] font-black uppercase tracking-widest">SOLDE INITIAL</p>
             </div>
-            <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.initial)}</p>
+            <p className="text-sm font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.initial)}</p>
           </div>
           <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5 shadow-sm">
             <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
               <ArrowRightLeft className="h-3 w-3 text-primary" />
               <p className="text-[7px] font-black uppercase tracking-widest text-primary">Flux Net Jour</p>
             </div>
-            <p className={cn("text-sm font-black tracking-tighter", reportData.netFlux >= 0 ? "text-green-600" : "text-destructive")}>
+            <p className={cn("text-sm font-black tracking-tighter tabular-nums", reportData.netFlux >= 0 ? "text-green-600" : "text-destructive")}>
               {reportData.netFlux > 0 ? "+" : ""}{formatCurrency(reportData.netFlux)}
             </p>
           </div>
@@ -182,7 +182,7 @@ function DailyCashReportContent() {
               <Lock className="h-3 w-3 text-primary" />
               <p className="text-[7px] font-black uppercase tracking-widest text-primary">Clôture</p>
             </div>
-            <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(reportData.final)}</p>
+            <p className="text-sm font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.final)}</p>
           </div>
         </div>
 
@@ -190,7 +190,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Encaissements (Ventes)</span>
-              <span className="text-green-600">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}</span>
+              <span className="text-green-600 tabular-nums">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
@@ -201,7 +201,7 @@ function DailyCashReportContent() {
                   <tr key={s.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{s.label}</td>
                     <td className="p-1.5 font-bold text-slate-700 uppercase">{s.clientName || '---'}</td>
-                    <td className="p-1.5 text-right font-black text-green-600">+{formatCurrency(Math.abs(s.montant))}</td>
+                    <td className="p-1.5 text-right font-black text-green-600 tabular-nums">+{formatCurrency(Math.abs(s.montant))}</td>
                   </tr>
                 )) : <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune vente enregistrée.</td></tr>}
               </tbody>
@@ -211,7 +211,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Détail des Dépenses (Charges)</span>
-              <span className="text-destructive">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
+              <span className="text-destructive tabular-nums">{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
@@ -222,7 +222,7 @@ function DailyCashReportContent() {
                   <tr key={e.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{e.label}</td>
                     <td className="p-1.5 font-bold text-slate-700 uppercase">{e.clientName || '---'}</td>
-                    <td className="p-1.5 text-right font-black text-destructive">-{formatCurrency(Math.abs(e.montant))}</td>
+                    <td className="p-1.5 text-right font-black text-destructive tabular-nums">-{formatCurrency(Math.abs(e.montant))}</td>
                   </tr>
                 )) : <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>}
               </tbody>
@@ -232,7 +232,7 @@ function DailyCashReportContent() {
           <section>
             <h3 className="text-[9px] font-black uppercase text-slate-400 mb-2 border-b pb-1 flex justify-between items-center tracking-[0.2em]">
               <span>Versements en Banque</span>
-              <span className="text-orange-600">{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
+              <span className="text-orange-600 tabular-nums">{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
             </h3>
             <table className="w-full text-[9px]">
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
@@ -242,7 +242,7 @@ function DailyCashReportContent() {
                 {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                   <tr key={v.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{v.label}</td>
-                    <td className="p-1.5 text-right font-black text-orange-600">-{formatCurrency(Math.abs(v.montant))}</td>
+                    <td className="p-1.5 text-right font-black text-orange-600 tabular-nums">-{formatCurrency(Math.abs(v.montant))}</td>
                   </tr>
                 )) : <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucun mouvement de banque.</td></tr>}
               </tbody>

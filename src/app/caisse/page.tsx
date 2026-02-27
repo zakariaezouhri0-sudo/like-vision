@@ -119,8 +119,8 @@ function CaisseContent() {
     const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
     
     let finalLabel = newOp.label || newOp.type;
-    if (newOp.type === "ACHAT VERRES") {
-      finalLabel = `ACHAT VERRES - ${newOp.label || "DIVERS"}`;
+    if (newOp.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
+      finalLabel = `ACHAT VERRES - ${finalLabel}`;
     }
 
     const transData = {
@@ -147,8 +147,8 @@ function CaisseContent() {
     const finalAmount = editingTransaction.type === "VENTE" ? Math.abs(parseFloat(editingTransaction.montant_raw)) : -Math.abs(parseFloat(editingTransaction.montant_raw));
     
     let finalLabel = editingTransaction.label;
-    if (editingTransaction.type === "ACHAT VERRES" && !editingTransaction.label.startsWith("ACHAT VERRES -")) {
-      finalLabel = `ACHAT VERRES - ${editingTransaction.label}`;
+    if (editingTransaction.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
+      finalLabel = `ACHAT VERRES - ${finalLabel}`;
     }
 
     try {
@@ -182,8 +182,8 @@ function CaisseContent() {
           <div className="h-24 w-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-white shadow-2xl"><Lock className="h-10 w-10" /></div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Caisse Clôturée {isPrepaMode ? "(Mode PREPA)" : ""}</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Solde Final Réel</p><p className="text-2xl font-black text-primary">{formatCurrency(session.closingBalanceReal)}</p></Card>
-            {(role === 'ADMIN' || role === 'PREPA') && <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Écart</p><p className={cn("text-2xl font-black", session.discrepancy >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(session.discrepancy)}</p></Card>}
+            <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Solde Final Réel</p><p className="text-2xl font-black text-primary tabular-nums">{formatCurrency(session.closingBalanceReal)}</p></Card>
+            {(role === 'ADMIN' || role === 'PREPA') && <Card className="p-6 rounded-[24px]"><p className="text-[10px] font-black uppercase text-slate-400">Écart</p><p className={cn("text-2xl font-black tabular-nums", session.discrepancy >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(session.discrepancy)}</p></Card>}
           </div>
           <Button onClick={() => router.push("/dashboard")} className="h-14 px-10 rounded-2xl font-black">RETOUR AU TABLEAU DE BORD</Button>
         </div>
@@ -200,7 +200,7 @@ function CaisseContent() {
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
           <div className="space-y-3">
             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
-            <div className="relative"><input type="number" className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none" value={openingVal} onChange={(e) => setOpeningVal(e.target.value)} /><span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span></div>
+            <div className="relative"><input type="number" className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none tabular-nums" value={openingVal} onChange={(e) => setOpeningVal(e.target.value)} /><span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span></div>
           </div>
           <Button onClick={async () => {
             try {
@@ -245,7 +245,7 @@ function CaisseContent() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                    <Input type="number" className="h-11 rounded-xl font-bold" placeholder="0.00" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
+                    <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0.00" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
                   </div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER L'OPÉRATION</Button></DialogFooter>
@@ -282,7 +282,7 @@ function CaisseContent() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                    <Input type="number" className="h-11 rounded-xl font-bold" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
+                    <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
                   </div>
                 </div>
               )}
@@ -299,18 +299,18 @@ function CaisseContent() {
                   {DENOMINATIONS.map(val => (
                     <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                       <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                      <Input type="number" className="h-9 w-20 text-center font-bold" value={denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
-                      <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
+                      <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" value={denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                      <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
                     </div>
                   ))}
                 </div>
                 <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
-                  <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span>{formatCurrency(initialBalance)}</span></div>
-                  <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span>{formatCurrency(stats.entrees)}</span></div>
-                  <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span>{formatCurrency(stats.depenses)}</span></div>
-                  <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span>{formatCurrency(stats.versements)}</span></div>
-                  <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Total Compté</span><span className="text-2xl font-black text-primary">{formatCurrency(soldeReel)}</span></div>
-                  <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart constaté</p><p className="text-xl font-black">{formatCurrency(ecart)}</p></div>
+                  <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
+                  <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
+                  <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
+                  <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
+                  <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Total Compté</span><span className="text-2xl font-black text-primary tabular-nums">{formatCurrency(soldeReel)}</span></div>
+                  <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart constaté</p><p className="text-xl font-black tabular-nums">{formatCurrency(ecart)}</p></div>
                   <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black shadow-xl">VALIDER LA CLÔTURE</Button>
                 </div>
               </div>
@@ -320,11 +320,11 @@ function CaisseContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Initial</p><p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-red-500">-{formatCurrency(stats.depenses)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p></Card>
-        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde Théorique</p><p className="text-xl font-black">{formatCurrency(soldeTheorique)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Initial</p><p className="text-xl font-black text-blue-600 tabular-nums">{formatCurrency(initialBalance)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-green-600 tabular-nums">+{formatCurrency(stats.entrees)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-red-500 tabular-nums">-{formatCurrency(stats.depenses)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements {isPrepaMode ? "(Mode PREPA)" : ""}</p><p className="text-xl font-black text-orange-600 tabular-nums">-{formatCurrency(stats.versements)}</p></Card>
+        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde Théorique</p><p className="text-xl font-black tabular-nums">{formatCurrency(soldeTheorique)}</p></Card>
       </div>
 
       <Card className="rounded-[32px] overflow-hidden bg-white">
@@ -338,11 +338,11 @@ function CaisseContent() {
               {loadingTrans ? <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow> : 
                 transactions.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black opacity-20">Aucune opération {isPrepaMode ? "brouillon" : ""} aujourd'hui.</TableCell></TableRow> :
                 transactions.map((t: any) => (
-                  <TableRow key={t.id} className="hover:bg-slate-50 border-b">
+                  <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
                     <TableCell className="px-6 py-4">
-                      <div className="flex flex-col"><div className="flex items-center gap-2 mb-1"><span className="text-[9px] font-bold text-slate-400">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span><span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span></div><Badge className={cn("text-[8px] font-black border-none px-2 w-fit", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700')}>{t.type}</Badge></div>
+                      <div className="flex flex-col"><div className="flex items-center gap-2 mb-1"><span className="text-[9px] font-bold text-slate-400 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span><span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span></div><Badge className={cn("text-[8px] font-black border-none px-2 w-fit", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700')}>{t.type}</Badge></div>
                     </TableCell>
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs tabular-nums whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
                     <TableCell className="text-right px-6 py-4">
                       {role === 'ADMIN' || role === 'PREPA' ? (
                         <DropdownMenu modal={false}>

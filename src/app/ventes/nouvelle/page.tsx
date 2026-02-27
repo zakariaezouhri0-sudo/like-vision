@@ -78,20 +78,23 @@ function NewSaleForm() {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       
-      // Validation du téléphone
-      if (cleanPhone.length > 0) {
-        if (cleanPhone.length === 10) {
-          const isValidPrefix = /^(06|07|08)/.test(cleanPhone);
-          if (!isValidPrefix) {
-            setPhoneError("Numéro non valide (06, 07 ou 08 requis)");
-          } else {
-            setPhoneError(null);
-          }
-        } else if (cleanPhone.length > 10) {
-          setPhoneError("Numéro trop long (10 chiffres requis)");
-        } else {
-          setPhoneError(null);
+      if (cleanPhone.length === 0) {
+        if (!searchParams.get("editId")) {
+          setClientName("");
+          setMutuelle("Aucun");
+          setCustomMutuelle("");
+          setClientHistory(null);
         }
+        setPhoneError(null);
+        return;
+      }
+
+      // Validation
+      const isValidFormat = /^(06|07|08)\d{8}$/.test(cleanPhone);
+      if (cleanPhone.length === 10 && !isValidFormat) {
+        setPhoneError("Numéro invalide (06, 07 ou 08 requis)");
+      } else if (cleanPhone.length > 10) {
+        setPhoneError("Trop de chiffres (10 requis)");
       } else {
         setPhoneError(null);
       }
@@ -165,7 +168,7 @@ function NewSaleForm() {
 
   const handleSave = async (silent = false) => {
     const cleanPhone = clientPhone.toString().replace(/\s/g, "");
-    const isValidPhone = cleanPhone.length === 10 && /^(06|07|08)/.test(cleanPhone);
+    const isValidPhone = /^(06|07|08)\d{8}$/.test(cleanPhone);
 
     if (!clientName || !clientPhone) {
       toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom et le téléphone du client." });
@@ -183,6 +186,13 @@ function NewSaleForm() {
     const currentUserName = user?.displayName || "Inconnu";
 
     try {
+      // Find existing client before transaction
+      let existingClientId = null;
+      const clientQuerySnap = await getDocs(query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1)));
+      if (!clientQuerySnap.empty) {
+        existingClientId = clientQuerySnap.docs[0].id;
+      }
+
       const result = await runTransaction(db, async (transaction) => {
         const counterRef = doc(db, "settings", isPrepaMode ? "counters_draft" : "counters");
         const counterSnap = await transaction.get(counterRef);
@@ -221,6 +231,22 @@ function NewSaleForm() {
         }
 
         transaction.set(saleRef, saleData, { merge: true });
+
+        // Auto-register/Update Client
+        const clientRef = existingClientId ? doc(db, "clients", existingClientId) : doc(collection(db, "clients"));
+        const clientData = {
+          name: clientName,
+          phone: cleanPhone,
+          mutuelle: finalMutuelle || "Aucun",
+          lastVisit: format(saleDate, "dd/MM/yyyy"),
+          updatedAt: serverTimestamp()
+        };
+
+        if (existingClientId) {
+          transaction.update(clientRef, { ...clientData, ordersCount: increment(activeEditId ? 0 : 1) });
+        } else {
+          transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
+        }
 
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
@@ -315,7 +341,7 @@ function NewSaleForm() {
                     <div className="flex flex-col items-center md:items-end">
                       <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span>
                       <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                        <span className={cn("text-2xl font-black tracking-tighter tabular-nums", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(clientHistory.totalUnpaid)}</span>
+                        <span className={cn("text-2xl font-black tracking-tighter tabular-nums", clientHistory.hasUnpaid ? "text-red-600" : "text-green-600")}>{new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(clientHistory.totalUnpaid).replace(/\s/g, '\u00A0')}</span>
                         <span className={cn("text-[10px] font-black uppercase opacity-60", clientHistory.hasUnpaid ? "text-red-500" : "text-green-500")}>DH</span>
                       </div>
                     </div>
