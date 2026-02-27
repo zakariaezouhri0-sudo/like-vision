@@ -87,7 +87,7 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone));
+          const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1));
           const clientSnapshot = await getDocs(clientQ);
           
           if (!clientSnapshot.empty) {
@@ -149,19 +149,63 @@ function NewSaleForm() {
   };
 
   const handleSave = async (silent = false) => {
-    if (!clientName || nTotal === 0 || !clientPhone) {
-      toast({ variant: "destructive", title: "Erreur", description: "Nom, téléphone et total obligatoires." });
+    if (!clientName || !clientPhone) {
+      toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom et le téléphone du client." });
       return null;
     }
 
     setLoading(true);
-    const isPaid = resteAPayerValue <= 0;
-    const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
+    const cleanPhone = clientPhone.toString().replace(/\s/g, "");
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
+    // Étape 1 : Rechercher le client avant la transaction
+    let clientRefToSync: any = null;
+    let isNewClient = false;
+    try {
+      const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1));
+      const clientSnapshot = await getDocs(clientQ);
+      if (clientSnapshot.empty) {
+        clientRefToSync = doc(collection(db, "clients"));
+        isNewClient = true;
+      } else {
+        clientRefToSync = clientSnapshot.docs[0].ref;
+      }
+    } catch (e) {
+      console.error("Erreur check client:", e);
+    }
+
+    const isPaid = resteAPayerValue <= 0;
+    const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
+
     try {
       const result = await runTransaction(db, async (transaction) => {
+        // --- GESTION DU CLIENT ---
+        if (clientRefToSync) {
+          if (isNewClient) {
+            transaction.set(clientRefToSync, {
+              name: clientName,
+              phone: cleanPhone,
+              mutuelle: finalMutuelle || "Aucun",
+              lastVisit: new Date().toLocaleDateString("fr-FR"),
+              ordersCount: 1,
+              createdAt: serverTimestamp()
+            });
+          } else {
+            // Mise à jour client existant
+            const updateObj: any = {
+              name: clientName,
+              mutuelle: finalMutuelle || "Aucun",
+              lastVisit: new Date().toLocaleDateString("fr-FR"),
+            };
+            if (!activeEditId) {
+              updateObj.ordersCount = increment(1);
+            }
+            transaction.update(clientRefToSync, updateObj);
+          }
+        }
+
+        // --- GESTION DES COMPTEURS FACTURE ---
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
         const counterRef = doc(db, "settings", counterDocPath);
         const counterSnap = await transaction.get(counterRef);
@@ -189,6 +233,7 @@ function NewSaleForm() {
             const currentData = currentSaleSnap.data();
             invoiceId = currentData.invoiceId;
             const prefix = isPrepaMode ? "PREPA-" : "";
+            // Si RC devient FC (payé)
             if (invoiceId.includes("RC") && isPaid) {
               counters.fc += 1;
               invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
@@ -200,7 +245,7 @@ function NewSaleForm() {
         const saleData: any = {
           invoiceId,
           clientName,
-          clientPhone: clientPhone.toString().replace(/\s/g, ""),
+          clientPhone: cleanPhone,
           mutuelle: finalMutuelle || "Aucun",
           total: nTotal,
           remise: remiseAmountValue,
@@ -228,6 +273,7 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
+        // Ajouter transaction de caisse si acompte lors de la création
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -247,14 +293,14 @@ function NewSaleForm() {
       });
 
       if (!silent) {
-        toast({ variant: "success", title: "Enregistrement réussi", description: `Document ${result.invoiceId} sauvegardé.` });
+        toast({ variant: "success", title: "Enregistrement réussi", description: `Dossier ${result.invoiceId} et client enregistrés.` });
         router.push("/ventes");
       }
       return result;
 
     } catch (err) {
       console.error(err);
-      toast({ variant: "destructive", title: "Erreur technique" });
+      toast({ variant: "destructive", title: "Erreur technique", description: "Impossible de finaliser l'enregistrement." });
       return null;
     } finally {
       setLoading(false);
