@@ -16,7 +16,8 @@ import {
   Loader2,
   Lock,
   PlayCircle,
-  Eye
+  Eye,
+  Wallet
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { 
@@ -86,20 +87,25 @@ export default function DashboardPage() {
 
   // Statistics Calculation - Robust with Number conversion
   const stats = useMemo(() => {
-    if (!allSales) return { ca: 0, count: 0, reste: 0, newClients: allClients?.length || 0 };
+    if (!allSales) return { ca: 0, count: 0, reste: 0, volume: 0, newClients: allClients?.length || 0 };
     
-    const ca = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+    // CA = Somme des avances (argent réel encaissé)
+    const ca = allSales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
+    // Volume = Somme des totaux nets (valeur totale des ventes)
+    const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+    // Reste = Somme des restes à payer
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
     return {
       ca,
+      volume,
       count: allSales.length,
       reste,
       newClients: allClients?.length || 0
     };
   }, [allSales, allClients]);
 
-  // Weekly Chart Data
+  // Weekly Chart Data - Based on daily collections
   const weeklyData = useMemo(() => {
     if (!allSales) return [];
     const now = new Date();
@@ -112,7 +118,8 @@ export default function DashboardPage() {
         if (!s.createdAt?.toDate) return false;
         return isSameDay(s.createdAt.toDate(), day);
       });
-      const total = daySales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+      // On affiche les encaissements par jour
+      const total = daySales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
       return {
         name: format(day, "EEE", { locale: fr }),
         total: total
@@ -209,16 +216,17 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
-          <TrendingUp className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Chiffre d'Affaire {isPrepaMode ? "(Brouillon)" : ""}</p>
-          <div className="flex items-baseline">
+          <Wallet className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Total Encaissé {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <div className="flex flex-col">
             <span className="text-2xl md:text-3xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
+            <span className="text-[8px] font-black uppercase opacity-40 mt-1">Volume Facturé: {formatCurrency(stats.volume)}</span>
           </div>
         </Card>
         
         <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
           <ShoppingCart className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Ventes totales {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Nombre de Ventes {isPrepaMode ? "(Brouillon)" : ""}</p>
           <p className="text-3xl md:text-4xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
@@ -242,7 +250,7 @@ export default function DashboardPage() {
           <CardHeader className="p-8 border-b bg-slate-50/50">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
               <TrendingUp className="h-5 w-5" />
-              Performance Hebdo {isPrepaMode ? "(Brouillon)" : ""}
+              Encaissements Hebdo {isPrepaMode ? "(Brouillon)" : ""}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] p-8">
@@ -301,7 +309,7 @@ export default function DashboardPage() {
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">ID FACTURE</TableHead>
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">CLIENT</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">TOTAL</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">TOTAL NET</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">STATUT</TableHead>
                 </TableRow>
               </TableHeader>
