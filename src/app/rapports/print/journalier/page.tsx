@@ -162,7 +162,7 @@ function DailyCashReportContent() {
             <p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-1.5">Versements Banque</p>
             <p className="text-lg font-black text-orange-600 tabular-nums">{formatCurrency(reportData.totalVersements)}</p>
           </div>
-          <div className="p-4 rounded-[20px] border-2 border-primary text-center bg-primary/5 text-primary shadow-sm">
+          <div className="p-4 rounded-[20px] border border-primary/20 text-center bg-primary/5 text-primary shadow-sm">
             <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1.5">Solde Final Réel</p>
             <p className="text-lg font-black tabular-nums">{formatCurrency(reportData.final)}</p>
           </div>
