@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where, orderBy } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -41,7 +41,7 @@ export default function ImportPage() {
   const [importType, setImportType] = useState<"sales" | "clients" | "transactions">("sales");
 
   const SALES_FIELDS = [
-    { key: "invoiceId", label: "N° Facture" },
+    { key: "invoiceId", label: "N° Facture (Optionnel)" },
     { key: "clientName", label: "Nom Client" },
     { key: "clientPhone", label: "Téléphone" },
     { key: "total", label: "Total Brut" },
@@ -70,13 +70,11 @@ export default function ImportPage() {
   const currentFields = importType === "sales" ? SALES_FIELDS : (importType === "clients" ? CLIENTS_FIELDS : TRANSACTIONS_FIELDS);
 
   const downloadTemplate = () => {
-    const headers = currentFields.map(f => f.label);
     const sampleRow = currentFields.reduce((acc, f) => ({ ...acc, [f.label]: "" }), {});
     
-    // Exemple de données pour aider l'utilisateur
     if (importType === "sales") {
       Object.assign(sampleRow, {
-        "N° Facture": "OPT-2023-001",
+        "N° Facture (Optionnel)": "Laissez vide pour auto-génération",
         "Nom Client": "Ex: Mohamed Alami",
         "Téléphone": "0600112233",
         "Total Brut": "1500",
@@ -142,6 +140,22 @@ export default function ImportPage() {
     const role = localStorage.getItem('user_role');
     const isDraft = role === 'PREPA';
 
+    // Récupération des compteurs actuels pour FH et RH
+    let fhCounter = 0;
+    let rhCounter = 0;
+
+    try {
+      const qFH = query(collection(db, "sales"), where("invoiceId", ">=", "FH-2026-"), where("invoiceId", "<=", "FH-2026-\uf8ff"));
+      const snapFH = await getDocs(qFH);
+      fhCounter = snapFH.size;
+
+      const qRH = query(collection(db, "sales"), where("invoiceId", ">=", "RH-2026-"), where("invoiceId", "<=", "RH-2026-\uf8ff"));
+      const snapRH = await getDocs(qRH);
+      rhCounter = snapRH.size;
+    } catch (e) {
+      console.error("Erreur compteurs", e);
+    }
+
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       try {
@@ -154,7 +168,20 @@ export default function ImportPage() {
           const totalAvanceCumulee = currentAvance + historicalAvance;
           const purchaseFrame = parseFloat(row[mapping.purchasePriceFrame]) || 0;
           const purchaseLenses = parseFloat(row[mapping.purchasePriceLenses]) || 0;
-          const invoiceId = row[mapping.invoiceId]?.toString() || `OPT-IMP-${Date.now().toString().slice(-4)}-${i}`;
+          
+          const isPaid = totalAvanceCumulee >= total;
+          let invoiceId = row[mapping.invoiceId]?.toString();
+
+          // Génération automatique si vide ou si format FH/RH demandé
+          if (!invoiceId || invoiceId.includes("Laissez vide")) {
+            if (isPaid) {
+              fhCounter++;
+              invoiceId = `FH-2026-${fhCounter.toString().padStart(4, '0')}`;
+            } else {
+              rhCounter++;
+              invoiceId = `RH-2026-${rhCounter.toString().padStart(4, '0')}`;
+            }
+          }
           
           let createdAtDate = new Date();
           if (row[mapping.createdAt]) {
@@ -164,17 +191,17 @@ export default function ImportPage() {
 
           const payments = [];
           if (historicalAvance > 0) {
-            payments.push({ amount: historicalAvance, date: createdAtDate.toISOString(), userName: "Import (Historique)", note: "Avance antérieure" });
+            payments.push({ amount: historicalAvance, date: createdAtDate.toISOString(), userName: "Historique", note: "Avance antérieure" });
           }
           if (currentAvance > 0) {
-            payments.push({ amount: currentAvance, date: createdAtDate.toISOString(), userName: "Import (Caisse)", note: "Versement du jour" });
+            payments.push({ amount: currentAvance, date: createdAtDate.toISOString(), userName: "Import", note: "Versement importé" });
           }
 
           const saleData = {
             invoiceId, clientName, clientPhone, total, 
             avance: totalAvanceCumulee,
             reste: Math.max(0, total - totalAvanceCumulee),
-            statut: totalAvanceCumulee >= total ? "Payé" : (totalAvanceCumulee > 0 ? "Partiel" : "En attente"),
+            statut: isPaid ? "Payé" : (totalAvanceCumulee > 0 ? "Partiel" : "En attente"),
             mutuelle: row[mapping.mutuelle] || "Aucun",
             purchasePriceFrame: purchaseFrame,
             purchasePriceLenses: purchaseLenses,
