@@ -87,6 +87,15 @@ function NewSaleForm() {
     const searchClient = async () => {
       const cleanPhone = clientPhone.toString().replace(/\s/g, "");
       
+      // Si le numéro est effacé ou incomplet, on réinitialise les champs client
+      if (cleanPhone.length < 10 && !searchParams.get("editId")) {
+        setClientName("");
+        setMutuelle("Aucun");
+        setCustomMutuelle("");
+        setClientHistory(null);
+        return;
+      }
+      
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
