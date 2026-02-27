@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, TrendingUp, Landmark, FileText, ChevronRight } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, TrendingUp, Landmark, FileText } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -110,7 +110,7 @@ function DailyCashReportContent() {
       </div>
 
       <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[12mm] flex flex-col min-h-[297mm]">
-        {/* Header de Qualité */}
+        {/* Header */}
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
           <div className="flex items-center gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative border rounded-2xl bg-white shadow-sm">
@@ -146,7 +146,7 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Tableau des Indicateurs Financiers */}
+        {/* Indicateurs Financiers */}
         <div className="grid grid-cols-4 gap-4 mb-10">
           <div className="p-4 rounded-[20px] border border-slate-200 text-center bg-slate-50/50 shadow-sm">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Solde Initial</p>
@@ -168,7 +168,7 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Détail des Opérations par Catégorie */}
+        {/* Détail des Opérations */}
         <div className="space-y-8 flex-1">
           {/* ENCAISSEMENTS */}
           <section className="space-y-3">
@@ -181,7 +181,7 @@ function DailyCashReportContent() {
               <table className="w-full text-[11px]">
                 <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[8px]">
                   <tr>
-                    <th className="p-3 text-left">Heure</th>
+                    <th className="p-3 text-left w-20">Heure</th>
                     <th className="p-3 text-left">Libellé / Client</th>
                     <th className="p-3 text-right">Montant</th>
                   </tr>
@@ -192,7 +192,7 @@ function DailyCashReportContent() {
                       <td className="p-3 font-bold text-slate-400 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
                       <td className="p-3">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-800 uppercase">{s.label}</span>
+                          <span className="font-black text-slate-800 uppercase leading-tight">{s.label}</span>
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName || 'CLIENT DIVERS'}</span>
                         </div>
                       </td>
@@ -206,9 +206,9 @@ function DailyCashReportContent() {
             </div>
           </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* DÉPENSES */}
-            <section className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+            {/* DÉPENSES (Larger - 3/5) */}
+            <section className="md:col-span-3 space-y-3">
               <h3 className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2 border-b border-slate-100 pb-2 tracking-[0.2em]">
                 <FileText className="h-4 w-4 text-destructive" />
                 Dépenses & Achats
@@ -218,15 +218,15 @@ function DailyCashReportContent() {
                 <table className="w-full text-[10px]">
                   <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                     <tr>
-                      <th className="p-2 text-left">Désignation</th>
-                      <th className="p-2 text-right">Montant</th>
+                      <th className="p-2.5 text-left">Désignation</th>
+                      <th className="p-2.5 text-right w-24">Montant</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="border-b border-slate-50 last:border-0">
-                        <td className="p-2 font-bold text-slate-700 uppercase leading-tight">{e.label}</td>
-                        <td className="p-2 text-right font-black text-destructive tabular-nums">-{formatCurrency(Math.abs(e.montant))}</td>
+                        <td className="p-2.5 font-bold text-slate-700 uppercase leading-tight">{e.label}</td>
+                        <td className="p-2.5 text-right font-black text-destructive tabular-nums">-{formatCurrency(Math.abs(e.montant))}</td>
                       </tr>
                     )) : (
                       <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic">Aucune dépense.</td></tr>
@@ -236,26 +236,26 @@ function DailyCashReportContent() {
               </div>
             </section>
 
-            {/* VERSEMENTS */}
-            <section className="space-y-3">
+            {/* VERSEMENTS (Smaller - 2/5) */}
+            <section className="md:col-span-2 space-y-3">
               <h3 className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2 border-b border-slate-100 pb-2 tracking-[0.2em]">
                 <Landmark className="h-4 w-4 text-orange-500" />
-                Versements en Banque
+                Versements
                 <span className="ml-auto text-orange-600 font-black">-{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
               </h3>
               <div className="rounded-xl border border-slate-100 overflow-hidden">
                 <table className="w-full text-[10px]">
                   <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                     <tr>
-                      <th className="p-2 text-left">Opération</th>
-                      <th className="p-2 text-right">Montant</th>
+                      <th className="p-2.5 text-left">Opération</th>
+                      <th className="p-2.5 text-right w-24">Montant</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                       <tr key={v.id} className="border-b border-slate-50 last:border-0">
-                        <td className="p-2 font-bold text-slate-700 uppercase">{v.label}</td>
-                        <td className="p-2 text-right font-black text-orange-600 tabular-nums">-{formatCurrency(Math.abs(v.montant))}</td>
+                        <td className="p-2.5 font-bold text-slate-700 uppercase leading-tight">{v.label}</td>
+                        <td className="p-2.5 text-right font-black text-orange-600 tabular-nums">-{formatCurrency(Math.abs(v.montant))}</td>
                       </tr>
                     )) : (
                       <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic">Aucun versement.</td></tr>
