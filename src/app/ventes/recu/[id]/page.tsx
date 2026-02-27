@@ -169,11 +169,6 @@ function ReceiptPrintContent() {
           </div>
         </div>
 
-        {/* Footer Moved Up */}
-        <div className="mt-2 pt-2 border-t border-slate-100 text-center">
-          <p className="text-[7px] font-black text-slate-300 uppercase tracking-[0.6em] italic leading-none">{shop.name} • SYSTÈME LIKE VISION</p>
-        </div>
-
         {/* Signature Area */}
         <div className="flex justify-between items-end mt-4">
           <div className="flex-1 pr-8">

@@ -231,13 +231,6 @@ function DailyCashReportContent() {
             </div>
           </div>
         </div>
-
-        {/* Footer - Discrete */}
-        <div className="mt-3 text-center border-t border-slate-50 pt-2">
-          <p className="text-[7px] text-slate-200 font-bold uppercase tracking-[0.4em] italic leading-none">
-            {shop.name} • Système Like Vision
-          </p>
-        </div>
       </div>
     </div>
   );
