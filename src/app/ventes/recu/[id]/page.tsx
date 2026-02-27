@@ -97,8 +97,8 @@ function ReceiptPrintContent() {
 
       {/* Prescription Table - Enlarge and centered */}
       <div className="mb-10">
-        <h3 className="text-[8px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
-        <table className="w-full text-[9px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-100">
+        <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
+        <table className="w-full text-[10px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-100">
           <thead>
             <tr className="bg-slate-100 text-slate-600">
               <th className="border border-slate-200 p-2 text-left w-[24%] uppercase tracking-widest">Oeil</th>
@@ -165,7 +165,7 @@ function ReceiptPrintContent() {
           </div>
           <div className="flex justify-between items-center pt-4 border-t-2 border-slate-900 bg-slate-950 text-white p-4 rounded-2xl mt-2 shadow-xl">
             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Reste à Régler</span>
-            <span className="text-2xl font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
+            <span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
           </div>
         </div>
 

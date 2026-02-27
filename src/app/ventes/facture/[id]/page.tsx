@@ -99,8 +99,8 @@ function InvoicePrintContent() {
 
       {/* Prescription Table - Enlarge and centered */}
       <div className="mb-12 flex-1">
-        <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
-        <table className="w-full text-[10px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-200">
+        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
+        <table className="w-full text-[11px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-200">
           <thead>
             <tr className="bg-slate-900 text-white">
               <th className="border border-slate-800 p-3 text-left w-[24%] uppercase tracking-widest">Oeil</th>
@@ -143,7 +143,7 @@ function InvoicePrintContent() {
           )}
           <div className="flex justify-between items-center pt-4 border-t-2 border-slate-900 bg-slate-950 text-white p-4 rounded-2xl mt-2 shadow-xl">
             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Total payé (Soldé)</span>
-            <span className="text-2xl font-black tracking-tighter tabular-nums">{formatCurrency(totalNet)}</span>
+            <span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(totalNet)}</span>
           </div>
         </div>
         
@@ -160,7 +160,7 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Footer & Space Reserved (3cm empty space at the very bottom) */}
+      {/* Footer & Space Reserved */}
       <div className="mt-10 pt-4 border-t border-slate-100 text-center">
          <p className="text-[7px] font-black text-slate-200 uppercase tracking-[0.6em] italic">{shop.name} • SYSTÈME LIKE VISION</p>
       </div>
