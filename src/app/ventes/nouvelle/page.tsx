@@ -60,7 +60,6 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
   
-  // NOUVEAU : État pour l'avance historique (déjà payé avant aujourd'hui)
   const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
   const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
   
@@ -150,9 +149,7 @@ function NewSaleForm() {
   const remiseAmountValue = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
   const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
   
-  // Calcul du reste avant le versement d'aujourd'hui
   const resteAvantVersement = Math.max(0, totalNetValue - nHistorical);
-  // Reste final après tout
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handlePrescriptionChange = (side: "OD" | "OG", field: string, value: string) => {
@@ -170,24 +167,6 @@ function NewSaleForm() {
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const currentUserName = user?.displayName || "Inconnu";
 
-    let clientRefToSync: any = null;
-    let isNewClient = false;
-    try {
-      const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1));
-      const clientSnapshot = await getDocs(clientQ);
-      if (clientSnapshot.empty) {
-        clientRefToSync = doc(collection(db, "clients"));
-        isNewClient = true;
-      } else {
-        clientRefToSync = clientSnapshot.docs[0].ref;
-      }
-    } catch (e) {
-      console.error("Erreur check client:", e);
-    }
-
-    const isPaid = resteAPayerValue <= 0;
-    const statut = isPaid ? "Payé" : ((nAvance + nHistorical) > 0 ? "Partiel" : "En attente");
-
     try {
       const result = await runTransaction(db, async (transaction) => {
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
@@ -203,10 +182,18 @@ function NewSaleForm() {
           }
         }
 
+        const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1));
+        const clientSnapshots = await getDocs(clientQ);
+        const clientExists = !clientSnapshots.empty;
+        const clientRefToSync = clientExists ? clientSnapshots.docs[0].ref : doc(collection(db, "clients"));
+
         let counters = { fc: 0, rc: 0 };
         if (counterSnap.exists()) {
           counters = counterSnap.data() as any;
         }
+
+        const isPaid = resteAPayerValue <= 0;
+        const statut = isPaid ? "Payé" : ((nAvance + nHistorical) > 0 ? "Partiel" : "En attente");
 
         let invoiceId = "";
         let needCounterUpdate = false;
@@ -231,27 +218,25 @@ function NewSaleForm() {
           }
         }
 
-        if (clientRefToSync) {
-          if (isNewClient) {
-            transaction.set(clientRefToSync, {
-              name: clientName,
-              phone: cleanPhone,
-              mutuelle: finalMutuelle || "Aucun",
-              lastVisit: new Date().toLocaleDateString("fr-FR"),
-              ordersCount: 1,
-              createdAt: serverTimestamp()
-            });
-          } else {
-            const updateObj: any = {
-              name: clientName,
-              mutuelle: finalMutuelle || "Aucun",
-              lastVisit: new Date().toLocaleDateString("fr-FR"),
-            };
-            if (!activeEditId) {
-              updateObj.ordersCount = increment(1);
-            }
-            transaction.update(clientRefToSync, updateObj);
+        if (!clientExists) {
+          transaction.set(clientRefToSync, {
+            name: clientName,
+            phone: cleanPhone,
+            mutuelle: finalMutuelle || "Aucun",
+            lastVisit: new Date().toLocaleDateString("fr-FR"),
+            ordersCount: 1,
+            createdAt: serverTimestamp()
+          });
+        } else {
+          const updateObj: any = {
+            name: clientName,
+            mutuelle: finalMutuelle || "Aucun",
+            lastVisit: new Date().toLocaleDateString("fr-FR"),
+          };
+          if (!activeEditId) {
+            updateObj.ordersCount = increment(1);
           }
+          transaction.update(clientRefToSync, updateObj);
         }
 
         if (needCounterUpdate) {
@@ -268,7 +253,7 @@ function NewSaleForm() {
           discountType,
           discountValue: nDiscount,
           remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
-          avance: nHistorical + nAvance, // Somme des deux pour le document
+          avance: nHistorical + nAvance,
           reste: resteAPayerValue,
           purchasePriceFrame: nPurchaseFrame,
           purchasePriceLenses: nPurchaseLenses,
@@ -305,7 +290,6 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // SEULE l'avance du jour est comptabilisée dans la caisse
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -412,16 +396,32 @@ function NewSaleForm() {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
-                  <Select onValueChange={setMutuelle} value={mutuelle}>
-                    <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Couverture / Mutuelle</Label>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex-1">
+                        <Select onValueChange={setMutuelle} value={mutuelle}>
+                          <SelectTrigger className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl">
+                            {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {mutuelle === "Autre" && (
+                        <div className="flex-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                          <Input 
+                            className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner" 
+                            placeholder="Saisir le nom de la mutuelle..." 
+                            value={customMutuelle} 
+                            onChange={(e) => setCustomMutuelle(e.target.value)} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -446,7 +446,6 @@ function NewSaleForm() {
                 <div className="space-y-4 pt-4 border-t border-white/10"><div className="flex justify-between items-center px-1"><Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label><Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7"><TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg"><TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger><TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger></TabsList></Tabs></div><div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm"><input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} /><span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span></div></div>
                 <div className="flex justify-between items-center bg-white/10 p-5 rounded-2xl border border-white/5"><Label className="text-[10px] font-black uppercase text-white tracking-widest">Net à payer</Label><span className="font-black text-xl text-white tracking-tighter">{formatCurrency(totalNetValue)}</span></div>
                 
-                {/* NOUVEAU : Champ Avance Historique */}
                 <div className="pt-4 border-t border-white/10 space-y-4">
                   <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
                     <div className="space-y-1">
