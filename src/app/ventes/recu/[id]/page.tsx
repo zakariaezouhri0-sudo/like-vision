@@ -76,7 +76,7 @@ function ReceiptPrintContent() {
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-white text-slate-950 border-2 border-slate-950 px-3 py-1.5 rounded-md inline-block mb-1.5">
+          <div className="bg-white text-slate-950 border border-slate-950 px-3 py-1.5 rounded-md inline-block mb-1.5">
             <h1 className="text-[9px] font-black uppercase tracking-[0.2em]">Reçu</h1>
           </div>
           <p className="text-[10px] font-black text-slate-900 leading-none">N°: {receiptNo}</p>
@@ -175,7 +175,7 @@ function ReceiptPrintContent() {
         <div className="flex justify-between items-end mt-4">
           <div className="flex-1 pr-8">
             <div className="border-l-4 border-primary/20 pl-4 py-3 bg-slate-50/50 rounded-r-2xl">
-              <p className="text-[9px] font-black text-primary/80 italic leading-tight">Merci de votre confiance.<br/>Votre vue est notre priorité absolue !</p>
+              <p className="text-[11px] font-black text-primary/80 italic leading-tight">Merci de votre confiance.<br/>Votre vue est notre priorité absolue !</p>
             </div>
           </div>
           <div className="w-48 h-24 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center relative bg-white overflow-hidden shrink-0 shadow-sm">
