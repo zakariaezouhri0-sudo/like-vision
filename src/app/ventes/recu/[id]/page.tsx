@@ -74,7 +74,7 @@ function ReceiptPrintContent() {
           </div>
         </div>
         <div className="text-right">
-          <div className="bg-slate-950 text-white px-3 py-1.5 rounded-md inline-block mb-1.5">
+          <div className="bg-white text-slate-950 border-2 border-slate-950 px-3 py-1.5 rounded-md inline-block mb-1.5">
             <h1 className="text-[9px] font-black uppercase tracking-[0.2em]">Reçu</h1>
           </div>
           <p className="text-[10px] font-black text-slate-900 leading-none">N°: {receiptNo}</p>
@@ -163,7 +163,7 @@ function ReceiptPrintContent() {
           <div className="flex justify-between text-[9px] text-green-600 font-black uppercase tracking-widest px-2">
             <span>Déjà payé :</span><span className="tabular-nums font-black">{formatCurrency(avance)}</span>
           </div>
-          <div className="flex justify-between items-center pt-4 border border-slate-300 bg-slate-100 text-slate-950 p-4 rounded-2xl mt-2">
+          <div className="flex justify-between items-center pt-4 border border-slate-300 bg-slate-50 text-slate-950 p-4 rounded-2xl mt-2">
             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Reste à Régler</span>
             <span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(reste)}</span>
           </div>
