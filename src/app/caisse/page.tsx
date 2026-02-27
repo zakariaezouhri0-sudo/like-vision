@@ -131,6 +131,7 @@ function CaisseContent() {
       await addDoc(collection(db, "transactions"), transData);
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
+      setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
@@ -140,8 +141,12 @@ function CaisseContent() {
     const transRef = doc(db, "transactions", editingTransaction.id);
     const finalAmount = editingTransaction.type === "VENTE" ? Math.abs(parseFloat(editingTransaction.montant_raw)) : -Math.abs(parseFloat(editingTransaction.montant_raw));
     try {
-      await updateDoc(transRef, { type: editingTransaction.type, label: editingTransaction.label, montant: finalAmount });
-      toast({ variant: "success", title: "Mis à jour" });
+      await updateDoc(transRef, { 
+        type: editingTransaction.type, 
+        label: editingTransaction.label, 
+        montant: finalAmount 
+      });
+      toast({ variant: "success", title: "Mis à jour avec succès" });
       setEditingTransaction(null);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
@@ -208,16 +213,55 @@ function CaisseContent() {
               <DialogContent className="max-w-md rounded-3xl">
                 <DialogHeader><DialogTitle className="font-black uppercase text-primary">Gestion des flux</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense</option><option value="VERSEMENT">Banque</option><option value="VENTE">Vente</option></select></div>
-                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Montant</Label><Input type="number" className="h-11 rounded-xl font-bold" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
+                    <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}>
+                      <option value="DEPENSE">Dépense (-)</option>
+                      <option value="VERSEMENT">Banque (-)</option>
+                      <option value="VENTE">Vente (+)</option>
+                    </select>
                   </div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé</Label><Input className="h-11 rounded-xl font-bold" value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé / Désignation</Label>
+                    <Input className="h-11 rounded-xl font-bold" placeholder="Ex: Frais transport, Achat papier..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
+                    <Input type="number" className="h-11 rounded-xl font-bold" placeholder="0.00" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
+                  </div>
                 </div>
-                <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
+                <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER L'OPÉRATION</Button></DialogFooter>
               </DialogContent>
             </Dialog>
           )}
+
+          <Dialog open={!!editingTransaction} onOpenChange={(o) => !o && setEditingTransaction(null)}>
+            <DialogContent className="max-w-md rounded-3xl">
+              <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier l'opération</DialogTitle></DialogHeader>
+              {editingTransaction && (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
+                    <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
+                      <option value="DEPENSE">Dépense (-)</option>
+                      <option value="VERSEMENT">Banque (-)</option>
+                      <option value="VENTE">Vente (+)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé</Label>
+                    <Input className="h-11 rounded-xl font-bold" value={editingTransaction.label} onChange={e => setEditingTransaction({...editingTransaction, label: e.target.value})} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
+                    <Input type="number" className="h-11 rounded-xl font-bold" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
+                  </div>
+                </div>
+              )}
+              <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER LES MODIFICATIONS</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog>
             <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 sm:flex-none"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
             <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
