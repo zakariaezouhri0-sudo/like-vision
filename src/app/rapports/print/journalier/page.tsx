@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -78,7 +79,7 @@ function DailyCashReportContent() {
 
       if (isWithinInterval(tDate, { start, end })) {
         if (t.type === "VENTE") salesList.push(t);
-        else if (t.type === "DEPENSE") expensesList.push(t);
+        else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") expensesList.push(t);
         else if (t.type === "VERSEMENT") versementsList.push(t);
       }
     });
@@ -243,6 +244,7 @@ function DailyCashReportContent() {
               <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[7px]">
                 <tr>
                   <th className="p-1.5 text-left">Libellé de la Charge</th>
+                  <th className="p-1.5 text-left">Client</th>
                   <th className="p-1.5 text-right">Montant</th>
                 </tr>
               </thead>
@@ -250,10 +252,11 @@ function DailyCashReportContent() {
                 {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                   <tr key={e.id} className="border-b border-slate-50">
                     <td className="p-1.5 font-bold text-slate-700">{e.label}</td>
+                    <td className="p-1.5 font-bold text-slate-700 uppercase">{e.clientName || '---'}</td>
                     <td className="p-1.5 text-right font-black text-destructive">{formatCurrency(e.montant)}</td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={2} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>
+                  <tr><td colSpan={3} className="p-3 text-center text-slate-300 italic">Aucune dépense enregistrée.</td></tr>
                 )}
               </tbody>
             </table>

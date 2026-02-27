@@ -95,7 +95,7 @@ function CaisseContent() {
     return transactions.reduce((acc: any, t: any) => {
       if (t.type === "VENTE") { acc.entrees += Math.abs(t.montant); } 
       else if (t.type === "VERSEMENT") { acc.versements += Math.abs(t.montant); } 
-      else if (t.type === "DEPENSE") { acc.depenses += Math.abs(t.montant); }
+      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") { acc.depenses += Math.abs(t.montant); }
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
@@ -217,6 +217,7 @@ function CaisseContent() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                     <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}>
                       <option value="DEPENSE">Dépense (-)</option>
+                      <option value="ACHAT VERRES">Achat Verres (-)</option>
                       <option value="VERSEMENT">Versement (-)</option>
                     </select>
                   </div>
@@ -253,6 +254,7 @@ function CaisseContent() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                     <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
                       <option value="DEPENSE">Dépense (-)</option>
+                      <option value="ACHAT VERRES">Achat Verres (-)</option>
                       <option value="VERSEMENT">Versement (-)</option>
                     </select>
                   </div>
