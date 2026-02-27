@@ -4,7 +4,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ArrowRightLeft, PiggyBank, Lock, FileText, Download } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ArrowRightLeft, PiggyBank, Lock, FileText, Download, TrendingUp, Landmark } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -60,7 +60,7 @@ function DailyCashReportContent() {
   };
 
   const reportData = useMemo(() => {
-    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, final: 0, netFlux: 0 };
+    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
 
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
@@ -85,15 +85,17 @@ function DailyCashReportContent() {
     const totalExpenses = expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
     const totalVersements = versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
     
-    const netFlux = totalSales - totalExpenses - totalVersements;
+    const fluxOp = totalSales - totalExpenses;
+    const final = initialBalance + fluxOp - totalVersements;
 
     return { 
       sales: salesList, 
       expenses: expensesList, 
       versements: versementsList, 
       initial: initialBalance, 
-      final: initialBalance + netFlux,
-      netFlux: netFlux
+      fluxOp: fluxOp,
+      totalVersements: totalVersements,
+      final: final
     };
   }, [transactions, selectedDate, session]);
 
@@ -160,29 +162,36 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           <div className="p-3 rounded-xl border border-slate-200 text-center bg-slate-100/50 shadow-sm">
-            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
-              <PiggyBank className="h-3 w-3" />
-              <p className="text-[7px] font-black uppercase tracking-widest">SOLDE INITIAL</p>
+            <div className="flex items-center justify-center gap-1 mb-1 opacity-40">
+              <PiggyBank className="h-2.5 w-2.5" />
+              <p className="text-[6px] font-black uppercase tracking-widest">SOLDE INITIAL</p>
             </div>
-            <p className="text-sm font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.initial)}</p>
+            <p className="text-xs font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.initial)}</p>
           </div>
           <div className="p-3 rounded-xl border border-primary/10 text-center bg-primary/5 shadow-sm">
-            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-40">
-              <ArrowRightLeft className="h-3 w-3 text-primary" />
-              <p className="text-[7px] font-black uppercase tracking-widest text-primary">Flux Net Jour</p>
+            <div className="flex items-center justify-center gap-1 mb-1 opacity-40">
+              <TrendingUp className="h-2.5 w-2.5 text-primary" />
+              <p className="text-[6px] font-black uppercase tracking-widest text-primary">Flux (Op)</p>
             </div>
-            <p className={cn("text-sm font-black tracking-tighter tabular-nums", reportData.netFlux >= 0 ? "text-green-600" : "text-destructive")}>
-              {reportData.netFlux > 0 ? "+" : ""}{formatCurrency(reportData.netFlux)}
+            <p className={cn("text-xs font-black tracking-tighter tabular-nums", reportData.fluxOp >= 0 ? "text-green-600" : "text-destructive")}>
+              {reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp)}
             </p>
           </div>
-          <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary/10 shadow-sm">
-            <div className="flex items-center justify-center gap-1.5 mb-1 opacity-60">
-              <Lock className="h-3 w-3 text-primary" />
-              <p className="text-[7px] font-black uppercase tracking-widest text-primary">Clôture</p>
+          <div className="p-3 rounded-xl border border-orange-100 text-center bg-orange-50/50 shadow-sm">
+            <div className="flex items-center justify-center gap-1 mb-1 opacity-40">
+              <Landmark className="h-2.5 w-2.5 text-orange-600" />
+              <p className="text-[6px] font-black uppercase tracking-widest text-orange-600">Versement</p>
             </div>
-            <p className="text-sm font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.final)}</p>
+            <p className="text-xs font-black text-orange-600 tracking-tighter tabular-nums">{formatCurrency(reportData.totalVersements)}</p>
+          </div>
+          <div className="p-3 rounded-xl border border-primary/20 text-center bg-primary/10 shadow-sm">
+            <div className="flex items-center justify-center gap-1 mb-1 opacity-60">
+              <Lock className="h-2.5 w-2.5 text-primary" />
+              <p className="text-[6px] font-black uppercase tracking-widest text-primary">Solde Final</p>
+            </div>
+            <p className="text-xs font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(reportData.final)}</p>
           </div>
         </div>
 
