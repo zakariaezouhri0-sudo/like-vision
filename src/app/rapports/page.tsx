@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -74,8 +73,11 @@ export default function ReportsPage() {
       return t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start: from, end: to });
     });
 
-    // CA Net = Somme des montants RÉELLEMENT encaissés (avances)
-    const ca = filteredSales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
+    // CA Net = Argent RÉELLEMENT encaissé (Somme des transactions de type VENTE sur la période)
+    // C'est ce qui exclut les "Déjà Versés (Ancien)" déclaratifs.
+    const ca = filteredTrans
+      .filter(t => t.type === "VENTE")
+      .reduce((acc, t) => acc + (Number(t.montant) || 0), 0);
     
     // Marge Brute = (Volume facturé - Coûts d'achat)
     const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);

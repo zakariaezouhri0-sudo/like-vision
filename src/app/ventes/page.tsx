@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -170,59 +170,72 @@ export default function SalesHistoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSales.map((sale: any) => (
-                      <TableRow key={sale.id} className="hover:bg-primary/5 transition-all">
-                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <CalendarIcon className="h-3 w-3 text-primary/40" />
-                              <span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span>
+                    {filteredSales.map((sale: any) => {
+                      const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note === "Avance antérieure") || [];
+                      const historicalAmount = historicalPayments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+                      const currentAmount = Math.max(0, (sale.avance || 0) - historicalAmount);
+
+                      return (
+                        <TableRow key={sale.id} className="hover:bg-primary/5 transition-all">
+                          <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <CalendarIcon className="h-3 w-3 text-primary/40" />
+                                <span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3 w-3 text-primary/40" />
+                                <span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                              </div>
                             </div>
+                          </TableCell>
+                          <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3 text-primary/40" />
-                              <span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                              <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
+                              <span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
-                            <span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]">
-                          <div className="flex flex-col">
-                            <span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span>
-                            <span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                          <span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                          <span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                          <span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>
-                        </TableCell>
-                        <TableCell className="text-center px-4 md:px-8 py-5">
-                          <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5">
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl min-w-[180px]">
-                              <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: (sale.purchasePriceFrame || 0).toString(), lenses: (sale.purchasePriceLenses || 0).toString(), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
-                              {isAdminOrPrepa && (
-                                <><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
-                                <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "sales", sale.id)) }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem></>
+                          </TableCell>
+                          <TableCell className="px-4 md:px-8 py-5 min-w-[150px]">
+                            <div className="flex flex-col">
+                              <span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span>
+                              <span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                            <span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
+                          </TableCell>
+                          <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                            <div className="flex flex-col items-end">
+                              <span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(currentAmount)}</span>
+                              {historicalAmount > 0 && (
+                                <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                  <HistoryIcon className="h-2 w-2" /> {formatCurrency(historicalAmount)}
+                                </span>
                               )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                            <span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>
+                          </TableCell>
+                          <TableCell className="text-center px-4 md:px-8 py-5">
+                            <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right px-4 md:px-8 py-5">
+                            <DropdownMenu modal={false}>
+                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl min-w-[180px]">
+                                <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: (sale.purchasePriceFrame || 0).toString(), lenses: (sale.purchasePriceLenses || 0).toString(), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
+                                {isAdminOrPrepa && (
+                                  <><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "sales", sale.id)) }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem></>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
