@@ -29,7 +29,9 @@ function InvoicePrintContent() {
 
   const clientName = searchParams.get("client") || "Client";
   const clientPhone = searchParams.get("phone") || "---";
-  const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
+  const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
+  const dateDisplay = rawDate.includes(" ") ? rawDate.replace(" ", " à ") : rawDate;
+  
   const invoiceNo = params.id as string || "OPT-2024-XXX";
   const mutuelle = searchParams.get("mutuelle") || "Aucune";
   const total = Number(searchParams.get("total")) || 0;
@@ -76,7 +78,7 @@ function InvoicePrintContent() {
             <h1 className="text-[10px] font-black uppercase tracking-[0.2em]">Facture</h1>
           </div>
           <p className="text-[11px] font-black text-slate-900 leading-none">N°: {invoiceNo}</p>
-          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5">Date: {date}</p>
+          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5">Date: {dateDisplay}</p>
         </div>
       </div>
 
@@ -98,7 +100,7 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Enlarge and centered */}
+      {/* Prescription Table - Centered */}
       <div className="mb-12 flex-1">
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
         <table className="w-full text-[11px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-200">
@@ -161,7 +163,7 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Target Margin: 3cm empty space at the very bottom */}
+      {/* Footer Margin: 3cm empty space at the bottom */}
       <div className="h-[30mm] w-full shrink-0"></div>
     </div>
   );

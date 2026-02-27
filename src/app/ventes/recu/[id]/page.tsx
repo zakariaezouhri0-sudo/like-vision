@@ -32,7 +32,9 @@ function ReceiptPrintContent() {
 
   const clientName = searchParams.get("client") || saleData?.clientName || "Client";
   const clientPhone = searchParams.get("phone") || saleData?.clientPhone || "---";
-  const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
+  const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
+  const dateDisplay = rawDate.includes(" ") ? rawDate.replace(" ", " à ") : rawDate;
+  
   const receiptNo = params.id as string;
   const total = Number(searchParams.get("total")) || saleData?.total || 0;
   const remise = Number(searchParams.get("remise")) || saleData?.remise || 0;
@@ -78,7 +80,7 @@ function ReceiptPrintContent() {
             <h1 className="text-[9px] font-black uppercase tracking-[0.2em]">Reçu</h1>
           </div>
           <p className="text-[10px] font-black text-slate-900 leading-none">N°: {receiptNo}</p>
-          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5">Date: {date}</p>
+          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5">Date: {dateDisplay}</p>
         </div>
       </div>
 
@@ -95,7 +97,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Enlarge and centered */}
+      {/* Prescription Table - Centered */}
       <div className="mb-10">
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
         <table className="w-full text-[10px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-100">
@@ -139,14 +141,14 @@ function ReceiptPrintContent() {
               saleData.payments.map((p: any, i: number) => (
                 <tr key={i} className="border-b border-slate-50">
                   <td className="p-2 font-bold text-slate-600">
-                    {p.date ? (typeof p.date === 'string' ? new Date(p.date).toLocaleDateString("fr-FR") : p.date.toDate().toLocaleDateString("fr-FR")) : date}
+                    {p.date ? (typeof p.date === 'string' ? p.date.includes(" ") ? p.date.replace(" ", " à ") : p.date : p.date.toDate().toLocaleString("fr-FR", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ')) : dateDisplay}
                   </td>
                   <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                 </tr>
               ))
             ) : (
               <tr className="border-b border-slate-50">
-                <td className="p-2 font-bold text-slate-600">{date}</td>
+                <td className="p-2 font-bold text-slate-600">{dateDisplay}</td>
                 <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(avance)}</td>
               </tr>
             )}
@@ -182,7 +184,7 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Target Margin: 3cm empty space at the bottom */}
+      {/* Footer Margin: 3cm empty space at the bottom */}
       <div className="h-[30mm] w-full shrink-0"></div>
     </div>
   );

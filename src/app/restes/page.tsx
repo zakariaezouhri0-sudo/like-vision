@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -125,6 +124,7 @@ export default function UnpaidSalesPage() {
       }).then((res) => {
         toast({ variant: "success", title: "Paiement validé", description: `Document ${res.finalInvoiceId}` });
         const page = res.isFullyPaid ? 'facture' : 'recu';
+        const now = new Date();
         const params = new URLSearchParams({ 
           client: res.currentData.clientName, 
           phone: res.currentData.clientPhone, 
@@ -136,12 +136,14 @@ export default function UnpaidSalesPage() {
           od_sph: res.currentData.prescription?.od?.sph || "", 
           od_cyl: res.currentData.prescription?.od?.cyl || "", 
           od_axe: res.currentData.prescription?.od?.axe || "", 
+          od_add: res.currentData.prescription?.od?.add || "",
           og_sph: res.currentData.prescription?.og?.sph || "", 
           og_cyl: res.currentData.prescription?.og?.cyl || "", 
           og_axe: res.currentData.prescription?.og?.axe || "", 
+          og_add: res.currentData.prescription?.og?.add || "",
           monture: res.currentData.monture || "", 
           verres: res.currentData.verres || "", 
-          date: new Date().toLocaleDateString("fr-FR") 
+          date: format(now, "dd/MM/yyyy HH:mm")
         });
         router.push(`/ventes/${page}/${res.finalInvoiceId}?${params.toString()}`);
       });

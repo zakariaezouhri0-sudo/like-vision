@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -283,7 +282,7 @@ function NewSaleForm() {
       og_add: res.prescription.og.add,
       monture: res.monture, 
       verres: res.verres, 
-      date: saleDate.toLocaleDateString("fr-FR") 
+      date: format(saleDate, "dd/MM/yyyy") + " " + format(new Date(), "HH:mm")
     });
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };

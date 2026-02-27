@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -88,7 +87,7 @@ export default function SalesHistoryPage() {
       og_add: sale.prescription?.og?.add || "",
       monture: sale.monture || "", 
       verres: sale.verres || "", 
-      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : new Date().toLocaleDateString("fr-FR") 
+      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy HH:mm") : format(new Date(), "dd/MM/yyyy HH:mm")
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
