@@ -49,7 +49,6 @@ function CaisseContent() {
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
     if (dateParam) {
-      // Use parseISO to avoid timezone issues with yyyy-MM-dd
       const d = new Date(dateParam);
       return isNaN(d.getTime()) ? new Date() : d;
     }
@@ -81,8 +80,6 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    // If we are looking at a specific past date, show all transactions for that date
-    // Filtering by draft/non-draft based on role
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : !t.isDraft);
   }, [rawTransactions, isPrepaMode]);
 
@@ -167,7 +164,6 @@ function CaisseContent() {
 
   if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
-  // Case: Session is missing and it's NOT today (no data for this past day)
   if (!session && !isToday) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -183,7 +179,6 @@ function CaisseContent() {
     );
   }
 
-  // Case: Session is missing and it's today (ready to open)
   if (!session && isToday) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
@@ -229,7 +224,7 @@ function CaisseContent() {
         <div className="flex items-center gap-4">
           <div className={cn(
             "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
-            isClosed ? "bg-slate-900 text-white" : "bg-green-100 text-green-600"
+            isClosed ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
           )}>
             {isClosed ? <Lock className="h-6 w-6" /> : <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />}
           </div>
@@ -320,23 +315,23 @@ function CaisseContent() {
       </div>
 
       {isClosed && (
-        <div className="bg-slate-900 text-white p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border-b-8 border-slate-800">
+        <div className="bg-red-50 text-red-900 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border border-red-100 border-b-8 border-b-red-200">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center"><Lock className="h-6 w-6 text-white/60" /></div>
+            <div className="h-12 w-12 bg-red-100 rounded-2xl flex items-center justify-center"><Lock className="h-6 w-6 text-red-600" /></div>
             <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40">Statut de Session</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400">Statut de Session</p>
               <h3 className="text-lg font-black uppercase tracking-tight">Caisse Clôturée le {session.closedAt?.toDate ? format(session.closedAt.toDate(), "dd/MM/yyyy à HH:mm") : "--/--"}</h3>
             </div>
           </div>
           <div className="flex items-center gap-8">
             <div className="text-center md:text-right">
-              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">Responsable</p>
-              <p className="text-sm font-black uppercase">{session.closedBy || "---"}</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Responsable</p>
+              <p className="text-sm font-black uppercase text-red-900">{session.closedBy || "---"}</p>
             </div>
             {(role === 'ADMIN' || role === 'PREPA') && (
-              <div className="text-center md:text-right border-l border-white/10 pl-8">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">Écart Final</p>
-                <p className={cn("text-xl font-black tabular-nums", session.discrepancy >= 0 ? "text-green-400" : "text-red-400")}>
+              <div className="text-center md:text-right border-l border-red-200 pl-8">
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Écart Final</p>
+                <p className={cn("text-xl font-black tabular-nums", session.discrepancy >= 0 ? "text-green-600" : "text-red-600")}>
                   {formatCurrency(session.discrepancy)}
                 </p>
               </div>
