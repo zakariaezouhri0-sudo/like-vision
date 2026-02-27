@@ -74,15 +74,25 @@ export default function ReportsPage() {
       return t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start: from, end: to });
     });
 
-    // Use Number() for robust math
-    const ca = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+    // CA Net = Somme des montants RÉELLEMENT encaissés (avances)
+    const ca = filteredSales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
+    
+    // Marge Brute = (Volume facturé - Coûts d'achat)
+    const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0), 0);
+    
     const expenses = filteredTrans.filter(t => t.type === "DEPENSE" || t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     return {
-      ca, marge: ca - costs, expenses, versements, count: filteredSales.length,
-      filteredSales, filteredTrans
+      ca, 
+      volumeFacture,
+      marge: volumeFacture - costs, 
+      expenses, 
+      versements, 
+      count: filteredSales.length,
+      filteredSales, 
+      filteredTrans
     };
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
 
@@ -173,7 +183,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-primary text-primary-foreground border-none shadow-lg p-6 rounded-[32px] relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-[0.2em]">CA Net {isPrepaMode ? "(Mode PREPA)" : ""}</p>
+              <p className="text-[9px] uppercase font-black opacity-60 mb-2 tracking-[0.2em]">Total Encaissé {isPrepaMode ? "(Mode PREPA)" : ""}</p>
               <p className="text-2xl font-black tracking-tight tabular-nums">{formatCurrency(stats.ca)}</p>
             </div>
             <div className="absolute -right-4 -bottom-4 opacity-5 transform rotate-12 group-hover:scale-110 transition-transform duration-500">
@@ -200,7 +210,7 @@ export default function ReportsPage() {
           </Card>
           <Card className="bg-white border-none shadow-lg p-6 rounded-[32px] border-l-8 border-l-green-500 relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-[9px] uppercase font-black text-muted-foreground mb-2 tracking-[0.2em]">Solde Période {isPrepaMode ? "(Brouillon)" : ""}</p>
+              <p className="text-[9px] uppercase font-black text-muted-foreground mb-2 tracking-[0.2em]">Net Période {isPrepaMode ? "(Brouillon)" : ""}</p>
               <p className="text-2xl font-black text-green-600 tracking-tight tabular-nums">{formatCurrency(stats.ca - stats.expenses - stats.versements)}</p>
             </div>
             <div className="absolute -right-4 -bottom-4 opacity-5 transform -rotate-12 group-hover:scale-110 transition-transform duration-500">

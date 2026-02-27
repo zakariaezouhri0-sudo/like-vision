@@ -85,13 +85,13 @@ export default function DashboardPage() {
     return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : !s.isDraft);
   }, [rawSales, isPrepaMode]);
 
-  // Statistics Calculation - Robust with Number conversion
+  // Statistics Calculation - Focusing on collected cash
   const stats = useMemo(() => {
     if (!allSales) return { ca: 0, count: 0, reste: 0, volume: 0, newClients: allClients?.length || 0 };
     
-    // CA = Somme des avances (argent réel encaissé)
+    // CA = Somme des avances (argent réel encaissé) - C'est ce que l'utilisateur veut voir
     const ca = allSales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
-    // Volume = Somme des totaux nets (valeur totale des ventes)
+    // Volume = Valeur totale des factures signées (Total - Remise)
     const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     // Reste = Somme des restes à payer
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     };
   }, [allSales, allClients]);
 
-  // Weekly Chart Data - Based on daily collections
+  // Weekly Chart Data - Based on daily collections (avances)
   const weeklyData = useMemo(() => {
     if (!allSales) return [];
     const now = new Date();
@@ -118,11 +118,11 @@ export default function DashboardPage() {
         if (!s.createdAt?.toDate) return false;
         return isSameDay(s.createdAt.toDate(), day);
       });
-      // On affiche les encaissements par jour
-      const total = daySales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
+      // On affiche les encaissements réels par jour
+      const totalAvance = daySales.reduce((acc, s) => acc + (Number(s.avance) || 0), 0);
       return {
         name: format(day, "EEE", { locale: fr }),
-        total: total
+        total: totalAvance
       };
     });
   }, [allSales]);
