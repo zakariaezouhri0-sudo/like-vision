@@ -36,6 +36,7 @@ function CaisseContent() {
   const [isClientReady, setIsHydrated] = useState(false);
   const [todayId, setTodayId] = useState("");
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [openingVal, setOpeningVal] = useState("0");
 
   useEffect(() => {
     setIsHydrated(true);
@@ -192,7 +193,6 @@ function CaisseContent() {
   }
 
   if (!session && isToday) {
-    const [openingVal, setOpeningVal] = useState("0");
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
         <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
