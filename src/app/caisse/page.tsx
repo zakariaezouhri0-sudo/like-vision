@@ -217,8 +217,7 @@ function CaisseContent() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                     <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}>
                       <option value="DEPENSE">Dépense (-)</option>
-                      <option value="VERSEMENT">Banque (-)</option>
-                      <option value="VENTE">Vente (+)</option>
+                      <option value="VERSEMENT">Versement (-)</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
@@ -254,8 +253,7 @@ function CaisseContent() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                     <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
                       <option value="DEPENSE">Dépense (-)</option>
-                      <option value="VERSEMENT">Banque (-)</option>
-                      <option value="VENTE">Vente (+)</option>
+                      <option value="VERSEMENT">Versement (-)</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
