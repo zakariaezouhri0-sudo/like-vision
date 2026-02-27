@@ -9,7 +9,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
-import { format, startOfDay, endOfDay, isBefore, isWithinInterval } from "date-fns";
+import { format, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function DailyCashReportContent() {
@@ -32,17 +32,21 @@ function DailyCashReportContent() {
     setPrintTime(format(now, "HH:mm"));
     setGenerationTimestamp(now.toLocaleString("fr-FR"));
     
-    // Définir le titre du document pour que le nom du fichier PDF soit correct lors du téléchargement
     const dateStr = format(selectedDate, "dd-MM-yyyy");
     document.title = `Like Vision - ${dateStr}`;
 
     return () => {
-      document.title = "Like Vision"; // Réinitialiser en quittant la page
+      document.title = "Like Vision";
     };
   }, [selectedDate]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
+
+  // Récupération de la session de caisse pour le solde d'ouverture
+  const sessionDocId = format(selectedDate, "yyyy-MM-dd");
+  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
   const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "asc")), [db]);
   const { data: transactions, isLoading: transLoading } = useCollection(transQuery);
@@ -61,7 +65,9 @@ function DailyCashReportContent() {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
 
-    let initialBalance = 0;
+    // Utilisation du solde d'ouverture de la session
+    const initialBalance = session?.openingBalance || 0;
+    
     const salesList: any[] = [];
     const expensesList: any[] = [];
     const versementsList: any[] = [];
@@ -70,9 +76,7 @@ function DailyCashReportContent() {
       const tDate = t.createdAt?.toDate ? t.createdAt.toDate() : null;
       if (!tDate) return;
 
-      if (isBefore(tDate, start)) {
-        initialBalance += (t.montant || 0);
-      } else if (isWithinInterval(tDate, { start, end })) {
+      if (isWithinInterval(tDate, { start, end })) {
         if (t.type === "VENTE") salesList.push(t);
         else if (t.type === "DEPENSE") expensesList.push(t);
         else if (t.type === "VERSEMENT") versementsList.push(t);
@@ -93,9 +97,9 @@ function DailyCashReportContent() {
       final: initialBalance + netFlux,
       netFlux: netFlux
     };
-  }, [transactions, selectedDate]);
+  }, [transactions, selectedDate, session]);
 
-  if (settingsLoading || transLoading) {
+  if (settingsLoading || transLoading || sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
