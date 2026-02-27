@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon } from "lucide-react";
+import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon, History, Wallet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -38,7 +38,7 @@ export default function ImportPage() {
   const [mapping, setMapping] = useState<Mapping>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [importType, setImportType] = useState<"sales" | "clients" | "transactions">("sales");
+  const [importType, setImportType] = useState<"sales" | "transactions" | "clients">("sales");
 
   const SALES_FIELDS = [
     { key: "invoiceId", label: "N° Facture (Optionnel)" },
@@ -53,29 +53,29 @@ export default function ImportPage() {
     { key: "purchasePriceLenses", label: "Coût Verres (Achat)" }
   ];
 
+  const TRANSACTIONS_FIELDS = [
+    { key: "type", label: "Type (DEPENSE / ACHAT VERRES / VERSEMENT)" },
+    { key: "label", label: "Libellé / Désignation" },
+    { key: "montant", label: "Montant" },
+    { key: "createdAt", label: "Date" },
+    { key: "category", label: "Catégorie (Optionnel)" }
+  ];
+
   const CLIENTS_FIELDS = [
     { key: "name", label: "Nom Complet" },
     { key: "phone", label: "Téléphone" },
     { key: "mutuelle", label: "Mutuelle" }
   ];
 
-  const TRANSACTIONS_FIELDS = [
-    { key: "type", label: "Type (VENTE/DEPENSE/VERSEMENT)" },
-    { key: "label", label: "Libellé / Description" },
-    { key: "montant", label: "Montant" },
-    { key: "createdAt", label: "Date" },
-    { key: "category", label: "Catégorie (Optionnel)" }
-  ];
-
-  const currentFields = importType === "sales" ? SALES_FIELDS : (importType === "clients" ? CLIENTS_FIELDS : TRANSACTIONS_FIELDS);
+  const currentFields = importType === "sales" ? SALES_FIELDS : (importType === "transactions" ? TRANSACTIONS_FIELDS : CLIENTS_FIELDS);
 
   const downloadTemplate = () => {
     const sampleRow = currentFields.reduce((acc, f) => ({ ...acc, [f.label]: "" }), {});
     
     if (importType === "sales") {
       Object.assign(sampleRow, {
-        "N° Facture (Optionnel)": "Laissez vide pour auto-génération",
-        "Nom Client": "Ex: Mohamed Alami",
+        "N° Facture (Optionnel)": "Laisser vide pour auto-génération FH/RH",
+        "Nom Client": "M. Mohamed Alami",
         "Téléphone": "0600112233",
         "Total Brut": "1500",
         "Avance Payée (Entre en CA)": "500",
@@ -87,11 +87,17 @@ export default function ImportPage() {
       });
     } else if (importType === "transactions") {
       Object.assign(sampleRow, {
-        "Type (VENTE/DEPENSE/VERSEMENT)": "DEPENSE",
-        "Libellé / Description": "Ex: Loyer Janvier",
+        "Type (DEPENSE / ACHAT VERRES / VERSEMENT)": "DEPENSE",
+        "Libellé / Désignation": "Loyer Janvier",
         "Montant": "3000",
         "Date": "05/01/2024",
         "Catégorie": "Charges"
+      });
+    } else {
+      Object.assign(sampleRow, {
+        "Nom Complet": "Client Test",
+        "Téléphone": "0600000000",
+        "Mutuelle": "FAR"
       });
     }
 
@@ -140,21 +146,23 @@ export default function ImportPage() {
     const role = localStorage.getItem('user_role');
     const isDraft = role === 'PREPA';
 
-    // Récupération des compteurs actuels pour FH et RH
     let fhCounter = 0;
     let rhCounter = 0;
 
+    // Récupérer les compteurs actuels pour continuer la suite
     try {
-      const qFH = query(collection(db, "sales"), where("invoiceId", ">=", "FH-2026-"), where("invoiceId", "<=", "FH-2026-\uf8ff"));
-      const snapFH = await getDocs(qFH);
-      fhCounter = snapFH.size;
-
-      const qRH = query(collection(db, "sales"), where("invoiceId", ">=", "RH-2026-"), where("invoiceId", "<=", "RH-2026-\uf8ff"));
-      const snapRH = await getDocs(qRH);
-      rhCounter = snapRH.size;
-    } catch (e) {
-      console.error("Erreur compteurs", e);
-    }
+      const qAllSales = await getDocs(collection(db, "sales"));
+      qAllSales.forEach(doc => {
+        const id = doc.data().invoiceId || "";
+        if (id.startsWith("FH-2026-")) {
+          const num = parseInt(id.split("-")[2]);
+          if (num > fhCounter) fhCounter = num;
+        } else if (id.startsWith("RH-2026-")) {
+          const num = parseInt(id.split("-")[2]);
+          if (num > rhCounter) rhCounter = num;
+        }
+      });
+    } catch (e) { console.error(e); }
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -172,8 +180,7 @@ export default function ImportPage() {
           const isPaid = totalAvanceCumulee >= total;
           let invoiceId = row[mapping.invoiceId]?.toString();
 
-          // Génération automatique si vide ou si format FH/RH demandé
-          if (!invoiceId || invoiceId.includes("Laissez vide")) {
+          if (!invoiceId || invoiceId === "" || invoiceId.includes("Laisser vide")) {
             if (isPaid) {
               fhCounter++;
               invoiceId = `FH-2026-${fhCounter.toString().padStart(4, '0')}`;
@@ -287,20 +294,35 @@ export default function ImportPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground">Type d'import</Label>
-                  <Select value={importType} onValueChange={(v: any) => { setImportType(v); setMapping({}); setData([]); setFile(null); }}>
-                    <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="sales" className="font-bold">Historique de Ventes</SelectItem>
-                      <SelectItem value="transactions" className="font-bold">Caisse (Dépenses/Flux)</SelectItem>
-                      <SelectItem value="clients" className="font-bold">Fichier Clients</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button 
+                      variant={importType === 'sales' ? 'default' : 'outline'} 
+                      onClick={() => { setImportType('sales'); setMapping({}); setData([]); setFile(null); }}
+                      className="h-14 rounded-2xl font-black text-[10px] uppercase justify-start px-6"
+                    >
+                      <History className="mr-3 h-5 w-5" /> Historique de Ventes
+                    </Button>
+                    <Button 
+                      variant={importType === 'transactions' ? 'default' : 'outline'} 
+                      onClick={() => { setImportType('transactions'); setMapping({}); setData([]); setFile(null); }}
+                      className="h-14 rounded-2xl font-black text-[10px] uppercase justify-start px-6"
+                    >
+                      <Wallet className="mr-3 h-5 w-5" /> Journal de Caisse
+                    </Button>
+                    <Button 
+                      variant={importType === 'clients' ? 'default' : 'outline'} 
+                      onClick={() => { setImportType('clients'); setMapping({}); setData([]); setFile(null); }}
+                      className="h-14 rounded-2xl font-black text-[10px] uppercase justify-start px-6"
+                    >
+                      <TableIcon className="mr-3 h-5 w-5" /> Fichier Clients
+                    </Button>
+                  </div>
                 </div>
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-4">
                   <div className="flex items-start gap-3">
                     <Info className="h-4 w-4 text-blue-600 mt-0.5" />
                     <div className="space-y-1">
-                      <p className="text-[9px] font-black text-blue-900 uppercase">Colonnes requises :</p>
+                      <p className="text-[9px] font-black text-blue-900 uppercase">Colonnes attendues :</p>
                       <ul className="text-[8px] font-bold text-blue-700/70 space-y-1">
                         {currentFields.map(f => <li key={f.key}>• {f.label}</li>)}
                       </ul>
