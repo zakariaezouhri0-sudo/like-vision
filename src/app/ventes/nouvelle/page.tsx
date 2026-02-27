@@ -182,7 +182,57 @@ function NewSaleForm() {
 
     try {
       const result = await runTransaction(db, async (transaction) => {
-        // --- GESTION DU CLIENT AUTOMATIQUE ---
+        // --- 1. TOUTES LES LECTURES (READS) EN PREMIER ---
+        
+        // Lecture du compteur
+        const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
+        const counterRef = doc(db, "settings", counterDocPath);
+        const counterSnap = await transaction.get(counterRef);
+        
+        // Lecture de la vente existante si modification
+        let existingSaleData = null;
+        const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
+        if (activeEditId) {
+          const currentSaleSnap = await transaction.get(saleRef);
+          if (currentSaleSnap.exists()) {
+            existingSaleData = currentSaleSnap.data();
+          }
+        }
+
+        // --- 2. LOGIQUE ET CALCULS ---
+        
+        let counters = { fc: 0, rc: 0 };
+        if (counterSnap.exists()) {
+          counters = counterSnap.data() as any;
+        }
+
+        let invoiceId = "";
+        let needCounterUpdate = false;
+
+        if (!activeEditId) {
+          needCounterUpdate = true;
+          const prefix = isPrepaMode ? "PREPA-" : "";
+          if (isPaid) {
+            counters.fc += 1;
+            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+          } else {
+            counters.rc += 1;
+            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`;
+          }
+        } else if (existingSaleData) {
+          invoiceId = existingSaleData.invoiceId;
+          const prefix = isPrepaMode ? "PREPA-" : "";
+          // Si une commande en attente (RC) devient totalement payée (FC) lors de la modification
+          if (invoiceId.includes("RC") && isPaid) {
+            needCounterUpdate = true;
+            counters.fc += 1;
+            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+          }
+        }
+
+        // --- 3. TOUTES LES ÉCRITURES (WRITES) ---
+
+        // Mise à jour du client
         if (clientRefToSync) {
           if (isNewClient) {
             transaction.set(clientRefToSync, {
@@ -206,43 +256,12 @@ function NewSaleForm() {
           }
         }
 
-        // --- GESTION DES COMPTEURS FACTURE ---
-        const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
-        const counterRef = doc(db, "settings", counterDocPath);
-        const counterSnap = await transaction.get(counterRef);
-        let counters = { fc: 0, rc: 0 };
-        if (counterSnap.exists()) {
-          counters = counterSnap.data() as any;
-        }
-
-        let invoiceId = "";
-        const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
-
-        if (!activeEditId) {
-          const prefix = isPrepaMode ? "PREPA-" : "";
-          if (isPaid) {
-            counters.fc += 1;
-            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
-          } else {
-            counters.rc += 1;
-            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`;
-          }
+        // Mise à jour du compteur si nécessaire
+        if (needCounterUpdate) {
           transaction.set(counterRef, counters, { merge: true });
-        } else {
-          const currentSaleSnap = await transaction.get(saleRef);
-          if (currentSaleSnap.exists()) {
-            const currentData = currentSaleSnap.data();
-            invoiceId = currentData.invoiceId;
-            const prefix = isPrepaMode ? "PREPA-" : "";
-            // Si une commande en attente (RC) devient totalement payée (FC)
-            if (invoiceId.includes("RC") && isPaid) {
-              counters.fc += 1;
-              invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`;
-              transaction.set(counterRef, counters, { merge: true });
-            }
-          }
         }
 
+        // Préparation des données de la vente
         const saleData: any = {
           invoiceId,
           clientName,
@@ -272,6 +291,7 @@ function NewSaleForm() {
           saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: saleDate.toISOString(), userName: currentUserName }] : [];
         }
 
+        // Écriture de la vente
         transaction.set(saleRef, saleData, { merge: true });
 
         // Ajouter transaction de caisse si acompte lors de la création initiale
