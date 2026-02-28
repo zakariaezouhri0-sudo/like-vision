@@ -108,14 +108,19 @@ export default function DashboardPage() {
     const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
+    // CORRECTION CRITIQUE : Filtrage des clients pour le compteur dashboard
+    const filteredClientsCount = (allClients || []).filter((c: any) => 
+      isPrepaMode ? c.isDraft === true : (c.isDraft !== true)
+    ).length;
+
     return {
       ca,
       volume,
       count: allSales.length,
       reste,
-      newClients: allClients?.length || 0
+      newClients: filteredClientsCount
     };
-  }, [allSales, allTransactions, allClients]);
+  }, [allSales, allTransactions, allClients, isPrepaMode]);
 
   const weeklyData = useMemo(() => {
     const now = new Date();
@@ -244,7 +249,7 @@ export default function DashboardPage() {
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500">
           <Users className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Fichier Clients</p>
+          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}</p>
           <p className="text-3xl md:text-4xl font-black text-green-600 tracking-tighter">{stats.newClients}</p>
         </Card>
       </div>
