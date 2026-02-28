@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -8,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon, History, Wallet, CalendarDays, Zap } from "lucide-react";
+import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, writeBatch, query, getDocs, where, limit, increment } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, setDoc, query, getDocs, where, limit, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
@@ -182,23 +183,29 @@ export default function ImportPage() {
 
             if (currentAvance > 0) {
               await addDoc(collection(db, "transactions"), {
-                type: "VENTE", label: `Vente - ${clientName}`, montant: currentAvance,
-                isDraft, createdAt: openTime, userName, relatedId: invoiceId
+                type: "VENTE", 
+                label: `VENTE ${invoiceId}`, 
+                clientName: clientName,
+                montant: currentAvance,
+                isDraft, 
+                createdAt: openTime, 
+                userName, 
+                relatedId: invoiceId
               });
               daySalesTotal += currentAvance;
             }
           }
 
-          // GESTION DES CHARGES
-          const expenseLabel = row[mapping.label];
+          // GESTION DES CHARGES (Correction : Assouplissement de la condition)
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
-          const expenseSupplier = row[mapping.supplierName];
+          const labelRaw = row[mapping.label];
+          const supplierRaw = row[mapping.supplierName];
           const expenseCategory = row[mapping.category];
 
-          if (expenseLabel && expenseAmount > 0) {
-            let finalLabel = expenseLabel.toString().trim();
-            if (expenseSupplier) {
-              finalLabel += ` - ${expenseSupplier.toString().trim()}`;
+          if (expenseAmount > 0 && (labelRaw || supplierRaw)) {
+            let finalLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Dépense Importée");
+            if (labelRaw && supplierRaw) {
+              finalLabel += ` - ${supplierRaw.toString().trim()}`;
             }
 
             await addDoc(collection(db, "transactions"), {

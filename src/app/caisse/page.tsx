@@ -10,37 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   PlusCircle, 
-  Wallet, 
   LogOut, 
-  Printer, 
-  Coins, 
   Loader2, 
-  AlertCircle, 
   CheckCircle2, 
   MoreVertical, 
   Edit2, 
   Trash2, 
-  PiggyBank, 
   FileText, 
-  PlayCircle, 
   Lock, 
-  RefreshCcw, 
-  History, 
-  AlertTriangle, 
   User as UserIcon, 
   Calendar as CalendarIcon, 
-  ArrowLeft, 
-  ArrowRightLeft, 
-  TrendingUp, 
-  TrendingDown, 
-  Landmark,
-  ChevronDown,
   CalendarDays,
-  Trash,
   MessageSquare,
   Info,
   CalendarCheck
@@ -48,11 +31,9 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { startOfDay, endOfDay, format, parseISO, setHours, setMinutes, setSeconds, isBefore } from "date-fns";
+import { startOfDay, endOfDay, format, setHours, setMinutes, setSeconds } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -107,7 +88,6 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // RECHERCHE DU SOLDE DE CLÔTURE DE LA DERNIÈRE SESSION EXISTANTE POUR CETTE DATE SPÉCIFIQUE
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -154,7 +134,7 @@ function CaisseContent() {
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
   
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
@@ -534,7 +514,12 @@ function CaisseContent() {
                           <span className="text-[9px] font-bold text-slate-400 tabular-nums">
                             {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
                           </span>
-                          <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                            {t.clientName && (
+                              <span className="text-[9px] font-bold text-slate-500 uppercase">{t.clientName}</span>
+                            )}
+                          </div>
                         </div>
                         {t.lastEditReason && (
                           <div className="flex items-center gap-1.5 text-[9px] text-orange-600 font-bold italic bg-orange-50/50 px-2 py-1 rounded border border-orange-100 mb-2 w-fit">

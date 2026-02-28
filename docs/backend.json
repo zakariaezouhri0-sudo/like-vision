@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -75,6 +76,7 @@
         "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "VERSEMENT", "ACHAT VERRES"] },
         "category": { "type": "string" },
         "label": { "type": "string" },
+        "clientName": { "type": "string" },
         "montant": { "type": "number" },
         "relatedId": { "type": "string" },
         "isDraft": { "type": "boolean" },
