@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
     // Redéploiement forcé pour résoudre l'erreur de permission détectée sur 'cash_sessions'
-    // ID de résolution : PERM_FIX_V20240225_1625
+    // ID de résolution : PERM_FIX_V20240301_1845
     match /{document=**} {
       allow read, write: if true;
     }
