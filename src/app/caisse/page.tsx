@@ -335,6 +335,17 @@ function CaisseContent() {
                 </span>
               </div>
               <DateChanger />
+              {isAdminOrPrepa && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleDeleteCurrentSession}
+                  className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl transition-all"
+                  title="Supprimer/Réinitialiser cette session"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -404,18 +415,6 @@ function CaisseContent() {
                   </div>
                 </DialogContent>
               </Dialog>
-
-              {isAdminOrPrepa && (
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={handleDeleteCurrentSession}
-                  className="h-12 w-12 text-destructive hover:bg-destructive/10 rounded-xl border-destructive/20 shadow-sm"
-                  title="Supprimer cette session"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           )}
         </div>
