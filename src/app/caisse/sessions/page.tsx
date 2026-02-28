@@ -18,18 +18,23 @@ import {
   History,
   Clock,
   Eye,
-  Landmark
+  Landmark,
+  MoreVertical,
+  Trash2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, where } from "firebase/firestore";
+import { collection, query, orderBy, where, deleteDoc, doc } from "firebase/firestore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CashSessionsPage() {
   const router = useRouter();
   const db = useFirestore();
+  const { toast } = useToast();
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [loadingRole, setLoadingRole] = useState(true);
 
@@ -43,7 +48,6 @@ export default function CashSessionsPage() {
   const isPrepaMode = role === "PREPA";
 
   const sessionsQuery = useMemoFirebase(() => {
-    // ISOLATION: On filtre les sessions par statut draft/réel
     return query(
       collection(db, "cash_sessions"), 
       where("isDraft", "==", isPrepaMode),
@@ -52,6 +56,17 @@ export default function CashSessionsPage() {
   }, [db, isPrepaMode]);
 
   const { data: sessions, isLoading } = useCollection(sessionsQuery);
+
+  const handleDeleteSession = async (id: string, date: string) => {
+    if (!confirm(`Attention : Supprimer la session du ${date} ? Cela ne supprimera pas les transactions, mais la journée apparaîtra comme "non ouverte".`)) return;
+    
+    try {
+      await deleteDoc(doc(db, "cash_sessions", id));
+      toast({ variant: "success", title: "Session supprimée" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+    }
+  };
 
   if (loadingRole) return null;
 
@@ -230,14 +245,30 @@ export default function CashSessionsPage() {
                                 >
                                   <Eye className="mr-1.5 h-4 w-4" /> Détails
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)}
-                                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-slate-200 text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
-                                >
-                                  <FileText className="mr-1.5 h-4 w-4" /> Rapport
-                                </Button>
+                                
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-slate-100 rounded-xl">
+                                      <MoreVertical className="h-5 w-5 text-slate-400" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-slate-100 min-w-[180px]">
+                                    <DropdownMenuItem 
+                                      onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)}
+                                      className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"
+                                    >
+                                      <FileText className="mr-3 h-4 w-4 text-primary" /> Rapport
+                                    </DropdownMenuItem>
+                                    {isAdminOrPrepa && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDeleteSession(s.id, s.date)}
+                                        className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"
+                                      >
+                                        <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </TableCell>
                           </TableRow>
