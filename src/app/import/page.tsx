@@ -92,10 +92,9 @@ export default function ImportPage() {
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
     
-    // SÉCURITÉ : Lecture FRAICHE du rôle au moment exact du lancement
     const freshRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!freshRole) {
-      toast({ variant: "destructive", title: "Session expirée", description: "Veuillez vous reconnecter." });
+      toast({ variant: "destructive", title: "Session expirée" });
       return;
     }
 
@@ -106,6 +105,7 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
+    // Tri des feuilles pour s'assurer de l'ordre chronologique
     const sheetNames = [...workbook.SheetNames].sort((a, b) => {
       const na = parseInt(a.replace(/\D/g, '')) || 0;
       const nb = parseInt(b.replace(/\D/g, '')) || 0;
@@ -119,11 +119,21 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        const day = parseInt(sheetName.replace(/\D/g, '')) || (s + 1);
+        // Extraction du jour sécurisée (pour éviter de prendre l'année 2026 comme jour)
+        let day = s + 1;
+        const sheetNumbers = sheetName.match(/\d+/g);
+        if (sheetNumbers && sheetNumbers.length > 0) {
+          const lastNum = parseInt(sheetNumbers[sheetNumbers.length - 1]);
+          if (lastNum >= 1 && lastNum <= 31) {
+            day = lastNum;
+          }
+        }
+
         setCurrentDayLabel(`Jour ${day}`);
         
+        // FIX CRITIQUE : Toujours forcer Janvier (mois 0) et année 2026
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
-        const currentDate = new Date(2026, 0, day);
+        const currentDate = new Date(2026, 0, day); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
 
         let daySalesTotal = 0;
@@ -146,7 +156,6 @@ export default function ImportPage() {
 
         for (const row of rawData) {
           try {
-            // GESTION DES VENTES
             const clientNameRaw = row[mapping.clientName];
             const totalRaw = row[mapping.total];
             
@@ -160,9 +169,9 @@ export default function ImportPage() {
               const prefix = currentIsDraft ? "PREPA-" : "";
               const isPaid = totalAvance >= totalVal;
               const docType = isPaid ? "FC" : "RC";
-              const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+              // Utilisation de J (Jour) au lieu de I pour plus de clarté
+              const invoiceId = `${prefix}${docType}-2026-J${day.toString().padStart(2, '0')}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
-              // Deduplication Clients INTELLIGENTE
               const normalizedName = clientName.toUpperCase().trim();
               if (!importSessionClients.has(normalizedName)) {
                 const clientQ = query(
@@ -215,19 +224,16 @@ export default function ImportPage() {
               }
             }
 
-            // GESTION DES CHARGES ET VERSEMENTS
             const expenseVal = cleanNum(row[mapping.montant]);
             const labelRaw = row[mapping.label];
             const supplierRaw = row[mapping.supplierName];
             const expenseCategoryRaw = row[mapping.category]?.toString().trim() || "";
 
             if (expenseVal > 0) {
-              let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
-              
+              let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération");
               const upperLabel = rawLabel.toUpperCase();
               const upperCat = expenseCategoryRaw.toUpperCase();
 
-              // Détection élargie des versements
               const isVersement = upperLabel.includes("VERSE") || upperLabel.includes("BANQUE") || 
                                  upperCat.includes("VERSE") || upperCat.includes("BANQUE") || 
                                  upperLabel.includes("VERS ");
@@ -241,10 +247,8 @@ export default function ImportPage() {
               if (isVersement) {
                 type = "VERSEMENT";
               } else if (isAchatVerres) {
-                type = "DEPENSE"; // Type technique DEPENSE mais label préfixé
                 if (!upperLabel.startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
               } else if (isAchatMonture) {
-                type = "DEPENSE";
                 if (!upperLabel.startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
               }
 
@@ -264,7 +268,7 @@ export default function ImportPage() {
               else dayExpensesTotal += expenseVal;
             }
           } catch (rowErr) {
-            console.warn("Ligne ignorée : ", rowErr);
+            console.warn("Ligne ignorée", rowErr);
           }
         }
 
@@ -280,11 +284,10 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier a été traité avec succès." });
+      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité." });
       router.push("/caisse/sessions");
     } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Erreur critique", description: "Vérifiez le format de vos données." });
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setIsProcessing(false);
     }
@@ -298,7 +301,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation massive : Ventes + Charges + Clients + Caisse.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation Janvier : Ventes + Charges + Clients + Caisse.</p>
           </div>
           <div className="flex gap-2">
              <Badge variant="outline" className="h-12 rounded-xl font-black text-[10px] uppercase shadow-sm px-6 bg-white border-primary/20 text-primary"><Zap className="mr-2 h-4 w-4" /> MODE GLOBAL JANVIER</Badge>
@@ -313,18 +316,18 @@ export default function ImportPage() {
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Caisse au 01/01/2026 (DH)</Label>
                 <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
               </div>
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase"><CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> Les clients seront automatiquement créés et rattachés à leurs factures sans doublons.</p></div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase"><CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> Les clients seront automatiquement créés de manière étanche.</p></div>
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-2 rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2"><Upload className="h-4 w-4" /> 2. Fichier Excel Multi-Feuilles</CardTitle></CardHeader>
+            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2"><Upload className="h-4 w-4" /> 2. Fichier Excel Janvier</CardTitle></CardHeader>
             <CardContent className="p-8">
               <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] bg-slate-50/30 p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
                 <div className="h-20 w-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-4 shadow-inner"><FileSpreadsheet className="h-10 w-10 text-primary" /></div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Sélectionner le fichier Janvier"}</h3>
-                {workbook && (<p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full border border-green-100">{workbook.SheetNames.length} JOURNÉES DÉTECTÉES (FEUILLES)</p>)}
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Sélectionner le fichier"}</h3>
+                {workbook && (<p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full border border-green-100">{workbook.SheetNames.length} JOURNÉES DÉTECTÉES</p>)}
               </div>
             </CardContent>
           </Card>
@@ -335,7 +338,7 @@ export default function ImportPage() {
             <CardHeader className="bg-primary text-white p-8">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">Configuration du Mapping</CardTitle>
-                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt pour l'importation"}</div>
+                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt"}</div>
               </div>
             </CardHeader>
             <CardContent className="p-8">
