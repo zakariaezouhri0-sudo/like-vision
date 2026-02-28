@@ -63,6 +63,7 @@ export default function ClientsPage() {
     return allClients
       .filter((c: any) => {
         // Isolation stricte par Mode (Brouillon vs Réel)
+        // Les anciens clients sans flag isDraft sont considérés comme réels
         const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
         if (!matchesMode) return false;
 
@@ -86,7 +87,7 @@ export default function ClientsPage() {
   }, [allClients, searchTerm, isPrepaMode, role]);
 
   const handleCreateClient = () => {
-    // SÉCURITÉ : Lecture directe du rôle au moment du clic
+    // SÉCURITÉ : Lecture directe du rôle au moment du clic pour éviter toute désynchronisation
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) return;
     
@@ -105,7 +106,7 @@ export default function ClientsPage() {
       mutuelle: newClient.mutuelle,
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
-      isDraft: currentIsDraft, // Utilisation de la valeur fraîche lue du localStorage
+      isDraft: currentIsDraft,
       createdAt: serverTimestamp(),
     };
 
@@ -169,8 +170,17 @@ export default function ClientsPage() {
     router.push(`/ventes?search=${phone}`);
   };
 
-  // SÉCURITÉ : Ne rien rendre tant que le rôle n'est pas identifié
-  if (!isClientReady || role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  // SÉCURITÉ : Bloquer le rendu tant que le rôle n'est pas identifié
+  if (!isClientReady || role === null) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Vérification de sécurité...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

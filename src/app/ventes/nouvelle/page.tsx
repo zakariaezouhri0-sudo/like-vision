@@ -34,10 +34,9 @@ function NewSaleForm() {
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
   const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
-    // SÉCURITÉ : Pas de rôle par défaut.
+    // SÉCURITÉ : Blocage du rôle par défaut. On attend impérativement le localStorage.
     const savedRole = localStorage.getItem('user_role');
     if (savedRole) {
       setRole(savedRole.toUpperCase());
@@ -82,20 +81,19 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
-      // SÉCURITÉ : Ne pas chercher tant que le rôle n'est pas prêt
+      // SÉCURITÉ : Ne pas lancer la recherche tant que le mode n'est pas certain
       if (!role) return;
-      const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
       
-      if (cleanPhone.length === 0) {
-        setPhoneError(null);
+      const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
+      if (cleanPhone.length < 10) {
+        setClientHistory(null);
         return;
       }
-
-      if (cleanPhone.length < 10) return;
       
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
+          // RECHERCHE CLOISONNÉE PAR MODE
           const clientQ = query(
             collection(db, "clients"), 
             where("phone", "==", cleanPhone), 
@@ -157,10 +155,11 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
-    // SÉCURITÉ : Lecture directe et forcée du rôle au moment exact de la sauvegarde
+    // SÉCURITÉ ABSOLUE : Re-lecture forcée du rôle directement dans la mémoire navigateur
+    // On ignore l'état React pour être certain de ne pas utiliser une valeur périmée.
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) {
-      toast({ variant: "destructive", title: "Erreur Sécurité", description: "Mode non identifié. Reconnectez-vous." });
+      toast({ variant: "destructive", title: "Erreur Sécurité", description: "Veuillez vous reconnecter." });
       return null;
     }
     
@@ -179,6 +178,7 @@ function NewSaleForm() {
     try {
       let existingClientId = null;
       if (cleanPhone) {
+        // Recherche de client existant limitée au mode actuel
         const clientQuerySnap = await getDocs(query(
           collection(db, "clients"), 
           where("phone", "==", cleanPhone), 
@@ -191,6 +191,7 @@ function NewSaleForm() {
       }
 
       const result = await runTransaction(db, async (transaction) => {
+        // Sélection du compteur approprié (Draft vs Réel)
         const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
         const counterSnap = await transaction.get(counterRef);
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
@@ -204,8 +205,13 @@ function NewSaleForm() {
 
         if (!activeEditId) {
           const prefix = currentIsDraft ? "PREPA-" : "";
-          if (isPaid) { counters.fc += 1; invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; }
-          else { counters.rc += 1; invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; }
+          if (isPaid) { 
+            counters.fc += 1; 
+            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
+          } else { 
+            counters.rc += 1; 
+            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; 
+          }
           transaction.set(counterRef, counters, { merge: true });
         }
 
@@ -215,8 +221,11 @@ function NewSaleForm() {
           total: nTotal, remise: remiseAmountValue, discountType, discountValue: nDiscount,
           remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
           avance: nHistorical + nAvance, reste: resteAPayerValue, statut,
-          prescription, monture, verres, notes, isDraft: currentIsDraft, updatedAt: serverTimestamp(),
-          purchasePriceFrame: cleanVal(purchasePriceFrame), purchasePriceLenses: cleanVal(purchasePriceLenses)
+          prescription, monture, verres, notes, 
+          isDraft: currentIsDraft, // FLAG CRITIQUE D'ISOLATION
+          updatedAt: serverTimestamp(),
+          purchasePriceFrame: cleanVal(purchasePriceFrame), 
+          purchasePriceLenses: cleanVal(purchasePriceLenses)
         };
 
         if (!activeEditId) {
@@ -229,6 +238,7 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
+        // MISE À JOUR FICHIER CLIENT (Isolé par Mode)
         const clientData = {
           name: clientName,
           phone: cleanPhone,
@@ -246,6 +256,7 @@ function NewSaleForm() {
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
 
+        // TRANSACTION DE CAISSE (Isolée par Mode)
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -257,9 +268,17 @@ function NewSaleForm() {
         return { ...saleData, id: saleRef.id };
       });
 
-      if (!silent) { router.push("/ventes"); toast({ variant: "success", title: "Enregistré" }); }
+      if (!silent) { 
+        router.push("/ventes"); 
+        toast({ variant: "success", title: "Vente Enregistrée" }); 
+      }
       return result;
-    } catch (err) { toast({ variant: "destructive", title: "Erreur" }); return null; } finally { setLoading(false); }
+    } catch (err) { 
+      toast({ variant: "destructive", title: "Erreur lors de l'enregistrement" }); 
+      return null; 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handlePrint = async () => {
@@ -289,8 +308,17 @@ function NewSaleForm() {
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };
 
-  // SÉCURITÉ : Ne rien rendre tant que le rôle n'est pas identifié
-  if (role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  // SÉCURITÉ : Ecran de blocage tant que le mode n'est pas identifié
+  if (role === null) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sécurisation de la session...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
