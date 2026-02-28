@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -16,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -40,7 +41,6 @@ export default function SalesHistoryPage() {
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
 
-  // ÉTAT POUR LA SÉLECTION MULTIPLE
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
@@ -51,14 +51,24 @@ export default function SalesHistoryPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
+  const salesQuery = useMemoFirebase(() => {
+    const base = collection(db, "sales");
+    // ÉTANCHÉITÉ : Filtre natif si en mode prépa pour éviter de charger le réel
+    if (isPrepaMode) {
+      return query(base, where("isDraft", "==", true), orderBy("createdAt", "desc"));
+    }
+    return query(base, orderBy("createdAt", "desc"));
+  }, [db, isPrepaMode]);
+
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
   const filteredSales = useMemo(() => {
     if (!rawSales) return [];
     return rawSales.filter((sale: any) => {
+      // Filtrage JS secondaire pour assurer l'exclusion des brouillons en mode OPTICIENNE (legacy support)
       const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
       if (!matchesMode) return false;
+
       const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
       let matchesDate = true;
       if (dateFrom && saleDate) {
@@ -72,7 +82,6 @@ export default function SalesHistoryPage() {
     });
   }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode]);
 
-  // LOGIQUE DE SÉLECTION
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredSales.length && filteredSales.length > 0) {
       setSelectedIds(new Set());
@@ -95,39 +104,24 @@ export default function SalesHistoryPage() {
     setIsDeletingBulk(true);
     try {
       const batch = writeBatch(db);
-      selectedIds.forEach(id => {
-        batch.delete(doc(db, "sales", id));
-      });
+      selectedIds.forEach(id => { batch.delete(doc(db, "sales", id)); });
       await batch.commit();
-      toast({ variant: "success", title: "Suppression groupée réussie", description: `${selectedIds.size} documents ont été effacés.` });
+      toast({ variant: "success", title: "Suppression groupée réussie" });
       setSelectedIds(new Set());
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de la suppression groupée" });
-    } finally {
-      setIsDeletingBulk(false);
-    }
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsDeletingBulk(false); }
   };
 
   const handlePrint = (sale: any) => {
     const page = sale.reste <= 0 ? 'facture' : 'recu';
     const params = new URLSearchParams({ 
-      client: sale.clientName, 
-      phone: sale.clientPhone, 
-      mutuelle: sale.mutuelle, 
-      total: sale.total.toString(), 
-      remise: (sale.remise || 0).toString(), 
-      remisePercent: sale.remisePercent || "0", 
-      avance: sale.avance.toString(), 
-      od_sph: sale.prescription?.od?.sph || "", 
-      od_cyl: sale.prescription?.od?.cyl || "", 
-      od_axe: sale.prescription?.od?.axe || "", 
-      od_add: sale.prescription?.od?.add || "",
-      og_sph: sale.prescription?.og?.sph || "", 
-      og_cyl: sale.prescription?.og?.cyl || "", 
-      og_axe: sale.prescription?.og?.axe || "", 
-      og_add: sale.prescription?.og?.add || "",
-      monture: sale.monture || "", 
-      verres: sale.verres || "", 
+      client: sale.clientName, phone: sale.clientPhone, mutuelle: sale.mutuelle, 
+      total: sale.total.toString(), remise: (sale.remise || 0).toString(), 
+      remisePercent: sale.remisePercent || "0", avance: sale.avance.toString(), 
+      od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
+      od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
+      og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
+      og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
+      monture: sale.monture || "", verres: sale.verres || "", 
       date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy HH:mm") : format(new Date(), "dd/MM/yyyy HH:mm")
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
@@ -135,28 +129,16 @@ export default function SalesHistoryPage() {
 
   const handleEdit = (sale: any) => {
     const params = new URLSearchParams({ 
-      editId: sale.id, 
-      invoiceId: sale.invoiceId, 
-      client: sale.clientName, 
-      phone: sale.clientPhone, 
-      mutuelle: sale.mutuelle, 
-      total: sale.total.toString(), 
-      avance: (sale.avance || 0).toString(), 
-      discountValue: sale.discountValue?.toString() || "0", 
-      discountType: sale.discountType || "percent", 
+      editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName, phone: sale.clientPhone, 
+      mutuelle: sale.mutuelle, total: sale.total.toString(), avance: (sale.avance || 0).toString(), 
+      discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "percent", 
       purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(), 
       purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(), 
-      monture: sale.monture || "", 
-      verres: sale.verres || "", 
-      notes: sale.notes || "", 
-      od_sph: sale.prescription?.od?.sph || "", 
-      od_cyl: sale.prescription?.od?.cyl || "", 
-      od_axe: sale.prescription?.od?.axe || "", 
-      od_add: sale.prescription?.od?.add || "",
-      og_sph: sale.prescription?.og?.sph || "", 
-      og_cyl: sale.prescription?.og?.cyl || "", 
-      og_axe: sale.prescription?.og?.axe || "", 
-      og_add: sale.prescription?.og?.add || "",
+      monture: sale.monture || "", verres: sale.verres || "", notes: sale.notes || "", 
+      od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
+      od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
+      og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
+      og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
       date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "" 
     });
     router.push(`/ventes/nouvelle?${params.toString()}`);
@@ -172,7 +154,7 @@ export default function SalesHistoryPage() {
       await updateDoc(doc(db, "sales", costDialogSale.id), { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
       if (frameCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT MONTURE - ${labelSuffix}`, clientName: costDialogSale.clientName, category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
       if (lensesCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT VERRES - ${labelSuffix}`, clientName: costDialogSale.clientName, category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
-      toast({ variant: "success", title: "Mis à jour" });
+      toast({ variant: "success", title: "Coûts mis à jour" });
       setCostDialogSale(null);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
@@ -182,17 +164,12 @@ export default function SalesHistoryPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturations.</p>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes {isPrepaMode ? "(Brouillon)" : ""}</h1>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturantes.</p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {selectedIds.size > 0 && isAdminOrPrepa && (
-              <Button 
-                variant="destructive" 
-                onClick={handleBulkDelete}
-                disabled={isDeletingBulk}
-                className="h-14 font-black rounded-2xl px-6 shadow-xl animate-in fade-in zoom-in duration-200"
-              >
+              <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeletingBulk} className="h-14 font-black rounded-2xl px-6 shadow-xl animate-in fade-in zoom-in duration-200">
                 {isDeletingBulk ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Trash2 className="h-5 w-5 mr-2" />}
                 SUPPRIMER LA SÉLECTION ({selectedIds.size})
               </Button>
@@ -220,11 +197,7 @@ export default function SalesHistoryPage() {
                     <TableRow>
                       {isAdminOrPrepa && (
                         <TableHead className="w-12 px-4 py-5 text-center">
-                          <Checkbox 
-                            checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length}
-                            onCheckedChange={toggleSelectAll}
-                            aria-label="Sélectionner tout"
-                          />
+                          <Checkbox checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} aria-label="Sélectionner tout" />
                         </TableHead>
                       )}
                       <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Date</TableHead>
@@ -239,11 +212,7 @@ export default function SalesHistoryPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredSales.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="text-center py-20 text-[10px] font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">
-                          Aucune vente trouvée pour cette sélection.
-                        </TableCell>
-                      </TableRow>
+                      <TableRow><TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="text-center py-20 text-[10px] font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Aucune vente trouvée.</TableCell></TableRow>
                     ) : (
                       filteredSales.map((sale: any) => {
                         const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note === "Avance antérieure") || [];
@@ -251,62 +220,24 @@ export default function SalesHistoryPage() {
                         const currentAmount = Math.max(0, (sale.avance || 0) - historicalAmount);
 
                         return (
-                          <TableRow key={sale.id} className={cn(
-                            "hover:bg-primary/5 transition-all",
-                            selectedIds.has(sale.id) && "bg-primary/5"
-                          )}>
+                          <TableRow key={sale.id} className={cn("hover:bg-primary/5 transition-all", selectedIds.has(sale.id) && "bg-primary/5")}>
                             {isAdminOrPrepa && (
-                              <TableCell className="w-12 px-4 py-5 text-center">
-                                <Checkbox 
-                                  checked={selectedIds.has(sale.id)}
-                                  onCheckedChange={() => toggleSelectOne(sale.id)}
-                                  aria-label={`Sélectionner vente ${sale.invoiceId}`}
-                                />
-                              </TableCell>
+                              <TableCell className="w-12 px-4 py-5 text-center"><Checkbox checked={selectedIds.has(sale.id)} onCheckedChange={() => toggleSelectOne(sale.id)} aria-label={`Sélectionner vente ${sale.invoiceId}`} /></TableCell>
                             )}
                             <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <CalendarIcon className="h-3 w-3 text-primary/40" />
-                                  <span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-3 w-3 text-primary/40" />
-                                  <span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span>
-                                </div>
+                                <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span></div>
+                                <div className="flex items-center gap-2"><Clock className="h-3 w-3 text-primary/40" /><span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span></div>
                               </div>
                             </TableCell>
-                            <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <div className="h-1.5 w-1.5 rounded-full bg-primary/20" />
-                                <span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-4 md:px-8 py-5 min-w-[150px]">
-                              <div className="flex flex-col">
-                                <span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span>
-                                <span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span>
-                              </div>
-                            </TableCell>
+                            <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary/20" /><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span></div></TableCell>
+                            <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
+                            <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
                             <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                              <span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
+                              <div className="flex flex-col items-end"><span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(currentAmount)}</span>{historicalAmount > 0 && (<span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1"><HistoryIcon className="h-2 w-2" /> {formatCurrency(historicalAmount)}</span>)}</div>
                             </TableCell>
-                            <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                              <div className="flex flex-col items-end">
-                                <span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(currentAmount)}</span>
-                                {historicalAmount > 0 && (
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                    <HistoryIcon className="h-2 w-2" /> {formatCurrency(historicalAmount)}
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
-                              <span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>
-                            </TableCell>
-                            <TableCell className="text-center px-4 md:px-8 py-5">
-                              <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge>
-                            </TableCell>
+                            <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span></TableCell>
+                            <TableCell className="text-center px-4 md:px-8 py-5"><Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
                             <TableCell className="text-right px-4 md:px-8 py-5">
                               <DropdownMenu modal={false}>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>

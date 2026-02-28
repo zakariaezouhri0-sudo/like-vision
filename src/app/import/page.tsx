@@ -44,7 +44,7 @@ export default function ImportPage() {
   const [mapping, setMapping] = useState<Mapping>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [importType, setImportType] = useState<"sales" | "transactions" | "global">("global");
+  const [importType, setImportType] = useState<"global" | "legacy">("global");
   const [startingBalance, setStartingBalance] = useState<string>("0");
 
   const GLOBAL_FIELDS = [
@@ -87,12 +87,12 @@ export default function ImportPage() {
     setIsProcessing(true);
     setProgress(0);
     
-    const isDraft = role === 'PREPA';
+    // ÉTANCHÉITÉ TOTALE : On force l'isolation par le rôle actuel
+    const currentIsDraft = role === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = parseFloat(startingBalance) || 0;
 
     const sheetNames = [...workbook.SheetNames].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
-    
     const importSessionClients = new Set<string>();
 
     try {
@@ -103,7 +103,7 @@ export default function ImportPage() {
         const day = parseInt(sheetName) || (s + 1);
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
         const currentDate = new Date(2026, 0, day);
-        const sessionId = isDraft ? `DRAFT-${dateStr}` : dateStr;
+        const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
 
         let daySalesTotal = 0;
         let dayExpensesTotal = 0;
@@ -116,7 +116,7 @@ export default function ImportPage() {
         
         await setDoc(sessionRef, {
           date: dateStr,
-          isDraft: isDraft,
+          isDraft: currentIsDraft,
           status: "OPEN",
           openedAt: openTime,
           openedBy: userName,
@@ -133,30 +133,27 @@ export default function ImportPage() {
             const historicalAvance = parseFloat(row[mapping.historicalAdvance]) || 0;
             const totalAvance = currentAvance + historicalAvance;
             
-            const prefix = isDraft ? "PREPA-" : "";
+            const prefix = currentIsDraft ? "PREPA-" : "";
             const isPaid = totalAvance >= total;
             const docType = isPaid ? "FC" : "RC";
             const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
             const normalizedClientName = clientName.toUpperCase();
             if (!importSessionClients.has(normalizedClientName)) {
+              // ÉTANCHÉITÉ : Recherche de doublon UNIQUEMENT dans le mode actuel
               const clientQ = query(
                 collection(db, "clients"), 
                 where("name", "==", clientName), 
-                where("isDraft", "==", isDraft),
+                where("isDraft", "==", currentIsDraft),
                 limit(1)
               );
               const clientSnap = await getDocs(clientQ);
               
               if (clientSnap.empty) {
                 await addDoc(collection(db, "clients"), {
-                  name: clientName,
-                  phone: "",
-                  mutuelle: "Aucun",
+                  name: clientName, phone: "", mutuelle: "Aucun",
                   lastVisit: format(currentDate, "dd/MM/yyyy"),
-                  ordersCount: 1,
-                  isDraft: isDraft,
-                  createdAt: openTime
+                  ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
                 });
               } else {
                 const existingRef = clientSnap.docs[0].ref;
@@ -170,12 +167,9 @@ export default function ImportPage() {
 
             await addDoc(collection(db, "sales"), {
               invoiceId, clientName, total, 
-              avance: totalAvance,
-              reste: Math.max(0, total - totalAvance),
+              avance: totalAvance, reste: Math.max(0, total - totalAvance),
               statut: isPaid ? "Payé" : "Partiel",
-              isDraft,
-              createdAt: openTime,
-              createdBy: userName,
+              isDraft: currentIsDraft, createdAt: openTime, createdBy: userName,
               payments: [
                 { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Ancien" },
                 { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
@@ -184,20 +178,15 @@ export default function ImportPage() {
 
             if (currentAvance > 0) {
               await addDoc(collection(db, "transactions"), {
-                type: "VENTE", 
-                label: `VENTE ${invoiceId}`, 
-                clientName: clientName,
-                montant: currentAvance,
-                isDraft, 
-                createdAt: openTime, 
-                userName, 
-                relatedId: invoiceId
+                type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
+                montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
+                userName, relatedId: invoiceId
               });
               daySalesTotal += currentAvance;
             }
           }
 
-          // GESTION DES CHARGES (Maintenant avec détection automatique des Versements)
+          // GESTION DES CHARGES
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
           const labelRaw = row[mapping.label];
           const supplierRaw = row[mapping.supplierName];
@@ -205,45 +194,26 @@ export default function ImportPage() {
 
           if (expenseAmount > 0 && (labelRaw || supplierRaw)) {
             let finalLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
-            if (labelRaw && supplierRaw) {
-              finalLabel += ` - ${supplierRaw.toString().trim()}`;
-            }
-
-            // Détection automatique si c'est un versement bancaire ou autre
             const isVersement = finalLabel.toUpperCase().includes("VERSEMENT");
             const type = isVersement ? "VERSEMENT" : "DEPENSE";
 
             await addDoc(collection(db, "transactions"), {
-              type: type, 
-              label: finalLabel, 
-              clientName: supplierRaw ? supplierRaw.toString().trim() : "",
+              type: type, label: finalLabel, clientName: supplierRaw ? supplierRaw.toString().trim() : "",
               category: expenseCategory ? expenseCategory.toString().trim() : (isVersement ? "Banque" : "Général"), 
-              montant: -Math.abs(expenseAmount),
-              isDraft, 
-              createdAt: openTime, 
-              userName
+              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: openTime, userName
             });
 
-            if (isVersement) {
-              dayVersementsTotal += expenseAmount;
-            } else {
-              dayExpensesTotal += expenseAmount;
-            }
+            if (isVersement) dayVersementsTotal += expenseAmount;
+            else dayExpensesTotal += expenseAmount;
           }
         }
 
         currentBalance = initialBalance + daySalesTotal - dayExpensesTotal - dayVersementsTotal;
 
         await setDoc(sessionRef, {
-          status: "CLOSED",
-          closedAt: closeTime,
-          closedBy: userName,
-          totalSales: daySalesTotal,
-          totalExpenses: dayExpensesTotal,
-          totalVersements: dayVersementsTotal,
-          closingBalanceReal: currentBalance,
-          closingBalanceTheoretical: currentBalance,
-          discrepancy: 0
+          status: "CLOSED", closedAt: closeTime, closedBy: userName,
+          totalSales: daySalesTotal, totalExpenses: dayExpensesTotal, totalVersements: dayVersementsTotal,
+          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0
         }, { merge: true });
 
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
@@ -270,63 +240,30 @@ export default function ImportPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation massive : Ventes + Charges + Clients + Caisse.</p>
           </div>
           <div className="flex gap-2">
-             <Button 
-              variant={importType === 'global' ? 'default' : 'outline'} 
-              onClick={() => setImportType('global')}
-              className="h-12 rounded-xl font-black text-[10px] uppercase shadow-sm"
-            >
-              <Zap className="mr-2 h-4 w-4" /> MODE GLOBAL JANVIER
-            </Button>
+             <Button variant="default" className="h-12 rounded-xl font-black text-[10px] uppercase shadow-sm"><Zap className="mr-2 h-4 w-4" /> MODE GLOBAL JANVIER</Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1 rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6">
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" /> 1. Solde de départ
-              </CardTitle>
-            </CardHeader>
+            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2"><CalendarDays className="h-4 w-4" /> 1. Solde de départ</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Caisse au 01/01/2026 (DH)</Label>
-                <Input 
-                  type="number" 
-                  className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" 
-                  value={startingBalance} 
-                  onChange={e => setStartingBalance(e.target.value)}
-                />
+                <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
               </div>
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase">
-                  <CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> 
-                  Les clients seront automatiquement créés et rattachés à leurs factures sans doublons.
-                </p>
-              </div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase"><CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> Les clients seront automatiquement créés et rattachés à leurs factures sans doublons.</p></div>
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-2 rounded-[32px] border-none shadow-lg bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6">
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2">
-                <Upload className="h-4 w-4" /> 2. Fichier Excel Multi-Feuilles
-              </CardTitle>
-            </CardHeader>
+            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60 tracking-widest flex items-center gap-2"><Upload className="h-4 w-4" /> 2. Fichier Excel Multi-Feuilles</CardTitle></CardHeader>
             <CardContent className="p-8">
-              <div 
-                className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] bg-slate-50/30 p-10 cursor-pointer hover:bg-slate-50 transition-colors" 
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] bg-slate-50/30 p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
-                <div className="h-20 w-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-4 shadow-inner">
-                  <FileSpreadsheet className="h-10 w-10 text-primary" />
-                </div>
+                <div className="h-20 w-20 bg-primary/10 rounded-[24px] flex items-center justify-center mb-4 shadow-inner"><FileSpreadsheet className="h-10 w-10 text-primary" /></div>
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Sélectionner le fichier Janvier"}</h3>
-                {workbook && (
-                  <p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                    {workbook.SheetNames.length} JOURNÉES DÉTECTÉES (FEUILLES)
-                  </p>
-                )}
+                {workbook && (<p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full border border-green-100">{workbook.SheetNames.length} JOURNÉES DÉTECTÉES (FEUILLES)</p>)}
               </div>
             </CardContent>
           </Card>
@@ -336,12 +273,8 @@ export default function ImportPage() {
           <Card className="rounded-[32px] border-none shadow-2xl bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-500">
             <CardHeader className="bg-primary text-white p-8">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">
-                  Configuration du Mapping
-                </CardTitle>
-                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">
-                  {isProcessing ? `Traitement : ${progress}%` : "Prêt pour l'importation"}
-                </div>
+                <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">Configuration du Mapping</CardTitle>
+                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `Traitement : ${progress}%` : "Prêt pour l'importation"}</div>
               </div>
             </CardHeader>
             <CardContent className="p-8">
@@ -353,32 +286,17 @@ export default function ImportPage() {
                       <Badge variant="outline" className="text-[8px] font-black border-slate-200">{field.section}</Badge>
                     </div>
                     <Select value={mapping[field.key] || ""} onValueChange={(v) => setMapping({...mapping, [field.key]: v})}>
-                      <SelectTrigger className="h-14 rounded-2xl font-black text-slate-900 border-none bg-slate-50 shadow-inner px-6">
-                        <SelectValue placeholder="Choisir colonne..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        {headers.map(h => <SelectItem key={h} value={h} className="font-black text-xs">{h}</SelectItem>)}
-                      </SelectContent>
+                      <SelectTrigger className="h-14 rounded-2xl font-black text-slate-900 border-none bg-slate-50 shadow-inner px-6"><SelectValue placeholder="Choisir colonne..." /></SelectTrigger>
+                      <SelectContent className="rounded-2xl">{headers.map(h => <SelectItem key={h} value={h} className="font-black text-xs">{h}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 ))}
               </div>
-
-              <Button 
-                onClick={handleImportGlobal} 
-                disabled={isProcessing || Object.keys(mapping).length < 4} 
-                className="w-full h-20 rounded-[24px] font-black text-xl shadow-2xl bg-primary mt-12 hover:scale-[1.01] transition-transform group"
-              >
+              <Button onClick={handleImportGlobal} disabled={isProcessing || Object.keys(mapping).length < 4} className="w-full h-20 rounded-[24px] font-black text-xl shadow-2xl bg-primary mt-12 hover:scale-[1.01] transition-transform group">
                 {isProcessing ? (
-                  <div className="flex items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span>IMPORTATION EN COURS ({progress}%)</span>
-                  </div>
+                  <div className="flex items-center gap-4"><Loader2 className="h-8 w-8 animate-spin" /><span>IMPORTATION EN COURS ({progress}%)</span></div>
                 ) : (
-                  <div className="flex items-center gap-4">
-                    <Zap className="h-8 w-8 group-hover:animate-pulse" />
-                    <span>LANCER L'AUTOMATE POUR LE MOIS DE JANVIER</span>
-                  </div>
+                  <div className="flex items-center gap-4"><Zap className="h-8 w-8 group-hover:animate-pulse" /><span>LANCER L'AUTOMATE POUR LE MOIS DE JANVIER</span></div>
                 )}
               </Button>
             </CardContent>

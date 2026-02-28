@@ -36,7 +36,6 @@ function NewSaleForm() {
   const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
 
   useEffect(() => {
-    // SÉCURITÉ : Blocage du rôle par défaut. On attend impérativement le localStorage.
     const savedRole = localStorage.getItem('user_role');
     if (savedRole) {
       setRole(savedRole.toUpperCase());
@@ -81,7 +80,6 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
-      // SÉCURITÉ : Ne pas lancer la recherche tant que le mode n'est pas certain
       if (!role) return;
       
       const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
@@ -93,7 +91,7 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // RECHERCHE CLOISONNÉE PAR MODE
+          // ÉTANCHÉITÉ : Recherche de client UNIQUEMENT dans le mode actuel
           const clientQ = query(
             collection(db, "clients"), 
             where("phone", "==", cleanPhone), 
@@ -115,6 +113,7 @@ function NewSaleForm() {
             }
           }
 
+          // ÉTANCHÉITÉ : Calcul de la dette UNIQUEMENT dans le mode actuel
           const allSalesQ = query(
             collection(db, "sales"), 
             where("clientPhone", "==", cleanPhone),
@@ -155,8 +154,6 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
-    // SÉCURITÉ ABSOLUE : Re-lecture forcée du rôle directement dans la mémoire navigateur
-    // On ignore l'état React pour être certain de ne pas utiliser une valeur périmée.
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) {
       toast({ variant: "destructive", title: "Erreur Sécurité", description: "Veuillez vous reconnecter." });
@@ -178,7 +175,6 @@ function NewSaleForm() {
     try {
       let existingClientId = null;
       if (cleanPhone) {
-        // Recherche de client existant limitée au mode actuel
         const clientQuerySnap = await getDocs(query(
           collection(db, "clients"), 
           where("phone", "==", cleanPhone), 
@@ -191,7 +187,6 @@ function NewSaleForm() {
       }
 
       const result = await runTransaction(db, async (transaction) => {
-        // Sélection du compteur approprié (Draft vs Réel)
         const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
         const counterSnap = await transaction.get(counterRef);
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
@@ -222,7 +217,7 @@ function NewSaleForm() {
           remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
           avance: nHistorical + nAvance, reste: resteAPayerValue, statut,
           prescription, monture, verres, notes, 
-          isDraft: currentIsDraft, // FLAG CRITIQUE D'ISOLATION
+          isDraft: currentIsDraft, 
           updatedAt: serverTimestamp(),
           purchasePriceFrame: cleanVal(purchasePriceFrame), 
           purchasePriceLenses: cleanVal(purchasePriceLenses)
@@ -238,7 +233,6 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // MISE À JOUR FICHIER CLIENT (Isolé par Mode)
         const clientData = {
           name: clientName,
           phone: cleanPhone,
@@ -256,11 +250,10 @@ function NewSaleForm() {
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
 
-        // TRANSACTION DE CAISSE (Isolée par Mode)
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
-            type: "VENTE", label: isPaid ? `Vente Directe ${invoiceId}` : `Acompte Reçu ${invoiceId}`,
+            type: "VENTE", label: isPaid ? `VENTE ${invoiceId}` : `VENTE (Acompte) ${invoiceId}`,
             clientName, category: "Optique", montant: nAvance, relatedId: invoiceId,
             userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
           });
@@ -308,7 +301,6 @@ function NewSaleForm() {
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };
 
-  // SÉCURITÉ : Ecran de blocage tant que le mode n'est pas identifié
   if (role === null) {
     return (
       <AppShell>
@@ -375,7 +367,7 @@ function NewSaleForm() {
             {clientHistory && (
               <div className={cn("p-6 rounded-[24px] md:rounded-[32px] border-2 shadow-lg transition-colors", clientHistory.hasUnpaid ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Reste à régler détecté" : "Situation à jour"}</p></div></div>
+                  <div className="flex items-center gap-4"><div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl shrink-0", clientHistory.hasUnpaid ? "bg-red-500 text-white" : "bg-green-500 text-white")}>{clientHistory.hasUnpaid ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div><div><h3 className={cn("text-lg font-black uppercase tracking-tight", clientHistory.hasUnpaid ? "text-red-900" : "text-green-900")}>Historique Client {isPrepaMode ? "(Brouillon)" : ""}</h3><p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-70", clientHistory.hasUnpaid ? "text-red-700" : "text-green-700")}>{clientHistory.hasUnpaid ? "Reste à régler détecté" : "Situation à jour"}</p></div></div>
                   <div className="grid grid-cols-2 gap-8 w-full md:w-auto">
                     <div className="flex flex-col items-center md:items-end">
                       <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dette Totale</span>
