@@ -42,7 +42,8 @@ import {
   CalendarDays,
   Trash,
   MessageSquare,
-  Info
+  Info,
+  CalendarCheck
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -69,6 +70,7 @@ function CaisseContent() {
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [openingVal, setOpeningVal] = useState("0");
   const [isAutoReport, setIsAutoReport] = useState(false);
+  const [lastSessionDate, setLastSessionDate] = useState<string>("");
 
   useEffect(() => {
     setIsHydrated(true);
@@ -105,7 +107,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // RECHERCHE DU SOLDE DE CLÔTURE DE LA DERNIÈRE SESSION EXISTANTE
+  // RECHERCHE DU SOLDE DE CLÔTURE DE LA DERNIÈRE SESSION EXISTANTE POUR CETTE DATE SPÉCIFIQUE
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -124,10 +126,12 @@ function CaisseContent() {
       if (lastClosing !== undefined) {
         setOpeningVal(lastClosing.toString());
         setIsAutoReport(true);
+        setLastSessionDate(lastSessions[0].date);
       }
     } else if (!session) {
       setOpeningVal("0");
       setIsAutoReport(false);
+      setLastSessionDate("");
     }
   }, [lastSessions, session]);
 
@@ -296,15 +300,28 @@ function CaisseContent() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
-        <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
+        <div className={cn(
+          "h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3",
+          isPrepaMode ? "bg-orange-500" : "bg-primary"
+        )}>
+          <CalendarCheck className="h-12 w-12" />
+        </div>
         <div className="space-y-4">
-          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">
+            Ouverture {isPrepaMode ? "Historique" : "Caisse"}
+          </h1>
+          <div className="flex flex-col items-center gap-4">
+            <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
+              <p className="text-xl font-black text-primary uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+            </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg font-black text-[9px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
-                  <CalendarIcon className="mr-1.5 h-3 w-3" /> CHANGER LA DATE
+                <Button variant="outline" className={cn(
+                  "h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg transition-all",
+                  isPrepaMode ? "border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white" : "border-primary text-primary hover:bg-primary hover:text-white"
+                )}>
+                  <CalendarIcon className="mr-2 h-4 w-4" /> 1. CHOISIR UNE AUTRE DATE
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
@@ -324,13 +341,13 @@ function CaisseContent() {
             </Popover>
           </div>
         </div>
-        <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl">
+        <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl border-none">
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
-              {isAutoReport && lastSessions && lastSessions.length > 0 && (
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">2. Solde Initial</Label>
+              {isAutoReport && (
                 <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {format(new Date(lastSessions[0].date), "dd/MM")}
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {format(new Date(lastSessionDate), "dd/MM")}
                 </Badge>
               )}
             </div>
@@ -339,7 +356,7 @@ function CaisseContent() {
                 type="number" 
                 className={cn(
                   "w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none tabular-nums transition-all",
-                  isAutoReport ? "bg-slate-100 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
+                  isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
                 )}
                 value={openingVal} 
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
@@ -348,7 +365,7 @@ function CaisseContent() {
               <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
               {isAutoReport && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/60 rounded-3xl pointer-events-none">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-white px-4 py-2 rounded-full shadow-lg border">Lecture seule (Report auto)</span>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-white px-4 py-2 rounded-full shadow-lg border">Verrouillé (Report auto)</span>
                 </div>
               )}
             </div>
@@ -358,7 +375,16 @@ function CaisseContent() {
               </p>
             )}
           </div>
-          <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
+          <Button 
+            onClick={handleOpenSession} 
+            disabled={opLoading} 
+            className={cn(
+              "w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase",
+              isPrepaMode ? "bg-orange-500 hover:bg-orange-600 shadow-orange-200" : "bg-primary shadow-primary/20"
+            )}
+          >
+            3. VALIDER L'OUVERTURE
+          </Button>
         </Card>
       </div>
     );
