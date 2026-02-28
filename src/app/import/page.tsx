@@ -52,7 +52,9 @@ export default function ImportPage() {
     { key: "avance", label: "Avance Payée (Vente)", section: "VENTES" },
     { key: "historicalAdvance", label: "Avance Antérieure (Vente)", section: "VENTES" },
     { key: "label", label: "Libellé (Dépense)", section: "CHARGES" },
-    { key: "montant", label: "Montant (Dépense)", section: "CHARGES" }
+    { key: "supplierName", label: "Nom Client / Tiers (Dépense)", section: "CHARGES" },
+    { key: "montant", label: "Montant (Dépense)", section: "CHARGES" },
+    { key: "category", label: "Catégorie / Dépense", section: "CHARGES" }
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,6 +122,7 @@ export default function ImportPage() {
         });
 
         for (const row of data) {
+          // GESTION DES VENTES
           const clientNameRaw = row[mapping.clientName];
           if (clientNameRaw && row[mapping.total] !== undefined) {
             const clientName = clientNameRaw.toString().trim();
@@ -186,12 +189,26 @@ export default function ImportPage() {
             }
           }
 
+          // GESTION DES CHARGES
           const expenseLabel = row[mapping.label];
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
+          const expenseSupplier = row[mapping.supplierName];
+          const expenseCategory = row[mapping.category];
+
           if (expenseLabel && expenseAmount > 0) {
+            let finalLabel = expenseLabel.toString().trim();
+            if (expenseSupplier) {
+              finalLabel += ` - ${expenseSupplier.toString().trim()}`;
+            }
+
             await addDoc(collection(db, "transactions"), {
-              type: "DEPENSE", label: expenseLabel, montant: -Math.abs(expenseAmount),
-              isDraft, createdAt: openTime, userName
+              type: "DEPENSE", 
+              label: finalLabel, 
+              category: expenseCategory ? expenseCategory.toString().trim() : "Général", 
+              montant: -Math.abs(expenseAmount),
+              isDraft, 
+              createdAt: openTime, 
+              userName
             });
             dayExpensesTotal += expenseAmount;
           }
