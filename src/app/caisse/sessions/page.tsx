@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -47,8 +48,7 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // Suppression de l'orderBy qui nécessite un index composite (isDraft + date)
-  // On triera les données en mémoire pour éviter l'erreur de déploiement d'index
+  // ISOLATION CRUCIALE : On filtre strictement par le flag isDraft
   const sessionsQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"), 
@@ -58,19 +58,20 @@ export default function CashSessionsPage() {
 
   const { data: rawSessions, isLoading, error } = useCollection(sessionsQuery);
 
-  // Tri en mémoire pour garantir l'affichage sans index
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    return [...rawSessions].sort((a, b) => {
-      // Tri par date décroissante
-      const dateA = a.date || "";
-      const dateB = b.date || "";
-      return dateB.localeCompare(dateA);
-    });
-  }, [rawSessions]);
+    // DOUBLE VÉRIFICATION DE SÉCURITÉ EN MÉMOIRE
+    return [...rawSessions]
+      .filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true)
+      .sort((a, b) => {
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        return dateB.localeCompare(dateA);
+      });
+  }, [rawSessions, isPrepaMode]);
 
   const handleDeleteSession = async (id: string, date: string) => {
-    if (!confirm(`Attention : Supprimer la session du ${date} ? Cela ne supprimera pas les transactions, mais la journée apparaîtra comme "non ouverte".`)) return;
+    if (!confirm(`Attention : Supprimer la session du ${date} ?`)) return;
     
     try {
       await deleteDoc(doc(db, "cash_sessions", id));
@@ -92,7 +93,7 @@ export default function CashSessionsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions {isPrepaMode ? "(Brouillon)" : ""}</h1>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique des responsables et flux de caisse.</p>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique cloisonné par mode.</p>
             </div>
           </div>
         </div>

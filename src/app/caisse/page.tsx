@@ -79,7 +79,6 @@ function CaisseContent() {
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
     if (dateParam) {
-      // Sécurisation du parsing pour éviter les décalages de fuseau horaire
       const [y, m, d] = dateParam.split('-').map(Number);
       const date = new Date(y, m - 1, d);
       if (!isNaN(date.getTime())) return date;
@@ -88,6 +87,7 @@ function CaisseContent() {
   }, [dateParam]);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
+  // ISOLATION PAR ID : DRAFT- pour le mode prépa
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
@@ -95,7 +95,15 @@ function CaisseContent() {
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
-  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
+  const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
+
+  // DOUBLE VÉRROUILLAGE DE SÉCURITÉ : On ignore la session si le flag isDraft ne correspond pas
+  const session = useMemo(() => {
+    if (!rawSession) return null;
+    const sessionIsDraft = rawSession.isDraft === true;
+    if (isPrepaMode !== sessionIsDraft) return null; // Étanchéité absolue
+    return rawSession;
+  }, [rawSession, isPrepaMode]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -112,7 +120,8 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : !t.isDraft);
+    // FILTRAGE STRICT PAR MODE
+    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
@@ -170,7 +179,7 @@ function CaisseContent() {
   };
 
   const handleDeleteCurrentSession = async () => {
-    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte. Vous pourrez alors saisir un nouveau solde initial.")) return;
+    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte.")) return;
     setOpLoading(true);
     try {
       await deleteDoc(sessionRef);

@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const db = useFirestore();
   const [todayStr, setTodayStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function DashboardPage() {
     }));
     setDateStr(format(now, "yyyy-MM-dd"));
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
-    setIsClientReady(true);
+    setIsHydrated(true);
   }, []);
 
   const isPrepaMode = role === "PREPA";
@@ -67,10 +67,17 @@ export default function DashboardPage() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // ISOLATION: On vérifie la session avec l'ID préfixé si mode PREPA
+  // ISOLATION PAR ID : DRAFT- pour le mode prépa
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   const sessionRef = useMemoFirebase(() => dateStr ? doc(db, "cash_sessions", sessionDocId) : null, [db, dateStr, sessionDocId]);
-  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
+  const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
+
+  // DOUBLE VERROUILLAGE SÉCURITÉ
+  const session = useMemo(() => {
+    if (!rawSession) return null;
+    if (isPrepaMode !== (rawSession.isDraft === true)) return null;
+    return rawSession;
+  }, [rawSession, isPrepaMode]);
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
   const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
@@ -83,12 +90,14 @@ export default function DashboardPage() {
 
   const allSales = useMemo(() => {
     if (!rawSales) return [];
-    return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : !s.isDraft);
+    // FILTRAGE STRICT PAR MODE (Étanchéité)
+    return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [rawSales, isPrepaMode]);
 
   const allTransactions = useMemo(() => {
     if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : !t.isDraft);
+    // FILTRAGE STRICT PAR MODE (Étanchéité)
+    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
   const stats = useMemo(() => {
