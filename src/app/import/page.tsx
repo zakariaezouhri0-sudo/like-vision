@@ -107,6 +107,7 @@ export default function ImportPage() {
 
         let daySalesTotal = 0;
         let dayExpensesTotal = 0;
+        let dayVersementsTotal = 0;
         const initialBalance = currentBalance;
 
         const sessionRef = doc(db, "cash_sessions", sessionId);
@@ -196,32 +197,42 @@ export default function ImportPage() {
             }
           }
 
-          // GESTION DES CHARGES (Correction : Assouplissement de la condition)
+          // GESTION DES CHARGES (Maintenant avec détection automatique des Versements)
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
           const labelRaw = row[mapping.label];
           const supplierRaw = row[mapping.supplierName];
           const expenseCategory = row[mapping.category];
 
           if (expenseAmount > 0 && (labelRaw || supplierRaw)) {
-            let finalLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Dépense Importée");
+            let finalLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
             if (labelRaw && supplierRaw) {
               finalLabel += ` - ${supplierRaw.toString().trim()}`;
             }
 
+            // Détection automatique si c'est un versement bancaire ou autre
+            const isVersement = finalLabel.toUpperCase().includes("VERSEMENT");
+            const type = isVersement ? "VERSEMENT" : "DEPENSE";
+
             await addDoc(collection(db, "transactions"), {
-              type: "DEPENSE", 
+              type: type, 
               label: finalLabel, 
-              category: expenseCategory ? expenseCategory.toString().trim() : "Général", 
+              clientName: supplierRaw ? supplierRaw.toString().trim() : "",
+              category: expenseCategory ? expenseCategory.toString().trim() : (isVersement ? "Banque" : "Général"), 
               montant: -Math.abs(expenseAmount),
               isDraft, 
               createdAt: openTime, 
               userName
             });
-            dayExpensesTotal += expenseAmount;
+
+            if (isVersement) {
+              dayVersementsTotal += expenseAmount;
+            } else {
+              dayExpensesTotal += expenseAmount;
+            }
           }
         }
 
-        currentBalance = initialBalance + daySalesTotal - dayExpensesTotal;
+        currentBalance = initialBalance + daySalesTotal - dayExpensesTotal - dayVersementsTotal;
 
         await setDoc(sessionRef, {
           status: "CLOSED",
@@ -229,7 +240,7 @@ export default function ImportPage() {
           closedBy: userName,
           totalSales: daySalesTotal,
           totalExpenses: dayExpensesTotal,
-          totalVersements: 0,
+          totalVersements: dayVersementsTotal,
           closingBalanceReal: currentBalance,
           closingBalanceTheoretical: currentBalance,
           discrepancy: 0
@@ -238,7 +249,7 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier est entièrement saisi avec les clients." });
+      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier est entièrement saisi." });
       router.push("/caisse/sessions");
     } catch (e) {
       console.error(e);
