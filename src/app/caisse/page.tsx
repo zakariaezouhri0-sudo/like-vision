@@ -113,7 +113,7 @@ function CaisseContent() {
         setLastSessionDate(lastSessions[0].date);
       }
     } else if (!session) {
-      // Si aucune session n'a jamais été fermée, on laisse la main (Uniquement la 1ère fois)
+      // Si aucune session n'a jamais été fermée, on laisse la main
       setOpeningVal("0");
       setIsAutoReport(false);
       setLastSessionDate("");
