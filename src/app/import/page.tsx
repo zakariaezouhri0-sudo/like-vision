@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, Timestamp, doc, setDoc, query, getDocs, where, limit, increment } from "firebase/firestore";
+import { collection, doc, setDoc, query, getDocs, where, limit, increment, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
@@ -44,7 +44,6 @@ export default function ImportPage() {
   const [mapping, setMapping] = useState<Mapping>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [importType, setImportType] = useState<"global" | "legacy">("global");
   const [startingBalance, setStartingBalance] = useState<string>("0");
 
   const GLOBAL_FIELDS = [
@@ -87,7 +86,6 @@ export default function ImportPage() {
     setIsProcessing(true);
     setProgress(0);
     
-    // ÉTANCHÉITÉ TOTALE : On force l'isolation par le rôle actuel
     const currentIsDraft = role === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = parseFloat(startingBalance) || 0;
@@ -121,7 +119,7 @@ export default function ImportPage() {
           openedAt: openTime,
           openedBy: userName,
           openingBalance: initialBalance
-        });
+        }, { merge: true });
 
         for (const row of data) {
           // GESTION DES VENTES
@@ -140,7 +138,6 @@ export default function ImportPage() {
 
             const normalizedClientName = clientName.toUpperCase();
             if (!importSessionClients.has(normalizedClientName)) {
-              // ÉTANCHÉITÉ : Recherche de doublon UNIQUEMENT dans le mode actuel
               const clientQ = query(
                 collection(db, "clients"), 
                 where("name", "==", clientName), 
@@ -150,11 +147,12 @@ export default function ImportPage() {
               const clientSnap = await getDocs(clientQ);
               
               if (clientSnap.empty) {
-                await addDoc(collection(db, "clients"), {
+                const newClientRef = doc(collection(db, "clients"));
+                await setDoc(newClientRef, {
                   name: clientName, phone: "", mutuelle: "Aucun",
                   lastVisit: format(currentDate, "dd/MM/yyyy"),
                   ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
-                });
+                }, { merge: true });
               } else {
                 const existingRef = clientSnap.docs[0].ref;
                 await setDoc(existingRef, { 
@@ -165,7 +163,8 @@ export default function ImportPage() {
               importSessionClients.add(normalizedClientName);
             }
 
-            await addDoc(collection(db, "sales"), {
+            const saleRef = doc(collection(db, "sales"));
+            await setDoc(saleRef, {
               invoiceId, clientName, total, 
               avance: totalAvance, reste: Math.max(0, total - totalAvance),
               statut: isPaid ? "Payé" : "Partiel",
@@ -174,14 +173,15 @@ export default function ImportPage() {
                 { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Ancien" },
                 { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
               ]
-            });
+            }, { merge: true });
 
             if (currentAvance > 0) {
-              await addDoc(collection(db, "transactions"), {
+              const transRef = doc(collection(db, "transactions"));
+              await setDoc(transRef, {
                 type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
                 montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
                 userName, relatedId: invoiceId
-              });
+              }, { merge: true });
               daySalesTotal += currentAvance;
             }
           }
@@ -197,11 +197,12 @@ export default function ImportPage() {
             const isVersement = finalLabel.toUpperCase().includes("VERSEMENT");
             const type = isVersement ? "VERSEMENT" : "DEPENSE";
 
-            await addDoc(collection(db, "transactions"), {
+            const transRef = doc(collection(db, "transactions"));
+            await setDoc(transRef, {
               type: type, label: finalLabel, clientName: supplierRaw ? supplierRaw.toString().trim() : "",
               category: expenseCategory ? expenseCategory.toString().trim() : (isVersement ? "Banque" : "Général"), 
               montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: openTime, userName
-            });
+            }, { merge: true });
 
             if (isVersement) dayVersementsTotal += expenseAmount;
             else dayExpensesTotal += expenseAmount;

@@ -16,7 +16,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, arrayUnion, limit, orderBy, setDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, limit } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -91,7 +91,6 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // ÉTANCHÉITÉ : Recherche de client UNIQUEMENT dans le mode actuel
           const clientQ = query(
             collection(db, "clients"), 
             where("phone", "==", cleanPhone), 
@@ -113,7 +112,6 @@ function NewSaleForm() {
             }
           }
 
-          // ÉTANCHÉITÉ : Calcul de la dette UNIQUEMENT dans le mode actuel
           const allSalesQ = query(
             collection(db, "sales"), 
             where("clientPhone", "==", cleanPhone),
@@ -247,7 +245,7 @@ function NewSaleForm() {
           transaction.update(clientRef, { ...clientData, ordersCount: increment(activeEditId ? 0 : 1) });
         } else if (cleanPhone || clientName) {
           const clientRef = doc(collection(db, "clients"));
-          transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
+          transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 }, { merge: true });
         }
 
         if (nAvance > 0 && !activeEditId) {
@@ -256,7 +254,7 @@ function NewSaleForm() {
             type: "VENTE", label: isPaid ? `VENTE ${invoiceId}` : `VENTE (Acompte) ${invoiceId}`,
             clientName, category: "Optique", montant: nAvance, relatedId: invoiceId,
             userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
-          });
+          }, { merge: true });
         }
         return { ...saleData, id: saleRef.id };
       });
@@ -401,8 +399,8 @@ function NewSaleForm() {
                     <Label className="text-white/60 text-[10px] font-black uppercase tracking-widest">Remise</Label>
                     <Tabs value={discountType} onValueChange={(v) => setDiscountType(v as any)} className="h-7">
                       <TabsList className="h-7 grid grid-cols-2 w-16 p-1 bg-white/10 border-none rounded-lg">
-                        <TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">%</TabsTrigger>
-                        <TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-md">DH</TabsTrigger>
+                        <TabsTrigger value="percent" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-lg">%</TabsTrigger>
+                        <TabsTrigger value="amount" className="text-[9px] font-black h-5 data-[state=active]:bg-white data-[state=active]:text-primary rounded-lg">DH</TabsTrigger>
                       </TabsList>
                     </Tabs>
                   </div>
