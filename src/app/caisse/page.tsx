@@ -41,7 +41,8 @@ import {
   ChevronDown,
   CalendarDays,
   Trash,
-  MessageSquare
+  MessageSquare,
+  Info
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -67,6 +68,7 @@ function CaisseContent() {
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [openingVal, setOpeningVal] = useState("0");
+  const [isAutoReport, setIsAutoReport] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -103,7 +105,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // RECHERCHE DU SOLDE DE CLÔTURE PRÉCÉDENT
+  // RECHERCHE DU SOLDE DE CLÔTURE DE LA DERNIÈRE SESSION EXISTANTE
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -119,11 +121,14 @@ function CaisseContent() {
   useEffect(() => {
     if (!session && lastSessions && lastSessions.length > 0) {
       const lastClosing = lastSessions[0].closingBalanceReal;
-      if (lastClosing !== undefined && openingVal === "0") {
+      if (lastClosing !== undefined) {
         setOpeningVal(lastClosing.toString());
+        setIsAutoReport(true);
       }
+    } else if (!session) {
+      setIsAutoReport(false);
     }
-  }, [lastSessions, session, openingVal]);
+  }, [lastSessions, session]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -297,23 +302,39 @@ function CaisseContent() {
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
           </div>
         </div>
-        <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
+        <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl">
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
-              {lastSessions && lastSessions.length > 0 && (
-                <span className="text-[8px] font-bold text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md">Reprise auto du {lastSessions[0].date}</span>
+              {isAutoReport && lastSessions && lastSessions.length > 0 && (
+                <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {format(new Date(lastSessions[0].date), "dd/MM")}
+                </Badge>
               )}
             </div>
-            <div className="relative">
+            <div className="relative group">
               <input 
                 type="number" 
-                className="w-full h-20 text-4xl font-black text-center rounded-3xl bg-slate-50 border-2 border-primary/5 outline-none tabular-nums" 
+                className={cn(
+                  "w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none tabular-nums transition-all",
+                  isAutoReport ? "bg-slate-100 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
+                )}
                 value={openingVal} 
-                onChange={(e) => setOpeningVal(e.target.value)} 
+                onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
+                readOnly={isAutoReport}
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+              {isAutoReport && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/60 rounded-3xl pointer-events-none">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-white px-4 py-2 rounded-full shadow-lg border">Lecture seule (Report auto)</span>
+                </div>
+              )}
             </div>
+            {!isAutoReport && (
+              <p className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
+                <Info className="h-3 w-3" /> Saisie manuelle requise (Première fois)
+              </p>
+            )}
           </div>
           <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
         </Card>
@@ -467,6 +488,11 @@ function CaisseContent() {
                           </span>
                           <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
                         </div>
+                        {t.lastEditReason && (
+                          <div className="flex items-center gap-1.5 text-[9px] text-orange-600 font-bold italic bg-orange-50/50 px-2 py-1 rounded border border-orange-100 mb-2 w-fit">
+                            <MessageSquare className="h-3 w-3" /> {t.lastEditReason}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <Badge className={cn(
                             "text-[8px] font-black border-none px-2 w-fit", 
@@ -477,8 +503,8 @@ function CaisseContent() {
                             {t.type}
                           </Badge>
                           {t.lastEditReason && (
-                            <div className="flex items-center gap-1 text-[8px] text-orange-600 font-bold italic bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100" title={`Modifié: ${t.lastEditReason}`}>
-                              <MessageSquare className="h-2 w-2" /> MODIFIÉ
+                            <div className="flex items-center gap-1 text-[8px] text-orange-600 font-bold uppercase tracking-widest bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                              MODIFIÉ
                             </div>
                           )}
                         </div>
@@ -492,7 +518,7 @@ function CaisseContent() {
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString(), editReason: "" })} className="py-2.5 font-black text-[10px] uppercase rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString(), editReason: t.lastEditReason || "" })} className="py-2.5 font-black text-[10px] uppercase rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
                             {!isClosed && (
                               <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-500 py-2.5 font-black text-[10px] uppercase rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
                             )}
@@ -535,11 +561,12 @@ function CaisseContent() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-orange-600">Motif de la modification (Obligatoire)</Label>
                 <textarea 
-                  className="w-full h-20 rounded-xl font-bold bg-white border border-slate-200 px-3 py-2 outline-none text-sm" 
-                  placeholder="Ex: Erreur de saisie sur le montant, correction libellé..."
+                  className="w-full h-24 rounded-xl font-bold bg-white border border-orange-100 px-3 py-3 outline-none text-sm shadow-sm" 
+                  placeholder="Ex: Erreur de saisie, libellé incorrect..."
                   value={editingTransaction.editReason || ""} 
                   onChange={e => setEditingTransaction({...editingTransaction, editReason: e.target.value})}
                 />
+                <p className="text-[8px] font-bold text-muted-foreground uppercase px-1">Cette explication sera visible dans le journal pour l'administrateur.</p>
               </div>
             </div>
           )}
