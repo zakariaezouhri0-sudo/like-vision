@@ -112,18 +112,18 @@ function ReceiptPrintContent() {
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-100 p-3 font-black text-slate-700">Droit (OD)</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{od.sph}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{od.cyl}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{od.axe}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{od.add}</td>
+              <td className="border border-slate-100 p-2 font-black text-slate-700">Droit (OD)</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.sph}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.cyl}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.axe}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.add}</td>
             </tr>
             <tr className="bg-slate-50/30">
-              <td className="border border-slate-100 p-3 font-black text-slate-700">Gauche (OG)</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{og.sph}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{og.cyl}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{og.axe}</td>
-              <td className="border border-slate-100 p-3 text-center font-black tabular-nums text-base">{og.add}</td>
+              <td className="border border-slate-100 p-2 font-black text-slate-700">Gauche (OG)</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.sph}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.cyl}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.axe}</td>
+              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.add}</td>
             </tr>
           </tbody>
         </table>
