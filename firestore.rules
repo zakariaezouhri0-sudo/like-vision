@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
-    // Mise à jour forcée pour résolution d'erreur : PERM_RESOLVE_V3_20240225_1430
+    // Mise à jour forcée pour résolution d'erreur : PERM_RESOLVE_V4_20240225_1510
     match /{document=**} {
       allow read, write: if true;
     }
