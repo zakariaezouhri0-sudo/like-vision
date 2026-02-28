@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -50,13 +49,16 @@
         "purchasePriceFrame": { "type": "number" },
         "purchasePriceLenses": { "type": "number" },
         "prescription": { "type": "object" },
+        "isDraft": { "type": "boolean" },
         "payments": { 
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "amount": { "type": "number" },
-              "date": { "type": "string", "format": "date-time" }
+              "date": { "type": "string", "format": "date-time" },
+              "userName": { "type": "string" },
+              "note": { "type": "string" }
             }
           }
         },
@@ -68,13 +70,15 @@
     "Transaction": {
       "title": "Transaction",
       "type": "object",
-      "description": "Représente un mouvement de flux de caisse (dépense, versement, paiement vente).",
+      "description": "Représente un mouvement de flux de caisse.",
       "properties": {
-        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "VERSEMENT"] },
+        "type": { "type": "string", "enum": ["VENTE", "DEPENSE", "VERSEMENT", "ACHAT VERRES"] },
         "category": { "type": "string" },
         "label": { "type": "string" },
         "montant": { "type": "number" },
         "relatedId": { "type": "string" },
+        "isDraft": { "type": "boolean" },
+        "userName": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["type", "montant", "label"]
@@ -92,9 +96,12 @@
         "closingBalanceTheoretical": { "type": "number" },
         "discrepancy": { "type": "number" },
         "date": { "type": "string" },
+        "isDraft": { "type": "boolean" },
         "totalSales": { "type": "number" },
         "totalExpenses": { "type": "number" },
-        "totalVersements": { "type": "number" }
+        "totalVersements": { "type": "number" },
+        "openedBy": { "type": "string" },
+        "closedBy": { "type": "string" }
       }
     },
     "Settings": {
