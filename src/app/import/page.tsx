@@ -99,7 +99,7 @@ export default function ImportPage() {
     }
 
     setIsProcessing(true);
-    setProgress(0);
+    setProgress(Progress => 0);
     
     const currentIsDraft = freshRole === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
@@ -121,9 +121,13 @@ export default function ImportPage() {
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
         if (sheetNumbers && sheetNumbers.length > 0) {
-          const lastNum = parseInt(sheetNumbers[sheetNumbers.length - 1]);
-          if (lastNum >= 1 && lastNum <= 31) {
-            day = lastNum;
+          // On cherche un nombre entre 1 et 31
+          const dayMatch = sheetNumbers.find(num => {
+            const n = parseInt(num);
+            return n >= 1 && n <= 31;
+          });
+          if (dayMatch) {
+            day = parseInt(dayMatch);
           }
         }
 

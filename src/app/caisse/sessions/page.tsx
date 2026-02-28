@@ -74,15 +74,19 @@ export default function CashSessionsPage() {
   const formatSessionDate = (dateStr: string) => {
     if (!dateStr) return "Date inconnue";
     try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const day = parseInt(parts[2]);
-        if (day > 31 || month > 12) return dateStr;
+      // Extraction sécurisée : on ne prend que les 10 premiers caractères (yyyy-MM-dd)
+      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        const year = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const day = parseInt(match[3]);
         const d = new Date(year, month - 1, day);
-        if (!isNaN(d.getTime())) return format(d, "dd MMMM yyyy", { locale: fr });
+        if (!isNaN(d.getTime())) {
+          return format(d, "dd MMMM yyyy", { locale: fr });
+        }
       }
+      
+      // Fallback si le format est différent mais valide
       const d = new Date(dateStr);
       return isNaN(d.getTime()) ? dateStr : format(d, "dd MMMM yyyy", { locale: fr });
     } catch (e) {
