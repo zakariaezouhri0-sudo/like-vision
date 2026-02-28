@@ -39,7 +39,8 @@ import {
   TrendingDown, 
   Landmark,
   ChevronDown,
-  CalendarDays
+  CalendarDays,
+  Trash
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -166,6 +167,19 @@ function CaisseContent() {
       toast({ variant: "destructive", title: "Erreur" }); 
     } finally { 
       setOpLoading(false); 
+    }
+  };
+
+  const handleDeleteCurrentSession = async () => {
+    if (!confirm("Voulez-vous vraiment supprimer cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte.")) return;
+    setOpLoading(true);
+    try {
+      await deleteDoc(sessionRef);
+      toast({ variant: "success", title: "Session supprimée avec succès" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+    } finally {
+      setOpLoading(false);
     }
   };
 
@@ -310,9 +324,22 @@ function CaisseContent() {
             {isClosed ? <Lock className="h-6 w-6" /> : <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
-              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
+                {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
+              </h1>
+              {isAdminOrPrepa && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleDeleteCurrentSession}
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg"
+                  title="Supprimer cette session"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
                 <CalendarDays className="h-3 w-3 text-slate-400" />

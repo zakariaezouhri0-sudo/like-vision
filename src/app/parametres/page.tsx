@@ -104,9 +104,11 @@ export default function SettingsPage() {
   const handleCleanSpecificSession = async () => {
     setIsCleaning(true);
     try {
-      // Suppression de la session réelle (Optique) du 28/02/2026
+      // Suppression exhaustive de la session du 28/02 (Réelle et Draft)
       await deleteDoc(doc(db, "cash_sessions", "2026-02-28"));
-      toast({ variant: "success", title: "Nettoyage terminé", description: "La session du 28/02 en mode Optique a été supprimée." });
+      await deleteDoc(doc(db, "cash_sessions", "DRAFT-2026-02-28"));
+      
+      toast({ variant: "success", title: "Nettoyage terminé", description: "La session du 28/02 a été effacée partout." });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer la session." });
     } finally {
@@ -165,7 +167,7 @@ export default function SettingsPage() {
                       className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-red-200 text-red-600 hover:bg-red-100"
                     >
                       {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eraser className="h-4 w-4 mr-2" />}
-                      Effacer Session 28/02 (Optique)
+                      Effacer Session 28/02 (Partout)
                     </Button>
                   </div>
 
