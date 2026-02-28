@@ -105,7 +105,7 @@ export default function SettingsPage() {
   const handleCleanRealClients = async () => {
     setIsCleaningClients(true);
     try {
-      // On récupère les clients qui ne sont PAS des brouillons (isDraft !== true)
+      // Nettoyage ciblé : Uniquement les clients qui n'ont PAS isDraft = true
       const q = query(collection(db, "clients"));
       const snap = await getDocs(q);
       const realClients = snap.docs.filter(d => d.data().isDraft !== true);
@@ -115,28 +115,23 @@ export default function SettingsPage() {
         return;
       }
 
-      const batch = writeBatch(db);
-      realClients.forEach(d => batch.delete(d.ref));
-      await batch.commit();
+      // Traitement par lots de 500 pour respecter les limites Firestore
+      const chunks = [];
+      for (let i = 0; i < realClients.length; i += 500) {
+        chunks.push(realClients.slice(i, i + 500));
+      }
+
+      for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
 
       toast({ variant: "success", title: "Nettoyage réussi", description: `${realClients.length} clients supprimés du mode réel.` });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer les clients." });
     } finally {
       setIsCleaningClients(false);
-    }
-  };
-
-  const handleCleanSpecificSession = async () => {
-    setIsCleaning(true);
-    try {
-      await deleteDoc(doc(db, "cash_sessions", "2026-02-28"));
-      await deleteDoc(doc(db, "cash_sessions", "DRAFT-2026-02-28"));
-      toast({ variant: "success", title: "Nettoyage terminé", description: "La session du 28/02 a été effacée partout." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer la session." });
-    } finally {
-      setIsCleaning(false);
     }
   };
 
@@ -182,7 +177,7 @@ export default function SettingsPage() {
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-3">
                     <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
-                      Nettoyage Chirurgical
+                      Nettoyage du fichier Optique
                     </p>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -199,7 +194,7 @@ export default function SettingsPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-xl font-black text-primary uppercase">Supprimer les clients réels ?</AlertDialogTitle>
                           <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                            Cette action va effacer TOUS les clients qui ne sont pas marqués comme "Brouillon". Vos données du compte `prepa` resteront intactes.
+                            Cette action va effacer TOUS les clients qui ne sont pas marqués comme "Brouillon". Vos données importées dans le compte `prepa` resteront intactes.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="pt-6">
@@ -231,7 +226,7 @@ export default function SettingsPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-2xl font-black text-primary uppercase tracking-tighter">Action Irréversible</AlertDialogTitle>
                           <AlertDialogDescription className="text-sm font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse.
+                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse des deux comptes.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="pt-6">

@@ -29,17 +29,10 @@ Pour saisir vos anciennes données sans fausser la caisse réelle :
 
 ---
 
-## 📊 Modèles d'Importation Excel
-
-### 1. Historique Mensuel Global (Janvier)
-Utilisez ces colonnes pour l'automate d'importation :
-- `Nom Client`
-- `Total Brut`
-- `Avance Payée` (Argent encaissé le jour J)
-- `Avance Antérieure` (Argent déjà payé avant le 01/01)
-- `Libellé` (Dépense)
-- `Montant` (Dépense)
-- `Catégorie` (Dépense)
+## 📊 Outils de Maintenance
+Si des données se sont mélangées entre les comptes :
+1. Allez dans **Paramètres**.
+2. Utilisez la **Zone de Danger** pour nettoyer les clients réels ou réinitialiser le système.
 
 ---
 *Propulsé par Next.js, Firebase & Vercel*
