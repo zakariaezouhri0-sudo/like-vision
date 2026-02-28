@@ -83,6 +83,7 @@ function CaisseContent() {
       if (!isNaN(d.getTime())) return d;
     }
     const today = new Date();
+    // En mode PREPA, on commence par défaut à la date de début d'historique (ex: 2026-01-01)
     const startHistory = new Date("2026-01-01");
     if (isPrepaMode && isBefore(today, startHistory)) return startHistory;
     return today;
@@ -148,6 +149,7 @@ function CaisseContent() {
       setOpLoading(true);
       let openedAt;
       if (isPrepaMode) {
+        // En mode historique, on simule une ouverture à 10h00
         const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
         openedAt = Timestamp.fromDate(d);
       } else {
@@ -176,7 +178,7 @@ function CaisseContent() {
     try {
       await deleteDoc(sessionRef);
       toast({ variant: "success", title: "Session supprimée avec succès" });
-      // On recharge la page pour rafraîchir l'état
+      // Forcer le rafraîchissement
       window.location.reload();
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
@@ -239,6 +241,7 @@ function CaisseContent() {
       setOpLoading(true);
       let closedAt;
       if (isPrepaMode) {
+        // En mode historique, on simule une fermeture à 20h00
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
         closedAt = Timestamp.fromDate(d);
       } else {
@@ -289,9 +292,12 @@ function CaisseContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
         <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+            <DateChanger />
+          </div>
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
           <div className="space-y-3">
@@ -307,9 +313,6 @@ function CaisseContent() {
             </div>
           </div>
           <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
-          <div className="flex justify-center gap-3">
-            <DateChanger />
-          </div>
         </Card>
       </div>
     );
@@ -344,7 +347,7 @@ function CaisseContent() {
                   variant="destructive" 
                   size="sm" 
                   onClick={handleDeleteCurrentSession}
-                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100 flex items-center gap-2"
+                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100 flex items-center gap-2 border-2 border-red-200"
                 >
                   <Trash2 className="h-4 w-4" /> SUPPRIMER LA SESSION
                 </Button>
