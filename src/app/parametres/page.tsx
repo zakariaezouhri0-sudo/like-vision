@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
+  const [isCleaningClients, setIsCleaningClients] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -101,13 +102,36 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCleanRealClients = async () => {
+    setIsCleaningClients(true);
+    try {
+      // On récupère les clients qui ne sont PAS des brouillons (isDraft !== true)
+      const q = query(collection(db, "clients"));
+      const snap = await getDocs(q);
+      const realClients = snap.docs.filter(d => d.data().isDraft !== true);
+
+      if (realClients.length === 0) {
+        toast({ title: "Info", description: "Aucun client réel trouvé à supprimer." });
+        return;
+      }
+
+      const batch = writeBatch(db);
+      realClients.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+
+      toast({ variant: "success", title: "Nettoyage réussi", description: `${realClients.length} clients supprimés du mode réel.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer les clients." });
+    } finally {
+      setIsCleaningClients(false);
+    }
+  };
+
   const handleCleanSpecificSession = async () => {
     setIsCleaning(true);
     try {
-      // Suppression exhaustive de la session du 28/02 (Réelle et Draft)
       await deleteDoc(doc(db, "cash_sessions", "2026-02-28"));
       await deleteDoc(doc(db, "cash_sessions", "DRAFT-2026-02-28"));
-      
       toast({ variant: "success", title: "Nettoyage terminé", description: "La session du 28/02 a été effacée partout." });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer la session." });
@@ -158,17 +182,32 @@ export default function SettingsPage() {
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-3">
                     <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
-                      Outil de Nettoyage (Urgent)
+                      Nettoyage Chirurgical
                     </p>
-                    <Button 
-                      variant="outline"
-                      onClick={handleCleanSpecificSession}
-                      disabled={isCleaning}
-                      className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-red-200 text-red-600 hover:bg-red-100"
-                    >
-                      {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eraser className="h-4 w-4 mr-2" />}
-                      Effacer Session 28/02 (Partout)
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          disabled={isCleaningClients}
+                          className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-red-200 text-red-600 hover:bg-red-100"
+                        >
+                          {isCleaningClients ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+                          Supprimer Clients (Mode Réel)
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-[32px] p-8">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-xl font-black text-primary uppercase">Supprimer les clients réels ?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
+                            Cette action va effacer TOUS les clients qui ne sont pas marqués comme "Brouillon". Vos données du compte `prepa` resteront intactes.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="pt-6">
+                          <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleCleanRealClients} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
 
                   <Separator className="bg-red-100" />
@@ -176,9 +215,6 @@ export default function SettingsPage() {
                   <div className="space-y-3">
                     <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
                       Nettoyage Complet
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
-                      Supprime TOUTES les données du magasin (ventes, clients, caisse) pour repartir à zéro.
                     </p>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -195,7 +231,7 @@ export default function SettingsPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-2xl font-black text-primary uppercase tracking-tighter">Action Irréversible</AlertDialogTitle>
                           <AlertDialogDescription className="text-sm font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse. Voulez-vous vraiment continuer ?
+                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="pt-6">
