@@ -48,7 +48,7 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, se
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { startOfDay, endOfDay, format, parseISO, setHours, setMinutes, setSeconds } from "date-fns";
+import { startOfDay, endOfDay, format, parseISO, setHours, setMinutes, setSeconds, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -63,13 +63,12 @@ function CaisseContent() {
   const searchParams = useSearchParams();
   
   const [isClientReady, setIsHydrated] = useState(false);
-  const [todayId, setTodayId] = useState("");
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [openingVal, setOpeningVal] = useState("0");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
-    setTodayId(format(new Date(), "yyyy-MM-dd"));
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
 
@@ -78,14 +77,17 @@ function CaisseContent() {
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
     if (dateParam) {
-      const d = new Date(dateParam);
-      return isNaN(d.getTime()) ? new Date() : d;
+      const d = parseISO(dateParam);
+      if (!isNaN(d.getTime())) return d;
     }
-    return new Date();
-  }, [dateParam]);
+    const today = new Date();
+    const startHistory = new Date("2026-01-01");
+    // En mode PREPA, si on est avant 2026, on commence au 01/01/2026
+    if (isPrepaMode && isBefore(today, startHistory)) return startHistory;
+    return today;
+  }, [dateParam, isPrepaMode]);
 
   const sessionDocId = format(selectedDate, "yyyy-MM-dd");
-  const isToday = isClientReady && todayId === sessionDocId;
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
@@ -133,15 +135,15 @@ function CaisseContent() {
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      router.push(`/caisse?date=${format(date, "yyyy-MM-dd")}`);
+      setIsCalendarOpen(false);
+      const dateStr = format(date, "yyyy-MM-dd");
+      router.push(`/caisse?date=${dateStr}`);
     }
   };
 
   const handleOpenSession = async () => {
     try {
       setOpLoading(true);
-      
-      // Heure d'ouverture par défaut : 10:00 pour le mode PREPA, sinon heure actuelle
       let openedAt;
       if (isPrepaMode) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
@@ -218,8 +220,6 @@ function CaisseContent() {
   const handleFinalizeClosure = async () => {
     try {
       setOpLoading(true);
-      
-      // Heure de clôture par défaut : 20:00 pour le mode PREPA, sinon heure actuelle
       let closedAt;
       if (isPrepaMode) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
@@ -243,37 +243,29 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
+  const DateChanger = () => (
+    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+          <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+        <Calendar 
+          mode="single" 
+          selected={selectedDate} 
+          onSelect={handleDateSelect} 
+          locale={fr} 
+          initialFocus 
+          disabled={(d) => isPrepaMode ? d < new Date("2026-01-01") : false} 
+        />
+      </PopoverContent>
+    </Popover>
+  );
+
   if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
-  // En mode PREPA, on permet d'ouvrir une session même si ce n'est pas aujourd'hui
-  const canOpenSession = isToday || isPrepaMode;
-
-  if (!session && !canOpenSession) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <div className="h-20 w-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
-          <CalendarIcon className="h-10 w-10" />
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Aucune session enregistrée</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Pour la journée du {format(selectedDate, "dd/MM/yyyy")}</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.push("/caisse/sessions")} className="rounded-xl font-black text-[10px] uppercase">Voir l'historique</Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button className="rounded-xl font-black text-[10px] uppercase bg-primary text-white"><CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE</Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
-              <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session && canOpenSession) {
+  if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
         <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
@@ -295,14 +287,7 @@ function CaisseContent() {
             </div>
           </div>
           <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" className="text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100"><CalendarIcon className="mr-2 h-3.5 w-3.5" /> Changer la date</Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
-              <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
-            </PopoverContent>
-          </Popover>
+          <DateChanger />
         </Card>
       </div>
     );
@@ -331,16 +316,7 @@ function CaisseContent() {
                   {format(selectedDate, "dd/MM/yyyy")}
                 </span>
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-3 rounded-lg font-black text-[9px] uppercase bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all">
-                    <CalendarIcon className="mr-1.5 h-3 w-3" /> Changer
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                  <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
-                </PopoverContent>
-              </Popover>
+              <DateChanger />
             </div>
           </div>
         </div>
