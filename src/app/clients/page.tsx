@@ -31,14 +31,18 @@ export default function ClientsPage() {
   const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
-    setRole(savedRole.toUpperCase());
+    // SÉCURITÉ : Pas de rôle par défaut. On attend la lecture du localStorage.
+    const savedRole = localStorage.getItem('user_role');
+    if (savedRole) {
+      setRole(savedRole.toUpperCase());
+    } else {
+      router.push('/login');
+    }
     setIsHydrated(true);
-  }, []);
+  }, [router]);
 
   const isPrepaMode = role === "PREPA";
   
-  // CHARGEMENT TOTAL : On récupère tout sans filtre Firestore pour éviter que des dossiers soient masqués
   const clientsQuery = useMemoFirebase(() => {
     return query(collection(db, "clients"));
   }, [db]);
@@ -82,7 +86,12 @@ export default function ClientsPage() {
   }, [allClients, searchTerm, isPrepaMode, role]);
 
   const handleCreateClient = () => {
-    if (!role) return;
+    // SÉCURITÉ : Lecture directe du rôle au moment du clic
+    const currentRole = localStorage.getItem('user_role')?.toUpperCase();
+    if (!currentRole) return;
+    
+    const currentIsDraft = currentRole === "PREPA";
+
     if (!newClient.name) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom est obligatoire." });
       return;
@@ -96,7 +105,7 @@ export default function ClientsPage() {
       mutuelle: newClient.mutuelle,
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
-      isDraft: isPrepaMode,
+      isDraft: currentIsDraft, // Utilisation de la valeur fraîche lue du localStorage
       createdAt: serverTimestamp(),
     };
 
@@ -160,6 +169,7 @@ export default function ClientsPage() {
     router.push(`/ventes?search=${phone}`);
   };
 
+  // SÉCURITÉ : Ne rien rendre tant que le rôle n'est pas identifié
   if (!isClientReady || role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
@@ -175,7 +185,7 @@ export default function ClientsPage() {
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary w-full sm:w-auto h-14 font-black shadow-xl rounded-2xl px-8" disabled={!role}>
+              <Button className="bg-primary w-full sm:w-auto h-14 font-black shadow-xl rounded-2xl px-8">
                 <Plus className="mr-2 h-6 w-6" /> NOUVEAU CLIENT
               </Button>
             </DialogTrigger>
@@ -280,7 +290,6 @@ export default function ClientsPage() {
                                 <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
-                                {/* DÉBLOQUÉ : Tous les comptes peuvent maintenant modifier et supprimer */}
                                 <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
                                 </DropdownMenuItem>

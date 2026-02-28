@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -36,9 +37,14 @@ function NewSaleForm() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
+    // SÉCURITÉ : Pas de rôle par défaut.
     const savedRole = localStorage.getItem('user_role');
-    setRole(savedRole ? savedRole.toUpperCase() : "OPTICIENNE");
-  }, []);
+    if (savedRole) {
+      setRole(savedRole.toUpperCase());
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
 
   const isPrepaMode = role === "PREPA";
 
@@ -76,6 +82,7 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
+      // SÉCURITÉ : Ne pas chercher tant que le rôle n'est pas prêt
       if (!role) return;
       const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
       
@@ -84,18 +91,7 @@ function NewSaleForm() {
         return;
       }
 
-      const isValidFormat = /^(06|07|08)\d{8}$/.test(cleanPhone);
-      if (cleanPhone.length === 10 && !isValidFormat) {
-        setPhoneError("Numéro invalide (06, 07 ou 08 requis)");
-      } else if (cleanPhone.length > 10) {
-        setPhoneError("Trop de chiffres (10 requis)");
-      } else {
-        setPhoneError(null);
-      }
-
-      if (cleanPhone.length < 10) {
-        return;
-      }
+      if (cleanPhone.length < 10) return;
       
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
@@ -161,18 +157,18 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
-    if (!role) return null;
+    // SÉCURITÉ : Lecture directe et forcée du rôle au moment exact de la sauvegarde
+    const currentRole = localStorage.getItem('user_role')?.toUpperCase();
+    if (!currentRole) {
+      toast({ variant: "destructive", title: "Erreur Sécurité", description: "Mode non identifié. Reconnectez-vous." });
+      return null;
+    }
+    
+    const currentIsDraft = currentRole === "PREPA";
     const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
-    const isValidPhone = cleanPhone === "" || /^(06|07|08)\d{8}$/.test(cleanPhone);
 
     if (!clientName) {
       toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom du client." });
-      return null;
-    }
-
-    if (cleanPhone !== "" && !isValidPhone) {
-      toast({ variant: "destructive", title: "Téléphone non valide", description: "Le numéro doit comporter 10 chiffres et commencer par 06, 07 ou 08." });
-      setPhoneError("Numéro non valide");
       return null;
     }
 
@@ -186,7 +182,7 @@ function NewSaleForm() {
         const clientQuerySnap = await getDocs(query(
           collection(db, "clients"), 
           where("phone", "==", cleanPhone), 
-          where("isDraft", "==", isPrepaMode),
+          where("isDraft", "==", currentIsDraft),
           limit(1)
         ));
         if (!clientQuerySnap.empty) {
@@ -195,7 +191,7 @@ function NewSaleForm() {
       }
 
       const result = await runTransaction(db, async (transaction) => {
-        const counterRef = doc(db, "settings", isPrepaMode ? "counters_draft" : "counters");
+        const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
         const counterSnap = await transaction.get(counterRef);
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
         
@@ -207,7 +203,7 @@ function NewSaleForm() {
         let invoiceId = "";
 
         if (!activeEditId) {
-          const prefix = isPrepaMode ? "PREPA-" : "";
+          const prefix = currentIsDraft ? "PREPA-" : "";
           if (isPaid) { counters.fc += 1; invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; }
           else { counters.rc += 1; invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; }
           transaction.set(counterRef, counters, { merge: true });
@@ -219,7 +215,7 @@ function NewSaleForm() {
           total: nTotal, remise: remiseAmountValue, discountType, discountValue: nDiscount,
           remisePercent: discountType === "percent" ? nDiscount.toString() : "Fixe",
           avance: nHistorical + nAvance, reste: resteAPayerValue, statut,
-          prescription, monture, verres, notes, isDraft: isPrepaMode, updatedAt: serverTimestamp(),
+          prescription, monture, verres, notes, isDraft: currentIsDraft, updatedAt: serverTimestamp(),
           purchasePriceFrame: cleanVal(purchasePriceFrame), purchasePriceLenses: cleanVal(purchasePriceLenses)
         };
 
@@ -239,13 +235,13 @@ function NewSaleForm() {
           mutuelle: finalMutuelle || "Aucun",
           lastVisit: format(saleDate, "dd/MM/yyyy"),
           updatedAt: serverTimestamp(),
-          isDraft: isPrepaMode
+          isDraft: currentIsDraft
         };
 
         if (existingClientId) {
           const clientRef = doc(db, "clients", existingClientId);
           transaction.update(clientRef, { ...clientData, ordersCount: increment(activeEditId ? 0 : 1) });
-        } else if (cleanPhone) {
+        } else if (cleanPhone || clientName) {
           const clientRef = doc(collection(db, "clients"));
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
@@ -255,7 +251,7 @@ function NewSaleForm() {
           transaction.set(transRef, {
             type: "VENTE", label: isPaid ? `Vente Directe ${invoiceId}` : `Acompte Reçu ${invoiceId}`,
             clientName, category: "Optique", montant: nAvance, relatedId: invoiceId,
-            userName: currentUserName, isDraft: isPrepaMode, createdAt: serverTimestamp()
+            userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
           });
         }
         return { ...saleData, id: saleRef.id };
@@ -293,6 +289,7 @@ function NewSaleForm() {
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };
 
+  // SÉCURITÉ : Ne rien rendre tant que le rôle n'est pas identifié
   if (role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
@@ -309,8 +306,8 @@ function NewSaleForm() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] border-primary/20 bg-white" disabled={loading || !role}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
-            <Button onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] shadow-xl text-white" disabled={loading || !role}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
+            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] border-primary/20 bg-white" disabled={loading}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
+            <Button onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] shadow-xl text-white" disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
           </div>
         </div>
 
@@ -321,26 +318,17 @@ function NewSaleForm() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                   <div className="space-y-2">
-                    <Label className={cn("text-[10px] uppercase font-black tracking-widest ml-1 transition-colors", phoneError ? "text-destructive" : "text-muted-foreground")}>
+                    <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">
                       Téléphone {isSearchingClient && <Loader2 className="h-3 w-3 animate-spin inline ml-1" />}
                     </Label>
                     <div className="relative">
                       <Input 
-                        className={cn(
-                          "h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10 tabular-nums transition-all",
-                          phoneError ? "ring-2 ring-destructive bg-red-50" : "focus:ring-2 focus:ring-primary/20"
-                        )} 
+                        className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner pl-10 tabular-nums transition-all focus:ring-2 focus:ring-primary/20" 
                         value={clientPhone} 
                         onChange={(e) => setClientPhone(e.target.value)} 
                         placeholder="06 00 00 00 00 (Optionnel)" 
                       />
-                      <Search className={cn("absolute left-3 top-3.5 h-5 w-5 transition-colors", phoneError ? "text-destructive" : "text-primary/30")} />
-                      {phoneError && (
-                        <div className="absolute -bottom-5 left-1 flex items-center gap-1 text-destructive animate-in fade-in slide-in-from-top-1">
-                          <XCircle className="h-2.5 w-2.5" />
-                          <span className="text-[8px] font-black uppercase tracking-tighter">{phoneError}</span>
-                        </div>
-                      )}
+                      <Search className="absolute left-3 top-3.5 h-5 w-5 text-primary/30" />
                     </div>
                   </div>
                   <div className="space-y-2"><Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest ml-1">Nom & Prénom</Label><Input className="h-12 text-sm font-bold rounded-xl bg-slate-50 border-none shadow-inner uppercase" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="M. Mohamed Alami" /></div>
