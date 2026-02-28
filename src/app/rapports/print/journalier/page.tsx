@@ -4,7 +4,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, TrendingUp, Landmark, FileText } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, TrendingUp, Landmark, FileText, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -118,206 +118,214 @@ function DailyCashReportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/50 flex flex-col items-center py-6 print:py-0 print:bg-white">
-      <div className="no-print w-full max-w-[210mm] flex justify-between items-center mb-6 px-4">
-        <Button variant="outline" asChild className="bg-white border-slate-300 text-slate-700 h-10 px-4 rounded-xl shadow-sm font-black text-[10px] hover:bg-slate-50 transition-colors">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center py-10 print:py-0 print:bg-white">
+      <div className="no-print w-full max-w-[210mm] flex justify-between items-center mb-8 px-4">
+        <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-11 px-5 rounded-xl shadow-sm font-black text-[10px] hover:bg-slate-50">
           <Link href="/caisse"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR CAISSE</Link>
         </Button>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-10 px-8 rounded-xl font-black text-xs text-white flex items-center gap-2">
-            <Printer className="h-4 w-4" /> IMPRIMER / PDF
+        <div className="flex items-center gap-3">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border shadow-sm">Format A4 Portrait</span>
+          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-11 px-10 rounded-xl font-black text-xs text-white">
+            <Printer className="mr-2 h-4 w-4" /> IMPRIMER LE RAPPORT
           </Button>
         </div>
       </div>
 
-      <div className="pdf-a4-portrait shadow-[0_0_50px_rgba(0,0,0,0.1)] bg-white print:shadow-none print:m-0 border border-slate-200 rounded-sm p-[10mm] flex flex-col min-h-[297mm]">
-        {/* Header Élégant */}
-        <div className="flex justify-between items-start border-b-2 border-slate-950 pb-4 mb-5">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border-2 border-slate-100 rounded-xl bg-slate-50">
+      <div className="pdf-a4-portrait shadow-[0_0_60px_rgba(0,0,0,0.05)] bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[12mm] flex flex-col min-h-[297mm]">
+        
+        {/* Header Élégant & Aéré */}
+        <div className="flex justify-between items-start border-b border-slate-200 pb-6 mb-8">
+          <div className="flex items-center gap-5">
+            <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
               {shop.logoUrl ? (
-                <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
+                <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />
               ) : (
                 <div className="relative text-primary">
-                  <Glasses className="h-10 w-10" />
-                  <ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" />
+                  <Glasses className="h-12 w-12" />
+                  <ThumbsUp className="h-6 w-6 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" />
                 </div>
               )}
             </div>
-            <div className="space-y-0 text-left">
-              <h1 className="text-xl font-black text-black uppercase tracking-tighter leading-none">{shop.name}</h1>
-              <p className="text-[9px] text-slate-600 font-bold leading-tight max-w-[300px] mt-1">{shop.address}</p>
-              <p className="text-[9px] font-black text-black mt-0.5">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
+              <p className="text-[10px] text-slate-500 font-bold leading-tight max-w-[320px]">{shop.address}</p>
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-[10px] font-black text-slate-800">Tél: {shop.phone}</span>
+                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                <span className="text-[10px] font-black text-slate-800">ICE: {shop.icePatent}</span>
+              </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="bg-slate-950 text-white px-3 py-1.5 rounded-md inline-block mb-2 shadow-sm">
-              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Rapport Journalier</h2>
+            <div className="border border-slate-900 px-4 py-2 rounded-lg inline-block mb-3">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.25em] leading-none text-slate-900">Rapport de Caisse</h2>
             </div>
-            <div className="space-y-0">
-              <div className="flex items-center justify-end gap-1.5 text-[11px] font-black text-black">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+            <div className="space-y-1">
+              <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900">
+                <Calendar className="h-4 w-4 text-primary/40" />
                 <span>{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
               </div>
-              <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-500 italic">
+              <div className="flex items-center justify-end gap-2 text-[9px] font-bold text-slate-400 italic">
                 <Clock className="h-3 w-3" />
-                <span>Édité à : {printTime}</span>
+                <span>Édité à {printTime}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Indicateurs Financiers - Haute Visibilité */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="p-3 rounded-xl border-2 border-slate-900 text-center bg-white shadow-sm">
-            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-slate-500 mb-1">Solde Initial</p>
-            <p className="text-lg font-black text-black tabular-nums">{formatCurrency(reportData.initial)}</p>
+        {/* Indicateurs Financiers Modernes (Sans fond noir) */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/30 text-center shadow-sm">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Solde Ouverture</p>
+            <p className="text-xl font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial)}</p>
           </div>
-          <div className="p-3 rounded-xl border-2 border-green-200 text-center bg-green-50/20 shadow-sm">
-            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-green-700 mb-1">Flux (Ventes - Dép)</p>
-            <p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-green-700" : "text-red-700")}>
+          <div className="p-4 rounded-2xl border border-green-100 bg-green-50/20 text-center shadow-sm">
+            <p className="text-[9px] font-black uppercase tracking-widest text-green-600 mb-2">Flux (Entrées - Sorties)</p>
+            <p className={cn("text-xl font-black tabular-nums", reportData.fluxOp >= 0 ? "text-green-700" : "text-red-700")}>
               {reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp)}
             </p>
           </div>
-          <div className="p-3 rounded-xl border-2 border-orange-200 text-center bg-orange-50/20 shadow-sm">
-            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-orange-700 mb-1">Versements</p>
-            <p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements)}</p>
+          <div className="p-4 rounded-2xl border border-orange-100 bg-orange-50/20 text-center shadow-sm">
+            <p className="text-[9px] font-black uppercase tracking-widest text-orange-600 mb-2">Versements</p>
+            <p className="text-xl font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements)}</p>
           </div>
-          <div className="p-3 rounded-xl border-2 border-slate-900 text-center bg-slate-950 text-white shadow-lg">
-            <p className="text-[8px] font-black uppercase tracking-[0.1em] opacity-70 mb-1">Solde Final Réel</p>
-            <p className="text-lg font-black tabular-nums">{formatCurrency(reportData.final)}</p>
+          <div className="p-4 rounded-2xl border-2 border-slate-900 bg-white text-center shadow-md">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Solde de Clôture</p>
+            <p className="text-xl font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final)}</p>
           </div>
         </div>
 
-        {/* Détail des Opérations - Formatage Serré pour tenir sur 1 page */}
-        <div className="space-y-5 flex-1">
-          {/* ENCAISSEMENTS */}
-          <section className="space-y-1.5">
-            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 px-1">
-              <h3 className="text-[10px] font-black uppercase text-black flex items-center gap-2 tracking-[0.1em]">
+        {/* Détail des Opérations - Tableaux Élégants */}
+        <div className="space-y-8 flex-1">
+          
+          {/* SECTION ENCAISSEMENTS */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-2 px-1">
+              <h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                Détail des Encaissements
+                Journal des Encaissements
               </h3>
-              <span className="text-xs font-black text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                Total : +{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}
+              <span className="text-[10px] font-black text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-100 shadow-sm">
+                Total Ventes : +{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}
               </span>
             </div>
-            <div className="rounded-lg border-2 border-slate-100 overflow-hidden">
-              <table className="w-full text-[11px]">
-                <thead className="bg-slate-50 text-black font-black uppercase text-[8px] border-b-2 border-slate-100">
+            <div className="overflow-hidden border border-slate-200 rounded-xl">
+              <table className="w-full">
+                <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                   <tr>
-                    <th className="p-2 text-left w-16">Heure</th>
-                    <th className="p-2 text-left">Libellé de l'opération / Client</th>
-                    <th className="p-2 text-right w-32">Montant (DH)</th>
+                    <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest w-20">Heure</th>
+                    <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest">Client / Désignation</th>
+                    <th className="p-3 text-right text-[9px] font-black uppercase tracking-widest w-36">Encaissement (DH)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((s: any) => (
                     <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-2 font-bold text-slate-500 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
-                      <td className="p-2">
+                      <td className="p-3 text-[10px] font-bold text-slate-400 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
+                      <td className="p-3">
                         <div className="flex flex-col">
-                          <span className="font-black text-black uppercase leading-tight">{s.label}</span>
+                          <span className="text-[11px] font-black text-slate-900 uppercase leading-tight">{s.label}</span>
                           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{s.clientName || 'CLIENT DIVERS'}</span>
                         </div>
                       </td>
-                      <td className="p-2 text-right font-black text-black tabular-nums">+{formatCurrency(Math.abs(s.montant))}</td>
+                      <td className="p-3 text-right font-black text-slate-950 tabular-nums text-[11px]">+{formatCurrency(Math.abs(s.montant))}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={3} className="p-4 text-center text-slate-400 font-bold italic">Aucun encaissement enregistré ce jour.</td></tr>
+                    <tr><td colSpan={3} className="p-6 text-center text-slate-300 font-bold italic text-[10px]">Aucune vente enregistrée.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </section>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-            {/* DÉPENSES */}
-            <section className="md:col-span-3 space-y-1.5">
-              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 px-1">
-                <h3 className="text-[10px] font-black uppercase text-black flex items-center gap-2 tracking-[0.1em]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* SECTION DÉPENSES */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b border-slate-900 pb-2 px-1">
+                <h3 className="text-[10px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
                   <FileText className="h-4 w-4 text-red-600" />
-                  Dépenses & Achats
+                  Sorties de Caisse
                 </h3>
                 <span className="text-[10px] font-black text-red-700">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
               </div>
-              <div className="rounded-lg border-2 border-slate-100 overflow-hidden bg-white">
-                <table className="w-full text-[10px]">
-                  <thead className="bg-slate-50 text-black font-black uppercase text-[8px] border-b-2 border-slate-100">
+              <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
+                <table className="w-full">
+                  <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left">Désignation</th>
-                      <th className="p-2 text-right w-24">Montant</th>
+                      <th className="p-3 text-left text-[8px] font-black uppercase">Libellé</th>
+                      <th className="p-3 text-right text-[8px] font-black uppercase w-28">Montant</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
-                        <td className="p-2 font-bold text-black uppercase leading-tight">{e.label}</td>
-                        <td className="p-2 text-right font-black text-black tabular-nums">-{formatCurrency(Math.abs(e.montant))}</td>
+                        <td className="p-3 text-[10px] font-bold text-slate-900 uppercase leading-tight">{e.label}</td>
+                        <td className="p-3 text-right font-black text-slate-950 tabular-nums text-[10px]">-{formatCurrency(Math.abs(e.montant))}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic">Aucune dépense.</td></tr>
+                      <tr><td colSpan={2} className="p-6 text-center text-slate-300 font-bold italic text-[9px]">Aucune dépense.</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
-            </section>
+            </div>
 
-            {/* VERSEMENTS */}
-            <section className="md:col-span-2 space-y-1.5">
-              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 px-1">
-                <h3 className="text-[10px] font-black uppercase text-black flex items-center gap-2 tracking-[0.1em]">
+            {/* SECTION VERSEMENTS */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b border-slate-900 pb-2 px-1">
+                <h3 className="text-[10px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
                   <Landmark className="h-4 w-4 text-orange-600" />
                   Versements
                 </h3>
                 <span className="text-[10px] font-black text-orange-700">-{formatCurrency(Math.abs(reportData.versements.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span>
               </div>
-              <div className="rounded-lg border-2 border-slate-100 overflow-hidden bg-white">
-                <table className="w-full text-[10px]">
-                  <thead className="bg-slate-50 text-black font-black uppercase text-[8px] border-b-2 border-slate-100">
+              <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
+                <table className="w-full">
+                  <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left">Opération</th>
-                      <th className="p-2 text-right w-24">Montant</th>
+                      <th className="p-3 text-left text-[8px] font-black uppercase">Désignation</th>
+                      <th className="p-3 text-right text-[8px] font-black uppercase w-28">Montant</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {reportData.versements.length > 0 ? reportData.versements.map((v: any) => (
                       <tr key={v.id} className="hover:bg-slate-50">
-                        <td className="p-2 font-bold text-black uppercase leading-tight">{v.label}</td>
-                        <td className="p-2 text-right font-black text-black tabular-nums">-{formatCurrency(Math.abs(v.montant))}</td>
+                        <td className="p-3 text-[10px] font-bold text-slate-900 uppercase leading-tight">{v.label}</td>
+                        <td className="p-3 text-right font-black text-slate-950 tabular-nums text-[10px]">-{formatCurrency(Math.abs(v.montant))}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic">Aucun versement.</td></tr>
+                      <tr><td colSpan={2} className="p-6 text-center text-slate-300 font-bold italic text-[9px]">Aucun versement.</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
-            </section>
+            </div>
           </div>
         </div>
 
-        {/* Signature et Cachet - Compact */}
-        <div className="mt-6 pt-4 border-t-2 border-slate-900 grid grid-cols-2 gap-12">
-          <div className="space-y-8">
-            <div className="space-y-0.5">
-              <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.1em]">Signature du Responsable</p>
-              <p className="text-[11px] font-black text-black">Administrateur / Caissier</p>
+        {/* Pied de Page Professionnel */}
+        <div className="mt-10 pt-6 border-t border-slate-200 grid grid-cols-2 gap-16">
+          <div className="space-y-10">
+            <div className="flex items-center gap-2 text-slate-400">
+              <UserCheck className="h-4 w-4" />
+              <p className="text-[9px] font-black uppercase tracking-widest">Visa du Responsable</p>
             </div>
-            <div className="border-b-2 border-slate-200 w-full opacity-50"></div>
+            <div className="border-b border-slate-200 w-full opacity-50"></div>
+            <p className="text-[10px] font-bold text-slate-900">Cachet & Signature de l'opérateur</p>
           </div>
           <div className="text-right flex flex-col items-end">
-            <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.1em] mb-2">Cachet de l'Optique</p>
-            <div className="w-[50mm] h-[25mm] border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-slate-50/30 relative">
-              <span className="text-[9px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-[0.2em] opacity-40 text-center leading-loose select-none px-4">
-                ESPACE RÉSERVÉ AU CACHET
+            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-3">Authentification du Magasin</p>
+            <div className="w-[60mm] h-[30mm] border border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-slate-50/20 relative shadow-inner">
+              <span className="text-[9px] text-slate-200 font-black rotate-[-12deg] uppercase tracking-[0.4em] opacity-40 text-center leading-loose select-none px-6">
+                ESPACE RÉSERVÉ AU CACHET OFFICIEL
               </span>
             </div>
           </div>
         </div>
 
-        <div className="mt-auto text-center border-t border-slate-100 pt-3">
-          <p className="text-[7px] text-slate-400 font-black uppercase tracking-[0.4em] italic opacity-50">
-            {shop.name} • SYSTÈME DE GESTION OPTIQUE PROFESSIONNELLE
+        <div className="mt-auto text-center border-t border-slate-50 pt-4">
+          <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.5em] italic opacity-40">
+            {shop.name} • SYSTÈME DE GESTION OPTIQUE PROFESSIONNELLE • LIKE VISION
           </p>
         </div>
       </div>
@@ -327,7 +335,7 @@ function DailyCashReportContent() {
 
 export default function DailyCashReportPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Génération du rapport haute qualité...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase text-primary/30 tracking-[0.5em]">Génération du rapport en cours...</div>}>
       <DailyCashReportContent />
     </Suspense>
   );
