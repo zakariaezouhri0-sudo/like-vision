@@ -100,30 +100,30 @@ function ReceiptPrintContent() {
       {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-10">
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
-        <table className="w-full text-[11px] border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
+        <table className="w-full border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
           <thead>
             <tr className="bg-slate-100 text-slate-600">
-              <th className="border border-slate-200 p-2 text-left w-[24%] uppercase tracking-widest">Oeil</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase">Sph</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase">Cyl</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase">Axe</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase">ADD</th>
+              <th className="border border-slate-200 p-1.5 text-left w-[24%] uppercase tracking-widest text-[8px]">Oeil</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Sph</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Cyl</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Axe</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">ADD</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="border border-slate-100 p-2 font-black text-slate-700">Droit (OD)</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.sph}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.cyl}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.axe}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{od.add}</td>
+              <td className="border border-slate-100 p-1 font-black text-slate-700 text-[10px]">Droit (OD)</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{od.sph}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{od.cyl}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{od.axe}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{od.add}</td>
             </tr>
             <tr className="bg-slate-50/30">
-              <td className="border border-slate-100 p-2 font-black text-slate-700">Gauche (OG)</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.sph}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.cyl}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.axe}</td>
-              <td className="border border-slate-100 p-2 text-center font-black tabular-nums text-sm">{og.add}</td>
+              <td className="border border-slate-100 p-1 font-black text-slate-700 text-[10px]">Gauche (OG)</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{og.sph}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{og.cyl}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{og.axe}</td>
+              <td className="border border-slate-100 p-1 text-center font-black tabular-nums text-[10px]">{og.add}</td>
             </tr>
           </tbody>
         </table>
@@ -189,7 +189,7 @@ function ReceiptPrintContent() {
     </div>
   );
 
-  if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  if (settingsLoading || saleLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8 print:py-0">

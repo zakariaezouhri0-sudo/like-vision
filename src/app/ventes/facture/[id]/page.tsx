@@ -103,30 +103,30 @@ function InvoicePrintContent() {
       {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-12 flex-1">
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
-        <table className="w-full text-[12px] border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
+        <table className="w-full border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="border border-slate-800 p-3 text-left w-[24%] uppercase tracking-widest">Oeil</th>
-              <th className="border border-slate-800 p-3 text-center w-[19%] uppercase">Sph</th>
-              <th className="border border-slate-800 p-3 text-center w-[19%] uppercase">Cyl</th>
-              <th className="border border-slate-800 p-3 text-center w-[19%] uppercase">Axe</th>
-              <th className="border border-slate-800 p-3 text-center w-[19%] uppercase">ADD</th>
+              <th className="border border-slate-800 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
+              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
+              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
+              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
+              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
             </tr>
           </thead>
           <tbody>
             <tr className="bg-white">
-              <td className="border border-slate-200 p-2 font-black text-slate-700">Droit (OD)</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{od.sph}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{od.cyl}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{od.axe}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{od.add}</td>
+              <td className="border border-slate-200 p-1.5 font-black text-slate-700 text-[10px]">Droit (OD)</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{od.sph}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{od.cyl}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{od.axe}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{od.add}</td>
             </tr>
             <tr className="bg-slate-50/30">
-              <td className="border border-slate-200 p-2 font-black text-slate-700">Gauche (OG)</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{og.sph}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{og.cyl}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{og.axe}</td>
-              <td className="border border-slate-200 p-2 text-center font-black tabular-nums text-sm">{og.add}</td>
+              <td className="border border-slate-200 p-1.5 font-black text-slate-700 text-[10px]">Gauche (OG)</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{og.sph}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{og.cyl}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{og.axe}</td>
+              <td className="border border-slate-200 p-1.5 text-center font-black tabular-nums text-[10px]">{og.add}</td>
             </tr>
           </tbody>
         </table>
