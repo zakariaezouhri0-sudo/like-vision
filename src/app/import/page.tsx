@@ -29,7 +29,7 @@ export default function ImportPage() {
   const [role, setRole] = useState<string>("");
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role');
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase();
     if (savedRole !== 'ADMIN' && savedRole !== 'PREPA') {
       router.push('/dashboard');
     } else {
@@ -91,21 +91,29 @@ export default function ImportPage() {
 
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
+    
+    // SÉCURITÉ : Lecture FRAICHE du rôle au moment exact du lancement
+    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
+    if (!freshRole) {
+      toast({ variant: "destructive", title: "Session expirée", description: "Veuillez vous reconnecter." });
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(0);
     
-    const currentIsDraft = role === 'PREPA';
+    const currentIsDraft = freshRole === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
-    // Tri intelligent des feuilles (numérique si possible)
     const sheetNames = [...workbook.SheetNames].sort((a, b) => {
       const na = parseInt(a.replace(/\D/g, '')) || 0;
       const nb = parseInt(b.replace(/\D/g, '')) || 0;
       return na - nb;
     });
 
-    const importSessionClients = new Set<string>();
+    // Cache local pour éviter les requêtes Firestore redondantes pendant la boucle
+    const importSessionClients = new Map<string, string>();
 
     try {
       for (let s = 0; s < sheetNames.length; s++) {
@@ -155,10 +163,15 @@ export default function ImportPage() {
               const docType = isPaid ? "FC" : "RC";
               const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
-              // Deduplication Clients
-              const normalizedClientName = clientName.toUpperCase();
-              if (!importSessionClients.has(normalizedClientName)) {
-                const clientQ = query(collection(db, "clients"), where("name", "==", clientName), where("isDraft", "==", currentIsDraft), limit(1));
+              // Deduplication Clients INTELLIGENTE
+              const normalizedName = clientName.toUpperCase().trim();
+              if (!importSessionClients.has(normalizedName)) {
+                const clientQ = query(
+                  collection(db, "clients"), 
+                  where("name", "==", clientName), 
+                  where("isDraft", "==", currentIsDraft), 
+                  limit(1)
+                );
                 const clientSnap = await getDocs(clientQ);
                 
                 if (clientSnap.empty) {
@@ -168,11 +181,16 @@ export default function ImportPage() {
                     lastVisit: format(currentDate, "dd/MM/yyyy"),
                     ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
                   }, { merge: true });
+                  importSessionClients.set(normalizedName, newClientRef.id);
                 } else {
                   const existingRef = clientSnap.docs[0].ref;
-                  await setDoc(existingRef, { ordersCount: increment(1), lastVisit: format(currentDate, "dd/MM/yyyy") }, { merge: true });
+                  await setDoc(existingRef, { 
+                    ordersCount: increment(1), 
+                    lastVisit: format(currentDate, "dd/MM/yyyy"),
+                    isDraft: currentIsDraft // Forcer le flag au cas où
+                  }, { merge: true });
+                  importSessionClients.set(normalizedName, clientSnap.docs[0].id);
                 }
-                importSessionClients.add(normalizedClientName);
               }
 
               const saleRef = doc(collection(db, "sales"));
@@ -188,8 +206,7 @@ export default function ImportPage() {
               }, { merge: true });
 
               if (currentAvance > 0) {
-                const transId = `IMP-SALE-${invoiceId}`;
-                const transRef = doc(db, "transactions", transId);
+                const transRef = doc(collection(db, "transactions"));
                 await setDoc(transRef, {
                   type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
                   montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
@@ -225,8 +242,7 @@ export default function ImportPage() {
                 if (!rawLabel.toUpperCase().startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
               }
 
-              const transId = `IMP-EXP-${day}-${Math.random().toString(36).substr(2, 6)}`;
-              const transRef = doc(db, "transactions", transId);
+              const transRef = doc(collection(db, "transactions"));
               await setDoc(transRef, {
                 type: type, 
                 label: finalLabel, 
@@ -251,7 +267,8 @@ export default function ImportPage() {
         await setDoc(sessionRef, {
           status: "CLOSED", closedAt: closeTime, closedBy: userName,
           totalSales: daySalesTotal, totalExpenses: dayExpensesTotal, totalVersements: dayVersementsTotal,
-          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0
+          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0,
+          isDraft: currentIsDraft // Toujours forcer le flag
         }, { merge: true });
 
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));

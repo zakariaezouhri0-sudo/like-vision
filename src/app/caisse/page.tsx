@@ -48,14 +48,15 @@ function CaisseContent() {
   const searchParams = useSearchParams();
   
   const [isClientReady, setIsHydrated] = useState(false);
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string>("");
   const [openingVal, setOpeningVal] = useState("0");
   const [isAutoReport, setIsAutoReport] = useState(false);
   const [lastSessionDate, setLastSessionDate] = useState<string>("");
 
   useEffect(() => {
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    setRole(savedRole);
     setIsHydrated(true);
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
   }, []);
 
   const isPrepaMode = role === "PREPA";
@@ -157,10 +158,13 @@ function CaisseContent() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleOpenSession = async () => {
+    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
+    const currentIsDraft = freshRole === "PREPA";
+
     try {
       setOpLoading(true);
       let openedAt;
-      if (isPrepaMode) {
+      if (currentIsDraft) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
         openedAt = Timestamp.fromDate(d);
       } else {
@@ -173,7 +177,7 @@ function CaisseContent() {
         openedAt: openedAt, 
         date: dateStr,
         openedBy: user?.displayName || "Inconnu", 
-        isDraft: isPrepaMode 
+        isDraft: currentIsDraft 
       });
       toast({ variant: "success", title: "Caisse Ouverte" });
     } catch (e) { 
@@ -199,6 +203,10 @@ function CaisseContent() {
 
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
+    
+    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
+    const currentIsDraft = freshRole === "PREPA";
+
     setOpLoading(true);
     const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
     
@@ -216,11 +224,12 @@ function CaisseContent() {
       category: "Général", 
       montant: finalAmount,
       userName: user?.displayName || "Inconnu", 
-      isDraft: isPrepaMode, 
+      isDraft: currentIsDraft, 
       createdAt: serverTimestamp()
     };
     try {
-      await addDoc(collection(db, "transactions"), transData);
+      const transRef = doc(collection(db, "transactions"));
+      await setDoc(transRef, transData);
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
       setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
@@ -260,10 +269,13 @@ function CaisseContent() {
   };
 
   const handleFinalizeClosure = async () => {
+    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
+    const currentIsDraft = freshRole === "PREPA";
+
     try {
       setOpLoading(true);
       let closedAt;
-      if (isPrepaMode) {
+      if (currentIsDraft) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
         closedAt = Timestamp.fromDate(d);
       } else {
@@ -279,7 +291,8 @@ function CaisseContent() {
         closedBy: user?.displayName || "Inconnu", 
         totalSales: stats.entrees, 
         totalExpenses: stats.depenses, 
-        totalVersements: stats.versements
+        totalVersements: stats.versements,
+        isDraft: currentIsDraft // Double sécurité
       });
       router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
@@ -361,7 +374,7 @@ function CaisseContent() {
             </div>
             {!isAutoReport && (
               <p className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
-                <Info className="h-3 w-3" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
+                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
               </p>
             )}
           </div>
