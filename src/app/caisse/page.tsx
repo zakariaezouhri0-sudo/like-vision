@@ -12,7 +12,34 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Wallet, LogOut, Printer, Coins, Loader2, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, PiggyBank, FileText, PlayCircle, Lock, RefreshCcw, History, AlertTriangle, User as UserIcon, Calendar, ArrowLeft, ArrowRightLeft, TrendingUp, TrendingDown, Landmark } from "lucide-react";
+import { 
+  PlusCircle, 
+  Wallet, 
+  LogOut, 
+  Printer, 
+  Coins, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2, 
+  MoreVertical, 
+  Edit2, 
+  Trash2, 
+  PiggyBank, 
+  FileText, 
+  PlayCircle, 
+  Lock, 
+  RefreshCcw, 
+  History, 
+  AlertTriangle, 
+  User as UserIcon, 
+  Calendar as CalendarIcon, 
+  ArrowLeft, 
+  ArrowRightLeft, 
+  TrendingUp, 
+  TrendingDown, 
+  Landmark,
+  ChevronDown
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
@@ -20,9 +47,10 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, se
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { startOfDay, endOfDay, format, parseISO } from "date-fns";
+import { startOfDay, endOfDay, format, parseISO, setHours, setMinutes, setSeconds } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -102,6 +130,41 @@ function CaisseContent() {
   const soldeTheorique = initialBalance + stats.entrees - stats.depenses - stats.versements;
   const ecart = soldeReel - soldeTheorique;
 
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      router.push(`/caisse?date=${format(date, "yyyy-MM-dd")}`);
+    }
+  };
+
+  const handleOpenSession = async () => {
+    try {
+      setOpLoading(true);
+      
+      // Heure d'ouverture par défaut : 10:00 pour le mode PREPA, sinon heure actuelle
+      let openedAt;
+      if (isPrepaMode) {
+        const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
+        openedAt = Timestamp.fromDate(d);
+      } else {
+        openedAt = serverTimestamp();
+      }
+
+      await setDoc(sessionRef, { 
+        openingBalance: parseFloat(openingVal) || 0, 
+        status: "OPEN", 
+        openedAt: openedAt, 
+        date: sessionDocId, 
+        openedBy: user?.displayName || "Inconnu", 
+        isDraft: isPrepaMode 
+      });
+      toast({ variant: "success", title: "Caisse Ouverte" });
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur" }); 
+    } finally { 
+      setOpLoading(false); 
+    }
+  };
+
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
     setOpLoading(true);
@@ -154,9 +217,26 @@ function CaisseContent() {
   const handleFinalizeClosure = async () => {
     try {
       setOpLoading(true);
+      
+      // Heure de clôture par défaut : 20:00 pour le mode PREPA, sinon heure actuelle
+      let closedAt;
+      if (isPrepaMode) {
+        const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
+        closedAt = Timestamp.fromDate(d);
+      } else {
+        closedAt = serverTimestamp();
+      }
+
       await updateDoc(sessionRef, {
-        status: "CLOSED", closedAt: serverTimestamp(), closingBalanceReal: soldeReel, closingBalanceTheoretical: soldeTheorique,
-        discrepancy: ecart, closedBy: user?.displayName || "Inconnu", totalSales: stats.entrees, totalExpenses: stats.depenses, totalVersements: stats.versements
+        status: "CLOSED", 
+        closedAt: closedAt, 
+        closingBalanceReal: soldeReel, 
+        closingBalanceTheoretical: soldeTheorique,
+        discrepancy: ecart, 
+        closedBy: user?.displayName || "Inconnu", 
+        totalSales: stats.entrees, 
+        totalExpenses: stats.depenses, 
+        totalVersements: stats.versements
       });
       router.push(`/rapports/print/cloture?date=${sessionDocId}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
@@ -164,26 +244,42 @@ function CaisseContent() {
 
   if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
-  if (!session && !isToday) {
+  // En mode PREPA, on permet d'ouvrir une session même si ce n'est pas aujourd'hui
+  const canOpenSession = isToday || isPrepaMode;
+
+  if (!session && !canOpenSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <div className="h-20 w-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
-          <Calendar className="h-10 w-10" />
+          <CalendarIcon className="h-10 w-10" />
         </div>
         <div className="text-center">
           <h2 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Aucune session enregistrée</h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Pour la journée du {format(selectedDate, "dd/MM/yyyy")}</p>
         </div>
-        <Button variant="outline" onClick={() => router.push("/caisse/sessions")} className="rounded-xl font-black text-[10px] uppercase">Voir l'historique</Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push("/caisse/sessions")} className="rounded-xl font-black text-[10px] uppercase">Voir l'historique</Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button className="rounded-xl font-black text-[10px] uppercase bg-primary text-white"><CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+              <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     );
   }
 
-  if (!session && isToday) {
+  if (!session && canOpenSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
         <div className="h-24 w-24 bg-primary rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3"><PlayCircle className="h-12 w-12" /></div>
-        <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Brouillon" : "Caisse"}</h1>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+        </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
           <div className="space-y-3">
             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
@@ -197,20 +293,15 @@ function CaisseContent() {
               <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
             </div>
           </div>
-          <Button onClick={async () => {
-            try {
-              setOpLoading(true);
-              await setDoc(sessionRef, { 
-                openingBalance: parseFloat(openingVal) || 0, 
-                status: "OPEN", 
-                openedAt: serverTimestamp(), 
-                date: sessionDocId, 
-                openedBy: user?.displayName || "Inconnu", 
-                isDraft: isPrepaMode 
-              });
-              toast({ variant: "success", title: "Caisse Ouverte" });
-            } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
-          }} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20">OUVRIR LA SESSION</Button>
+          <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100">Changer la date</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+              <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
+            </PopoverContent>
+          </Popover>
         </Card>
       </div>
     );
@@ -232,14 +323,24 @@ function CaisseContent() {
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">
               {isClosed ? "Session Clôturée" : "Caisse Ouverte"} {isPrepaMode ? "(Brouillon)" : ""}
             </h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">
-              Journée du {format(selectedDate, "dd/MM/yyyy")}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">
+                Journée du {format(selectedDate, "dd/MM/yyyy")}
+              </p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-primary/40 hover:text-primary"><CalendarIcon className="h-3.5 w-3.5" /></Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                  <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {!isClosed && isToday && (
+          {!isClosed && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl">
@@ -275,7 +376,7 @@ function CaisseContent() {
             <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
           </Button>
 
-          {!isClosed && isToday && (
+          {!isClosed && (
             <Dialog>
               <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 sm:flex-none"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
               <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
