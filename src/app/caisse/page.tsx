@@ -79,15 +79,13 @@ function CaisseContent() {
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
     if (dateParam) {
-      const d = parseISO(dateParam);
-      if (!isNaN(d.getTime())) return d;
+      // Sécurisation du parsing pour éviter les décalages de fuseau horaire
+      const [y, m, d] = dateParam.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      if (!isNaN(date.getTime())) return date;
     }
-    const today = new Date();
-    // En mode PREPA, on commence par défaut à la date de début d'historique (ex: 2026-01-01)
-    const startHistory = new Date("2026-01-01");
-    if (isPrepaMode && isBefore(today, startHistory)) return startHistory;
-    return today;
-  }, [dateParam, isPrepaMode]);
+    return new Date();
+  }, [dateParam]);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
@@ -149,7 +147,6 @@ function CaisseContent() {
       setOpLoading(true);
       let openedAt;
       if (isPrepaMode) {
-        // En mode historique, on simule une ouverture à 10h00
         const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
         openedAt = Timestamp.fromDate(d);
       } else {
@@ -178,7 +175,6 @@ function CaisseContent() {
     try {
       await deleteDoc(sessionRef);
       toast({ variant: "success", title: "Session supprimée avec succès" });
-      // Forcer le rafraîchissement
       window.location.reload();
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
@@ -241,7 +237,6 @@ function CaisseContent() {
       setOpLoading(true);
       let closedAt;
       if (isPrepaMode) {
-        // En mode historique, on simule une fermeture à 20h00
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
         closedAt = Timestamp.fromDate(d);
       } else {
@@ -279,7 +274,6 @@ function CaisseContent() {
             onSelect={handleDateSelect} 
             locale={fr} 
             initialFocus 
-            disabled={(d) => isPrepaMode ? d < new Date("2026-01-01") : false} 
           />
         </PopoverContent>
       </Popover>
