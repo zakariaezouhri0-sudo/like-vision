@@ -71,24 +71,18 @@ export default function CashSessionsPage() {
     }
   };
 
-  // Helper pour formater la date de session de manière ultra-sécurisée
   const formatSessionDate = (dateStr: string) => {
     if (!dateStr) return "Date inconnue";
     try {
-      // Cas date string ISO ou format yyyy-MM-dd
       const parts = dateStr.split('-');
       if (parts.length === 3) {
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]);
         const day = parseInt(parts[2]);
-        
-        // Sécurité anti-overflow (si le jour extrait est trop grand)
         if (day > 31 || month > 12) return dateStr;
-
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) return format(d, "dd MMMM yyyy", { locale: fr });
       }
-      
       const d = new Date(dateStr);
       return isNaN(d.getTime()) ? dateStr : format(d, "dd MMMM yyyy", { locale: fr });
     } catch (e) {

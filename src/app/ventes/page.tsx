@@ -53,7 +53,6 @@ function SalesHistoryContent() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // Requête simple sans filtre complexe pour éviter les erreurs d'index Firestore
   const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
@@ -62,11 +61,9 @@ function SalesHistoryContent() {
     
     return rawSales
       .filter((sale: any) => {
-        // 1. Isolation stricte par Mode
         const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
         if (!matchesMode) return false;
 
-        // 2. Filtre par Date
         const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
         let matchesDate = true;
         if (dateFrom) {
@@ -82,20 +79,17 @@ function SalesHistoryContent() {
           }
         }
 
-        // 3. Filtre par Recherche
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || 
           (sale.clientName || "").toLowerCase().includes(search) || 
           (sale.invoiceId || "").toLowerCase().includes(search) || 
           (sale.clientPhone || "").replace(/\s/g, '').includes(search.replace(/\s/g, ''));
 
-        // 4. Filtre par Statut
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
         
         return matchesDate && matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
-        // Tri chronologique en mémoire (plus robuste)
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return dateB - dateA;

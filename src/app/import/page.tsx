@@ -105,7 +105,6 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
-    // Tri des feuilles pour s'assurer de l'ordre chronologique
     const sheetNames = [...workbook.SheetNames].sort((a, b) => {
       const na = parseInt(a.replace(/\D/g, '')) || 0;
       const nb = parseInt(b.replace(/\D/g, '')) || 0;
@@ -119,7 +118,6 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction du jour sécurisée (pour éviter de prendre l'année 2026 comme jour)
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
         if (sheetNumbers && sheetNumbers.length > 0) {
@@ -130,8 +128,6 @@ export default function ImportPage() {
         }
 
         setCurrentDayLabel(`Jour ${day}`);
-        
-        // FIX CRITIQUE : Toujours forcer Janvier (mois 0) et année 2026
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
         const currentDate = new Date(2026, 0, day); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
@@ -169,7 +165,6 @@ export default function ImportPage() {
               const prefix = currentIsDraft ? "PREPA-" : "";
               const isPaid = totalAvance >= totalVal;
               const docType = isPaid ? "FC" : "RC";
-              // Utilisation de J (Jour) au lieu de I pour plus de clarté
               const invoiceId = `${prefix}${docType}-2026-J${day.toString().padStart(2, '0')}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
               const normalizedName = clientName.toUpperCase().trim();

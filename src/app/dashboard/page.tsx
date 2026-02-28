@@ -90,13 +90,13 @@ export default function DashboardPage() {
 
   const allSales = useMemo(() => {
     if (!rawSales) return [];
-    // FILTRAGE STRICT PAR MODE (Étanchéité)
+    // FILTRAGE STRICT PAR MODE
     return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [rawSales, isPrepaMode]);
 
   const allTransactions = useMemo(() => {
     if (!rawTransactions) return [];
-    // FILTRAGE STRICT PAR MODE (Étanchéité)
+    // FILTRAGE STRICT PAR MODE
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
@@ -108,7 +108,7 @@ export default function DashboardPage() {
     const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
-    // CORRECTION CRITIQUE : Filtrage des clients pour le compteur dashboard
+    // FILTRAGE CRITIQUE DES CLIENTS PAR MODE
     const filteredClientsCount = (allClients || []).filter((c: any) => 
       isPrepaMode ? c.isDraft === true : (c.isDraft !== true)
     ).length;
