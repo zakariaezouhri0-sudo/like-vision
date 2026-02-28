@@ -38,7 +38,8 @@ import {
   TrendingUp, 
   TrendingDown, 
   Landmark,
-  ChevronDown
+  ChevronDown,
+  CalendarDays
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -296,7 +297,7 @@ function CaisseContent() {
           <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100">Changer la date</Button>
+              <Button variant="ghost" className="text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100"><CalendarIcon className="mr-2 h-3.5 w-3.5" /> Changer la date</Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
               <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
@@ -320,18 +321,23 @@ function CaisseContent() {
             {isClosed ? <Lock className="h-6 w-6" /> : <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">
-              {isClosed ? "Session Clôturée" : "Caisse Ouverte"} {isPrepaMode ? "(Brouillon)" : ""}
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
+              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
             </h1>
-            <div className="flex items-center gap-2">
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">
-                Journée du {format(selectedDate, "dd/MM/yyyy")}
-              </p>
+            <div className="flex items-center gap-3 mt-1.5">
+              <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
+                <CalendarDays className="h-3 w-3 text-slate-400" />
+                <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">
+                  {format(selectedDate, "dd/MM/yyyy")}
+                </span>
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 text-primary/40 hover:text-primary"><CalendarIcon className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="sm" className="h-7 px-3 rounded-lg font-black text-[9px] uppercase bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all">
+                    <CalendarIcon className="mr-1.5 h-3 w-3" /> Changer
+                  </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
                   <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} locale={fr} initialFocus disabled={(d) => d < new Date("2026-01-01")} />
                 </PopoverContent>
               </Popover>
