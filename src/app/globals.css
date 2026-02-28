@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -75,6 +76,7 @@
     padding: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-family: 'Inter', sans-serif;
   }
   .no-print {
     display: none !important;
@@ -86,17 +88,28 @@
   /* Désactivation des ombres pour l'impression */
   * {
     box-shadow: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
   }
 
   /* Préservation des fonds gris légers pour les blocs de total */
   .bg-slate-50, .bg-slate-100 {
-    background-color: #f1f5f9 !important;
+    background-color: #f8fafc !important;
     -webkit-print-color-adjust: exact;
   }
   
-  /* Forçage noir pour les textes importants */
-  .text-slate-900, .text-slate-950, .font-black {
-    color: #000 !important;
+  /* Forçage noir absolu pour la visibilité PDF */
+  .text-slate-900, .text-slate-950, .font-black, .text-black, .text-slate-800 {
+    color: #000000 !important;
+  }
+
+  .text-slate-400, .text-slate-500, .text-slate-600 {
+    color: #334155 !important; /* Gris foncé lisible en PDF */
+  }
+
+  /* Bordures plus nettes */
+  .border-slate-100, .border-slate-200 {
+    border-color: #e2e8f0 !important;
   }
 }
 
