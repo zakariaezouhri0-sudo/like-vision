@@ -40,12 +40,13 @@ import {
   Landmark,
   ChevronDown,
   CalendarDays,
-  Trash
+  Trash,
+  MessageSquare
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -86,7 +87,6 @@ function CaisseContent() {
   }, [dateParam]);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
-  // ISOLATION PAR ID : DRAFT- pour le mode prépa
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
@@ -96,13 +96,34 @@ function CaisseContent() {
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
 
-  // DOUBLE VÉRROUILLAGE DE SÉCURITÉ : On ignore la session si le flag isDraft ne correspond pas
   const session = useMemo(() => {
     if (!rawSession) return null;
     const sessionIsDraft = rawSession.isDraft === true;
-    if (isPrepaMode !== sessionIsDraft) return null; // Étanchéité absolue
+    if (isPrepaMode !== sessionIsDraft) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
+
+  // RECHERCHE DU SOLDE DE CLÔTURE PRÉCÉDENT
+  const lastSessionQuery = useMemoFirebase(() => {
+    return query(
+      collection(db, "cash_sessions"),
+      where("status", "==", "CLOSED"),
+      where("isDraft", "==", isPrepaMode),
+      where("date", "<", dateStr),
+      orderBy("date", "desc"),
+      limit(1)
+    );
+  }, [db, isPrepaMode, dateStr]);
+  const { data: lastSessions } = useCollection(lastSessionQuery);
+
+  useEffect(() => {
+    if (!session && lastSessions && lastSessions.length > 0) {
+      const lastClosing = lastSessions[0].closingBalanceReal;
+      if (lastClosing !== undefined && openingVal === "0") {
+        setOpeningVal(lastClosing.toString());
+      }
+    }
+  }, [lastSessions, session, openingVal]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -119,7 +140,6 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    // FILTRAGE STRICT PAR MODE
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
@@ -170,14 +190,14 @@ function CaisseContent() {
   };
 
   const handleDeleteCurrentSession = async () => {
-    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte.")) return;
+    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ?")) return;
     setOpLoading(true);
     try {
       await deleteDoc(sessionRef);
-      toast({ variant: "success", title: "Session supprimée avec succès" });
+      toast({ variant: "success", title: "Session supprimée" });
       window.location.reload();
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setOpLoading(false);
     }
@@ -212,6 +232,10 @@ function CaisseContent() {
 
   const handleUpdateOperation = async () => {
     if (!editingTransaction) return;
+    if (!editingTransaction.editReason) {
+      toast({ variant: "destructive", title: "Motif requis", description: "Veuillez expliquer pourquoi vous modifiez cette opération." });
+      return;
+    }
     setOpLoading(true);
     const transRef = doc(db, "transactions", editingTransaction.id);
     const finalAmount = editingTransaction.type === "VENTE" ? Math.abs(parseFloat(editingTransaction.montant_raw)) : -Math.abs(parseFloat(editingTransaction.montant_raw));
@@ -225,7 +249,10 @@ function CaisseContent() {
       await updateDoc(transRef, { 
         type: editingTransaction.type, 
         label: finalLabel, 
-        montant: finalAmount 
+        montant: finalAmount,
+        lastEditReason: editingTransaction.editReason,
+        lastEditedBy: user?.displayName || "Inconnu",
+        updatedAt: serverTimestamp()
       });
       toast({ variant: "success", title: "Mis à jour avec succès" });
       setEditingTransaction(null);
@@ -272,7 +299,12 @@ function CaisseContent() {
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
           <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
+            <div className="flex justify-between items-center px-1">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial</Label>
+              {lastSessions && lastSessions.length > 0 && (
+                <span className="text-[8px] font-bold text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md">Reprise auto du {lastSessions[0].date}</span>
+              )}
+            </div>
             <div className="relative">
               <input 
                 type="number" 
@@ -404,32 +436,6 @@ function CaisseContent() {
         <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Final Réel" : "Théorique"}</p><p className="text-xl font-black tabular-nums">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
-      {isClosed && (
-        <div className="bg-red-50 text-red-900 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border border-red-100 border-b-8 border-b-red-200">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 bg-red-100 rounded-2xl flex items-center justify-center"><Lock className="h-6 w-6 text-red-600" /></div>
-            <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400">Statut de Session</p>
-              <h3 className="text-lg font-black uppercase tracking-tight">Caisse Clôturée le {session.closedAt?.toDate ? format(session.closedAt.toDate(), "dd/MM/yyyy à HH:mm") : "--/--"}</h3>
-            </div>
-          </div>
-          <div className="flex items-center gap-8">
-            <div className="text-center md:text-right">
-              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Responsable</p>
-              <p className="text-sm font-black uppercase text-red-900">{session.closedBy || "---"}</p>
-            </div>
-            {isAdminOrPrepa && (
-              <div className="text-center md:text-right border-l border-red-200 pl-8">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Écart Final</p>
-                <p className={cn("text-xl font-black tabular-nums", session.discrepancy >= 0 ? "text-green-600" : "text-red-600")}>
-                  {formatCurrency(session.discrepancy)}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <Card className="rounded-[32px] overflow-hidden bg-white">
         <CardHeader className="py-4 px-6 bg-slate-50 border-b">
           <CardTitle className="text-[11px] font-black uppercase text-primary/60">
@@ -461,26 +467,35 @@ function CaisseContent() {
                           </span>
                           <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
                         </div>
-                        <Badge className={cn(
-                          "text-[8px] font-black border-none px-2 w-fit", 
-                          t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
-                          t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 
-                          'bg-red-100 text-red-700'
-                        )}>
-                          {t.type}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={cn(
+                            "text-[8px] font-black border-none px-2 w-fit", 
+                            t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
+                            t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 
+                            'bg-red-100 text-red-700'
+                          )}>
+                            {t.type}
+                          </Badge>
+                          {t.lastEditReason && (
+                            <div className="flex items-center gap-1 text-[8px] text-orange-600 font-bold italic bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100" title={`Modifié: ${t.lastEditReason}`}>
+                              <MessageSquare className="h-2 w-2" /> MODIFIÉ
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs tabular-nums whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
                       {formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      {!isClosed && isAdminOrPrepa ? (
+                      {isAdminOrPrepa ? (
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString() })} className="py-2.5 font-black text-[10px] uppercase rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-500 py-2.5 font-black text-[10px] uppercase rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString(), editReason: "" })} className="py-2.5 font-black text-[10px] uppercase rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                            {!isClosed && (
+                              <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-500 py-2.5 font-black text-[10px] uppercase rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
@@ -503,6 +518,7 @@ function CaisseContent() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                 <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
+                  <option value="VENTE">Vente (+)</option>
                   <option value="DEPENSE">Dépense (-)</option>
                   <option value="ACHAT VERRES">Achat Verres (-)</option>
                   <option value="VERSEMENT">Versement (-)</option>
@@ -515,6 +531,15 @@ function CaisseContent() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
                 <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black text-orange-600">Motif de la modification (Obligatoire)</Label>
+                <textarea 
+                  className="w-full h-20 rounded-xl font-bold bg-white border border-slate-200 px-3 py-2 outline-none text-sm" 
+                  placeholder="Ex: Erreur de saisie sur le montant, correction libellé..."
+                  value={editingTransaction.editReason || ""} 
+                  onChange={e => setEditingTransaction({...editingTransaction, editReason: e.target.value})}
+                />
               </div>
             </div>
           )}
