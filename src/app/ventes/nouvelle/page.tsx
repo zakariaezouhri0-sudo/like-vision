@@ -28,7 +28,7 @@ function NewSaleForm() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
@@ -36,7 +36,8 @@ function NewSaleForm() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role');
+    setRole(savedRole ? savedRole.toUpperCase() : "OPTICIENNE");
   }, []);
 
   const isPrepaMode = role === "PREPA";
@@ -75,6 +76,7 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
+      if (!role) return;
       const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
       
       if (cleanPhone.length === 0) {
@@ -138,7 +140,7 @@ function NewSaleForm() {
     };
     const timer = setTimeout(searchClient, 600);
     return () => clearTimeout(timer);
-  }, [clientPhone, db, searchParams, isPrepaMode]);
+  }, [clientPhone, db, searchParams, isPrepaMode, role]);
 
   const cleanVal = (val: string | number) => {
     if (typeof val === 'number') return val;
@@ -159,6 +161,7 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
+    if (!role) return null;
     const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
     const isValidPhone = cleanPhone === "" || /^(06|07|08)\d{8}$/.test(cleanPhone);
 
@@ -290,6 +293,8 @@ function NewSaleForm() {
     router.push(`/ventes/${page}/${res.invoiceId}?${params.toString()}`);
   };
 
+  if (role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+
   return (
     <AppShell>
       <div className="space-y-4 max-w-5xl mx-auto pb-24">
@@ -304,8 +309,8 @@ function NewSaleForm() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] border-primary/20 bg-white" disabled={loading}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
-            <Button onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] shadow-xl text-white" disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
+            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] border-primary/20 bg-white" disabled={loading || !role}><Printer className="mr-2 h-4 w-4" />IMPRIMER</Button>
+            <Button onClick={() => handleSave()} className="flex-1 sm:flex-none h-12 md:h-14 rounded-xl font-black text-[10px] shadow-xl text-white" disabled={loading || !role}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
           </div>
         </div>
 

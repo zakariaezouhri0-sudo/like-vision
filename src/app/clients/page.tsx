@@ -26,23 +26,25 @@ export default function ClientsPage() {
   const router = useRouter();
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string | null>(null);
   const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role');
+    setRole(savedRole ? savedRole.toUpperCase() : "OPTICIENNE");
     setIsHydrated(true);
   }, []);
 
   const isPrepaMode = role === "PREPA";
   
   const clientsQuery = useMemoFirebase(() => {
+    if (!role) return null;
     return query(
       collection(db, "clients"), 
       where("isDraft", "==", isPrepaMode),
       orderBy("createdAt", "desc")
     );
-  }, [db, isPrepaMode]);
+  }, [db, isPrepaMode, role]);
 
   const { data: clients, isLoading: loading } = useCollection(clientsQuery);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -59,6 +61,7 @@ export default function ClientsPage() {
   ) || [];
 
   const handleCreateClient = () => {
+    if (!role) return;
     if (!newClient.name) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom est obligatoire." });
       return;
@@ -93,7 +96,7 @@ export default function ClientsPage() {
   };
 
   const handleUpdateClient = () => {
-    if (!editingClient) return;
+    if (!editingClient || !role) return;
     const clientRef = doc(db, "clients", editingClient.id);
     const updateData = {
       name: editingClient.name,
@@ -136,7 +139,7 @@ export default function ClientsPage() {
     router.push(`/ventes?search=${phone}`);
   };
 
-  if (!isClientReady) return null;
+  if (!isClientReady || role === null) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <AppShell>
@@ -151,7 +154,7 @@ export default function ClientsPage() {
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary w-full sm:w-auto h-14 font-black shadow-xl rounded-2xl px-8">
+              <Button className="bg-primary w-full sm:w-auto h-14 font-black shadow-xl rounded-2xl px-8" disabled={!role}>
                 <Plus className="mr-2 h-6 w-6" /> NOUVEAU CLIENT
               </Button>
             </DialogTrigger>
