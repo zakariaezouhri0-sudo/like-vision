@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
   const [todayStr, setTodayStr] = useState<string>("");
-  const [sessionDocId, setSessionDocId] = useState<string>("");
+  const [dateStr, setDateStr] = useState<string>("");
   const [isClientReady, setIsClientReady] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -57,7 +57,7 @@ export default function DashboardPage() {
       day: 'numeric',
       month: 'short'
     }));
-    setSessionDocId(format(now, "yyyy-MM-dd"));
+    setDateStr(format(now, "yyyy-MM-dd"));
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     setIsClientReady(true);
   }, []);
@@ -67,7 +67,9 @@ export default function DashboardPage() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
+  // ISOLATION: On vérifie la session avec l'ID préfixé si mode PREPA
+  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
+  const sessionRef = useMemoFirebase(() => dateStr ? doc(db, "cash_sessions", sessionDocId) : null, [db, dateStr, sessionDocId]);
   const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
@@ -90,8 +92,6 @@ export default function DashboardPage() {
   }, [rawTransactions, isPrepaMode]);
 
   const stats = useMemo(() => {
-    // CA = Argent RÉELLEMENT encaissé (Somme des transactions de type VENTE)
-    // C'est ce qui garantit la correspondance avec la Gestion de Caisse
     const ca = allTransactions
       .filter(t => t.type === "VENTE")
       .reduce((acc, t) => acc + (Number(t.montant) || 0), 0);

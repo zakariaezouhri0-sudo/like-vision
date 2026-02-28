@@ -82,12 +82,13 @@ function CaisseContent() {
     }
     const today = new Date();
     const startHistory = new Date("2026-01-01");
-    // En mode PREPA, si on est avant 2026, on commence au 01/01/2026
     if (isPrepaMode && isBefore(today, startHistory)) return startHistory;
     return today;
   }, [dateParam, isPrepaMode]);
 
-  const sessionDocId = format(selectedDate, "yyyy-MM-dd");
+  // ISOLATION: L'ID du document est différent selon le mode
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
@@ -136,8 +137,8 @@ function CaisseContent() {
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       setIsCalendarOpen(false);
-      const dateStr = format(date, "yyyy-MM-dd");
-      router.push(`/caisse?date=${dateStr}`);
+      const newDateStr = format(date, "yyyy-MM-dd");
+      router.push(`/caisse?date=${newDateStr}`);
     }
   };
 
@@ -156,7 +157,7 @@ function CaisseContent() {
         openingBalance: parseFloat(openingVal) || 0, 
         status: "OPEN", 
         openedAt: openedAt, 
-        date: sessionDocId, 
+        date: dateStr, // On garde la date réelle pour le tri
         openedBy: user?.displayName || "Inconnu", 
         isDraft: isPrepaMode 
       });
@@ -239,7 +240,7 @@ function CaisseContent() {
         totalExpenses: stats.depenses, 
         totalVersements: stats.versements
       });
-      router.push(`/rapports/print/cloture?date=${sessionDocId}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
+      router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
@@ -352,7 +353,7 @@ function CaisseContent() {
 
           <Button 
             variant="outline" 
-            onClick={() => router.push(`/rapports/print/journalier?date=${sessionDocId}`)}
+            onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)}
             className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"
           >
             <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -22,7 +23,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, where } from "firebase/firestore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -39,10 +40,16 @@ export default function CashSessionsPage() {
   }, []);
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
+  const isPrepaMode = role === "PREPA";
 
   const sessionsQuery = useMemoFirebase(() => {
-    return query(collection(db, "cash_sessions"), orderBy("date", "desc"));
-  }, [db]);
+    // ISOLATION: On filtre les sessions par statut draft/réel
+    return query(
+      collection(db, "cash_sessions"), 
+      where("isDraft", "==", isPrepaMode),
+      orderBy("date", "desc")
+    );
+  }, [db, isPrepaMode]);
 
   const { data: sessions, isLoading } = useCollection(sessionsQuery);
 
@@ -57,7 +64,7 @@ export default function CashSessionsPage() {
               <CalendarClock className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions</h1>
+              <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions {isPrepaMode ? "(Brouillon)" : ""}</h1>
               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique des responsables et flux de caisse.</p>
             </div>
           </div>
@@ -241,7 +248,7 @@ export default function CashSessionsPage() {
                         <TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="text-center py-40">
                           <div className="flex flex-col items-center gap-4 opacity-20">
                             <History className="h-12 w-12" />
-                            <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session enregistrée.</p>
+                            <p className="text-xs font-black uppercase tracking-[0.4em]">Aucune session {isPrepaMode ? "brouillon" : "réelle"} enregistrée.</p>
                           </div>
                         </TableCell>
                       </TableRow>
