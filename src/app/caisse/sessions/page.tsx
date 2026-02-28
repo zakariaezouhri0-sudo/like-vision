@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -20,7 +19,8 @@ import {
   Eye,
   Landmark,
   MoreVertical,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -47,15 +47,27 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
+  // Suppression de l'orderBy qui nécessite un index composite (isDraft + date)
+  // On triera les données en mémoire pour éviter l'erreur de déploiement d'index
   const sessionsQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"), 
-      where("isDraft", "==", isPrepaMode),
-      orderBy("date", "desc")
+      where("isDraft", "==", isPrepaMode)
     );
   }, [db, isPrepaMode]);
 
-  const { data: sessions, isLoading } = useCollection(sessionsQuery);
+  const { data: rawSessions, isLoading, error } = useCollection(sessionsQuery);
+
+  // Tri en mémoire pour garantir l'affichage sans index
+  const sessions = useMemo(() => {
+    if (!rawSessions) return [];
+    return [...rawSessions].sort((a, b) => {
+      // Tri par date décroissante
+      const dateA = a.date || "";
+      const dateB = b.date || "";
+      return dateB.localeCompare(dateA);
+    });
+  }, [rawSessions]);
 
   const handleDeleteSession = async (id: string, date: string) => {
     if (!confirm(`Attention : Supprimer la session du ${date} ? Cela ne supprimera pas les transactions, mais la journée apparaîtra comme "non ouverte".`)) return;
@@ -84,6 +96,16 @@ export default function CashSessionsPage() {
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border-2 border-red-100 p-6 rounded-[24px] flex items-center gap-4 text-red-800">
+            <AlertTriangle className="h-6 w-6 text-red-500 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-black uppercase tracking-tight">Erreur de chargement</p>
+              <p className="text-xs font-bold opacity-70">{(error as any).message || "Impossible de récupérer les sessions."}</p>
+            </div>
+          </div>
+        )}
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardContent className="p-0">
@@ -127,7 +149,7 @@ export default function CashSessionsPage() {
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className="h-4 w-4 text-primary/40" />
                                   <span className="font-black text-sm text-slate-800 uppercase tracking-tight">
-                                    {format(new Date(s.date), "dd MMMM yyyy", { locale: fr })}
+                                    {s.date ? format(new Date(s.date), "dd MMMM yyyy", { locale: fr }) : "Date inconnue"}
                                   </span>
                                 </div>
                                 <div 
@@ -157,7 +179,7 @@ export default function CashSessionsPage() {
                             
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                               <span className="text-base font-black text-slate-900 tracking-tighter">
-                                {formatCurrency(s.openingBalance)}
+                                {formatCurrency(s.openingBalance || 0)}
                               </span>
                             </TableCell>
 
@@ -189,7 +211,7 @@ export default function CashSessionsPage() {
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                               {s.status === "CLOSED" ? (
                                 <span className="text-base font-black text-slate-900 tracking-tighter">
-                                  {formatCurrency(s.closingBalanceReal)}
+                                  {formatCurrency(s.closingBalanceReal || 0)}
                                 </span>
                               ) : (
                                 <span className="text-xs font-bold text-slate-200">---</span>
@@ -223,10 +245,10 @@ export default function CashSessionsPage() {
                                 {s.status === "CLOSED" ? (
                                   <div className={cn(
                                     "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto",
-                                    Math.abs(s.discrepancy) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
+                                    Math.abs(s.discrepancy || 0) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
                                   )}>
                                     <span className="text-xs font-black tracking-tighter">
-                                      {s.discrepancy > 0 ? "+" : ""}{formatCurrency(s.discrepancy)}
+                                      {(s.discrepancy || 0) > 0 ? "+" : ""}{formatCurrency(s.discrepancy || 0)}
                                     </span>
                                   </div>
                                 ) : (
