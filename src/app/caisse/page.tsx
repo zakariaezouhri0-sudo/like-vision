@@ -73,6 +73,7 @@ function CaisseContent() {
   }, []);
 
   const isPrepaMode = role === "PREPA";
+  const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
@@ -86,7 +87,6 @@ function CaisseContent() {
     return today;
   }, [dateParam, isPrepaMode]);
 
-  // ISOLATION: L'ID du document est différent selon le mode
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   
@@ -157,7 +157,7 @@ function CaisseContent() {
         openingBalance: parseFloat(openingVal) || 0, 
         status: "OPEN", 
         openedAt: openedAt, 
-        date: dateStr, // On garde la date réelle pour le tri
+        date: dateStr,
         openedBy: user?.displayName || "Inconnu", 
         isDraft: isPrepaMode 
       });
@@ -244,25 +244,28 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
-  const DateChanger = () => (
-    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
-          <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-        <Calendar 
-          mode="single" 
-          selected={selectedDate} 
-          onSelect={handleDateSelect} 
-          locale={fr} 
-          initialFocus 
-          disabled={(d) => isPrepaMode ? d < new Date("2026-01-01") : false} 
-        />
-      </PopoverContent>
-    </Popover>
-  );
+  const DateChanger = () => {
+    if (!isAdminOrPrepa) return null;
+    return (
+      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+            <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 rounded-[24px] border-none shadow-2xl" align="start">
+          <Calendar 
+            mode="single" 
+            selected={selectedDate} 
+            onSelect={handleDateSelect} 
+            locale={fr} 
+            initialFocus 
+            disabled={(d) => isPrepaMode ? d < new Date("2026-01-01") : false} 
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
@@ -412,7 +415,7 @@ function CaisseContent() {
               <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Responsable</p>
               <p className="text-sm font-black uppercase text-red-900">{session.closedBy || "---"}</p>
             </div>
-            {(role === 'ADMIN' || role === 'PREPA') && (
+            {isAdminOrPrepa && (
               <div className="text-center md:text-right border-l border-red-200 pl-8">
                 <p className="text-[8px] font-black uppercase tracking-[0.3em] text-red-400 mb-1">Écart Final</p>
                 <p className={cn("text-xl font-black tabular-nums", session.discrepancy >= 0 ? "text-green-600" : "text-red-600")}>
@@ -469,7 +472,7 @@ function CaisseContent() {
                       {formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      {!isClosed && (role === 'ADMIN' || role === 'PREPA') ? (
+                      {!isClosed && isAdminOrPrepa ? (
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
