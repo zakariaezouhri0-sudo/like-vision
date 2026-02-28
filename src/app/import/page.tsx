@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon, History, Wallet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, where, doc, setDoc, writeBatch, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -149,16 +148,17 @@ export default function ImportPage() {
     let fhCounter = 0;
     let rhCounter = 0;
 
-    // Récupérer les compteurs actuels pour continuer la suite
     try {
       const qAllSales = await getDocs(collection(db, "sales"));
       qAllSales.forEach(doc => {
         const id = doc.data().invoiceId || "";
-        if (id.startsWith("FH-2026-")) {
-          const num = parseInt(id.split("-")[2]);
+        if (id.startsWith("FH-2026-") || id.startsWith("PREPA-FC-2026-")) {
+          const parts = id.split("-");
+          const num = parseInt(parts[parts.length - 1]);
           if (num > fhCounter) fhCounter = num;
-        } else if (id.startsWith("RH-2026-")) {
-          const num = parseInt(id.split("-")[2]);
+        } else if (id.startsWith("RH-2026-") || id.startsWith("PREPA-RC-2026-")) {
+          const parts = id.split("-");
+          const num = parseInt(parts[parts.length - 1]);
           if (num > rhCounter) rhCounter = num;
         }
       });
@@ -181,12 +181,13 @@ export default function ImportPage() {
           let invoiceId = row[mapping.invoiceId]?.toString();
 
           if (!invoiceId || invoiceId === "" || invoiceId.includes("Laisser vide")) {
+            const prefix = isDraft ? "PREPA-" : "";
             if (isPaid) {
               fhCounter++;
-              invoiceId = `FH-2026-${fhCounter.toString().padStart(4, '0')}`;
+              invoiceId = `${prefix}FC-2026-${fhCounter.toString().padStart(4, '0')}`;
             } else {
               rhCounter++;
-              invoiceId = `RH-2026-${rhCounter.toString().padStart(4, '0')}`;
+              invoiceId = `${prefix}RC-2026-${rhCounter.toString().padStart(4, '0')}`;
             }
           }
           
@@ -220,6 +221,29 @@ export default function ImportPage() {
 
           await addDoc(collection(db, "sales"), saleData);
 
+          // CRÉATION/MISE À JOUR AUTOMATIQUE DU CLIENT
+          if (clientPhone) {
+            const clientQ = query(collection(db, "clients"), where("phone", "==", clientPhone), where("isDraft", "==", isDraft), limit(1));
+            const clientSnap = await getDocs(clientQ);
+            
+            const clientData = {
+              name: clientName,
+              phone: clientPhone,
+              mutuelle: row[mapping.mutuelle] || "Aucun",
+              lastVisit: createdAtDate.toLocaleDateString("fr-FR"),
+              isDraft: isDraft,
+              updatedAt: serverTimestamp()
+            };
+
+            if (clientSnap.empty) {
+              await addDoc(collection(db, "clients"), { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
+            } else {
+              const clientRef = doc(db, "clients", clientSnap.docs[0].id);
+              const existingData = clientSnap.docs[0].data();
+              await setDoc(clientRef, { ...clientData, ordersCount: (existingData.ordersCount || 0) + 1 }, { merge: true });
+            }
+          }
+
           if (currentAvance > 0) {
             await addDoc(collection(db, "transactions"), {
               type: "VENTE", label: `Import Vente - ${invoiceId}`, clientName, category: "Optique", montant: currentAvance,
@@ -250,7 +274,7 @@ export default function ImportPage() {
           const phone = (row[mapping.phone]?.toString() || "").replace(/\s/g, "");
           if (name && phone) {
             await addDoc(collection(db, "clients"), {
-              name, phone, mutuelle: row[mapping.mutuelle] || "Aucun",
+              name, phone, mutuelle: row[mapping.mutuelle] || "Aucun", isDraft,
               createdAt: serverTimestamp(), lastVisit: new Date().toLocaleDateString("fr-FR"), ordersCount: 0
             });
           }

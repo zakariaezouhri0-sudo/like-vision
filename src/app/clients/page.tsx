@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { formatPhoneNumber } from "@/lib/utils";
@@ -27,14 +27,23 @@ export default function ClientsPage() {
   const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState("");
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    setIsHydrated(true);
   }, []);
+
+  const isPrepaMode = role === "PREPA";
   
   const clientsQuery = useMemoFirebase(() => {
-    return query(collection(db, "clients"), orderBy("createdAt", "desc"));
-  }, [db]);
+    // ISOLATION : Filtrage strict par le flag isDraft pour cloisonner les fichiers clients
+    return query(
+      collection(db, "clients"), 
+      where("isDraft", "==", isPrepaMode),
+      orderBy("createdAt", "desc")
+    );
+  }, [db, isPrepaMode]);
 
   const { data: clients, isLoading: loading } = useCollection(clientsQuery);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -64,6 +73,7 @@ export default function ClientsPage() {
       mutuelle: newClient.mutuelle,
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
+      isDraft: isPrepaMode,
       createdAt: serverTimestamp(),
     };
 
@@ -123,12 +133,16 @@ export default function ClientsPage() {
     router.push(`/ventes?search=${phone}`);
   };
 
+  if (!isClientReady) return null;
+
   return (
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Fichier Clients</h1>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">
+              Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}
+            </h1>
             <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers et ordonnances.</p>
           </div>
           
@@ -140,7 +154,7 @@ export default function ClientsPage() {
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[24px]">
               <DialogHeader>
-                <DialogTitle className="font-black uppercase text-primary text-xl">Nouveau Dossier</DialogTitle>
+                <DialogTitle className="font-black uppercase text-primary text-xl">Nouveau Dossier {isPrepaMode ? "Brouillon" : ""}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-1.5">
@@ -167,39 +181,6 @@ export default function ClientsPage() {
             </DialogContent>
           </Dialog>
         </div>
-
-        {/* Modal de Modification */}
-        <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[24px]">
-            <DialogHeader>
-              <DialogTitle className="font-black uppercase text-primary text-xl">Modifier Dossier</DialogTitle>
-            </DialogHeader>
-            {editingClient && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Nom Complet</Label>
-                  <Input className="h-11 rounded-xl font-bold" value={editingClient.name} onChange={(e) => setEditingClient({...editingClient, name: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone</Label>
-                  <Input className="h-11 rounded-xl font-bold" value={editingClient.phone} onChange={(e) => setEditingClient({...editingClient, phone: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
-                  <Select value={editingClient.mutuelle} onValueChange={(v) => setEditingClient({...editingClient, mutuelle: v})}>
-                    <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button onClick={handleUpdateClient} className="w-full h-12 text-base font-black rounded-xl shadow-xl">SAUVEGARDER</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-4 md:p-6 border-b bg-slate-50/50">
@@ -268,7 +249,7 @@ export default function ClientsPage() {
                                 <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
-                                {role === 'ADMIN' && (
+                                {(role === 'ADMIN' || role === 'PREPA') && (
                                   <>
                                     <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                       <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
@@ -286,7 +267,7 @@ export default function ClientsPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">
-                          Aucun dossier trouvé.
+                          Aucun dossier trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
                         </TableCell>
                       </TableRow>
                     )}

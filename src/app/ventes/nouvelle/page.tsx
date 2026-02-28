@@ -15,7 +15,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, arrayUnion, limit, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, arrayUnion, limit, orderBy, setDoc } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -58,7 +58,7 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
   
-  // NOUVEAU: Avance historique (déjà versée auparavant)
+  // Avance historique (déjà versée auparavant)
   const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
   // Avance du jour (comptabilisée en caisse)
   const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
@@ -112,7 +112,13 @@ function NewSaleForm() {
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          const clientQ = query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1));
+          // ISOLATION DES CLIENTS : On ne cherche que dans le mode actuel (Réel ou Draft)
+          const clientQ = query(
+            collection(db, "clients"), 
+            where("phone", "==", cleanPhone), 
+            where("isDraft", "==", isPrepaMode),
+            limit(1)
+          );
           const clientSnapshot = await getDocs(clientQ);
           
           if (!clientSnapshot.empty) {
@@ -128,17 +134,18 @@ function NewSaleForm() {
             }
           }
 
-          const allSalesQ = query(collection(db, "sales"), where("clientPhone", "==", cleanPhone));
+          const allSalesQ = query(
+            collection(db, "sales"), 
+            where("clientPhone", "==", cleanPhone),
+            where("isDraft", "==", isPrepaMode)
+          );
           const allSalesSnapshot = await getDocs(allSalesQ);
           let unpaid = 0;
           let count = 0;
           allSalesSnapshot.forEach(doc => {
             const data = doc.data();
-            const matchesMode = isPrepaMode ? data.isDraft === true : !data.isDraft;
-            if (matchesMode) {
-              unpaid += (data.reste || 0);
-              count++;
-            }
+            unpaid += (data.reste || 0);
+            count++;
           });
           setClientHistory({ totalUnpaid: unpaid, orderCount: count, hasUnpaid: unpaid > 0 });
         } catch (error) { console.error(error); } finally { setIsSearchingClient(false); }
@@ -187,7 +194,14 @@ function NewSaleForm() {
 
     try {
       let existingClientId = null;
-      const clientQuerySnap = await getDocs(query(collection(db, "clients"), where("phone", "==", cleanPhone), limit(1)));
+      // ISOLATION DU CLIENT : Recherche uniquement dans le mode actuel
+      const clientQuerySnap = await getDocs(query(
+        collection(db, "clients"), 
+        where("phone", "==", cleanPhone), 
+        where("isDraft", "==", isPrepaMode),
+        limit(1)
+      ));
+      
       if (!clientQuerySnap.empty) {
         existingClientId = clientQuerySnap.docs[0].id;
       }
@@ -231,13 +245,15 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
+        // CRÉATION AUTOMATIQUE OU MISE À JOUR DU CLIENT AVEC ISOLATION
         const clientRef = existingClientId ? doc(db, "clients", existingClientId) : doc(collection(db, "clients"));
         const clientData = {
           name: clientName,
           phone: cleanPhone,
           mutuelle: finalMutuelle || "Aucun",
           lastVisit: format(saleDate, "dd/MM/yyyy"),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          isDraft: isPrepaMode // CRUCIAL : Isolation du client par mode
         };
 
         if (existingClientId) {
@@ -246,7 +262,6 @@ function NewSaleForm() {
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
 
-        // CRUCIAL: Seule l'avance du jour (nAvance) génère une transaction de caisse
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
