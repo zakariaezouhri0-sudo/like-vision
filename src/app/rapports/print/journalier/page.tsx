@@ -118,7 +118,7 @@ function DailyCashReportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center py-6 print:py-0 print:bg-white">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center pt-4 pb-10 print:pt-0 print:pb-0 print:bg-white">
       <div className="no-print w-full max-w-[210mm] flex justify-between items-center mb-6 px-4">
         <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-10 px-4 rounded-xl shadow-sm font-black text-[10px] hover:bg-slate-50">
           <Link href="/caisse"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR CAISSE</Link>
@@ -131,9 +131,9 @@ function DailyCashReportContent() {
         </div>
       </div>
 
-      <div className="pdf-a4-portrait shadow-[0_0_60px_rgba(0,0,0,0.05)] bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[10mm] flex flex-col min-h-[297mm]">
+      <div className="pdf-a4-portrait shadow-[0_0_60px_rgba(0,0,0,0.05)] bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm px-[10mm] pb-[10mm] pt-[5mm] print:pt-[5mm] flex flex-col min-h-[297mm]">
         
-        {/* Header Compact */}
+        {/* Header Compact - Remonté au maximum */}
         <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
@@ -173,7 +173,7 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Indicateurs Financiers - Polices Réduites & Bordures plus foncées */}
+        {/* Indicateurs Financiers - Bordures contrastées */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           <div className="p-3 rounded-xl border border-slate-300 bg-slate-50/30 text-center shadow-sm">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Ouverture</p>
@@ -195,7 +195,7 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Détail des Opérations - Tableaux Compacts */}
+        {/* Détail des Opérations */}
         <div className="space-y-6 flex-1">
           
           {/* SECTION ENCAISSEMENTS */}
