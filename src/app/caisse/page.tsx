@@ -63,7 +63,6 @@ function CaisseContent() {
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const selectedDate = useMemo(() => {
-    // SÉCURITÉ : Pour les comptes réels, la date est TOUJOURS aujourd'hui
     if (!isPrepaMode) return new Date();
 
     const dateParam = searchParams.get("date");
@@ -94,7 +93,6 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Recherche de la dernière session CLÔTURÉE pour le report de solde
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -150,7 +148,7 @@ function CaisseContent() {
       const amt = Math.abs(Number(t.montant) || 0);
       if (t.type === "VENTE") { acc.entrees += amt; } 
       else if (t.type === "VERSEMENT") { acc.versements += amt; } 
-      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE") { acc.depenses += amt; }
+      else { acc.depenses += amt; }
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
@@ -279,7 +277,7 @@ function CaisseContent() {
       let closedAt;
       if (currentIsDraft) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
-        openedAt = Timestamp.fromDate(d);
+        closedAt = Timestamp.fromDate(d);
       } else {
         closedAt = serverTimestamp();
       }
@@ -294,7 +292,7 @@ function CaisseContent() {
         totalSales: stats.entrees, 
         totalExpenses: stats.depenses, 
         totalVersements: stats.versements,
-        isDraft: currentIsDraft // Double sécurité
+        isDraft: currentIsDraft
       });
       router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
@@ -379,9 +377,9 @@ function CaisseContent() {
               )}
             </div>
             {!isAutoReport && (
-              <p className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
+              <div className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
                 <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
-              </p>
+              </div>
             )}
           </div>
           <Button 

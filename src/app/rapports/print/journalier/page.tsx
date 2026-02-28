@@ -90,9 +90,14 @@ function DailyCashReportContent() {
     const versementsList: any[] = [];
     
     filteredTransactions.forEach((t: any) => {
-      if (t.type === "VENTE") salesList.push(t);
-      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") expensesList.push(t);
-      else if (t.type === "VERSEMENT") versementsList.push(t);
+      if (t.type === "VENTE") {
+        salesList.push(t);
+      } else if (t.type === "VERSEMENT") {
+        versementsList.push(t);
+      } else {
+        // Inclut DEPENSE, ACHAT VERRES, ACHAT MONTURE
+        expensesList.push(t);
+      }
     });
 
     const totalSales = salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
