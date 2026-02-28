@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,13 @@ export default function UnpaidSalesPage() {
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [role, setRole] = useState<string>("OPTICIENNE");
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+  }, []);
+
+  const isPrepaMode = role === "PREPA";
 
   const allSalesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
@@ -40,6 +47,10 @@ export default function UnpaidSalesPage() {
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     return sales.filter((sale: any) => {
+      // ISOLATION CRUCIALE: Filtrer par mode (Draft vs Réel)
+      const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
+      if (!matchesMode) return false;
+
       const hasReste = (sale.reste || 0) > 0;
       if (!hasReste) return false;
 
@@ -50,7 +61,7 @@ export default function UnpaidSalesPage() {
       
       return matchesSearch;
     });
-  }, [sales, searchTerm]);
+  }, [sales, searchTerm, isPrepaMode]);
 
   const handleOpenPayment = (sale: any) => {
     setSelectedSale(sale);
@@ -79,16 +90,20 @@ export default function UnpaidSalesPage() {
         
         let finalInvoiceId = currentData.invoiceId;
 
+        // Utilisation des compteurs appropriés (Draft ou Réel)
+        const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
+
         // Si passage de RC à FC (Soldé)
-        if (isFullyPaid && finalInvoiceId.startsWith("RC")) {
-          const counterRef = doc(db, "settings", "counters");
+        if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
+          const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
           let counters = { fc: 0, rc: 0 };
           if (counterSnap.exists()) {
             counters = counterSnap.data() as any;
           }
           counters.fc += 1;
-          finalInvoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
+          const prefix = isPrepaMode ? "PREPA-FC" : "FC";
+          finalInvoiceId = `${prefix}-2026-${counters.fc.toString().padStart(4, '0')}`;
           transaction.set(counterRef, counters, { merge: true });
         }
 
@@ -107,7 +122,7 @@ export default function UnpaidSalesPage() {
           updatedAt: serverTimestamp() 
         });
 
-        // Ajouter la transaction de caisse
+        // Ajouter la transaction de caisse isolée par isDraft
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
@@ -117,6 +132,7 @@ export default function UnpaidSalesPage() {
           montant: amount,
           relatedId: finalInvoiceId,
           userName: currentUserName,
+          isDraft: isPrepaMode,
           createdAt: serverTimestamp()
         });
 
@@ -162,7 +178,7 @@ export default function UnpaidSalesPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler {isPrepaMode ? "(Brouillon)" : ""}</h1>
             <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des créances par date décroissante.</p>
           </div>
         </div>
@@ -236,7 +252,7 @@ export default function UnpaidSalesPage() {
                     )) : (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
-                          Aucun reste à régler trouvé.
+                          Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
                         </TableCell>
                       </TableRow>
                     )}
