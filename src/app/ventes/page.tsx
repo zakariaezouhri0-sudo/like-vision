@@ -53,45 +53,53 @@ function SalesHistoryContent() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  const salesQuery = useMemoFirebase(() => {
-    const base = collection(db, "sales");
-    if (isPrepaMode) {
-      return query(base, where("isDraft", "==", true), orderBy("createdAt", "desc"));
-    }
-    return query(base, orderBy("createdAt", "desc"));
-  }, [db, isPrepaMode]);
-
+  // Requête simple sans filtre complexe pour éviter les erreurs d'index Firestore
+  const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
   const filteredSales = useMemo(() => {
     if (!rawSales) return [];
-    return rawSales.filter((sale: any) => {
-      const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
-      if (!matchesMode) return false;
+    
+    return rawSales
+      .filter((sale: any) => {
+        // 1. Isolation stricte par Mode
+        const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
+        if (!matchesMode) return false;
 
-      const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
-      let matchesDate = true;
-      if (dateFrom && saleDate) {
-        const start = startOfDay(dateFrom);
-        const end = endOfDay(dateTo || dateFrom);
-        matchesDate = isWithinInterval(saleDate, { 
-          start: start < end ? start : end, 
-          end: start < end ? end : start 
-        });
-      } else if (dateFrom && !saleDate) {
-        matchesDate = false;
-      }
+        // 2. Filtre par Date
+        const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
+        let matchesDate = true;
+        if (dateFrom) {
+          if (!saleDate) {
+            matchesDate = false;
+          } else {
+            const start = startOfDay(dateFrom);
+            const end = endOfDay(dateTo || dateFrom);
+            matchesDate = isWithinInterval(saleDate, { 
+              start: start < end ? start : end, 
+              end: start < end ? end : start 
+            });
+          }
+        }
 
-      const search = searchTerm.toLowerCase().trim();
-      const matchesSearch = !search || 
-        (sale.clientName || "").toLowerCase().includes(search) || 
-        (sale.invoiceId || "").toLowerCase().includes(search) || 
-        (sale.clientPhone || "").replace(/\s/g, '').includes(search.replace(/\s/g, ''));
+        // 3. Filtre par Recherche
+        const search = searchTerm.toLowerCase().trim();
+        const matchesSearch = !search || 
+          (sale.clientName || "").toLowerCase().includes(search) || 
+          (sale.invoiceId || "").toLowerCase().includes(search) || 
+          (sale.clientPhone || "").replace(/\s/g, '').includes(search.replace(/\s/g, ''));
 
-      const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
-      
-      return matchesDate && matchesSearch && matchesStatus;
-    });
+        // 4. Filtre par Statut
+        const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
+        
+        return matchesDate && matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        // Tri chronologique en mémoire (plus robuste)
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
   }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode]);
 
   const toggleSelectAll = () => {
@@ -295,7 +303,6 @@ function SalesHistoryContent() {
                   filteredSales.map((sale: any) => {
                     const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note === "Avance antérieure") || [];
                     const historicalAmount = historicalPayments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
-                    const currentAmount = Math.max(0, (sale.avance || 0) - historicalAmount);
 
                     return (
                       <TableRow key={sale.id} className={cn("hover:bg-primary/5 transition-all", selectedIds.has(sale.id) && "bg-primary/5")}>

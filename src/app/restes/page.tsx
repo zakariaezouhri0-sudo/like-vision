@@ -38,29 +38,37 @@ export default function UnpaidSalesPage() {
 
   const isPrepaMode = role === "PREPA";
 
-  const allSalesQuery = useMemoFirebase(() => query(
-    collection(db, "sales"), 
-    orderBy("createdAt", "desc")
-  ), [db]);
-  
+  // Requête simplifiée
+  const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
   const filteredSales = useMemo(() => {
     if (!sales) return [];
-    return sales.filter((sale: any) => {
-      const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
-      if (!matchesMode) return false;
+    
+    return sales
+      .filter((sale: any) => {
+        // Isolation par mode
+        const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
+        if (!matchesMode) return false;
 
-      const hasReste = (sale.reste || 0) > 0;
-      if (!hasReste) return false;
+        // Uniquement les restes > 0
+        const hasReste = (sale.reste || 0) > 0;
+        if (!hasReste) return false;
 
-      const matchesSearch = 
-        sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        sale.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.clientPhone?.includes(searchTerm.replace(/\s/g, ''));
-      
-      return matchesSearch;
-    });
+        // Recherche
+        const search = searchTerm.toLowerCase().trim();
+        const matchesSearch = !search || 
+          (sale.clientName || "").toLowerCase().includes(search) || 
+          (sale.invoiceId || "").toLowerCase().includes(search) ||
+          (sale.clientPhone || "").includes(search.replace(/\s/g, ''));
+        
+        return matchesSearch;
+      })
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
   }, [sales, searchTerm, isPrepaMode]);
 
   const handleOpenPayment = (sale: any) => {
