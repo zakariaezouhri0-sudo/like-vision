@@ -48,26 +48,18 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // ISOLATION CRUCIALE : On filtre strictement par le flag isDraft
+  // On récupère tout et on filtre en mémoire pour plus de fiabilité et supporter les données legacy
   const sessionsQuery = useMemoFirebase(() => {
-    return query(
-      collection(db, "cash_sessions"), 
-      where("isDraft", "==", isPrepaMode)
-    );
-  }, [db, isPrepaMode]);
+    return query(collection(db, "cash_sessions"), orderBy("date", "desc"));
+  }, [db]);
 
   const { data: rawSessions, isLoading, error } = useCollection(sessionsQuery);
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    // DOUBLE VÉRIFICATION DE SÉCURITÉ EN MÉMOIRE
+    // FILTRAGE STRICT PAR MODE
     return [...rawSessions]
-      .filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true)
-      .sort((a, b) => {
-        const dateA = a.date || "";
-        const dateB = b.date || "";
-        return dateB.localeCompare(dateA);
-      });
+      .filter(s => isPrepaMode ? s.isDraft === true : (s.isDraft !== true));
   }, [rawSessions, isPrepaMode]);
 
   const handleDeleteSession = async (id: string, date: string) => {
@@ -81,7 +73,7 @@ export default function CashSessionsPage() {
     }
   };
 
-  if (loadingRole) return null;
+  if (loadingRole) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <AppShell>

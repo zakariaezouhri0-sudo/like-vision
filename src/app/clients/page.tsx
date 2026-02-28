@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -30,23 +31,21 @@ export default function ClientsPage() {
   const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role');
-    setRole(savedRole ? savedRole.toUpperCase() : "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    setRole(savedRole.toUpperCase());
     setIsHydrated(true);
   }, []);
 
   const isPrepaMode = role === "PREPA";
   
+  // On récupère TOUS les clients pour éviter les problèmes d'index et de données legacy
+  // Le tri et le filtrage par mode se feront en mémoire
   const clientsQuery = useMemoFirebase(() => {
-    if (!role) return null;
-    return query(
-      collection(db, "clients"), 
-      where("isDraft", "==", isPrepaMode),
-      orderBy("createdAt", "desc")
-    );
-  }, [db, isPrepaMode, role]);
+    return query(collection(db, "clients"), orderBy("createdAt", "desc"));
+  }, [db]);
 
-  const { data: clients, isLoading: loading } = useCollection(clientsQuery);
+  const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
+  
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [newClient, setNewClient] = useState({
@@ -55,10 +54,27 @@ export default function ClientsPage() {
     mutuelle: "Aucun"
   });
 
-  const filteredClients = clients?.filter((client: any) => 
-    client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (client.phone && client.phone.replace(/\s/g, '').includes(searchTerm.replace(/\s/g, '')))
-  ) || [];
+  // FILTRAGE ET SÉCURITÉ EN MÉMOIRE
+  const filteredClients = useMemo(() => {
+    if (!allClients || !role) return [];
+    
+    return allClients.filter((c: any) => {
+      // Isolation : PREPA ne voit que isDraft=true
+      // Les autres ne voient que isDraft=false ou undefined (legacy)
+      const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
+      if (!matchesMode) return false;
+
+      // Recherche
+      const search = searchTerm.toLowerCase().trim();
+      if (!search) return true;
+
+      const clientName = (c.name || "").toLowerCase();
+      const clientPhone = (c.phone || "").replace(/\s/g, "");
+      const searchClean = search.replace(/\s/g, "");
+
+      return clientName.includes(search) || clientPhone.includes(searchClean);
+    });
+  }, [allClients, searchTerm, isPrepaMode, role]);
 
   const handleCreateClient = () => {
     if (!role) return;
@@ -207,6 +223,10 @@ export default function ClientsPage() {
                   <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
                   <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Accès au fichier...</span>
                 </div>
+              ) : error ? (
+                <div className="p-12 text-center text-destructive font-bold">
+                  Erreur de chargement des clients. Veuillez rafraîchir la page.
+                </div>
               ) : (
                 <Table>
                   <TableHeader className="bg-slate-50/80">
@@ -284,6 +304,34 @@ export default function ClientsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!editingClient} onOpenChange={(o) => !o && setEditingClient(null)}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Dossier</DialogTitle></DialogHeader>
+          {editingClient && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
+                <Input className="font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black">Téléphone</Label>
+                <Input className="font-bold" value={editingClient.phone} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
+                <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
+                  <SelectTrigger className="font-bold"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={handleUpdateClient} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
