@@ -44,6 +44,7 @@ export default function ImportPage() {
   const [mapping, setMapping] = useState<Mapping>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentDayLabel, setCurrentDayLabel] = useState("");
   const [startingBalance, setStartingBalance] = useState<string>("0");
 
   const GLOBAL_FIELDS = [
@@ -81,6 +82,13 @@ export default function ImportPage() {
     }
   };
 
+  const cleanNum = (val: any): number => {
+    if (val === undefined || val === null || val === "" || typeof val === 'object') return 0;
+    const s = val.toString().replace(/\s/g, '').replace(',', '.');
+    const p = parseFloat(s);
+    return isNaN(p) ? 0 : p;
+  };
+
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
     setIsProcessing(true);
@@ -88,17 +96,25 @@ export default function ImportPage() {
     
     const currentIsDraft = role === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
-    let currentBalance = parseFloat(startingBalance) || 0;
+    let currentBalance = cleanNum(startingBalance);
 
-    const sheetNames = [...workbook.SheetNames].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+    // Tri intelligent des feuilles (numérique si possible)
+    const sheetNames = [...workbook.SheetNames].sort((a, b) => {
+      const na = parseInt(a.replace(/\D/g, '')) || 0;
+      const nb = parseInt(b.replace(/\D/g, '')) || 0;
+      return na - nb;
+    });
+
     const importSessionClients = new Set<string>();
 
     try {
       for (let s = 0; s < sheetNames.length; s++) {
         const sheetName = sheetNames[s];
-        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        const day = parseInt(sheetName) || (s + 1);
+        const day = parseInt(sheetName.replace(/\D/g, '')) || (s + 1);
+        setCurrentDayLabel(`Jour ${day}`);
+        
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
         const currentDate = new Date(2026, 0, day);
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
@@ -121,114 +137,112 @@ export default function ImportPage() {
           openingBalance: initialBalance
         }, { merge: true });
 
-        for (const row of data) {
-          // GESTION DES VENTES
-          const clientNameRaw = row[mapping.clientName];
-          if (clientNameRaw && row[mapping.total] !== undefined) {
-            const clientName = clientNameRaw.toString().trim();
-            const total = parseFloat(row[mapping.total]) || 0;
-            const currentAvance = parseFloat(row[mapping.avance]) || 0;
-            const historicalAvance = parseFloat(row[mapping.historicalAdvance]) || 0;
-            const totalAvance = currentAvance + historicalAvance;
+        for (const row of rawData) {
+          try {
+            // GESTION DES VENTES
+            const clientNameRaw = row[mapping.clientName];
+            const totalRaw = row[mapping.total];
             
-            const prefix = currentIsDraft ? "PREPA-" : "";
-            const isPaid = totalAvance >= total;
-            const docType = isPaid ? "FC" : "RC";
-            const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
-
-            const normalizedClientName = clientName.toUpperCase();
-            if (!importSessionClients.has(normalizedClientName)) {
-              const clientQ = query(
-                collection(db, "clients"), 
-                where("name", "==", clientName), 
-                where("isDraft", "==", currentIsDraft),
-                limit(1)
-              );
-              const clientSnap = await getDocs(clientQ);
+            if (clientNameRaw && totalRaw !== undefined) {
+              const clientName = clientNameRaw.toString().trim();
+              const totalVal = cleanNum(totalRaw);
+              const currentAvance = cleanNum(row[mapping.avance]);
+              const historicalAvance = cleanNum(row[mapping.historicalAdvance]);
+              const totalAvance = currentAvance + historicalAvance;
               
-              if (clientSnap.empty) {
-                const newClientRef = doc(collection(db, "clients"));
-                await setDoc(newClientRef, {
-                  name: clientName, phone: "", mutuelle: "Aucun",
-                  lastVisit: format(currentDate, "dd/MM/yyyy"),
-                  ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
-                }, { merge: true });
-              } else {
-                const existingRef = clientSnap.docs[0].ref;
-                await setDoc(existingRef, { 
-                  ordersCount: increment(1),
-                  lastVisit: format(currentDate, "dd/MM/yyyy")
-                }, { merge: true });
+              const prefix = currentIsDraft ? "PREPA-" : "";
+              const isPaid = totalAvance >= totalVal;
+              const docType = isPaid ? "FC" : "RC";
+              const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+
+              // Deduplication Clients
+              const normalizedClientName = clientName.toUpperCase();
+              if (!importSessionClients.has(normalizedClientName)) {
+                const clientQ = query(collection(db, "clients"), where("name", "==", clientName), where("isDraft", "==", currentIsDraft), limit(1));
+                const clientSnap = await getDocs(clientQ);
+                
+                if (clientSnap.empty) {
+                  const newClientRef = doc(collection(db, "clients"));
+                  await setDoc(newClientRef, {
+                    name: clientName, phone: "", mutuelle: "Aucun",
+                    lastVisit: format(currentDate, "dd/MM/yyyy"),
+                    ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
+                  }, { merge: true });
+                } else {
+                  const existingRef = clientSnap.docs[0].ref;
+                  await setDoc(existingRef, { ordersCount: increment(1), lastVisit: format(currentDate, "dd/MM/yyyy") }, { merge: true });
+                }
+                importSessionClients.add(normalizedClientName);
               }
-              importSessionClients.add(normalizedClientName);
+
+              const saleRef = doc(collection(db, "sales"));
+              await setDoc(saleRef, {
+                invoiceId, clientName, total: totalVal, 
+                avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
+                statut: isPaid ? "Payé" : "Partiel",
+                isDraft: currentIsDraft, createdAt: openTime, createdBy: userName,
+                payments: [
+                  { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Ancien" },
+                  { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
+                ]
+              }, { merge: true });
+
+              if (currentAvance > 0) {
+                const transId = `IMP-SALE-${invoiceId}`;
+                const transRef = doc(db, "transactions", transId);
+                await setDoc(transRef, {
+                  type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
+                  montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
+                  userName, relatedId: invoiceId
+                }, { merge: true });
+                daySalesTotal += currentAvance;
+              }
             }
 
-            const saleRef = doc(collection(db, "sales"));
-            await setDoc(saleRef, {
-              invoiceId, clientName, total, 
-              avance: totalAvance, reste: Math.max(0, total - totalAvance),
-              statut: isPaid ? "Payé" : "Partiel",
-              isDraft: currentIsDraft, createdAt: openTime, createdBy: userName,
-              payments: [
-                { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Ancien" },
-                { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
-              ]
-            }, { merge: true });
+            // GESTION DES CHARGES ET VERSEMENTS
+            const expenseVal = cleanNum(row[mapping.montant]);
+            const labelRaw = row[mapping.label];
+            const supplierRaw = row[mapping.supplierName];
+            const expenseCategoryRaw = row[mapping.category]?.toString().trim() || "";
 
-            if (currentAvance > 0) {
-              const transId = `IMP-SALE-${invoiceId}`;
+            if (expenseVal > 0) {
+              let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
+              
+              const isVersement = rawLabel.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("BANQUE");
+              const isAchatVerres = rawLabel.toUpperCase().includes("VERRE") || expenseCategoryRaw.toUpperCase().includes("VERRE");
+              const isAchatMonture = rawLabel.toUpperCase().includes("MONTURE") || expenseCategoryRaw.toUpperCase().includes("MONTURE");
+              
+              let type = "DEPENSE";
+              let finalLabel = rawLabel;
+              
+              if (isVersement) {
+                type = "VERSEMENT";
+              } else if (isAchatVerres) {
+                type = "ACHAT VERRES";
+                if (!rawLabel.toUpperCase().startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
+              } else if (isAchatMonture) {
+                type = "DEPENSE";
+                if (!rawLabel.toUpperCase().startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
+              }
+
+              const transId = `IMP-EXP-${day}-${Math.random().toString(36).substr(2, 6)}`;
               const transRef = doc(db, "transactions", transId);
               await setDoc(transRef, {
-                type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
-                montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
-                userName, relatedId: invoiceId
+                type: type, 
+                label: finalLabel, 
+                clientName: supplierRaw ? supplierRaw.toString().trim() : "",
+                category: expenseCategoryRaw || (isVersement ? "Banque" : "Général"), 
+                montant: -Math.abs(expenseVal), 
+                isDraft: currentIsDraft, 
+                createdAt: openTime, 
+                userName
               }, { merge: true });
-              daySalesTotal += currentAvance;
+
+              if (type === "VERSEMENT") dayVersementsTotal += expenseVal;
+              else dayExpensesTotal += expenseVal;
             }
-          }
-
-          // GESTION DES CHARGES ET VERSEMENTS
-          const expenseAmount = parseFloat(row[mapping.montant]) || 0;
-          const labelRaw = row[mapping.label];
-          const supplierRaw = row[mapping.supplierName];
-          const expenseCategoryRaw = row[mapping.category]?.toString().trim() || "";
-
-          if (expenseAmount > 0 && (labelRaw || supplierRaw || expenseCategoryRaw)) {
-            let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
-            
-            // Détection du type
-            const isVersement = rawLabel.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("BANQUE");
-            const isAchatVerres = rawLabel.toUpperCase().includes("VERRE") || expenseCategoryRaw.toUpperCase().includes("VERRE");
-            const isAchatMonture = rawLabel.toUpperCase().includes("MONTURE") || expenseCategoryRaw.toUpperCase().includes("MONTURE");
-            
-            let type = "DEPENSE";
-            let finalLabel = rawLabel;
-            
-            if (isVersement) {
-              type = "VERSEMENT";
-            } else if (isAchatVerres) {
-              type = "ACHAT VERRES";
-              if (!rawLabel.toUpperCase().startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
-            } else if (isAchatMonture) {
-              type = "DEPENSE";
-              if (!rawLabel.toUpperCase().startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
-            }
-
-            const transId = `IMP-EXP-${day}-${Math.random().toString(36).substr(2, 6)}`;
-            const transRef = doc(db, "transactions", transId);
-            await setDoc(transRef, {
-              type: type, 
-              label: finalLabel, 
-              clientName: supplierRaw ? supplierRaw.toString().trim() : "",
-              category: expenseCategoryRaw || (isVersement ? "Banque" : "Général"), 
-              montant: -Math.abs(expenseAmount), 
-              isDraft: currentIsDraft, 
-              createdAt: openTime, 
-              userName
-            }, { merge: true });
-
-            if (type === "VERSEMENT") dayVersementsTotal += expenseAmount;
-            else dayExpensesTotal += expenseAmount;
+          } catch (rowErr) {
+            console.warn("Ligne ignorée : ", rowErr);
           }
         }
 
@@ -243,11 +257,11 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier est entièrement saisi." });
+      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier a été traité avec succès." });
       router.push("/caisse/sessions");
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Erreur critique", description: "L'importation a été interrompue." });
+      toast({ variant: "destructive", title: "Erreur critique", description: "Vérifiez le format de vos données." });
     } finally {
       setIsProcessing(false);
     }
@@ -264,7 +278,7 @@ export default function ImportPage() {
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation massive : Ventes + Charges + Clients + Caisse.</p>
           </div>
           <div className="flex gap-2">
-             <Button variant="default" className="h-12 rounded-xl font-black text-[10px] uppercase shadow-sm"><Zap className="mr-2 h-4 w-4" /> MODE GLOBAL JANVIER</Button>
+             <Badge variant="outline" className="h-12 rounded-xl font-black text-[10px] uppercase shadow-sm px-6 bg-white border-primary/20 text-primary"><Zap className="mr-2 h-4 w-4" /> MODE GLOBAL JANVIER</Badge>
           </div>
         </div>
 
@@ -298,7 +312,7 @@ export default function ImportPage() {
             <CardHeader className="bg-primary text-white p-8">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-2xl font-black uppercase flex items-center gap-4 tracking-tighter">Configuration du Mapping</CardTitle>
-                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `Traitement : ${progress}%` : "Prêt pour l'importation"}</div>
+                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt pour l'importation"}</div>
               </div>
             </CardHeader>
             <CardContent className="p-8">
@@ -318,7 +332,7 @@ export default function ImportPage() {
               </div>
               <Button onClick={handleImportGlobal} disabled={isProcessing || Object.keys(mapping).length < 4} className="w-full h-20 rounded-[24px] font-black text-xl shadow-2xl bg-primary mt-12 hover:scale-[1.01] transition-transform group">
                 {isProcessing ? (
-                  <div className="flex items-center gap-4"><Loader2 className="h-8 w-8 animate-spin" /><span>IMPORTATION EN COURS ({progress}%)</span></div>
+                  <div className="flex items-center gap-4"><Loader2 className="h-8 w-8 animate-spin" /><span>IMPORTATION EN COURS...</span></div>
                 ) : (
                   <div className="flex items-center gap-4"><Zap className="h-8 w-8 group-hover:animate-pulse" /><span>LANCER L'AUTOMATE POUR LE MOIS DE JANVIER</span></div>
                 )}
