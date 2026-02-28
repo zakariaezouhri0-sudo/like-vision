@@ -171,11 +171,13 @@ function CaisseContent() {
   };
 
   const handleDeleteCurrentSession = async () => {
-    if (!confirm("Voulez-vous vraiment supprimer cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte.")) return;
+    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ? Cela réinitialisera la journée comme si elle n'avait jamais été ouverte. Vous pourrez alors saisir un nouveau solde initial.")) return;
     setOpLoading(true);
     try {
       await deleteDoc(sessionRef);
       toast({ variant: "success", title: "Session supprimée avec succès" });
+      // On recharge la page pour rafraîchir l'état
+      window.location.reload();
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
     } finally {
@@ -263,8 +265,8 @@ function CaisseContent() {
     return (
       <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
-            <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DE DATE
+          <Button variant="outline" className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+            <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DATE
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 rounded-[24px] border-none shadow-2xl" align="start">
@@ -305,7 +307,9 @@ function CaisseContent() {
             </div>
           </div>
           <Button onClick={handleOpenSession} disabled={opLoading} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 uppercase">OUVRIR LA SESSION</Button>
-          <DateChanger />
+          <div className="flex justify-center gap-3">
+            <DateChanger />
+          </div>
         </Card>
       </div>
     );
@@ -327,23 +331,22 @@ function CaisseContent() {
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
               {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
             </h1>
-            <div className="flex items-center gap-3 mt-1.5">
-              <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
-                <CalendarDays className="h-3 w-3 text-slate-400" />
-                <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-[11px] text-slate-700 font-black uppercase tracking-widest">
                   {format(selectedDate, "dd/MM/yyyy")}
                 </span>
               </div>
               <DateChanger />
               {isAdminOrPrepa && (
                 <Button 
-                  variant="ghost" 
-                  size="icon" 
+                  variant="destructive" 
+                  size="sm" 
                   onClick={handleDeleteCurrentSession}
-                  className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl transition-all"
-                  title="Supprimer/Réinitialiser cette session"
+                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100 flex items-center gap-2"
                 >
-                  <Trash2 className="h-5 w-5" />
+                  <Trash2 className="h-4 w-4" /> SUPPRIMER LA SESSION
                 </Button>
               )}
             </div>
