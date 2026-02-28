@@ -112,7 +112,6 @@ export default function ImportPage() {
       return na - nb;
     });
 
-    // Cache local pour éviter les requêtes Firestore redondantes pendant la boucle
     const importSessionClients = new Map<string, string>();
 
     try {
@@ -187,7 +186,7 @@ export default function ImportPage() {
                   await setDoc(existingRef, { 
                     ordersCount: increment(1), 
                     lastVisit: format(currentDate, "dd/MM/yyyy"),
-                    isDraft: currentIsDraft // Forcer le flag au cas où
+                    isDraft: currentIsDraft
                   }, { merge: true });
                   importSessionClients.set(normalizedName, clientSnap.docs[0].id);
                 }
@@ -225,9 +224,16 @@ export default function ImportPage() {
             if (expenseVal > 0) {
               let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
               
-              const isVersement = rawLabel.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("BANQUE");
-              const isAchatVerres = rawLabel.toUpperCase().includes("VERRE") || expenseCategoryRaw.toUpperCase().includes("VERRE");
-              const isAchatMonture = rawLabel.toUpperCase().includes("MONTURE") || expenseCategoryRaw.toUpperCase().includes("MONTURE");
+              const upperLabel = rawLabel.toUpperCase();
+              const upperCat = expenseCategoryRaw.toUpperCase();
+
+              // Détection élargie des versements
+              const isVersement = upperLabel.includes("VERSE") || upperLabel.includes("BANQUE") || 
+                                 upperCat.includes("VERSE") || upperCat.includes("BANQUE") || 
+                                 upperLabel.includes("VERS ");
+              
+              const isAchatVerres = upperLabel.includes("VERRE") || upperCat.includes("VERRE");
+              const isAchatMonture = upperLabel.includes("MONTURE") || upperCat.includes("MONTURE");
               
               let type = "DEPENSE";
               let finalLabel = rawLabel;
@@ -235,11 +241,11 @@ export default function ImportPage() {
               if (isVersement) {
                 type = "VERSEMENT";
               } else if (isAchatVerres) {
-                type = "ACHAT VERRES";
-                if (!rawLabel.toUpperCase().startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
+                type = "DEPENSE"; // Type technique DEPENSE mais label préfixé
+                if (!upperLabel.startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
               } else if (isAchatMonture) {
                 type = "DEPENSE";
-                if (!rawLabel.toUpperCase().startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
+                if (!upperLabel.startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
               }
 
               const transRef = doc(collection(db, "transactions"));
@@ -268,7 +274,7 @@ export default function ImportPage() {
           status: "CLOSED", closedAt: closeTime, closedBy: userName,
           totalSales: daySalesTotal, totalExpenses: dayExpensesTotal, totalVersements: dayVersementsTotal,
           closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0,
-          isDraft: currentIsDraft // Toujours forcer le flag
+          isDraft: currentIsDraft
         }, { merge: true });
 
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));

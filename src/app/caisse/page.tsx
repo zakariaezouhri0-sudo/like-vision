@@ -68,9 +68,11 @@ function CaisseContent() {
 
     const dateParam = searchParams.get("date");
     if (dateParam) {
-      const [y, m, d] = dateParam.split('-').map(Number);
-      const date = new Date(y, m - 1, d);
-      if (!isNaN(date.getTime())) return date;
+      try {
+        const [y, m, d] = dateParam.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        if (!isNaN(date.getTime())) return date;
+      } catch (e) {}
     }
     return new Date();
   }, [searchParams, isPrepaMode]);
@@ -277,7 +279,7 @@ function CaisseContent() {
       let closedAt;
       if (currentIsDraft) {
         const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
-        closedAt = Timestamp.fromDate(d);
+        openedAt = Timestamp.fromDate(d);
       } else {
         closedAt = serverTimestamp();
       }
@@ -350,7 +352,11 @@ function CaisseContent() {
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{isPrepaMode ? "2. Solde Initial" : "Solde de départ"}</Label>
               {isAutoReport && (
                 <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {format(new Date(lastSessionDate), "dd/MM")}
+                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {(() => {
+                    if (!lastSessionDate) return "---";
+                    const d = new Date(lastSessionDate);
+                    return isNaN(d.getTime()) ? lastSessionDate : format(d, "dd/MM");
+                  })()}
                 </Badge>
               )}
             </div>

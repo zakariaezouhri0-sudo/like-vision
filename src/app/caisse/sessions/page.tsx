@@ -48,7 +48,6 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // On récupère tout et on filtre en mémoire pour plus de fiabilité et supporter les données legacy
   const sessionsQuery = useMemoFirebase(() => {
     return query(collection(db, "cash_sessions"), orderBy("date", "desc"));
   }, [db]);
@@ -57,7 +56,6 @@ export default function CashSessionsPage() {
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    // FILTRAGE STRICT PAR MODE
     return [...rawSessions]
       .filter(s => isPrepaMode ? s.isDraft === true : (s.isDraft !== true));
   }, [rawSessions, isPrepaMode]);
@@ -70,6 +68,22 @@ export default function CashSessionsPage() {
       toast({ variant: "success", title: "Session supprimée" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+    }
+  };
+
+  // Helper pour formater la date de session de manière sécurisée
+  const formatSessionDate = (dateStr: string) => {
+    if (!dateStr) return "Date inconnue";
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        if (!isNaN(d.getTime())) return format(d, "dd MMMM yyyy", { locale: fr });
+      }
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? dateStr : format(d, "dd MMMM yyyy", { locale: fr });
+    } catch (e) {
+      return dateStr;
     }
   };
 
@@ -142,7 +156,7 @@ export default function CashSessionsPage() {
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className="h-4 w-4 text-primary/40" />
                                   <span className="font-black text-sm text-slate-800 uppercase tracking-tight">
-                                    {s.date ? format(new Date(s.date), "dd MMMM yyyy", { locale: fr }) : "Date inconnue"}
+                                    {formatSessionDate(s.date)}
                                   </span>
                                 </div>
                                 <div 
