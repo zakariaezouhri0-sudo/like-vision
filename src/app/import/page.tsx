@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon, History, Wallet, CalendarDays, Zap } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, writeBatch, query, getDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, writeBatch, query, getDocs, where, limit, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
@@ -43,7 +43,7 @@ export default function ImportPage() {
   const [mapping, setMapping] = useState<Mapping>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [importType, setImportType] = useState<"sales" | "transactions" | "global">("sales");
+  const [importType, setImportType] = useState<"sales" | "transactions" | "global">("global");
   const [startingBalance, setStartingBalance] = useState<string>("0");
 
   const GLOBAL_FIELDS = [
@@ -66,7 +66,6 @@ export default function ImportPage() {
           const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
           setWorkbook(wb);
           
-          // On prend les headers de la première feuille pour le mapping
           const firstSheet = wb.Sheets[wb.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(firstSheet);
           if (jsonData.length > 0) {
@@ -89,14 +88,16 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = parseFloat(startingBalance) || 0;
 
-    const sheetNames = [...workbook.SheetNames].sort(); // On suppose qu'ils sont nommés par jour (01, 02...)
+    const sheetNames = [...workbook.SheetNames].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+    
+    // Cache local pour éviter de re-chercher le même client plusieurs fois durant la même importation
+    const importSessionClients = new Set<string>();
 
     try {
       for (let s = 0; s < sheetNames.length; s++) {
         const sheetName = sheetNames[s];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Déterminer la date : On suppose Janvier 2026 selon la demande
         const day = parseInt(sheetName) || (s + 1);
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
         const currentDate = new Date(2026, 0, day);
@@ -106,9 +107,10 @@ export default function ImportPage() {
         let dayExpensesTotal = 0;
         const initialBalance = currentBalance;
 
-        // 1. Création de la Session (OUVERTURE)
+        // 1. Création/Ouverture de la Session de Caisse
         const sessionRef = doc(db, "cash_sessions", sessionId);
         const openTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 10), 0), 0));
+        const closeTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 20), 0), 0));
         
         await setDoc(sessionRef, {
           date: dateStr,
@@ -119,23 +121,60 @@ export default function ImportPage() {
           openingBalance: initialBalance
         });
 
-        // 2. Traitement des lignes de la feuille
+        // 2. Traitement des lignes
         for (const row of data) {
-          // TRAITEMENT VENTE
-          const clientName = row[mapping.clientName];
-          if (clientName && row[mapping.total] !== undefined) {
+          const clientNameRaw = row[mapping.clientName];
+          if (clientNameRaw && row[mapping.total] !== undefined) {
+            const clientName = clientNameRaw.toString().trim();
             const total = parseFloat(row[mapping.total]) || 0;
             const currentAvance = parseFloat(row[mapping.avance]) || 0;
             const historicalAvance = parseFloat(row[mapping.historicalAdvance]) || 0;
             const totalAvance = currentAvance + historicalAvance;
             
-            const invoiceId = isDraft ? `PREPA-FC-2026-I${s}${Math.random().toString(36).substr(2, 3)}` : `FC-2026-I${s}${Math.random().toString(36).substr(2, 3)}`;
+            const prefix = isDraft ? "PREPA-" : "";
+            const isPaid = totalAvance >= total;
+            const docType = isPaid ? "FC" : "RC";
+            const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
+            // GESTION AUTOMATIQUE FICHIER CLIENT (SANS DOUBLONS)
+            const normalizedClientName = clientName.toUpperCase();
+            if (!importSessionClients.has(normalizedClientName)) {
+              const clientQ = query(
+                collection(db, "clients"), 
+                where("name", "==", clientName), 
+                where("isDraft", "==", isDraft),
+                limit(1)
+              );
+              const clientSnap = await getDocs(clientQ);
+              
+              if (clientSnap.empty) {
+                // Nouveau client détecté
+                await addDoc(collection(db, "clients"), {
+                  name: clientName,
+                  phone: "", // Pas de colonne téléphone spécifiée mais on garde la structure
+                  mutuelle: "Aucun",
+                  lastVisit: format(currentDate, "dd/MM/yyyy"),
+                  ordersCount: 1,
+                  isDraft: isDraft,
+                  createdAt: openTime
+                });
+              } else {
+                // Client existant, on incrémente juste son compteur
+                const existingRef = clientSnap.docs[0].ref;
+                await setDoc(existingRef, { 
+                  ordersCount: increment(1),
+                  lastVisit: format(currentDate, "dd/MM/yyyy")
+                }, { merge: true });
+              }
+              importSessionClients.add(normalizedClientName);
+            }
+
+            // AJOUT DE LA VENTE
             await addDoc(collection(db, "sales"), {
               invoiceId, clientName, total, 
               avance: totalAvance,
               reste: Math.max(0, total - totalAvance),
-              statut: totalAvance >= total ? "Payé" : "Partiel",
+              statut: isPaid ? "Payé" : "Partiel",
               isDraft,
               createdAt: openTime,
               createdBy: userName,
@@ -145,6 +184,7 @@ export default function ImportPage() {
               ]
             });
 
+            // TRANSACTION DE CAISSE (UNIQUEMENT SI ARGENT REÇU CE JOUR)
             if (currentAvance > 0) {
               await addDoc(collection(db, "transactions"), {
                 type: "VENTE", label: `Vente - ${clientName}`, montant: currentAvance,
@@ -166,13 +206,12 @@ export default function ImportPage() {
           }
         }
 
-        // 3. Clôture de la Session
-        const closingTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 20), 0), 0));
+        // 3. Clôture automatique avec report du solde
         currentBalance = initialBalance + daySalesTotal - dayExpensesTotal;
 
         await setDoc(sessionRef, {
           status: "CLOSED",
-          closedAt: closingTime,
+          closedAt: closeTime,
           closedBy: userName,
           totalSales: daySalesTotal,
           totalExpenses: dayExpensesTotal,
@@ -185,11 +224,11 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      toast({ variant: "success", title: "Importation Réussie", description: `${sheetNames.length} journées de Janvier ont été traitées.` });
+      toast({ variant: "success", title: "Automate terminé", description: "Le mois de Janvier est entièrement saisi avec les clients." });
       router.push("/caisse/sessions");
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Erreur critique", description: "L'importation a échoué à mi-parcours." });
+      toast({ variant: "destructive", title: "Erreur critique", description: "L'importation a été interrompue." });
     } finally {
       setIsProcessing(false);
     }
@@ -203,7 +242,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation massive avec chaînage des soldes de caisse.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Importation massive : Ventes + Charges + Clients + Caisse.</p>
           </div>
           <div className="flex gap-2">
              <Button 
@@ -233,10 +272,10 @@ export default function ImportPage() {
                   onChange={e => setStartingBalance(e.target.value)}
                 />
               </div>
-              <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                <p className="text-[9px] font-bold text-orange-800 leading-relaxed uppercase">
-                  <Info className="h-3 w-3 inline mr-1 mb-0.5" /> 
-                  Chaque feuille de votre Excel sera traitée comme une journée. Les soldes seront reportés automatiquement.
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase">
+                  <CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> 
+                  Les clients seront automatiquement créés et rattachés à leurs factures sans doublons.
                 </p>
               </div>
             </CardContent>
@@ -260,7 +299,7 @@ export default function ImportPage() {
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{file ? file.name : "Sélectionner le fichier Janvier"}</h3>
                 {workbook && (
                   <p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                    {workbook.SheetNames.length} JOURNÉES DÉTECTÉES
+                    {workbook.SheetNames.length} JOURNÉES DÉTECTÉES (FEUILLES)
                   </p>
                 )}
               </div>
