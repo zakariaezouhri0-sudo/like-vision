@@ -113,7 +113,6 @@ function CaisseContent() {
         setLastSessionDate(lastSessions[0].date);
       }
     } else if (!session) {
-      // Si aucune session n'a jamais été fermée, on laisse la main
       setOpeningVal("0");
       setIsAutoReport(false);
       setLastSessionDate("");
@@ -148,7 +147,7 @@ function CaisseContent() {
       const amt = Math.abs(Number(t.montant) || 0);
       if (t.type === "VENTE") { acc.entrees += amt; } 
       else if (t.type === "VERSEMENT") { acc.versements += amt; } 
-      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") { acc.depenses += amt; }
+      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE") { acc.depenses += amt; }
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
@@ -207,6 +206,9 @@ function CaisseContent() {
     if (newOp.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
       finalLabel = `ACHAT VERRES - ${finalLabel}`;
     }
+    if (newOp.type === "ACHAT MONTURE" && !finalLabel.toUpperCase().startsWith("ACHAT MONTURE")) {
+      finalLabel = `ACHAT MONTURE - ${finalLabel}`;
+    }
 
     const transData = {
       type: newOp.type, 
@@ -238,6 +240,9 @@ function CaisseContent() {
     let finalLabel = editingTransaction.label;
     if (editingTransaction.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
       finalLabel = `ACHAT VERRES - ${finalLabel}`;
+    }
+    if (editingTransaction.type === "ACHAT MONTURE" && !finalLabel.toUpperCase().startsWith("ACHAT MONTURE")) {
+      finalLabel = `ACHAT MONTURE - ${finalLabel}`;
     }
 
     try {
@@ -423,6 +428,7 @@ function CaisseContent() {
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
                     <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}>
                       <option value="DEPENSE">Dépense (-)</option>
+                      <option value="ACHAT MONTURE">Achat Monture (-)</option>
                       <option value="ACHAT VERRES">Achat Verres (-)</option>
                       <option value="VERSEMENT">Versement (-)</option>
                     </select>
@@ -584,6 +590,7 @@ function CaisseContent() {
                 <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
                   <option value="VENTE">Vente (+)</option>
                   <option value="DEPENSE">Dépense (-)</option>
+                  <option value="ACHAT MONTURE">Achat Monture (-)</option>
                   <option value="ACHAT VERRES">Achat Verres (-)</option>
                   <option value="VERSEMENT">Versement (-)</option>
                 </select>

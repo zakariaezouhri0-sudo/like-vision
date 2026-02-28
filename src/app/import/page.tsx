@@ -176,7 +176,8 @@ export default function ImportPage() {
             }, { merge: true });
 
             if (currentAvance > 0) {
-              const transRef = doc(collection(db, "transactions"));
+              const transId = `IMP-SALE-${invoiceId}`;
+              const transRef = doc(db, "transactions", transId);
               await setDoc(transRef, {
                 type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
                 montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
@@ -186,25 +187,47 @@ export default function ImportPage() {
             }
           }
 
-          // GESTION DES CHARGES
+          // GESTION DES CHARGES ET VERSEMENTS
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
           const labelRaw = row[mapping.label];
           const supplierRaw = row[mapping.supplierName];
-          const expenseCategory = row[mapping.category];
+          const expenseCategoryRaw = row[mapping.category]?.toString().trim() || "";
 
-          if (expenseAmount > 0 && (labelRaw || supplierRaw)) {
-            let finalLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
-            const isVersement = finalLabel.toUpperCase().includes("VERSEMENT");
-            const type = isVersement ? "VERSEMENT" : "DEPENSE";
+          if (expenseAmount > 0 && (labelRaw || supplierRaw || expenseCategoryRaw)) {
+            let rawLabel = labelRaw ? labelRaw.toString().trim() : (supplierRaw ? supplierRaw.toString().trim() : "Opération Importée");
+            
+            // Détection du type
+            const isVersement = rawLabel.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("VERSEMENT") || expenseCategoryRaw.toUpperCase().includes("BANQUE");
+            const isAchatVerres = rawLabel.toUpperCase().includes("VERRE") || expenseCategoryRaw.toUpperCase().includes("VERRE");
+            const isAchatMonture = rawLabel.toUpperCase().includes("MONTURE") || expenseCategoryRaw.toUpperCase().includes("MONTURE");
+            
+            let type = "DEPENSE";
+            let finalLabel = rawLabel;
+            
+            if (isVersement) {
+              type = "VERSEMENT";
+            } else if (isAchatVerres) {
+              type = "ACHAT VERRES";
+              if (!rawLabel.toUpperCase().startsWith("ACHAT VERRES")) finalLabel = `ACHAT VERRES - ${rawLabel}`;
+            } else if (isAchatMonture) {
+              type = "DEPENSE";
+              if (!rawLabel.toUpperCase().startsWith("ACHAT MONTURE")) finalLabel = `ACHAT MONTURE - ${rawLabel}`;
+            }
 
-            const transRef = doc(collection(db, "transactions"));
+            const transId = `IMP-EXP-${day}-${Math.random().toString(36).substr(2, 6)}`;
+            const transRef = doc(db, "transactions", transId);
             await setDoc(transRef, {
-              type: type, label: finalLabel, clientName: supplierRaw ? supplierRaw.toString().trim() : "",
-              category: expenseCategory ? expenseCategory.toString().trim() : (isVersement ? "Banque" : "Général"), 
-              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+              type: type, 
+              label: finalLabel, 
+              clientName: supplierRaw ? supplierRaw.toString().trim() : "",
+              category: expenseCategoryRaw || (isVersement ? "Banque" : "Général"), 
+              montant: -Math.abs(expenseAmount), 
+              isDraft: currentIsDraft, 
+              createdAt: openTime, 
+              userName
             }, { merge: true });
 
-            if (isVersement) dayVersementsTotal += expenseAmount;
+            if (type === "VERSEMENT") dayVersementsTotal += expenseAmount;
             else dayExpensesTotal += expenseAmount;
           }
         }
