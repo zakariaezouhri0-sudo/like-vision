@@ -126,6 +126,7 @@ function CaisseContent() {
         setIsAutoReport(true);
       }
     } else if (!session) {
+      setOpeningVal("0");
       setIsAutoReport(false);
     }
   }, [lastSessions, session]);
@@ -300,6 +301,27 @@ function CaisseContent() {
           <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
           <div className="flex flex-col items-center gap-3">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-3 rounded-lg font-black text-[9px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+                  <CalendarIcon className="mr-1.5 h-3 w-3" /> CHANGER LA DATE
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                <Calendar 
+                  mode="single" 
+                  selected={selectedDate} 
+                  onSelect={(d) => {
+                    if (d) {
+                      const newDateStr = format(d, "yyyy-MM-dd");
+                      router.push(`/caisse?date=${newDateStr}`);
+                    }
+                  }} 
+                  locale={fr} 
+                  initialFocus 
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl">
