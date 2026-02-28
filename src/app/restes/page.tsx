@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -47,7 +48,6 @@ export default function UnpaidSalesPage() {
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     return sales.filter((sale: any) => {
-      // ISOLATION CRUCIALE: Filtrer par mode (Draft vs Réel)
       const matchesMode = isPrepaMode ? sale.isDraft === true : !sale.isDraft;
       if (!matchesMode) return false;
 
@@ -89,11 +89,8 @@ export default function UnpaidSalesPage() {
         const isFullyPaid = newReste <= 0;
         
         let finalInvoiceId = currentData.invoiceId;
-
-        // Utilisation des compteurs appropriés (Draft ou Réel)
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        // Si passage de RC à FC (Soldé)
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
@@ -122,7 +119,6 @@ export default function UnpaidSalesPage() {
           updatedAt: serverTimestamp() 
         });
 
-        // Ajouter la transaction de caisse isolée par isDraft
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
@@ -197,68 +193,68 @@ export default function UnpaidSalesPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              {loading ? (
-                <div className="py-24 text-center">
-                  <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
-                </div>
-              ) : (
-                <Table className="min-w-[900px]">
-                  <TableHeader className="bg-slate-50/80">
+              <Table className="min-w-[900px]">
+                <TableHeader className="bg-slate-50/80">
+                  <TableRow>
+                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Date & Client</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Document</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5">Total Net</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600">Versé</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive">Reste</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Date & Client</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Document</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5">Total Net</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600">Versé</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive">Reste</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5">Action</TableHead>
+                      <TableCell colSpan={6} className="py-24 text-center">
+                        <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSales.length > 0 ? filteredSales.map((sale: any) => (
-                      <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                        <TableCell className="px-3 md:px-6 py-4 md:py-5">
-                          <div className="flex flex-col min-w-[140px]">
-                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
-                              <Calendar className="h-2.5 w-2.5" />
-                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
-                            </div>
-                            <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
-                              {sale.clientName}
-                            </span>
+                  ) : filteredSales.length > 0 ? filteredSales.map((sale: any) => (
+                    <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                      <TableCell className="px-3 md:px-6 py-4 md:py-5">
+                        <div className="flex flex-col min-w-[140px]">
+                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
+                            <Calendar className="h-2.5 w-2.5" />
+                            {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
                           </div>
-                        </TableCell>
-                        <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
-                          <Button 
-                            onClick={() => handleOpenPayment(sale)} 
-                            size="sm"
-                            className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
-                          >
-                            <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
-                          Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
+                          <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
+                            {sale.clientName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                        <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
+                      </TableCell>
+                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                        <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
+                      </TableCell>
+                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                        <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
+                      </TableCell>
+                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                        <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
+                      </TableCell>
+                      <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
+                        <Button 
+                          onClick={() => handleOpenPayment(sale)} 
+                          size="sm"
+                          className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
+                        >
+                          <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
+                        Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
