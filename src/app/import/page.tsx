@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -7,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileSpreadsheet, Loader2, Upload, Download, Info, CheckCircle2, Table as TableIcon, History, Wallet, CalendarDays, Zap } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -90,7 +90,6 @@ export default function ImportPage() {
 
     const sheetNames = [...workbook.SheetNames].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
     
-    // Cache local pour éviter de re-chercher le même client plusieurs fois durant la même importation
     const importSessionClients = new Set<string>();
 
     try {
@@ -107,7 +106,6 @@ export default function ImportPage() {
         let dayExpensesTotal = 0;
         const initialBalance = currentBalance;
 
-        // 1. Création/Ouverture de la Session de Caisse
         const sessionRef = doc(db, "cash_sessions", sessionId);
         const openTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 10), 0), 0));
         const closeTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 20), 0), 0));
@@ -121,7 +119,6 @@ export default function ImportPage() {
           openingBalance: initialBalance
         });
 
-        // 2. Traitement des lignes
         for (const row of data) {
           const clientNameRaw = row[mapping.clientName];
           if (clientNameRaw && row[mapping.total] !== undefined) {
@@ -136,7 +133,6 @@ export default function ImportPage() {
             const docType = isPaid ? "FC" : "RC";
             const invoiceId = `${prefix}${docType}-2026-I${day}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
-            // GESTION AUTOMATIQUE FICHIER CLIENT (SANS DOUBLONS)
             const normalizedClientName = clientName.toUpperCase();
             if (!importSessionClients.has(normalizedClientName)) {
               const clientQ = query(
@@ -148,10 +144,9 @@ export default function ImportPage() {
               const clientSnap = await getDocs(clientQ);
               
               if (clientSnap.empty) {
-                // Nouveau client détecté
                 await addDoc(collection(db, "clients"), {
                   name: clientName,
-                  phone: "", // Pas de colonne téléphone spécifiée mais on garde la structure
+                  phone: "",
                   mutuelle: "Aucun",
                   lastVisit: format(currentDate, "dd/MM/yyyy"),
                   ordersCount: 1,
@@ -159,7 +154,6 @@ export default function ImportPage() {
                   createdAt: openTime
                 });
               } else {
-                // Client existant, on incrémente juste son compteur
                 const existingRef = clientSnap.docs[0].ref;
                 await setDoc(existingRef, { 
                   ordersCount: increment(1),
@@ -169,7 +163,6 @@ export default function ImportPage() {
               importSessionClients.add(normalizedClientName);
             }
 
-            // AJOUT DE LA VENTE
             await addDoc(collection(db, "sales"), {
               invoiceId, clientName, total, 
               avance: totalAvance,
@@ -184,7 +177,6 @@ export default function ImportPage() {
               ]
             });
 
-            // TRANSACTION DE CAISSE (UNIQUEMENT SI ARGENT REÇU CE JOUR)
             if (currentAvance > 0) {
               await addDoc(collection(db, "transactions"), {
                 type: "VENTE", label: `Vente - ${clientName}`, montant: currentAvance,
@@ -194,7 +186,6 @@ export default function ImportPage() {
             }
           }
 
-          // TRAITEMENT CHARGE
           const expenseLabel = row[mapping.label];
           const expenseAmount = parseFloat(row[mapping.montant]) || 0;
           if (expenseLabel && expenseAmount > 0) {
@@ -206,7 +197,6 @@ export default function ImportPage() {
           }
         }
 
-        // 3. Clôture automatique avec report du solde
         currentBalance = initialBalance + daySalesTotal - dayExpensesTotal;
 
         await setDoc(sessionRef, {
