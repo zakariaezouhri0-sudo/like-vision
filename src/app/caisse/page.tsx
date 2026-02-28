@@ -66,7 +66,6 @@ function CaisseContent() {
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [openingVal, setOpeningVal] = useState("0");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -142,14 +141,6 @@ function CaisseContent() {
   const initialBalance = session?.openingBalance || 0;
   const soldeTheorique = initialBalance + stats.entrees - stats.depenses - stats.versements;
   const ecart = soldeReel - soldeTheorique;
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setIsCalendarOpen(false);
-      const newDateStr = format(date, "yyyy-MM-dd");
-      router.push(`/caisse?date=${newDateStr}`);
-    }
-  };
 
   const handleOpenSession = async () => {
     try {
@@ -267,28 +258,6 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
-  const DateChanger = () => {
-    if (!isAdminOrPrepa) return null;
-    return (
-      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
-            <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DATE
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 rounded-[24px] border-none shadow-2xl" align="start">
-          <Calendar 
-            mode="single" 
-            selected={selectedDate} 
-            onSelect={handleDateSelect} 
-            locale={fr} 
-            initialFocus 
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  };
-
   if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   if (!session) {
@@ -299,7 +268,6 @@ function CaisseContent() {
           <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
           <div className="flex flex-col items-center gap-3">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Journée du {format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
-            <DateChanger />
           </div>
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6">
@@ -344,7 +312,6 @@ function CaisseContent() {
                   {format(selectedDate, "dd/MM/yyyy")}
                 </span>
               </div>
-              <DateChanger />
               {isAdminOrPrepa && (
                 <Button 
                   variant="destructive" 
