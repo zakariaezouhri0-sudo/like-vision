@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -8,7 +9,7 @@ import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection, query, orderBy } from "firebase/firestore";
+import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -16,11 +17,17 @@ function DailyCashReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [printTime, setPrintTime] = useState<string>("");
+  const [role, setRole] = useState<string>("OPTICIENNE");
 
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
     try {
-      return d ? new Date(d) : new Date();
+      if (d) {
+        const [y, m, d_part] = d.split('-').map(Number);
+        const date = new Date(y, m - 1, d_part);
+        if (!isNaN(date.getTime())) return date;
+      }
+      return new Date();
     } catch (e) {
       return new Date();
     }
@@ -31,18 +38,39 @@ function DailyCashReportContent() {
     setPrintTime(format(now, "HH:mm"));
     const dateStr = format(selectedDate, "dd-MM-yyyy");
     document.title = `Rapport Journalier - ${dateStr}`;
+    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
+
+  const isPrepaMode = role === "PREPA";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  const sessionDocId = format(selectedDate, "yyyy-MM-dd");
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
-  const { data: session, isLoading: sessionLoading } = useDoc(sessionRef);
+  const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
 
-  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "asc")), [db]);
-  const { data: transactions, isLoading: transLoading } = useCollection(transQuery);
+  // DOUBLE VERROUILLAGE SÉCURITÉ
+  const session = useMemo(() => {
+    if (!rawSession) return null;
+    if (isPrepaMode !== (rawSession.isDraft === true)) return null;
+    return rawSession;
+  }, [rawSession, isPrepaMode]);
+
+  const transQuery = useMemoFirebase(() => {
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+    return query(
+      collection(db, "transactions"), 
+      where("createdAt", ">=", Timestamp.fromDate(start)),
+      where("createdAt", "<=", Timestamp.fromDate(end)),
+      orderBy("createdAt", "asc")
+    );
+  }, [db, selectedDate]);
+  
+  const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -53,22 +81,20 @@ function DailyCashReportContent() {
   };
 
   const reportData = useMemo(() => {
-    if (!transactions) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
+    if (!rawTransactions) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
+    
+    // FILTRAGE STRICT PAR MODE
+    const filteredTransactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    
     const initialBalance = session?.openingBalance || 0;
     const salesList: any[] = [];
     const expensesList: any[] = [];
     const versementsList: any[] = [];
     
-    transactions.forEach((t: any) => {
-      const tDate = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-      if (!tDate) return;
-      if (isWithinInterval(tDate, { start, end })) {
-        if (t.type === "VENTE") salesList.push(t);
-        else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") expensesList.push(t);
-        else if (t.type === "VERSEMENT") versementsList.push(t);
-      }
+    filteredTransactions.forEach((t: any) => {
+      if (t.type === "VENTE") salesList.push(t);
+      else if (t.type === "DEPENSE" || t.type === "ACHAT VERRES") expensesList.push(t);
+      else if (t.type === "VERSEMENT") versementsList.push(t);
     });
 
     const totalSales = salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
@@ -87,7 +113,7 @@ function DailyCashReportContent() {
       totalVersements, 
       final 
     };
-  }, [transactions, selectedDate, session]);
+  }, [rawTransactions, session, isPrepaMode]);
 
   if (settingsLoading || transLoading || sessionLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
