@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -77,7 +78,6 @@ export default function SettingsPage() {
         const snap = await getDocs(q);
         if (snap.empty) continue;
         
-        // Firestore batches are limited to 500 operations
         const chunks = [];
         for (let i = 0; i < snap.docs.length; i += 500) {
           chunks.push(snap.docs.slice(i, i + 500));
@@ -90,7 +90,6 @@ export default function SettingsPage() {
         }
       }
 
-      // Reset counters
       await setDoc(doc(db, "settings", "counters"), { fc: 0, rc: 0 });
       await setDoc(doc(db, "settings", "counters_draft"), { fc: 0, rc: 0 });
 
@@ -99,6 +98,19 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  const handleCleanSpecificSession = async () => {
+    setIsCleaning(true);
+    try {
+      // Suppression de la session réelle (Optique) du 28/02/2026
+      await deleteDoc(doc(db, "cash_sessions", "2026-02-28"));
+      toast({ variant: "success", title: "Nettoyage terminé", description: "La session du 28/02 en mode Optique a été supprimée." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer la session." });
+    } finally {
+      setIsCleaning(false);
     }
   };
 
@@ -142,6 +154,23 @@ export default function SettingsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
+                  <div className="space-y-3">
+                    <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
+                      Outil de Nettoyage (Urgent)
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={handleCleanSpecificSession}
+                      disabled={isCleaning}
+                      className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-red-200 text-red-600 hover:bg-red-100"
+                    >
+                      {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eraser className="h-4 w-4 mr-2" />}
+                      Effacer Session 28/02 (Optique)
+                    </Button>
+                  </div>
+
+                  <Separator className="bg-red-100" />
+
                   <div className="space-y-3">
                     <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
                       Nettoyage Complet
