@@ -61,15 +61,18 @@ function CaisseContent() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
-  const dateParam = searchParams.get("date");
   const selectedDate = useMemo(() => {
+    // SÉCURITÉ : Pour les comptes réels, la date est TOUJOURS aujourd'hui
+    if (!isPrepaMode) return new Date();
+
+    const dateParam = searchParams.get("date");
     if (dateParam) {
       const [y, m, d] = dateParam.split('-').map(Number);
       const date = new Date(y, m - 1, d);
       if (!isNaN(date.getTime())) return date;
     }
     return new Date();
-  }, [dateParam]);
+  }, [searchParams, isPrepaMode]);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
@@ -88,6 +91,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
+  // Recherche de la dernière session CLÔTURÉE pour le report de solde
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -109,6 +113,7 @@ function CaisseContent() {
         setLastSessionDate(lastSessions[0].date);
       }
     } else if (!session) {
+      // Si aucune session n'a jamais été fermée, on laisse la main (Uniquement la 1ère fois)
       setOpeningVal("0");
       setIsAutoReport(false);
       setLastSessionDate("");
@@ -134,7 +139,7 @@ function CaisseContent() {
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
@@ -173,7 +178,7 @@ function CaisseContent() {
       });
       toast({ variant: "success", title: "Caisse Ouverte" });
     } catch (e) { 
-      toast({ variant: "destructive", title: "Erreur" }); 
+      toast({ variant: "destructive", title: "Erreur lors de l'ouverture" }); 
     } finally { 
       setOpLoading(false); 
     }
@@ -292,39 +297,39 @@ function CaisseContent() {
           </h1>
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date du jour</p>
               <p className="text-xl font-black text-primary uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn(
-                  "h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg transition-all",
-                  isPrepaMode ? "border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white" : "border-primary text-primary hover:bg-primary hover:text-white"
-                )}>
-                  <CalendarIcon className="mr-2 h-4 w-4" /> 1. CHOISIR UNE AUTRE DATE
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
-                <Calendar 
-                  mode="single" 
-                  selected={selectedDate} 
-                  onSelect={(d) => {
-                    if (d) {
-                      const newDateStr = format(d, "yyyy-MM-dd");
-                      router.push(`/caisse?date=${newDateStr}`);
-                    }
-                  }} 
-                  locale={fr} 
-                  initialFocus 
-                />
-              </PopoverContent>
-            </Popover>
+            
+            {isPrepaMode && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white transition-all">
+                    <CalendarIcon className="mr-2 h-4 w-4" /> 1. CHOISIR UNE AUTRE DATE
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                  <Calendar 
+                    mode="single" 
+                    selected={selectedDate} 
+                    onSelect={(d) => {
+                      if (d) {
+                        const newDateStr = format(d, "yyyy-MM-dd");
+                        router.push(`/caisse?date=${newDateStr}`);
+                      }
+                    }} 
+                    locale={fr} 
+                    initialFocus 
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl border-none">
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">2. Solde Initial</Label>
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{isPrepaMode ? "2. Solde Initial" : "Solde de départ"}</Label>
               {isAutoReport && (
                 <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
                   <CheckCircle2 className="h-2.5 w-2.5" /> Report du {format(new Date(lastSessionDate), "dd/MM")}
@@ -351,7 +356,7 @@ function CaisseContent() {
             </div>
             {!isAutoReport && (
               <p className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
-                <Info className="h-3 w-3" /> Saisie manuelle requise (Première fois)
+                <Info className="h-3 w-3" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
               </p>
             )}
           </div>
@@ -363,7 +368,7 @@ function CaisseContent() {
               isPrepaMode ? "bg-orange-500 hover:bg-orange-600 shadow-orange-200" : "bg-primary shadow-primary/20"
             )}
           >
-            3. VALIDER L'OUVERTURE
+            {isPrepaMode ? "3. VALIDER L'OUVERTURE" : "OUVRIR LA CAISSE"}
           </Button>
         </Card>
       </div>
