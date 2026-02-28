@@ -25,7 +25,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
@@ -66,46 +65,6 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSyncDrafts = async () => {
-    setIsSyncing(true);
-    try {
-      const batch = writeBatch(db);
-      let count = 0;
-
-      const salesQ = query(collection(db, "sales"), where("isDraft", "==", true));
-      const salesSnap = await getDocs(salesQ);
-      salesSnap.forEach(d => {
-        batch.update(d.ref, { isDraft: false });
-        count++;
-      });
-
-      const transQ = query(collection(db, "transactions"), where("isDraft", "==", true));
-      const transSnap = await getDocs(transQ);
-      transSnap.forEach(d => {
-        batch.update(d.ref, { isDraft: false });
-        count++;
-      });
-
-      const sessionsQ = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
-      const sessionsSnap = await getDocs(sessionsQ);
-      sessionsSnap.forEach(d => {
-        batch.update(d.ref, { isDraft: false });
-        count++;
-      });
-
-      if (count > 0) {
-        await batch.commit();
-        toast({ variant: "success", title: "Synchronisation Terminée", description: `${count} documents ont été publiés.` });
-      } else {
-        toast({ title: "Aucun brouillon à synchroniser" });
-      }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur de synchronisation" });
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -176,38 +135,19 @@ export default function SettingsPage() {
             </Card>
 
             {(role === 'ADMIN' || role === 'PREPA') && (
-              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-orange-50 border-orange-100">
-                <CardHeader className="bg-orange-100/50 border-b p-6">
-                  <CardTitle className="text-[11px] font-black uppercase tracking-widest text-orange-700 flex items-center gap-2">
-                    <Database className="h-4 w-4" /> Maintenance
+              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-red-50 border-red-100">
+                <CardHeader className="bg-red-100/50 border-b p-6">
+                  <CardTitle className="text-[11px] font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
+                    <Database className="h-4 w-4" /> Zone de Danger
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-3">
-                    <p className="text-[9px] font-black text-orange-800 uppercase leading-relaxed tracking-wider">
-                      Synchronisation
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
-                      Publie les données du Mode Préparation vers l'historique réel.
-                    </p>
-                    <Button 
-                      onClick={handleSyncDrafts} 
-                      disabled={isSyncing}
-                      className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-[10px] uppercase shadow-lg shadow-orange-200"
-                    >
-                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-                      Synchroniser brouillon
-                    </Button>
-                  </div>
-
-                  <Separator className="bg-orange-200/50" />
-
-                  <div className="space-y-3">
                     <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
-                      Zone de danger
+                      Nettoyage Complet
                     </p>
                     <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
-                      Supprime TOUTES les données (ventes, clients, caisse) pour repartir à zéro.
+                      Supprime TOUTES les données du magasin (ventes, clients, caisse) pour repartir à zéro.
                     </p>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
