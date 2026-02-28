@@ -324,22 +324,9 @@ function CaisseContent() {
             {isClosed ? <Lock className="h-6 w-6" /> : <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
-                {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
-              </h1>
-              {isAdminOrPrepa && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleDeleteCurrentSession}
-                  className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg"
-                  title="Supprimer cette session"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
+              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
+            </h1>
             <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
                 <CalendarDays className="h-3 w-3 text-slate-400" />
@@ -390,32 +377,46 @@ function CaisseContent() {
           </Button>
 
           {!isClosed && (
-            <Dialog>
-              <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 sm:flex-none"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
-              <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
-                <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
-                  <div className="space-y-2">
-                    {DENOMINATIONS.map(val => (
-                      <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
-                        <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                        <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" value={denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
-                        <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
-                      </div>
-                    ))}
+            <div className="flex gap-2 flex-1 sm:flex-none">
+              <Dialog>
+                <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
+                <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
+                  <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <div className="space-y-2">
+                      {DENOMINATIONS.map(val => (
+                        <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
+                          <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
+                          <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" value={denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                          <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
+                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
+                      <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Total Compté</span><span className="text-2xl font-black text-primary tabular-nums">{formatCurrency(soldeReel)}</span></div>
+                      <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart constaté</p><p className="text-xl font-black tabular-nums">{formatCurrency(ecart)}</p></div>
+                      <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black shadow-xl">VALIDER LA CLÔTURE</Button>
+                    </div>
                   </div>
-                  <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
-                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
-                    <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Total Compté</span><span className="text-2xl font-black text-primary tabular-nums">{formatCurrency(soldeReel)}</span></div>
-                    <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart constaté</p><p className="text-xl font-black tabular-nums">{formatCurrency(ecart)}</p></div>
-                    <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black shadow-xl">VALIDER LA CLÔTURE</Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+
+              {isAdminOrPrepa && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleDeleteCurrentSession}
+                  className="h-12 w-12 text-destructive hover:bg-destructive/10 rounded-xl border-destructive/20 shadow-sm"
+                  title="Supprimer cette session"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
