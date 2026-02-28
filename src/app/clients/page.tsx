@@ -37,7 +37,6 @@ export default function ClientsPage() {
   const isPrepaMode = role === "PREPA";
   
   const clientsQuery = useMemoFirebase(() => {
-    // ISOLATION : Filtrage strict par le flag isDraft pour cloisonner les fichiers clients
     return query(
       collection(db, "clients"), 
       where("isDraft", "==", isPrepaMode),
@@ -56,16 +55,16 @@ export default function ClientsPage() {
 
   const filteredClients = clients?.filter((client: any) => 
     client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    client.phone?.replace(/\s/g, '').includes(searchTerm.replace(/\s/g, ''))
+    (client.phone && client.phone.replace(/\s/g, '').includes(searchTerm.replace(/\s/g, '')))
   ) || [];
 
   const handleCreateClient = () => {
-    if (!newClient.name || !newClient.phone) {
-      toast({ variant: "destructive", title: "Erreur", description: "Nom et téléphone obligatoires." });
+    if (!newClient.name) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom est obligatoire." });
       return;
     }
 
-    const cleanedPhone = newClient.phone.replace(/\s/g, '');
+    const cleanedPhone = newClient.phone ? newClient.phone.replace(/\s/g, '') : "";
 
     const clientData = {
       name: newClient.name,
@@ -98,7 +97,7 @@ export default function ClientsPage() {
     const clientRef = doc(db, "clients", editingClient.id);
     const updateData = {
       name: editingClient.name,
-      phone: editingClient.phone.replace(/\s/g, ''),
+      phone: editingClient.phone ? editingClient.phone.replace(/\s/g, '') : "",
       mutuelle: editingClient.mutuelle
     };
 
@@ -130,6 +129,10 @@ export default function ClientsPage() {
   };
 
   const goToHistory = (phone: string) => {
+    if (!phone) {
+      toast({ title: "Note", description: "Client sans numéro de téléphone." });
+      return;
+    }
     router.push(`/ventes?search=${phone}`);
   };
 
@@ -162,7 +165,7 @@ export default function ClientsPage() {
                   <Input placeholder="M. Mohamed Alami" className="h-11 rounded-xl font-bold" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone</Label>
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
                   <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} />
                 </div>
                 <div className="space-y-1.5">
@@ -225,7 +228,7 @@ export default function ClientsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-4 md:py-5 tracking-tighter whitespace-nowrap">
-                            {formatPhoneNumber(c.phone)}
+                            {c.phone ? formatPhoneNumber(c.phone) : <span className="text-slate-300">---</span>}
                           </TableCell>
                           <TableCell className="px-4 md:px-8 py-4 md:py-5">
                             <Badge 

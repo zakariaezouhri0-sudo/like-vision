@@ -58,9 +58,7 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
   const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
   
-  // Avance historique (déjà versée auparavant)
   const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
-  // Avance du jour (comptabilisée en caisse)
   const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
   
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
@@ -77,15 +75,9 @@ function NewSaleForm() {
 
   useEffect(() => {
     const searchClient = async () => {
-      const cleanPhone = clientPhone.toString().replace(/\s/g, "");
+      const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
       
       if (cleanPhone.length === 0) {
-        if (!searchParams.get("editId")) {
-          setClientName("");
-          setMutuelle("Aucun");
-          setCustomMutuelle("");
-          setClientHistory(null);
-        }
         setPhoneError(null);
         return;
       }
@@ -100,19 +92,12 @@ function NewSaleForm() {
       }
 
       if (cleanPhone.length < 10) {
-        if (!searchParams.get("editId")) {
-          setClientName("");
-          setMutuelle("Aucun");
-          setCustomMutuelle("");
-          setClientHistory(null);
-        }
         return;
       }
       
       if (cleanPhone.length >= 10 && !searchParams.get("editId")) {
         setIsSearchingClient(true);
         try {
-          // ISOLATION DES CLIENTS : On ne cherche que dans le mode actuel (Réel ou Draft)
           const clientQ = query(
             collection(db, "clients"), 
             where("phone", "==", cleanPhone), 
@@ -174,15 +159,15 @@ function NewSaleForm() {
   const resteAPayerValue = Math.max(0, resteAvantVersement - nAvance);
 
   const handleSave = async (silent = false) => {
-    const cleanPhone = clientPhone.toString().replace(/\s/g, "");
-    const isValidPhone = /^(06|07|08)\d{8}$/.test(cleanPhone);
+    const cleanPhone = clientPhone ? clientPhone.toString().replace(/\s/g, "") : "";
+    const isValidPhone = cleanPhone === "" || /^(06|07|08)\d{8}$/.test(cleanPhone);
 
-    if (!clientName || !clientPhone) {
-      toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom et le téléphone du client." });
+    if (!clientName) {
+      toast({ variant: "destructive", title: "Champs obligatoires", description: "Veuillez saisir au moins le nom du client." });
       return null;
     }
 
-    if (!isValidPhone) {
+    if (cleanPhone !== "" && !isValidPhone) {
       toast({ variant: "destructive", title: "Téléphone non valide", description: "Le numéro doit comporter 10 chiffres et commencer par 06, 07 ou 08." });
       setPhoneError("Numéro non valide");
       return null;
@@ -194,16 +179,16 @@ function NewSaleForm() {
 
     try {
       let existingClientId = null;
-      // ISOLATION DU CLIENT : Recherche uniquement dans le mode actuel
-      const clientQuerySnap = await getDocs(query(
-        collection(db, "clients"), 
-        where("phone", "==", cleanPhone), 
-        where("isDraft", "==", isPrepaMode),
-        limit(1)
-      ));
-      
-      if (!clientQuerySnap.empty) {
-        existingClientId = clientQuerySnap.docs[0].id;
+      if (cleanPhone) {
+        const clientQuerySnap = await getDocs(query(
+          collection(db, "clients"), 
+          where("phone", "==", cleanPhone), 
+          where("isDraft", "==", isPrepaMode),
+          limit(1)
+        ));
+        if (!clientQuerySnap.empty) {
+          existingClientId = clientQuerySnap.docs[0].id;
+        }
       }
 
       const result = await runTransaction(db, async (transaction) => {
@@ -245,20 +230,20 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // CRÉATION AUTOMATIQUE OU MISE À JOUR DU CLIENT AVEC ISOLATION
-        const clientRef = existingClientId ? doc(db, "clients", existingClientId) : doc(collection(db, "clients"));
         const clientData = {
           name: clientName,
           phone: cleanPhone,
           mutuelle: finalMutuelle || "Aucun",
           lastVisit: format(saleDate, "dd/MM/yyyy"),
           updatedAt: serverTimestamp(),
-          isDraft: isPrepaMode // CRUCIAL : Isolation du client par mode
+          isDraft: isPrepaMode
         };
 
         if (existingClientId) {
+          const clientRef = doc(db, "clients", existingClientId);
           transaction.update(clientRef, { ...clientData, ordersCount: increment(activeEditId ? 0 : 1) });
-        } else {
+        } else if (cleanPhone) {
+          const clientRef = doc(collection(db, "clients"));
           transaction.set(clientRef, { ...clientData, createdAt: serverTimestamp(), ordersCount: 1 });
         }
 
@@ -342,7 +327,7 @@ function NewSaleForm() {
                         )} 
                         value={clientPhone} 
                         onChange={(e) => setClientPhone(e.target.value)} 
-                        placeholder="06 00 00 00 00" 
+                        placeholder="06 00 00 00 00 (Optionnel)" 
                       />
                       <Search className={cn("absolute left-3 top-3.5 h-5 w-5 transition-colors", phoneError ? "text-destructive" : "text-primary/30")} />
                       {phoneError && (
