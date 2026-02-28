@@ -38,10 +38,11 @@ export default function ClientsPage() {
 
   const isPrepaMode = role === "PREPA";
   
-  // On récupère TOUS les clients pour éviter les problèmes d'index et de données legacy
-  // Le tri et le filtrage par mode se feront en mémoire
+  // CRITIQUE : Suppression du orderBy dans la requête Firestore. 
+  // Firestore masque les documents qui n'ont pas le champ de tri.
+  // On récupère tout et on trie en mémoire pour ne rien rater.
   const clientsQuery = useMemoFirebase(() => {
-    return query(collection(db, "clients"), orderBy("createdAt", "desc"));
+    return query(collection(db, "clients"));
   }, [db]);
 
   const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
@@ -54,26 +55,32 @@ export default function ClientsPage() {
     mutuelle: "Aucun"
   });
 
-  // FILTRAGE ET SÉCURITÉ EN MÉMOIRE
   const filteredClients = useMemo(() => {
     if (!allClients || !role) return [];
     
-    return allClients.filter((c: any) => {
-      // Isolation : PREPA ne voit que isDraft=true
-      // Les autres ne voient que isDraft=false ou undefined (legacy)
-      const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
-      if (!matchesMode) return false;
+    return allClients
+      .filter((c: any) => {
+        const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
+        if (!matchesMode) return false;
 
-      // Recherche
-      const search = searchTerm.toLowerCase().trim();
-      if (!search) return true;
+        const search = searchTerm.toLowerCase().trim();
+        if (!search) return true;
 
-      const clientName = (c.name || "").toLowerCase();
-      const clientPhone = (c.phone || "").replace(/\s/g, "");
-      const searchClean = search.replace(/\s/g, "");
+        const clientName = (c.name || "").toLowerCase();
+        const clientPhone = (c.phone || "").replace(/\s/g, "");
+        const searchClean = search.replace(/\s/g, "");
 
-      return clientName.includes(search) || clientPhone.includes(searchClean);
-    });
+        return clientName.includes(search) || clientPhone.includes(searchClean);
+      })
+      // Tri en mémoire par date de création (si dispo) ou par nom
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        if (dateB.getTime() !== dateA.getTime()) {
+          return dateB.getTime() - dateA.getTime();
+        }
+        return (a.name || "").localeCompare(b.name || "");
+      });
   }, [allClients, searchTerm, isPrepaMode, role]);
 
   const handleCreateClient = () => {
@@ -136,11 +143,11 @@ export default function ClientsPage() {
   };
 
   const handleDeleteClient = (id: string, name: string) => {
-    if (!confirm(`Supprimer le dossier de ${name} ?`)) return;
+    if (!confirm(`Supprimer définitivement le dossier de ${name} ?`)) return;
     const clientRef = doc(db, "clients", id);
     deleteDoc(clientRef)
       .then(() => {
-        toast({ variant: "success", title: "Supprimé", description: "Dossier supprimé." });
+        toast({ variant: "success", title: "Supprimé", description: "Le dossier a été effacé." });
       })
       .catch(() => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: clientRef.path, operation: "delete" }));
@@ -262,7 +269,7 @@ export default function ClientsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-4 md:py-5 hidden md:table-cell whitespace-nowrap">
-                            {c.lastVisit}
+                            {c.lastVisit || "---"}
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-4 md:py-5">
                             <DropdownMenu modal={false}>
