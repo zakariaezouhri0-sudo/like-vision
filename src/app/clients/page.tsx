@@ -38,9 +38,7 @@ export default function ClientsPage() {
 
   const isPrepaMode = role === "PREPA";
   
-  // CRITIQUE : Suppression du orderBy dans la requête Firestore. 
-  // Firestore masque les documents qui n'ont pas le champ de tri.
-  // On récupère tout et on trie en mémoire pour ne rien rater.
+  // CHARGEMENT TOTAL : On récupère tout sans filtre Firestore pour éviter que des dossiers soient masqués
   const clientsQuery = useMemoFirebase(() => {
     return query(collection(db, "clients"));
   }, [db]);
@@ -60,6 +58,7 @@ export default function ClientsPage() {
     
     return allClients
       .filter((c: any) => {
+        // Isolation stricte par Mode (Brouillon vs Réel)
         const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
         if (!matchesMode) return false;
 
@@ -72,7 +71,6 @@ export default function ClientsPage() {
 
         return clientName.includes(search) || clientPhone.includes(searchClean);
       })
-      // Tri en mémoire par date de création (si dispo) ou par nom
       .sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
@@ -282,16 +280,13 @@ export default function ClientsPage() {
                                 <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
-                                {(role === 'ADMIN' || role === 'PREPA') && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
-                                      <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
-                                      <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
+                                {/* DÉBLOQUÉ : Tous les comptes peuvent maintenant modifier et supprimer */}
+                                <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                  <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
+                                  <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
