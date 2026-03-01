@@ -216,7 +216,7 @@ function CaisseContent() {
               <input 
                 type="number" 
                 className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
-                value={openingVal} 
+                value={openingVal === "0" ? "" : openingVal} 
                 placeholder="---"
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                 readOnly={isAutoReport}
@@ -257,7 +257,7 @@ function CaisseContent() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant === "0" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
@@ -327,7 +327,9 @@ function CaisseContent() {
                         </div>
                         {t.clientName && (
                           <div className="ml-12">
-                            <span className="text-[10px] font-black text-primary/70 uppercase tracking-tight leading-none bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10">{t.clientName}</span>
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight leading-none">
+                              {t.clientName}
+                            </span>
                           </div>
                         )}
                       </div>

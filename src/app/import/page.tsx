@@ -162,43 +162,45 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Filtrage STRICT des lignes pour ce jour précis avec détection robuste
+        // Filtrage ROBUSTE des lignes pour ce jour précis
         const dayRows = allRows.filter(row => {
           const rowDateVal = row[mapping.date_col];
-          if (rowDateVal) {
-            let d: Date | null = null;
-            if (rowDateVal instanceof Date) {
-              d = rowDateVal;
-            } else if (typeof rowDateVal === 'number') {
-              // Conversion date série Excel
-              d = new Date((rowDateVal - 25569) * 86400 * 1000);
-            } else {
-              try {
-                const s = rowDateVal.toString().trim();
-                const parts = s.split('/');
-                if (parts.length === 3) {
-                  d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                } else {
-                  d = parse(s, "yyyy-MM-dd", new Date());
-                }
-              } catch (e) {}
-            }
-            return d && isValid(d) && format(d, "yyyy-MM-dd") === dateStr;
-          }
-          
-          // Fallback sur le nom de la feuille seulement si la colonne date n'est pas mappée
-          if (!mapping.date_col) {
+          if (!rowDateVal) {
             const sheet = row._sheet?.toString();
             return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM");
           }
           
-          return false;
+          let d: Date | null = null;
+          if (rowDateVal instanceof Date) {
+            d = rowDateVal;
+          } else if (typeof rowDateVal === 'number') {
+            d = new Date(Math.round((rowDateVal - 25569) * 86400 * 1000));
+          } else {
+            const s = rowDateVal.toString().trim();
+            const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy"];
+            for (const f of formats) {
+              const parsed = parse(s, f, new Date());
+              if (isValid(parsed)) {
+                d = parsed;
+                break;
+              }
+            }
+            if (!d && s.includes('/')) {
+              const parts = s.split('/');
+              if (parts.length === 3) {
+                const year = parseInt(parts[2]);
+                const fullYear = year < 100 ? 2000 + year : year;
+                d = new Date(fullYear, parseInt(parts[1]) - 1, parseInt(parts[0]));
+              }
+            }
+          }
+          return d && isValid(d) && isSameDay(d, currentDate);
         });
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-          // A. VENTES (Acomptes du jour)
+          // A. VENTES
           const clientName = (row[mapping.client_1] || "").toString().trim();
           const totalVal = cleanNum(row[mapping.total_brut]);
           if (clientName && totalVal > 0) {

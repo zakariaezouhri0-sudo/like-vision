@@ -55,8 +55,8 @@ function NewSaleForm() {
   const [historicalAdvance, setHistoricalAdvance] = useState<string>("");
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
-  const [purchasePriceFrame, setPurchasePriceFrame] = useState<string>("");
-  const [purchasePriceLenses, setPurchasePriceLenses] = useState<string>("");
+  const [purchasePriceFrame, setPurchasePriceFrame] = useState<string>(searchParams.get("purchasePriceFrame") || "");
+  const [purchasePriceLenses, setPurchasePriceLenses] = useState<string>(searchParams.get("purchasePriceLenses") || "");
 
   const [prescription, setPrescription] = useState({
     od: { sph: "", cyl: "", axe: "", add: "" },
@@ -188,9 +188,9 @@ function NewSaleForm() {
           <Card className="bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden h-fit">
             <CardHeader className="py-6 px-8 text-white/60"><CardTitle className="text-[10px] font-black uppercase">Finances</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-5">
-              <div className="bg-white p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black text-primary uppercase">Prix Brut</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-lg w-24" placeholder="---" value={total} onChange={e => setTotal(e.target.value)} /></div>
-              <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black uppercase">Remise (DH)</Label><input type="number" className="bg-transparent text-right font-black text-white outline-none text-lg w-24" placeholder="---" value={discountValue} onChange={e => setDiscountValue(e.target.value)} /></div>
-              <div className="bg-white p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black text-primary uppercase">Versé ce jour</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-lg w-24" placeholder="---" value={avance} onChange={e => setAvance(e.target.value)} /></div>
+              <div className="bg-white p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black text-primary uppercase">Prix Brut</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-lg w-24" placeholder="---" value={total === "0" ? "" : total} onChange={e => setTotal(e.target.value)} /></div>
+              <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black uppercase">Remise (DH)</Label><input type="number" className="bg-transparent text-right font-black text-white outline-none text-lg w-24" placeholder="---" value={discountValue === "0" ? "" : discountValue} onChange={e => setDiscountValue(e.target.value)} /></div>
+              <div className="bg-white p-4 rounded-2xl flex justify-between items-center"><Label className="text-[10px] font-black text-primary uppercase">Versé ce jour</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-lg w-24" placeholder="---" value={avance === "0" ? "" : avance} onChange={e => setAvance(e.target.value)} /></div>
               <div className="bg-slate-900 p-6 rounded-3xl text-center space-y-1"><p className="text-[9px] font-black text-white/40 uppercase">Reste à payer</p><p className="text-3xl font-black text-accent">{formatCurrency(resteAPayerValue)}</p></div>
             </CardContent>
           </Card>
