@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle } from "lucide-react";
+import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -128,7 +128,7 @@ function NewSaleForm() {
   const totalNetValue = Math.max(0, nTotal - nDiscount);
   const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
 
-  const handleSave = async () => {
+  const handleSave = async (shouldPrint: boolean = false) => {
     if (!clientName) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom du client est requis." });
       return;
@@ -138,6 +138,7 @@ function NewSaleForm() {
     const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
+    let finalInvoiceId = "";
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -189,6 +190,7 @@ function NewSaleForm() {
         }
 
         transaction.set(saleRef, saleData, { merge: true });
+        finalInvoiceId = invoiceId;
 
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
@@ -200,7 +202,26 @@ function NewSaleForm() {
       });
 
       toast({ variant: "success", title: "Vente Enregistrée" });
-      router.push("/ventes");
+      
+      if (shouldPrint && finalInvoiceId) {
+        const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
+        const params = new URLSearchParams({ 
+          client: clientName, 
+          phone: clientPhone, 
+          mutuelle: finalMutuelle, 
+          total: nTotal.toString(), 
+          remise: nDiscount.toString(), 
+          remisePercent: "Fixe",
+          avance: nAvance.toString(), 
+          od_sph: prescription.od.sph, od_cyl: prescription.od.cyl, od_axe: prescription.od.axe, od_add: prescription.od.add,
+          og_sph: prescription.og.sph, og_cyl: prescription.og.cyl, og_axe: prescription.og.axe, og_add: prescription.og.add,
+          monture, verres, 
+          date: format(saleDate, "dd/MM/yyyy HH:mm")
+        });
+        router.push(`/ventes/${page}/${finalInvoiceId}?${params.toString()}`);
+      } else {
+        router.push("/ventes");
+      }
     } catch (err) { 
       toast({ variant: "destructive", title: "Erreur lors de l'enregistrement" }); 
     } finally { 
@@ -218,7 +239,14 @@ function NewSaleForm() {
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", isPrepaMode ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}><ShoppingBag className="h-6 w-6" /></div>
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
-          <Button onClick={handleSave} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading}>
+              <Printer className="mr-2 h-4 w-4" /> IMPRIMER
+            </Button>
+            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER
+            </Button>
+          </div>
         </div>
 
         {clientDebt > 0 && (
