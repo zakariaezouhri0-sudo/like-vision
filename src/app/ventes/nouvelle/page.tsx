@@ -384,11 +384,6 @@ function NewSaleForm() {
                   <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Net à payer</p>
                   <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p>
                 </div>
-
-                <div className="bg-accent p-6 rounded-3xl text-center space-y-1 shadow-lg transform scale-105">
-                  <p className="text-[9px] font-black text-primary/60 uppercase tracking-widest">Reste à recouvrer</p>
-                  <p className="text-3xl font-black text-primary tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
-                </div>
               </CardContent>
             </Card>
           </div>
