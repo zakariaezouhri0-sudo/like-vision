@@ -63,7 +63,7 @@ export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentDayLabel, setCurrentDayLabel] = useState("");
-  const [startingBalance, setStartingBalance] = useState<string>("");
+  const [startingBalance, setStartingBalance] = useState<string>("9265.6");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
