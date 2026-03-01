@@ -15,7 +15,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, isSameDay, parse } from "date-fns";
+import { setHours, format, addDays, isSameDay, parse, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type Mapping = Record<string, string>;
@@ -137,14 +137,13 @@ export default function ImportPage() {
     let globalCounters = counterSnap.exists() ? counterSnap.data() as any : { fc: 0, rc: 0 };
 
     try {
-      // 1. Extraire TOUTES les lignes de TOUTES les feuilles
       let allRows: any[] = [];
       workbook.SheetNames.forEach(sheetName => {
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // 2. Boucler du 01 Janvier au 28 Février 2026
+      // Période : 01 Janvier au 28 Février 2026
       const totalDays = 59;
       const startDate = new Date(2026, 0, 1);
 
@@ -163,18 +162,29 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Filtrer les lignes pour CE jour précis
+        // Filtrage STRICT des lignes pour ce jour précis
         const dayRows = allRows.filter(row => {
           const rowDateVal = row[mapping.date_col];
           if (rowDateVal) {
-            let d: Date;
-            if (rowDateVal instanceof Date) d = rowDateVal;
-            else d = parse(rowDateVal.toString(), "dd/MM/yyyy", new Date());
-            return isSameDay(d, currentDate);
+            let d: Date | null = null;
+            if (rowDateVal instanceof Date) {
+              d = rowDateVal;
+            } else {
+              try {
+                d = parse(rowDateVal.toString(), "dd/MM/yyyy", new Date());
+              } catch (e) {}
+            }
+            // On vérifie que c'est strictement le même jour
+            return d && isValid(d) && isSameDay(d, currentDate);
           }
-          // Si pas de colonne date, on essaie de deviner par le nom de la feuille
-          const sheet = row._sheet?.toString();
-          return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM");
+          
+          // Fallback sur le nom de la feuille seulement si la colonne date n'est pas mappée
+          if (!mapping.date_col) {
+            const sheet = row._sheet?.toString();
+            return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM");
+          }
+          
+          return false;
         });
 
         for (const row of dayRows) {
@@ -217,6 +227,7 @@ export default function ImportPage() {
           if (vAmt > 0) {
             const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
             const cName = (row[mapping.nom_client_v] || "").toString().trim();
+            if (cName) await ensureClient(cName, currentIsDraft);
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT VERRES", label, clientName: cName,
               montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
@@ -229,6 +240,7 @@ export default function ImportPage() {
           if (mAmt > 0) {
             const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
             const cName = (row[mapping.nom_client_m] || "").toString().trim();
+            if (cName) await ensureClient(cName, currentIsDraft);
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT MONTURE", label, clientName: cName,
               montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
