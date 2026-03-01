@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays } from "lucide-react";
+import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, query, getDocs, getDoc, where, limit, increment, Timestamp } from "firebase/firestore";
@@ -49,10 +49,10 @@ export default function ImportPage() {
 
   const GLOBAL_FIELDS = [
     { key: "rowDate", label: "DATE (Colonne)", section: "GÉNÉRAL" },
-    { key: "clientName", label: "Nom Client 1 (Vente)", section: "VENTES" },
-    { key: "total", label: "Total Brut (Vente)", section: "VENTES" },
-    { key: "avance", label: "Avance Paye (Vente)", section: "VENTES" },
-    { key: "historicalAdvance", label: "Avance Ante (Vente)", section: "VENTES" },
+    { key: "clientName", label: "Nom Client 1", section: "VENTES" },
+    { key: "total", label: "Total Brut", section: "VENTES" },
+    { key: "avance", label: "Avance Paye", section: "VENTES" },
+    { key: "historicalAdvance", label: "Avance Ante", section: "VENTES" },
     { key: "glassType", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
     { key: "glassClient", label: "NOM CLIENT (Verre)", section: "ACHATS" },
     { key: "glassAmount", label: "MONTANT (Verre)", section: "ACHATS" },
@@ -78,7 +78,17 @@ export default function ImportPage() {
           const firstSheet = wb.Sheets[wb.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(firstSheet);
           if (jsonData.length > 0) {
-            setHeaders(Object.keys(jsonData[0] as object));
+            const fileHeaders = Object.keys(jsonData[0] as object);
+            setHeaders(fileHeaders);
+            
+            // Auto-mapping
+            const newMapping: Mapping = {};
+            GLOBAL_FIELDS.forEach(f => {
+              if (fileHeaders.includes(f.label)) {
+                newMapping[f.key] = f.label;
+              }
+            });
+            setMapping(newMapping);
           }
         } catch (err) {
           toast({ variant: "destructive", title: "Erreur de lecture du fichier Excel" });
@@ -86,6 +96,15 @@ export default function ImportPage() {
       };
       reader.readAsBinaryString(selectedFile);
     }
+  };
+
+  const downloadTemplate = () => {
+    const templateHeaders = GLOBAL_FIELDS.map(f => f.label);
+    const ws = XLSX.utils.aoa_to_sheet([templateHeaders]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modele_Import");
+    XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
+    toast({ title: "Modèle téléchargé", description: "Utilisez ce fichier pour préparer vos données." });
   };
 
   const cleanNum = (val: any): number => {
@@ -304,6 +323,13 @@ export default function ImportPage() {
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe par colonnes Excel.</p>
           </div>
+          <Button 
+            variant="outline" 
+            onClick={downloadTemplate} 
+            className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary/5"
+          >
+            <Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
