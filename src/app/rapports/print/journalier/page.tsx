@@ -227,10 +227,10 @@ function DailyCashReportContent() {
               <table className="w-full">
                 <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                   <tr>
-                    <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest">Client / Détails</th>
-                    <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-16">Total Net</th>
-                    <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-16 text-green-600">Versé</th>
-                    <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest text-destructive w-16">Reste</th>
+                    <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest">Document / Client</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-16">Total Net</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-16 text-green-600">Versé</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest text-destructive w-16">Reste</th>
                     <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-14">Statut</th>
                     <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-20">Acompte Jour</th>
                   </tr>
@@ -243,13 +243,13 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-1.5 align-middle">
                           <div className="flex flex-col">
-                            {s.clientName && <span className="text-[9px] font-black text-slate-800 uppercase leading-tight">{s.clientName}</span>}
-                            {s.label && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">{s.label}</span>}
+                            {s.label && <span className="text-[9px] font-black text-slate-800 uppercase leading-tight">{s.label}</span>}
+                            {s.clientName && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
                           </div>
                         </td>
-                        <td className="p-1.5 text-right font-bold text-slate-600 tabular-nums text-[8px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
-                        <td className="p-1.5 text-right font-bold text-green-600 tabular-nums text-[8px] align-middle">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
-                        <td className="p-1.5 text-right font-bold text-destructive tabular-nums text-[8px] align-middle">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
+                        <td className="p-1.5 text-center font-bold text-slate-600 tabular-nums text-[8px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
+                        <td className="p-1.5 text-center font-bold text-green-600 tabular-nums text-[8px] align-middle">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
+                        <td className="p-1.5 text-center font-bold text-destructive tabular-nums text-[8px] align-middle">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
                         <td className="p-1.5 text-center align-middle">
                           {sale && (
                             <span className={cn(
@@ -285,7 +285,7 @@ function DailyCashReportContent() {
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
                       <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest">Désignation / Nature</th>
-                      <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest w-32">Bénéficiaire / Client</th>
+                      <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-32">Bénéficiaire / Client</th>
                       <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-20">Montant</th>
                     </tr>
                   </thead>
@@ -297,7 +297,7 @@ function DailyCashReportContent() {
                             {e.type !== "DEPENSE" ? `${e.type} | ${e.label}` : e.label}
                           </span>
                         </td>
-                        <td className="p-1.5 align-middle">
+                        <td className="p-1.5 text-center align-middle">
                           <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{e.clientName || "---"}</span>
                         </td>
                         <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[8px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
