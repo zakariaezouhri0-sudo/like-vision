@@ -94,7 +94,7 @@ export default function CashSessionsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions {isPrepaMode ? "(Brouillon)" : ""}</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Suivi complet des ouvertures, clôtures et écarts.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Suivi consolidé des ouvertures et clôtures.</p>
           </div>
         </div>
 
@@ -104,23 +104,20 @@ export default function CashSessionsPage() {
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-32 gap-4">
                   <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Chargement du journal...</span>
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Chargement...</span>
                 </div>
               ) : (
-                <Table className="min-w-[1400px]">
+                <Table className="min-w-[1200px]">
                   <TableHeader className="bg-slate-50/80 border-b">
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Date & Statut</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Ouverte par</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Fermée par</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Horaires</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Initial</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-green-600">Ventes (+)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-red-500">Dépenses (-)</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Ouverture / Par</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Clôture / Par</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Solde Ouv.</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-primary">FLUX (Net)</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-orange-600">Versement (-)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-primary">Théorique</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Réel</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Écart</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-slate-400">Théorique</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Solde Clôt.</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -133,9 +130,9 @@ export default function CashSessionsPage() {
                         const expenses = s.totalExpenses || 0;
                         const versements = s.totalVersements || 0;
                         
-                        const theorique = initial + sales - expenses - versements;
+                        const flux = sales - expenses;
+                        const theorique = initial + flux - versements;
                         const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : theorique;
-                        const discrepancy = reel - theorique;
 
                         return (
                           <TableRow key={s.id} className={cn(
@@ -154,58 +151,42 @@ export default function CashSessionsPage() {
                               </div>
                             </TableCell>
 
-                            <TableCell className="px-2 py-6">
-                              <div className="flex items-center gap-1.5">
-                                <User className="h-3 w-3 text-slate-300" />
-                                <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[80px]">{s.openedBy || "---"}</span>
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="px-2 py-6">
-                              <div className="flex items-center gap-1.5">
-                                <User className="h-3 w-3 text-slate-300" />
-                                <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[80px]">{s.closedBy || "---"}</span>
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="px-2 py-6">
+                            <TableCell className="px-4 py-6">
                               <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-1 text-[9px] font-black text-green-600"><Clock className="h-2.5 w-2.5" /> {formatTime(s.openedAt)}</div>
-                                <div className="flex items-center gap-1 text-[9px] font-black text-red-500"><Clock className="h-2.5 w-2.5" /> {formatTime(s.closedAt)}</div>
+                                <span className="text-[10px] font-black text-green-600 tabular-nums">{formatTime(s.openedAt)}</span>
+                                <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[100px]">{s.openedBy || "---"}</span>
                               </div>
+                            </TableCell>
+
+                            <TableCell className="px-4 py-6">
+                              {s.status === "CLOSED" ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-[10px] font-black text-red-500 tabular-nums">{formatTime(s.closedAt)}</span>
+                                  <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[100px]">{s.closedBy || "---"}</span>
+                                </div>
+                              ) : (
+                                <span className="text-[9px] font-black text-slate-300 uppercase italic">En cours...</span>
+                              )}
                             </TableCell>
                             
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-400">
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-500">
                               {formatCurrency(initial)}
                             </TableCell>
 
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-green-600">
-                              +{formatCurrency(sales)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-red-500">
-                              -{formatCurrency(expenses)}
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-primary">
+                              {flux > 0 ? "+" : ""}{formatCurrency(flux)}
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-orange-600">
                               -{formatCurrency(versements)}
                             </TableCell>
 
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-primary/60">
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-400">
                               {formatCurrency(theorique)}
                             </TableCell>
 
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-900">
+                            <TableCell className="text-right px-2 py-6 font-black text-sm tabular-nums text-slate-900">
                               {formatCurrency(reel)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6">
-                              <div className={cn(
-                                "font-black text-xs tabular-nums",
-                                Math.abs(discrepancy) < 0.01 ? "text-green-600" : "text-destructive"
-                              )}>
-                                {discrepancy > 0 ? "+" : ""}{formatCurrency(discrepancy)}
-                              </div>
                             </TableCell>
 
                             <TableCell className="text-right px-4 py-6">
@@ -224,7 +205,7 @@ export default function CashSessionsPage() {
                         );
                       })
                     ) : (
-                      <TableRow><TableCell colSpan={12} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
