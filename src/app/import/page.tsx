@@ -99,12 +99,13 @@ export default function ImportPage() {
     }
 
     setIsProcessing(true);
-    setProgress(Progress => 0);
+    setProgress(0);
     
     const currentIsDraft = freshRole === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
+    // Tri numérique des feuilles
     const sheetNames = [...workbook.SheetNames].sort((a, b) => {
       const na = parseInt(a.replace(/\D/g, '')) || 0;
       const nb = parseInt(b.replace(/\D/g, '')) || 0;
@@ -120,19 +121,28 @@ export default function ImportPage() {
         
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
+        
         if (sheetNumbers && sheetNumbers.length > 0) {
-          // On cherche un nombre entre 1 et 31
-          const dayMatch = sheetNumbers.find(num => {
-            const n = parseInt(num);
-            return n >= 1 && n <= 31;
-          });
-          if (dayMatch) {
-            day = parseInt(dayMatch);
+          // Si le nom ressemble à une date (2026-01-30), on prend le DERNIER nombre comme jour
+          if (sheetNumbers.length >= 3) {
+            const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
+            if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
+          } else {
+            // Sinon on cherche le premier nombre entre 1 et 31
+            const dayMatch = sheetNumbers.find(num => {
+              const n = parseInt(num);
+              return n >= 1 && n <= 31;
+            });
+            if (dayMatch) day = parseInt(dayMatch);
           }
         }
 
-        setCurrentDayLabel(`Jour ${day}`);
+        // On sature le jour à 31 au max
+        day = Math.min(31, Math.max(1, day));
+
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
+        setCurrentDayLabel(`Jour ${day}`);
+        
         const currentDate = new Date(2026, 0, day); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
 
@@ -169,7 +179,9 @@ export default function ImportPage() {
               const prefix = currentIsDraft ? "PREPA-" : "";
               const isPaid = totalAvance >= totalVal;
               const docType = isPaid ? "FC" : "RC";
-              const invoiceId = `${prefix}${docType}-2026-J${day.toString().padStart(2, '0')}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+              // ID unique pour éviter l'erreur "Document already exists"
+              const uniqueSuffix = Math.random().toString(36).substr(2, 4).toUpperCase();
+              const invoiceId = `${prefix}${docType}-2026-J${day.toString().padStart(2, '0')}-${uniqueSuffix}`;
 
               const normalizedName = clientName.toUpperCase().trim();
               if (!importSessionClients.has(normalizedName)) {
@@ -283,10 +295,10 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité." });
+      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec succès." });
       router.push("/caisse/sessions");
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur" });
+      toast({ variant: "destructive", title: "Erreur critique lors de l'importation" });
     } finally {
       setIsProcessing(false);
     }

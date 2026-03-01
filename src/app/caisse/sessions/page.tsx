@@ -74,21 +74,28 @@ export default function CashSessionsPage() {
   const formatSessionDate = (dateStr: string) => {
     if (!dateStr) return "Date inconnue";
     try {
-      // Extraction sécurisée : on ne prend que les 10 premiers caractères (yyyy-MM-dd)
-      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      // Sécurité : On ne garde que les 10 premiers caractères (YYYY-MM-DD)
+      const cleanDate = dateStr.substring(0, 10);
+      const match = cleanDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      
       if (match) {
         const year = parseInt(match[1]);
         const month = parseInt(match[2]);
         const day = parseInt(match[3]);
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
-          return format(d, "dd MMMM yyyy", { locale: fr });
+          const formatted = format(d, "dd MMMM yyyy", { locale: fr });
+          // Mettre la première lettre du mois en majuscule pour correspondre à "01 Janvier 2026"
+          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
       }
       
-      // Fallback si le format est différent mais valide
-      const d = new Date(dateStr);
-      return isNaN(d.getTime()) ? dateStr : format(d, "dd MMMM yyyy", { locale: fr });
+      const d = new Date(cleanDate);
+      if (!isNaN(d.getTime())) {
+        const formatted = format(d, "dd MMMM yyyy", { locale: fr });
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+      }
+      return cleanDate;
     } catch (e) {
       return dateStr;
     }
@@ -162,7 +169,7 @@ export default function CashSessionsPage() {
                               <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className="h-4 w-4 text-primary/40" />
-                                  <span className="font-black text-sm text-slate-800 uppercase tracking-tight">
+                                  <span className="font-black text-sm text-slate-800 tracking-tight">
                                     {formatSessionDate(s.date)}
                                   </span>
                                 </div>

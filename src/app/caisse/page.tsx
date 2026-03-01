@@ -229,7 +229,7 @@ function CaisseContent() {
     };
     try {
       const transRef = doc(collection(db, "transactions"));
-      await setDoc(transRef, transData);
+      await setDoc(transRef, transData, { merge: true });
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
       setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
@@ -316,7 +316,12 @@ function CaisseContent() {
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date du jour</p>
-              <p className="text-xl font-black text-primary uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</p>
+              <p className="text-xl font-black text-primary">
+                {(() => {
+                  const formatted = format(selectedDate, "dd MMMM yyyy", { locale: fr });
+                  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+                })()}
+              </p>
             </div>
             
             {isPrepaMode && (
@@ -416,8 +421,11 @@ function CaisseContent() {
             <div className="flex items-center gap-3 mt-2">
               <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                 <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-[11px] text-slate-700 font-black uppercase tracking-widest">
-                  {format(selectedDate, "dd/MM/yyyy")}
+                <span className="text-[11px] text-slate-700 font-black tracking-widest">
+                  {(() => {
+                    const formatted = format(selectedDate, "dd MMMM yyyy", { locale: fr });
+                    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+                  })()}
                 </span>
               </div>
               {isAdminOrPrepa && (
