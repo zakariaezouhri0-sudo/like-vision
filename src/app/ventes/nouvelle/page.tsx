@@ -40,6 +40,7 @@ function NewSaleForm() {
   }, [router]);
 
   const isPrepaMode = role === "PREPA";
+  const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const [saleDate, setSaleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
@@ -100,7 +101,6 @@ function NewSaleForm() {
         let invoiceId = searchParams.get("invoiceId") || "";
 
         if (!activeEditId) {
-          // Format FC-2026-XXXX ou RC-2026-XXXX sans préfixe PREPA
           if (isPaid) { 
             counters.fc += 1; 
             invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
@@ -176,30 +176,25 @@ function NewSaleForm() {
                 <User className="h-4 w-4 text-primary/40" />
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client & Date</CardTitle>
               </CardHeader>
-              <CardContent className="p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
-                    <Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="M. Mohamed..." value={clientName} onChange={e => setClientName(e.target.value)} />
-                  </div>
+              <CardContent className="p-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
                     <Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="06..." value={clientPhone} onChange={e => setClientPhone(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
-                    <Select value={mutuelle} onValueChange={setMutuelle}>
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold"><SelectValue /></SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
+                    <Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="M. Mohamed..." value={clientName} onChange={e => setClientName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700">
+                        <Button 
+                          variant="outline" 
+                          disabled={!isAdminOrPrepa}
+                          className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"
+                        >
                           <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
                           {format(saleDate, "dd MMMM yyyy", { locale: fr })}
                         </Button>
@@ -208,6 +203,17 @@ function NewSaleForm() {
                         <Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus />
                       </PopoverContent>
                     </Popover>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
+                    <Select value={mutuelle} onValueChange={setMutuelle}>
+                      <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardContent>
