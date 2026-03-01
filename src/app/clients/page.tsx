@@ -162,12 +162,13 @@ export default function ClientsPage() {
       });
   };
 
-  const goToHistory = (phone: string) => {
-    if (!phone) {
-      toast({ title: "Note", description: "Client sans numéro de téléphone." });
+  const goToHistory = (name: string) => {
+    if (!name) {
+      toast({ title: "Note", description: "Nom du client manquant." });
       return;
     }
-    router.push(`/ventes?search=${phone}`);
+    // On encode le nom pour gérer les espaces et caractères spéciaux dans l'URL
+    router.push(`/ventes?search=${encodeURIComponent(name)}`);
   };
 
   // SÉCURITÉ : Bloquer le rendu tant que le rôle n'est pas identifié
@@ -297,7 +298,7 @@ export default function ClientsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
-                                <DropdownMenuItem onClick={() => goToHistory(c.phone)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                <DropdownMenuItem onClick={() => goToHistory(c.name)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
