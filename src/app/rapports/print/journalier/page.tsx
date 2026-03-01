@@ -71,6 +71,22 @@ function DailyCashReportContent() {
   
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
+  // Récupération des factures liées pour enrichir le tableau des encaissements
+  const relatedInvoiceIds = useMemo(() => {
+    if (!rawTransactions) return [];
+    return Array.from(new Set(rawTransactions
+      .filter((t: any) => t.type === "VENTE" && t.relatedId)
+      .map((t: any) => t.relatedId)
+    ));
+  }, [rawTransactions]);
+
+  const salesDetailsQuery = useMemoFirebase(() => {
+    if (relatedInvoiceIds.length === 0) return null;
+    // Firestore limite le "in" à 30 éléments, ce qui suffit généralement pour une journée
+    return query(collection(db, "sales"), where("invoiceId", "in", relatedInvoiceIds.slice(0, 30)));
+  }, [db, relatedInvoiceIds]);
+  const { data: salesDocs } = useCollection(salesDetailsQuery);
+
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
     address: remoteSettings?.address || DEFAULT_SHOP_SETTINGS.address,
@@ -91,7 +107,8 @@ function DailyCashReportContent() {
     
     filteredTransactions.forEach((t: any) => {
       if (t.type === "VENTE") {
-        salesList.push(t);
+        const saleInfo = salesDocs?.find((s: any) => s.invoiceId === t.relatedId);
+        salesList.push({ ...t, saleDetails: saleInfo });
       } else if (t.type === "VERSEMENT") {
         versementsList.push(t);
       } else {
@@ -115,7 +132,7 @@ function DailyCashReportContent() {
       totalVersements, 
       final 
     };
-  }, [rawTransactions, session, isPrepaMode]);
+  }, [rawTransactions, session, isPrepaMode, salesDocs]);
 
   if (settingsLoading || transLoading || sessionLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
@@ -214,30 +231,51 @@ function DailyCashReportContent() {
                   <tr>
                     <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-16">Heure</th>
                     <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Opération & Détails</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-32">Montant</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest">Total Net</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest">Versé</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest text-destructive">Reste</th>
+                    <th className="p-2 text-center text-[8px] font-black uppercase tracking-widest">Statut</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Acompte</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {reportData.sales.length > 0 ? reportData.sales.map((s: any) => (
-                    <tr key={s.id} className="hover:bg-slate-50">
-                      <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
-                      <td className="p-2">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{s.type} {s.label ? `| ${s.label}` : ''}</span>
-                          {s.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{s.clientName}</span>}
-                        </div>
-                      </td>
-                      <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[10px]">+{formatCurrency(Math.abs(s.montant))}</td>
-                    </tr>
-                  )) : (
-                    <tr><td colSpan={3} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
+                  {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
+                    const sale = s.saleDetails;
+                    const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : 0;
+                    return (
+                      <tr key={s.id} className="hover:bg-slate-50">
+                        <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
+                        <td className="p-2">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{s.type} {s.label ? `| ${s.label}` : ''}</span>
+                            {s.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{s.clientName}</span>}
+                          </div>
+                        </td>
+                        <td className="p-2 text-right font-bold text-slate-600 tabular-nums text-[9px]">{sale ? formatCurrency(totalNet) : "---"}</td>
+                        <td className="p-2 text-right font-bold text-green-600 tabular-nums text-[9px]">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
+                        <td className="p-2 text-right font-bold text-destructive tabular-nums text-[9px]">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
+                        <td className="p-2 text-center">
+                          {sale && (
+                            <span className={cn(
+                              "text-[7px] px-1.5 py-0.5 rounded font-black uppercase",
+                              sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                            )}>
+                              {sale.statut}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[10px]">+{formatCurrency(Math.abs(s.montant))}</td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan={7} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div className={cn("grid grid-cols-1 gap-6", reportData.versements.length > 1 ? "md:grid-cols-2" : "md:grid-cols-1")}>
+          <div className="space-y-6">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 px-1">
                 <h3 className="text-[9px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
@@ -250,7 +288,7 @@ function DailyCashReportContent() {
                 <table className="w-full">
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left text-[8px] font-black uppercase">Libellé & Client</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase">Opération & Détails</th>
                       <th className="p-2 text-right text-[8px] font-black uppercase w-24">Montant</th>
                     </tr>
                   </thead>
