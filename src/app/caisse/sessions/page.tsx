@@ -21,7 +21,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, deleteDoc, doc } from "firebase/firestore";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSunday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -95,12 +95,12 @@ export default function CashSessionsPage() {
                 )}>
                   Mode {isPrepaMode ? "Historique" : "Réel"}
                 </span>
-                <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-40">Historique consolidé</span>
+                <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-40">Traçabilité consolidée</span>
               </div>
             </div>
           </div>
           <div className="bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 hidden lg:block">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Sessions</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sessions Total</p>
             <p className="text-sm font-black text-primary">{sessions.length}</p>
           </div>
         </div>
@@ -137,14 +137,14 @@ export default function CashSessionsPage() {
                         const flux = sales - expenses;
                         const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements);
                         
-                        // Détecter si c'est un dimanche pour la mise en évidence
+                        // Détection dimanche pour coloration
                         const dateObj = s.date ? parseISO(s.date) : new Date();
-                        const isSunday = dateObj.getDay() === 0;
+                        const isDaySunday = isSunday(dateObj);
 
                         return (
                           <TableRow key={s.id} className={cn(
                             "hover:bg-slate-50/80 border-b last:border-0 transition-all group",
-                            isSunday && "bg-red-50/60 hover:bg-red-100/60"
+                            isDaySunday && "bg-red-50/60 hover:bg-red-100/60"
                           )}>
                             <TableCell className="px-8 py-6">
                               <div className="flex items-center gap-4">
@@ -189,7 +189,7 @@ export default function CashSessionsPage() {
 
                             <TableCell className="text-right px-6 py-6">
                               <span className="font-black text-xs tabular-nums text-orange-600">
-                                {formatCurrency(versements)}
+                                {formatCurrency(Math.abs(versements))}
                               </span>
                             </TableCell>
 
