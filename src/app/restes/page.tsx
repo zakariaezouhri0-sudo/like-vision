@@ -16,8 +16,6 @@ import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -95,32 +93,24 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        // Si c'était un Reçu (RC) et que c'est payé, on passe en Facture (FC)
+        // Passage RC -> FC si payé
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
           let counters = { fc: 0, rc: 0 };
-          if (counterSnap.exists()) {
-            counters = counterSnap.data() as any;
-          }
+          if (counterSnap.exists()) counters = counterSnap.data() as any;
           counters.fc += 1;
           const prefix = isPrepaMode ? "PREPA-FC" : "FC";
           finalInvoiceId = `${prefix}-2026-${counters.fc.toString().padStart(4, '0')}`;
           transaction.set(counterRef, counters, { merge: true });
         }
 
-        const paymentEntry = {
-          amount: amount,
-          date: new Date().toISOString(),
-          userName: currentUserName
-        };
-
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
           reste: newReste, 
           statut: isFullyPaid ? "Payé" : "Partiel", 
-          payments: arrayUnion(paymentEntry),
+          payments: arrayUnion({ amount, date: new Date().toISOString(), userName: currentUserName }),
           updatedAt: serverTimestamp() 
         });
 
@@ -129,45 +119,15 @@ export default function UnpaidSalesPage() {
           type: "VENTE",
           label: isFullyPaid ? `Solde Facture ${finalInvoiceId}` : `Acompte Reçu ${finalInvoiceId}`,
           clientName: currentData.clientName,
-          category: "Optique",
-          montant: amount,
-          relatedId: finalInvoiceId,
-          userName: currentUserName,
-          isDraft: isPrepaMode,
-          createdAt: serverTimestamp()
+          category: "Optique", montant: amount, relatedId: finalInvoiceId,
+          userName: currentUserName, isDraft: isPrepaMode, createdAt: serverTimestamp()
         });
-
-        return { finalInvoiceId, isFullyPaid, newAvance, currentData };
-      }).then((res) => {
-        toast({ variant: "success", title: "Paiement validé", description: `Document ${res.finalInvoiceId}` });
-        const page = res.isFullyPaid ? 'facture' : 'recu';
-        const now = new Date();
-        const params = new URLSearchParams({ 
-          client: res.currentData.clientName, 
-          phone: res.currentData.clientPhone, 
-          mutuelle: res.currentData.mutuelle, 
-          total: res.currentData.total.toString(), 
-          remise: (res.currentData.remise || 0).toString(), 
-          remisePercent: res.currentData.remisePercent || "0", 
-          avance: res.newAvance.toString(), 
-          od_sph: res.currentData.prescription?.od?.sph || "", 
-          od_cyl: res.currentData.prescription?.od?.cyl || "", 
-          od_axe: res.currentData.prescription?.od?.axe || "", 
-          od_add: res.currentData.prescription?.od?.add || "",
-          og_sph: res.currentData.prescription?.og?.sph || "", 
-          og_cyl: res.currentData.prescription?.og?.cyl || "", 
-          og_axe: res.currentData.prescription?.og?.axe || "", 
-          og_add: res.currentData.prescription?.og?.add || "",
-          monture: res.currentData.monture || "", 
-          verres: res.currentData.verres || "", 
-          date: format(now, "dd/MM/yyyy HH:mm")
-        });
-        router.push(`/ventes/${page}/${res.finalInvoiceId}?${params.toString()}`);
       });
 
+      toast({ variant: "success", title: "Paiement validé" });
       setSelectedSale(null);
     } catch (err) {
-      toast({ variant: "destructive", title: "Erreur de transaction" });
+      toast({ variant: "destructive", title: "Erreur lors du paiement" });
     } finally {
       setIsProcessing(false);
     }
@@ -210,11 +170,7 @@ export default function UnpaidSalesPage() {
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="py-24 text-center">
-                        <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
-                      </TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : filteredSales.length > 0 ? (
                     filteredSales.map((sale: any) => (
                       <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
@@ -224,40 +180,20 @@ export default function UnpaidSalesPage() {
                               <Calendar className="h-2.5 w-2.5" />
                               {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
                             </div>
-                            <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
-                              {sale.clientName}
-                            </span>
+                            <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">{sale.clientName}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
-                        </TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                          <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
-                        </TableCell>
+                        <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span></TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span></TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span></TableCell>
                         <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
-                          <Button 
-                            onClick={() => handleOpenPayment(sale)} 
-                            size="sm"
-                            className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
-                          >
-                            <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
-                          </Button>
+                          <Button onClick={() => handleOpenPayment(sale)} size="sm" className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"><HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler</Button>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-24">
-                        <p className="text-xs font-black uppercase opacity-20 tracking-widest">Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.</p>
-                      </TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">Aucun reste à régler.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -268,19 +204,13 @@ export default function UnpaidSalesPage() {
         <Dialog open={!!selectedSale} onOpenChange={(open) => !open && setSelectedSale(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
             <DialogHeader className="p-6 md:p-8 bg-primary text-white">
-              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3">
-                <HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente
-              </DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
               <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
             </DialogHeader>
             <div className="p-6 md:p-8 space-y-6">
               <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                  <span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span>
-                </div>
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">
-                  <span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span>
-                </div>
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span></div>
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span></div>
               </div>
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
@@ -296,9 +226,7 @@ export default function UnpaidSalesPage() {
             </div>
             <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
               <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-              <Button className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleValidatePayment} disabled={isProcessing}>
-                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}
-              </Button>
+              <Button className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleValidatePayment} disabled={isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

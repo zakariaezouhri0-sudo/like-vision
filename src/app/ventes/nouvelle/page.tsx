@@ -14,7 +14,6 @@ import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, limit } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,9 +30,7 @@ function NewSaleForm() {
   
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
-  const [clientHistory, setClientHistory] = useState<{ totalUnpaid: number, orderCount: number, hasUnpaid: boolean } | null>(null);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
@@ -52,7 +49,7 @@ function NewSaleForm() {
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   const [total, setTotal] = useState<string>(searchParams.get("total") || "");
-  const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
+  const [discountType, setDiscountType] = useState<"percent" | "amount">("amount");
   const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") || "");
   const [avance, setAvance] = useState<string>(searchParams.get("avance") || "");
   const [historicalAdvance, setHistoricalAdvance] = useState<string>("");
@@ -83,16 +80,19 @@ function NewSaleForm() {
   const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
   const resteAPayerValue = Math.max(0, totalNetValue - nHistorical - nAvance);
 
-  const handleSave = async (silent = false) => {
+  const handleSave = async () => {
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
-    if (!currentRole || !clientName) return null;
+    if (!currentRole || !clientName) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom du client est requis." });
+      return;
+    }
     
     setLoading(true);
     const currentIsDraft = currentRole === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
 
     try {
-      const result = await runTransaction(db, async (transaction) => {
+      await runTransaction(db, async (transaction) => {
         const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
         const counterSnap = await transaction.get(counterRef);
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
@@ -102,17 +102,22 @@ function NewSaleForm() {
 
         const isPaid = resteAPayerValue <= 0;
         const statut = isPaid ? "Payé" : ((nAvance + nHistorical) > 0 ? "Partiel" : "En attente");
-        let invoiceId = "";
+        let invoiceId = searchParams.get("invoiceId") || "";
 
         if (!activeEditId) {
           const prefix = currentIsDraft ? "PREPA-" : "";
-          if (isPaid) { counters.fc += 1; invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; } 
-          else { counters.rc += 1; invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; }
+          if (isPaid) { 
+            counters.fc += 1; 
+            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
+          } else { 
+            counters.rc += 1; 
+            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; 
+          }
           transaction.set(counterRef, counters, { merge: true });
         }
 
         const saleData: any = {
-          invoiceId: activeEditId ? searchParams.get("invoiceId") : invoiceId,
+          invoiceId,
           clientName, clientPhone: clientPhone.replace(/\s/g, ""), mutuelle,
           total: nTotal, remise: remiseAmountValue, discountType, discountValue: nDiscount,
           avance: nHistorical + nAvance, reste: resteAPayerValue, statut,
@@ -139,12 +144,15 @@ function NewSaleForm() {
             userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
           }, { merge: true });
         }
-        return { ...saleData, id: saleRef.id };
       });
 
-      if (!silent) { router.push("/ventes"); toast({ variant: "success", title: "Enregistré" }); }
-      return result;
-    } catch (err) { toast({ variant: "destructive", title: "Erreur" }); return null; } finally { setLoading(false); }
+      toast({ variant: "success", title: "Vente Enregistrée" });
+      router.push("/ventes");
+    } catch (err) { 
+      toast({ variant: "destructive", title: "Erreur lors de l'enregistrement" }); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   if (!role) return null;
@@ -158,7 +166,7 @@ function NewSaleForm() {
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => handleSave()} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
+            <Button onClick={handleSave} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
           </div>
         </div>
 

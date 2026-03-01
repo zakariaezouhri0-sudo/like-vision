@@ -77,7 +77,6 @@ function CaisseContent() {
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<any>(null);
   
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
@@ -88,7 +87,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Récupération du dernier solde disponible pour le report
+  // Récupération du dernier solde disponible pour le report (Continuité Dimanche/Lundi)
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -100,7 +99,8 @@ function CaisseContent() {
 
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
-      const pastSessions = allSessions
+      // On cherche la session la plus proche avant la date sélectionnée
+      const pastSessions = [...allSessions]
         .filter(s => s.date < dateStr)
         .sort((a, b) => b.date.localeCompare(a.date));
       
@@ -204,7 +204,7 @@ function CaisseContent() {
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
               <p className="text-xl font-black text-primary">
-                {format(selectedDate, "dd MMMM yyyy", { locale: fr }).split(' ').map((w,i)=>i===1?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ')}
+                {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
             {isPrepaMode && (
@@ -232,6 +232,11 @@ function CaisseContent() {
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
             </div>
+            {!isAutoReport && (
+              <div className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
+                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
+              </div>
+            )}
           </div>
           <Button onClick={handleOpenSession} disabled={opLoading} className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase", isPrepaMode ? "bg-orange-500" : "bg-primary")}>VALIDER L'OUVERTURE</Button>
         </Card>

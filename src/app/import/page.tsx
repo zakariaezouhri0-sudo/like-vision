@@ -113,22 +113,20 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour : on cherche le numéro entre 1 et 31
-        let day = null;
+        // Extraction précise du jour depuis le nom de la feuille (format : JJ ou Janvier JJ)
+        let dayNum = null;
         const matches = sheetName.toString().match(/\d+/g);
         if (matches) {
           const num = parseInt(matches[matches.length - 1]);
-          if (num >= 1 && num <= 31) day = num;
+          if (num >= 1 && num <= 31) dayNum = num;
         }
-        
-        // Si pas de numéro, on prend l'index de la feuille
-        if (!day) day = (s + 1 <= 31) ? s + 1 : null;
-        if (!day) continue;
+        if (!dayNum) dayNum = (s + 1 <= 31) ? s + 1 : null;
+        if (!dayNum) continue;
 
-        const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
-        setCurrentDayLabel(`${day} Janvier`);
+        const dateStr = `2026-01-${dayNum.toString().padStart(2, '0')}`;
+        setCurrentDayLabel(`${dayNum} Janvier`);
         
-        const currentDate = new Date(2026, 0, day); 
+        const currentDate = new Date(2026, 0, dayNum); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
 
         let daySalesTotal = 0;
@@ -235,7 +233,7 @@ export default function ImportPage() {
       }
 
       await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité." });
+      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec continuité du solde." });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -252,7 +250,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe par feuille Excel.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe avec continuité du solde.</p>
           </div>
         </div>
 

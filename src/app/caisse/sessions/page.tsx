@@ -69,8 +69,7 @@ export default function CashSessionsPage() {
     if (!dateStr) return "---";
     try {
       const d = parseISO(dateStr.substring(0, 10));
-      const formatted = format(d, "dd MMMM yyyy", { locale: fr });
-      return formatted.split(' ').map((word, i) => i === 1 ? word.charAt(0).toUpperCase() + word.slice(1) : word).join(' ');
+      return format(d, "dd MMMM yyyy", { locale: fr });
     } catch (e) { return dateStr; }
   };
 
@@ -126,6 +125,7 @@ export default function CashSessionsPage() {
                         const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                         const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
                         
+                        // Règle Métier : Si Dimanche, le solde final = solde d'ouverture (car pas d'activité)
                         const soldeCloture = sunday ? (s.openingBalance || 0) : (s.closingBalanceReal || 0);
                         const fluxOp = sunday ? 0 : (s.totalSales !== undefined && s.totalExpenses !== undefined) ? (s.totalSales - Math.abs(s.totalExpenses)) : 0;
                         const versement = sunday ? 0 : (s.totalVersements || 0);
