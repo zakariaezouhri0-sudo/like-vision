@@ -12,7 +12,9 @@ import {
   Calendar as CalendarIcon,
   MoreVertical,
   Trash2,
-  FileText
+  FileText,
+  User,
+  Clock
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -65,6 +67,14 @@ export default function CashSessionsPage() {
     } catch (e) { return dateStr; }
   };
 
+  const formatTime = (ts: any) => {
+    if (!ts) return "---";
+    try {
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return format(d, "HH:mm");
+    } catch (e) { return "---"; }
+  };
+
   const handleDeleteSession = async (id: string) => {
     if (!confirm("Supprimer cette session ?")) return;
     try {
@@ -84,7 +94,7 @@ export default function CashSessionsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions {isPrepaMode ? "(Brouillon)" : ""}</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique et vérification des écarts.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Suivi complet des ouvertures, clôtures et écarts.</p>
           </div>
         </div>
 
@@ -97,16 +107,19 @@ export default function CashSessionsPage() {
                   <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Chargement du journal...</span>
                 </div>
               ) : (
-                <Table>
+                <Table className="min-w-[1400px]">
                   <TableHeader className="bg-slate-50/80 border-b">
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Date & Statut</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Ouverte par</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Fermée par</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-2 py-6 tracking-widest">Horaires</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Initial</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-green-600">Ventes (+)</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-red-500">Dépenses (-)</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-orange-600">Versement (-)</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-primary">Théorique</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Réel (Compté)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Réel</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Écart</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Actions</TableHead>
                     </TableRow>
@@ -120,8 +133,8 @@ export default function CashSessionsPage() {
                         const expenses = s.totalExpenses || 0;
                         const versements = s.totalVersements || 0;
                         
-                        const theorique = sunday ? initial : (initial + sales - expenses - versements);
-                        const reel = sunday ? initial : (s.closingBalanceReal !== undefined ? s.closingBalanceReal : theorique);
+                        const theorique = initial + sales - expenses - versements;
+                        const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : theorique;
                         const discrepancy = reel - theorique;
 
                         return (
@@ -130,16 +143,35 @@ export default function CashSessionsPage() {
                             sunday && "bg-red-50 hover:bg-red-100/80"
                           )}>
                             <TableCell className="px-4 py-6">
-                              <div className={cn("flex items-center gap-3", sunday && "justify-center")}>
+                              <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-500" : "text-primary/40")} />
                                   <span className={cn("font-black text-sm tracking-tight", sunday ? "text-red-600" : "text-slate-800")}>
                                     {formatSessionDate(s.date)}
                                   </span>
                                 </div>
-                                {!sunday && (
-                                  <div className={cn("h-2 w-2 rounded-full", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-400")} />
-                                )}
+                                <div className={cn("h-2 w-2 rounded-full", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-400")} />
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-6">
+                              <div className="flex items-center gap-1.5">
+                                <User className="h-3 w-3 text-slate-300" />
+                                <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[80px]">{s.openedBy || "---"}</span>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-6">
+                              <div className="flex items-center gap-1.5">
+                                <User className="h-3 w-3 text-slate-300" />
+                                <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[80px]">{s.closedBy || "---"}</span>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-6">
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1 text-[9px] font-black text-green-600"><Clock className="h-2.5 w-2.5" /> {formatTime(s.openedAt)}</div>
+                                <div className="flex items-center gap-1 text-[9px] font-black text-red-500"><Clock className="h-2.5 w-2.5" /> {formatTime(s.closedAt)}</div>
                               </div>
                             </TableCell>
                             
@@ -148,15 +180,15 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-green-600">
-                              {sunday ? "---" : `+${formatCurrency(sales)}`}
+                              +{formatCurrency(sales)}
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-red-500">
-                              {sunday ? "---" : `-${formatCurrency(expenses)}`}
+                              -{formatCurrency(expenses)}
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-orange-600">
-                              {sunday ? "---" : `-${formatCurrency(versements)}`}
+                              -{formatCurrency(versements)}
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-primary/60">
@@ -168,14 +200,12 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="text-right px-2 py-6">
-                              {sunday ? <span className="text-[10px] font-bold text-slate-300">---</span> : (
-                                <div className={cn(
-                                  "font-black text-xs tabular-nums",
-                                  Math.abs(discrepancy) < 0.01 ? "text-green-600" : "text-destructive"
-                                )}>
-                                  {discrepancy > 0 ? "+" : ""}{formatCurrency(discrepancy)}
-                                </div>
-                              )}
+                              <div className={cn(
+                                "font-black text-xs tabular-nums",
+                                Math.abs(discrepancy) < 0.01 ? "text-green-600" : "text-destructive"
+                              )}>
+                                {discrepancy > 0 ? "+" : ""}{formatCurrency(discrepancy)}
+                              </div>
                             </TableCell>
 
                             <TableCell className="text-right px-4 py-6">
@@ -194,7 +224,7 @@ export default function CashSessionsPage() {
                         );
                       })
                     ) : (
-                      <TableRow><TableCell colSpan={9} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
