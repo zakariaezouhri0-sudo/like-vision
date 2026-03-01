@@ -82,13 +82,11 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Utilisation d'une requête simple pour éviter les problèmes d'index
   const allSessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
   const { data: allSessions } = useCollection(allSessionsQuery);
 
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
-      // Filtrage manuel pour éviter l'index
       const filtered = allSessions.filter(s => (isPrepaMode ? s.isDraft === true : s.isDraft !== true));
       const pastSessions = filtered
         .filter(s => s.date < dateStr && s.status === "CLOSED")
@@ -170,11 +168,13 @@ function CaisseContent() {
     setOpLoading(true);
     const amt = parseFloat(newOp.montant);
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
+    const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
+    
     try {
       const transRef = doc(collection(db, "transactions"));
       await setDoc(transRef, { 
         type: newOp.type, 
-        label: newOp.label || newOp.type, 
+        label: finalLabel, 
         clientName: newOp.clientName || "",
         category: "Général", 
         montant: finalAmount, 
@@ -204,10 +204,12 @@ function CaisseContent() {
     setOpLoading(true);
     const amt = parseFloat(editOp.montant);
     const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
+    const finalLabel = editOp.label || (editOp.type === "VERSEMENT" ? "BANQUE" : editOp.type);
+    
     try {
       await updateDoc(doc(db, "transactions", selectedTrans.id), {
         type: editOp.type,
-        label: editOp.label || editOp.type,
+        label: finalLabel,
         clientName: editOp.clientName || "",
         montant: finalAmount,
         updatedAt: serverTimestamp()
@@ -353,11 +355,11 @@ function CaisseContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Initial</p><p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Ouv.</p><p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance)}</p></Card>
         <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes</p><p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p></Card>
         <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses</p><p className="text-xl font-black text-red-500">-{formatCurrency(stats.depenses)}</p></Card>
         <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements</p><p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p></Card>
-        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Final Réel" : "Théorique"}</p><p className="text-xl font-black">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
+        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Clôt." : "Théorique"}</p><p className="text-xl font-black">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
       <Card className="rounded-[32px] overflow-hidden bg-white shadow-sm border-none">

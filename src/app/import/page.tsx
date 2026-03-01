@@ -25,7 +25,7 @@ const GLOBAL_FIELDS = [
   { key: "client_1", label: "Nom Client 1", section: "VENTES" },
   { key: "total_brut", label: "Total Brut", section: "VENTES" },
   { key: "avance_paye", label: "Avance Paye", section: "VENTES" },
-  { key: "avance_ante", label: "Avance Ante", section: "VENTES" },
+  { key: "avance_ante", label: "Avance Ante", section: "VERSEMENTS" },
   { key: "achat_verre_det", label: "ACHAT VERRE (DEtail)", section: "ACHATS" },
   { key: "nom_client_v", label: "NOM CLIENT (Verre)", section: "ACHATS" },
   { key: "montant_v", label: "MONTANT (Verre)", section: "ACHATS" },
@@ -162,7 +162,8 @@ export default function ImportPage() {
             salesGroups[ref] = {
               ref,
               clientName,
-              totalBrut: 0,
+              totalBrut: totalBrut,
+              totalPaidFromAvances: 0,
               payments: [],
               anteAmt: 0,
               earliestDate: null
@@ -171,7 +172,6 @@ export default function ImportPage() {
           
           if (totalBrut > 0) salesGroups[ref].totalBrut = totalBrut;
           
-          // Règle stricte : Avance Ante uniquement pour ventes du 01/01 au 10/01
           const startPeriod = new Date(2026, 0, 1);
           const endPeriod = new Date(2026, 0, 10, 23, 59, 59);
           const isAnteriorAllowed = row._parsedDate && row._parsedDate >= startPeriod && row._parsedDate <= endPeriod;
@@ -181,6 +181,7 @@ export default function ImportPage() {
           }
 
           if (avancePaye > 0 && row._parsedDate) {
+            salesGroups[ref].totalPaidFromAvances += avancePaye;
             salesGroups[ref].payments.push({
               amount: avancePaye,
               date: row._parsedDate,
@@ -203,13 +204,13 @@ export default function ImportPage() {
 
       for (const ref of sortedRefs) {
         const s = salesGroups[ref];
-        const totalPaid = s.payments.reduce((acc: number, p: any) => acc + p.amount, 0) + s.anteAmt;
-        const isFullyPaid = totalPaid >= s.totalBrut;
+        const totalPaidEffective = s.totalPaidFromAvances + s.anteAmt;
+        const isFullyPaid = totalPaidEffective >= s.totalBrut;
         
         await ensureClient(s.clientName, currentIsDraft);
         
         const docType = isFullyPaid ? "FC" : "RC";
-        const invoiceId = `${docType}-2026-${s.ref}`; // Format FC-2026-REF demandé
+        const invoiceId = `${docType}-2026-${s.ref}`;
         finalSalesMap[ref] = invoiceId;
 
         const allPayments = [...s.payments];
@@ -226,9 +227,9 @@ export default function ImportPage() {
           invoiceId, 
           clientName: s.clientName, 
           total: s.totalBrut, 
-          avance: totalPaid, 
-          reste: Math.max(0, s.totalBrut - totalPaid),
-          statut: isFullyPaid ? "Payé" : (totalPaid > 0 ? "Partiel" : "En attente"), 
+          avance: totalPaidEffective, 
+          reste: Math.max(0, s.totalBrut - totalPaidEffective),
+          statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), 
           isDraft: currentIsDraft, 
           createdAt: Timestamp.fromDate(setHours(s.earliestDate || new Date(2026, 0, 1), 12)), 
           createdBy: userName,
@@ -306,7 +307,7 @@ export default function ImportPage() {
           const verAmt = cleanNum(row[mapping.versement_mt]);
           if (verAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
-              type: "VERSEMENT", label: "VERSEMENT CAISSE", montant: -Math.abs(verAmt),
+              type: "VERSEMENT", label: "BANQUE", montant: -Math.abs(verAmt),
               isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
             dayVersements += verAmt;
