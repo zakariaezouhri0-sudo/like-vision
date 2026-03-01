@@ -15,7 +15,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays } from "date-fns";
+import { setHours, format, addDays, isSameDay, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type Mapping = Record<string, string>;
@@ -76,16 +76,19 @@ export default function ImportPage() {
           const wb = XLSX.read(bstr, { type: "binary", cellDates: true });
           setWorkbook(wb);
           
-          const firstSheet = wb.Sheets[wb.SheetNames[0]];
-          const headerRow = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })[0] as string[];
-          if (headerRow && headerRow.length > 0) {
-            setHeaders(headerRow.map(h => h?.toString().trim()));
-            const newMapping: Mapping = {};
-            GLOBAL_FIELDS.forEach(f => {
-              if (headerRow.includes(f.label)) newMapping[f.key] = f.label;
-            });
-            setMapping(newMapping);
-          }
+          let allHeaders: string[] = [];
+          wb.SheetNames.forEach(name => {
+            const sheet = wb.Sheets[name];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] as string[];
+            if (rows) allHeaders = Array.from(new Set([...allHeaders, ...rows.map(h => h?.toString().trim())]));
+          });
+          
+          setHeaders(allHeaders.filter(h => h));
+          const newMapping: Mapping = {};
+          GLOBAL_FIELDS.forEach(f => {
+            if (allHeaders.includes(f.label)) newMapping[f.key] = f.label;
+          });
+          setMapping(newMapping);
         } catch (err) {
           toast({ variant: "destructive", title: "Erreur de lecture" });
         }
@@ -115,12 +118,8 @@ export default function ImportPage() {
     const snap = await getDocs(q);
     if (snap.empty) {
       await addDoc(collection(db, "clients"), {
-        name,
-        phone: "",
-        mutuelle: "Aucun",
-        isDraft,
-        createdAt: Timestamp.now(),
-        ordersCount: 1,
+        name, phone: "", mutuelle: "Aucun", isDraft, 
+        createdAt: Timestamp.now(), ordersCount: 1, 
         lastVisit: format(new Date(), "dd/MM/yyyy")
       });
     }
@@ -133,13 +132,19 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let runningBalance = cleanNum(startingBalance);
 
-    const counterDocPath = currentIsDraft ? "counters_draft" : "counters";
-    const counterRef = doc(db, "settings", counterDocPath);
+    const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
     const counterSnap = await getDoc(counterRef);
     let globalCounters = counterSnap.exists() ? counterSnap.data() as any : { fc: 0, rc: 0 };
 
     try {
-      // On boucle du 01 Janvier au 28 Février 2026 (59 jours)
+      // 1. Extraire TOUTES les lignes de TOUTES les feuilles
+      let allRows: any[] = [];
+      workbook.SheetNames.forEach(sheetName => {
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
+      });
+
+      // 2. Boucler du 01 Janvier au 28 Février 2026
       const totalDays = 59;
       const startDate = new Date(2026, 0, 1);
 
@@ -158,96 +163,97 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Chercher la feuille correspondante dans l'Excel
-        // On cherche par numéro de jour (01, 02...) ou nom de mois
-        const dayPart = format(currentDate, "dd");
-        const monthPart = format(currentDate, "MM");
-        const sheetName = workbook.SheetNames.find(n => 
-          n === dayPart || 
-          n.includes(`${dayPart}-${monthPart}`) || 
-          n.toLowerCase().includes(format(currentDate, "MMMM", { locale: fr }).toLowerCase())
-        );
-        
-        if (sheetName) {
-          const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
-          for (const row of rawData) {
-            const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
+        // Filtrer les lignes pour CE jour précis
+        const dayRows = allRows.filter(row => {
+          const rowDateVal = row[mapping.date_col];
+          if (rowDateVal) {
+            let d: Date;
+            if (rowDateVal instanceof Date) d = rowDateVal;
+            else d = parse(rowDateVal.toString(), "dd/MM/yyyy", new Date());
+            return isSameDay(d, currentDate);
+          }
+          // Si pas de colonne date, on essaie de deviner par le nom de la feuille
+          const sheet = row._sheet?.toString();
+          return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM");
+        });
 
-            // 1. VENTES
-            const clientName = (row[mapping.client_1] || "").toString().trim();
-            const totalVal = cleanNum(row[mapping.total_brut]);
-            if (clientName && totalVal > 0) {
-              await ensureClient(clientName, currentIsDraft);
-              const currentAvance = cleanNum(row[mapping.avance_paye]);
-              const historicalAvance = cleanNum(row[mapping.avance_ante]);
-              const totalAvance = currentAvance + historicalAvance;
-              const isPaid = totalAvance >= totalVal;
-              
-              if (isPaid) globalCounters.fc++; else globalCounters.rc++;
-              const docType = isPaid ? "FC" : "RC";
-              const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${docType}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
+        for (const row of dayRows) {
+          const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-              await setDoc(doc(collection(db, "sales")), {
-                invoiceId, clientName, total: totalVal, avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
-                statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
-                payments: [
-                  { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
-                  { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Acompte Jour" }
-                ]
-              });
+          // A. VENTES
+          const clientName = (row[mapping.client_1] || "").toString().trim();
+          const totalVal = cleanNum(row[mapping.total_brut]);
+          if (clientName && totalVal > 0) {
+            await ensureClient(clientName, currentIsDraft);
+            const currentAvance = cleanNum(row[mapping.avance_paye]);
+            const historicalAvance = cleanNum(row[mapping.avance_ante]);
+            const totalAvance = currentAvance + historicalAvance;
+            const isPaid = totalAvance >= totalVal;
+            
+            if (isPaid) globalCounters.fc++; else globalCounters.rc++;
+            const docType = isPaid ? "FC" : "RC";
+            const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${docType}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
 
-              if (currentAvance > 0) {
-                await setDoc(doc(collection(db, "transactions")), {
-                  type: "VENTE", label: invoiceId, clientName, montant: currentAvance, 
-                  isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
-                });
-                daySales += currentAvance;
-              }
-            }
+            await setDoc(doc(collection(db, "sales")), {
+              invoiceId, clientName, total: totalVal, avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
+              statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
+              payments: [
+                { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
+                { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Acompte Jour" }
+              ]
+            });
 
-            // 2. ACHAT VERRES
-            const vAmt = cleanNum(row[mapping.montant_v]);
-            if (vAmt > 0) {
-              const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
-              const cName = (row[mapping.nom_client_v] || "").toString().trim();
+            if (currentAvance > 0) {
               await setDoc(doc(collection(db, "transactions")), {
-                type: "ACHAT VERRES", label, clientName: cName,
-                montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+                type: "VENTE", label: invoiceId, clientName, montant: currentAvance, 
+                isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
               });
-              dayExpenses += vAmt;
+              daySales += currentAvance;
             }
+          }
 
-            // 3. ACHAT MONTURE
-            const mAmt = cleanNum(row[mapping.montant_m]);
-            if (mAmt > 0) {
-              const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
-              const cName = (row[mapping.nom_client_m] || "").toString().trim();
-              await setDoc(doc(collection(db, "transactions")), {
-                type: "ACHAT MONTURE", label, clientName: cName,
-                montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-              });
-              dayExpenses += mAmt;
-            }
+          // B. ACHATS VERRES
+          const vAmt = cleanNum(row[mapping.montant_v]);
+          if (vAmt > 0) {
+            const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
+            const cName = (row[mapping.nom_client_v] || "").toString().trim();
+            await setDoc(doc(collection(db, "transactions")), {
+              type: "ACHAT VERRES", label, clientName: cName,
+              montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            });
+            dayExpenses += vAmt;
+          }
 
-            // 4. DEPENSES
-            const dAmt = cleanNum(row[mapping.montant_dep]);
-            if (dAmt > 0) {
-              await setDoc(doc(collection(db, "transactions")), {
-                type: "DEPENSE", label: (row[mapping.libelle_dep] || "CHARGE").toString().trim(),
-                montant: -Math.abs(dAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-              });
-              dayExpenses += dAmt;
-            }
+          // C. ACHATS MONTURES
+          const mAmt = cleanNum(row[mapping.montant_m]);
+          if (mAmt > 0) {
+            const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
+            const cName = (row[mapping.nom_client_m] || "").toString().trim();
+            await setDoc(doc(collection(db, "transactions")), {
+              type: "ACHAT MONTURE", label, clientName: cName,
+              montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            });
+            dayExpenses += mAmt;
+          }
 
-            // 5. VERSEMENTS
-            const verAmt = cleanNum(row[mapping.versement_mt]);
-            if (verAmt > 0) {
-              await setDoc(doc(collection(db, "transactions")), {
-                type: "VERSEMENT", label: "VERSEMENT CAISSE", montant: -Math.abs(verAmt),
-                isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-              });
-              dayVersements += verAmt;
-            }
+          // D. DEPENSES
+          const dAmt = cleanNum(row[mapping.montant_dep]);
+          if (dAmt > 0) {
+            await setDoc(doc(collection(db, "transactions")), {
+              type: "DEPENSE", label: (row[mapping.libelle_dep] || "CHARGE").toString().trim(),
+              montant: -Math.abs(dAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            });
+            dayExpenses += dAmt;
+          }
+
+          // E. VERSEMENTS
+          const verAmt = cleanNum(row[mapping.versement_mt]);
+          if (verAmt > 0) {
+            await setDoc(doc(collection(db, "transactions")), {
+              type: "VERSEMENT", label: "VERSEMENT CAISSE", montant: -Math.abs(verAmt),
+              isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            });
+            dayVersements += verAmt;
           }
         }
 
@@ -295,7 +301,7 @@ export default function ImportPage() {
           <Card className="rounded-[32px] bg-white shadow-lg border-none">
             <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial au 01/01</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance === "0" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance === "0" || startingBalance === "0.00" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 
