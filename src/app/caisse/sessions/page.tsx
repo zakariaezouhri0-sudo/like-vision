@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -117,14 +116,14 @@ export default function CashSessionsPage() {
                 <Table className="min-w-[1200px]">
                   <TableHeader className="bg-slate-50/50 border-b">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400">Date & Statut</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Ouverture</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Fonds Initial</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">FLUX (Net)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-orange-500">Versement</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Fonds Final</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Clôture</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400">Actions</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Date & Statut</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Ouverture</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Fonds Initial</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">FLUX (Net)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-orange-500 whitespace-nowrap">Versement</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Fonds Final</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Clôture</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400 whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
