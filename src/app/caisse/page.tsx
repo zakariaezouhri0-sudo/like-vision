@@ -24,7 +24,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
-import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format, setHours, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -83,8 +83,8 @@ function CaisseContent() {
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
-      where("status", "==", "CLOSED"),
-      where("isDraft", "==", isPrepaMode)
+      where("isDraft", "==", isPrepaMode),
+      orderBy("date", "desc")
     );
   }, [db, isPrepaMode]);
   const { data: allSessions } = useCollection(lastSessionQuery);
@@ -92,7 +92,7 @@ function CaisseContent() {
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
       const pastSessions = [...allSessions]
-        .filter(s => s.date < dateStr)
+        .filter(s => s.date < dateStr && s.status === "CLOSED")
         .sort((a, b) => b.date.localeCompare(a.date));
       
       if (pastSessions.length > 0) {
@@ -111,7 +111,11 @@ function CaisseContent() {
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
-    return query(collection(db, "transactions"), where("createdAt", ">=", Timestamp.fromDate(start)), where("createdAt", "<=", Timestamp.fromDate(end)));
+    return query(
+      collection(db, "transactions"), 
+      where("createdAt", ">=", Timestamp.fromDate(start)), 
+      where("createdAt", "<=", Timestamp.fromDate(end))
+    );
   }, [db, selectedDate]);
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transactionsQuery);
 
@@ -255,7 +259,7 @@ function CaisseContent() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant === "0" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
@@ -305,7 +309,7 @@ function CaisseContent() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
-              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération & Client</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
+              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération & Détails</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {loadingTrans ? (

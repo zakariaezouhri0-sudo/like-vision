@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Download, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, setDoc, getDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, setMinutes, setSeconds, startOfDay, endOfDay, addDays, format, isSunday } from "date-fns";
+import { setHours, format, addDays } from "date-fns";
+import { fr } from "date-fns/locale";
 
 type Mapping = Record<string, string>;
 
@@ -108,6 +109,23 @@ export default function ImportPage() {
     return isNaN(p) ? 0 : p;
   };
 
+  const ensureClient = async (name: string, isDraft: boolean) => {
+    if (!name) return;
+    const q = query(collection(db, "clients"), where("name", "==", name), where("isDraft", "==", isDraft));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      await addDoc(collection(db, "clients"), {
+        name,
+        phone: "",
+        mutuelle: "Aucun",
+        isDraft,
+        createdAt: Timestamp.now(),
+        ordersCount: 1,
+        lastVisit: format(new Date(), "dd/MM/yyyy")
+      });
+    }
+  };
+
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
     setIsProcessing(true);
@@ -121,12 +139,16 @@ export default function ImportPage() {
     let globalCounters = counterSnap.exists() ? counterSnap.data() as any : { fc: 0, rc: 0 };
 
     try {
-      // On boucle sur les 31 jours de Janvier 2026
-      for (let day = 1; day <= 31; day++) {
-        const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
-        const currentDate = new Date(2026, 0, day);
-        setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: require('date-fns/locale').fr }));
-        setProgress(Math.round((day / 31) * 100));
+      // On boucle du 01 Janvier au 28 Février 2026 (59 jours)
+      const totalDays = 59;
+      const startDate = new Date(2026, 0, 1);
+
+      for (let i = 0; i < totalDays; i++) {
+        const currentDate = addDays(startDate, i);
+        const dateStr = format(currentDate, "yyyy-MM-dd");
+        
+        setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: fr }));
+        setProgress(Math.round(((i + 1) / totalDays) * 100));
 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
         const sessionRef = doc(db, "cash_sessions", sessionId);
@@ -136,8 +158,15 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Chercher la feuille correspondante dans l'Excel (ex: "05", "Janvier 05", etc)
-        const sheetName = workbook.SheetNames.find(n => n.includes(day.toString().padStart(2, '0')) || n === day.toString());
+        // Chercher la feuille correspondante dans l'Excel
+        // On cherche par numéro de jour (01, 02...) ou nom de mois
+        const dayPart = format(currentDate, "dd");
+        const monthPart = format(currentDate, "MM");
+        const sheetName = workbook.SheetNames.find(n => 
+          n === dayPart || 
+          n.includes(`${dayPart}-${monthPart}`) || 
+          n.toLowerCase().includes(format(currentDate, "MMMM", { locale: fr }).toLowerCase())
+        );
         
         if (sheetName) {
           const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
@@ -148,6 +177,7 @@ export default function ImportPage() {
             const clientName = (row[mapping.client_1] || "").toString().trim();
             const totalVal = cleanNum(row[mapping.total_brut]);
             if (clientName && totalVal > 0) {
+              await ensureClient(clientName, currentIsDraft);
               const currentAvance = cleanNum(row[mapping.avance_paye]);
               const historicalAvance = cleanNum(row[mapping.avance_ante]);
               const totalAvance = currentAvance + historicalAvance;
@@ -179,8 +209,9 @@ export default function ImportPage() {
             const vAmt = cleanNum(row[mapping.montant_v]);
             if (vAmt > 0) {
               const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
+              const cName = (row[mapping.nom_client_v] || "").toString().trim();
               await setDoc(doc(collection(db, "transactions")), {
-                type: "ACHAT VERRES", label, clientName: (row[mapping.nom_client_v] || "").toString().trim(),
+                type: "ACHAT VERRES", label, clientName: cName,
                 montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
               });
               dayExpenses += vAmt;
@@ -190,8 +221,9 @@ export default function ImportPage() {
             const mAmt = cleanNum(row[mapping.montant_m]);
             if (mAmt > 0) {
               const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
+              const cName = (row[mapping.nom_client_m] || "").toString().trim();
               await setDoc(doc(collection(db, "transactions")), {
-                type: "ACHAT MONTURE", label, clientName: (row[mapping.nom_client_m] || "").toString().trim(),
+                type: "ACHAT MONTURE", label, clientName: cName,
                 montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
               });
               dayExpenses += mAmt;
@@ -235,7 +267,7 @@ export default function ImportPage() {
       }
 
       await setDoc(counterRef, globalCounters);
-      toast({ variant: "success", title: "Importation terminée avec succès" });
+      toast({ variant: "success", title: "Importation terminée" });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -251,8 +283,8 @@ export default function ImportPage() {
       <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Janvier</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Génération automatique des 31 sessions.</p>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Janvier & Février 2026 - Création automatique.</p>
           </div>
           <Button variant="outline" onClick={downloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm">
             <Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL
@@ -263,7 +295,7 @@ export default function ImportPage() {
           <Card className="rounded-[32px] bg-white shadow-lg border-none">
             <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial au 01/01</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance === "0" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 
