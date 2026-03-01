@@ -62,6 +62,17 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+  /* Masquer les flèches d'incrémentation (spinners) pour Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Masquer les flèches d'incrémentation (spinners) pour Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
 }
 
 /* Print Specific Styles */
