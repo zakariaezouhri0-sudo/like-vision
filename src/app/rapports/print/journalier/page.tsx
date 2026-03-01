@@ -242,7 +242,7 @@ function DailyCashReportContent() {
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             {s.label && <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label}</span>}
-                            {s.clientName && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
+                            {s.clientName && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[11px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
@@ -251,7 +251,7 @@ function DailyCashReportContent() {
                         <td className="p-2 text-center align-middle">
                           {sale && (
                             <span className={cn(
-                              "text-[8px] px-2 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
+                              "text-[9px] px-2 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
                               sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                             )}>
                               {sale.statut}
@@ -282,14 +282,13 @@ function DailyCashReportContent() {
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Désignation / Nature</th>
-                      <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">LIBELLE</th>
-                      <th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>
+                      <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Désignation / Nature</th>
+                      <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">LIBELLE</th>
+                      <th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => {
-                      // Nettoyage intelligent du libellé pour éviter les répétitions
                       const isAchat = e.type === "ACHAT MONTURE" || e.type === "ACHAT VERRES";
                       const rawLabel = e.label || "";
                       const typeWord = e.type === "ACHAT MONTURE" ? "monture" : "verres";
@@ -299,17 +298,17 @@ function DailyCashReportContent() {
 
                       return (
                         <tr key={e.id} className="hover:bg-slate-50">
-                          <td className="p-2 align-middle text-left">
+                          <td className="p-1 align-middle text-left">
                             <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">
                               {isAchat ? `${e.type} | ${cleanedLabel}` : e.label}
                             </span>
                           </td>
-                          <td className="p-2 text-left align-middle">
+                          <td className="p-1 text-left align-middle">
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter whitespace-nowrap">
                               {e.clientName || "---"}
                             </span>
                           </td>
-                          <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[12px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
+                          <td className="p-1 text-right font-black text-slate-950 tabular-nums text-[12px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
                         </tr>
                       );
                     }) : (
@@ -333,15 +332,15 @@ function DailyCashReportContent() {
                   <table className="w-full border-collapse">
                     <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
                       <tr>
-                        <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">Désignation</th>
-                        <th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>
+                        <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Désignation</th>
+                        <th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {reportData.versements.map((v: any) => (
                         <tr key={v.id} className="hover:bg-slate-50">
-                          <td className="p-2 text-[11px] font-bold text-slate-900 uppercase leading-tight align-middle">{v.label}</td>
-                          <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[12px] align-middle">-{formatCurrency(Math.abs(v.montant))}</td>
+                          <td className="p-1 text-[11px] font-bold text-slate-900 uppercase leading-tight align-middle">{v.label}</td>
+                          <td className="p-1 text-right font-black text-slate-950 tabular-nums text-[12px] align-middle">-{formatCurrency(Math.abs(v.montant))}</td>
                         </tr>
                       ))}
                     </tbody>
