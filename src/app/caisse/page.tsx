@@ -232,7 +232,7 @@ function CaisseContent() {
             </div>
             {!isAutoReport && (
               <div className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
-                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
+                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Initialisation requise"}
               </div>
             )}
           </div>
@@ -325,7 +325,7 @@ function CaisseContent() {
               {loadingTrans ? (
                 <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
               ) : transactions.length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black opacity-20">Aucune opération pour cette journée.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black opacity-20">Aucune opération enregistrée.</TableCell></TableRow>
               ) : (
                 transactions.map((t: any) => (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">

@@ -19,6 +19,23 @@ import { format, setHours, setMinutes, setSeconds, parseISO, isValid } from "dat
 
 type Mapping = Record<string, string>;
 
+const GLOBAL_FIELDS = [
+  { key: "date_col", label: "DATE (Colonne)", section: "GÉNÉRAL" },
+  { key: "client_1", label: "Nom Client 1", section: "VENTES" },
+  { key: "total_brut", label: "Total Brut", section: "VENTES" },
+  { key: "avance_paye", label: "Avance Paye", section: "VENTES" },
+  { key: "avance_ante", label: "Avance Ante", section: "VENTES" },
+  { key: "achat_verre_det", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
+  { key: "nom_client_v", label: "NOM CLIENT (Verre)", section: "ACHATS" },
+  { key: "montant_v", label: "MONTANT (Verre)", section: "ACHATS" },
+  { key: "achat_mont_det", label: "ACHAT MONTURE (Détail)", section: "ACHATS" },
+  { key: "nom_client_m", label: "NOM CLIENT (Monture)", section: "ACHATS" },
+  { key: "montant_m", label: "MONTANT (Monture)", section: "ACHATS" },
+  { key: "libelle_dep", label: "LIBELLE (Dépense)", section: "CHARGES" },
+  { key: "montant_dep", label: "MONTANT (Dépense)", section: "CHARGES" },
+  { key: "versement_mt", label: "VERSEMENT (Montant)", section: "VERSEMENTS" }
+];
+
 export default function ImportPage() {
   const { toast } = useToast();
   const db = useFirestore();
@@ -47,23 +64,6 @@ export default function ImportPage() {
   const [currentDayLabel, setCurrentDayLabel] = useState("");
   const [startingBalance, setStartingBalance] = useState<string>("");
 
-  const GLOBAL_FIELDS = [
-    { key: "rowDate", label: "DATE (Colonne)", section: "GÉNÉRAL" },
-    { key: "clientName", label: "Nom Client 1", section: "VENTES" },
-    { key: "total", label: "Total Brut", section: "VENTES" },
-    { key: "avance", label: "Avance Paye", section: "VENTES" },
-    { key: "historicalAdvance", label: "Avance Ante", section: "VENTES" },
-    { key: "glassType", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
-    { key: "glassClient", label: "NOM CLIENT (Verre)", section: "ACHATS" },
-    { key: "glassAmount", label: "MONTANT (Verre)", section: "ACHATS" },
-    { key: "frameType", label: "ACHAT MONTURE (Détail)", section: "ACHATS" },
-    { key: "frameClient", label: "NOM CLIENT (Monture)", section: "ACHATS" },
-    { key: "frameAmount", label: "MONTANT (Monture)", section: "ACHATS" },
-    { key: "expenseLabel", label: "LIBELLE (Dépense)", section: "CHARGES" },
-    { key: "expenseAmount", label: "MONTANT (Dépense)", section: "CHARGES" },
-    { key: "versementAmount", label: "VERSEMENT (Montant)", section: "VERSEMENTS" }
-  ];
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -81,7 +81,6 @@ export default function ImportPage() {
             const fileHeaders = Object.keys(jsonData[0] as object);
             setHeaders(fileHeaders);
             
-            // Auto-mapping
             const newMapping: Mapping = {};
             GLOBAL_FIELDS.forEach(f => {
               if (fileHeaders.includes(f.label)) {
@@ -91,7 +90,7 @@ export default function ImportPage() {
             setMapping(newMapping);
           }
         } catch (err) {
-          toast({ variant: "destructive", title: "Erreur de lecture du fichier Excel" });
+          toast({ variant: "destructive", title: "Erreur de lecture du fichier" });
         }
       };
       reader.readAsBinaryString(selectedFile);
@@ -104,7 +103,7 @@ export default function ImportPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Modele_Import");
     XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
-    toast({ title: "Modèle téléchargé", description: "Utilisez ce fichier pour préparer vos données." });
+    toast({ title: "Modèle téléchargé" });
   };
 
   const cleanNum = (val: any): number => {
@@ -171,52 +170,34 @@ export default function ImportPage() {
         await setDoc(sessionRef, {
           date: dateStr,
           isDraft: currentIsDraft,
-          status: "OPEN",
+          status: "CLOSED",
           openedAt: openTime,
+          closedAt: closeTime,
           openedBy: userName,
+          closedBy: userName,
           openingBalance: initialBalance
         }, { merge: true });
 
         for (const row of rawData) {
-          const rowDate = parseRowDate(row[mapping.rowDate], sheetDate);
+          const rowDate = parseRowDate(row[mapping.date_col], sheetDate);
           const rowTimestamp = Timestamp.fromDate(rowDate);
 
-          // 1. TRAITEMENT DES VENTES
-          const clientNameRaw = row[mapping.clientName];
-          const totalRaw = row[mapping.total];
-          
+          // 1. VENTES
+          const clientNameRaw = row[mapping.client_1];
+          const totalRaw = row[mapping.total_brut];
           if (clientNameRaw && totalRaw !== undefined) {
             const clientName = clientNameRaw.toString().trim();
             const totalVal = cleanNum(totalRaw);
-            const currentAvance = cleanNum(row[mapping.avance]);
-            const historicalAvance = cleanNum(row[mapping.historicalAdvance]);
+            const currentAvance = cleanNum(row[mapping.avance_paye]);
+            const historicalAvance = cleanNum(row[mapping.avance_ante]);
             const totalAvance = currentAvance + historicalAvance;
             
             const isPaid = totalAvance >= totalVal;
             const prefix = currentIsDraft ? "PREPA-" : "";
-            
             if (isPaid) globalCounters.fc++; else globalCounters.rc++;
             const docType = isPaid ? "FC" : "RC";
             const seqNum = isPaid ? globalCounters.fc : globalCounters.rc;
             const invoiceId = `${prefix}${docType}-2026-${seqNum.toString().padStart(4, '0')}`;
-
-            const normalizedName = clientName.toUpperCase().trim();
-            if (!importSessionClients.has(normalizedName)) {
-              const clientQ = query(collection(db, "clients"), where("name", "==", clientName), where("isDraft", "==", currentIsDraft), limit(1));
-              const clientSnap = await getDocs(clientQ);
-              
-              if (clientSnap.empty) {
-                const newClientRef = doc(collection(db, "clients"));
-                await setDoc(newClientRef, {
-                  name: clientName, phone: "", mutuelle: "Aucun",
-                  lastVisit: format(rowDate, "dd/MM/yyyy"),
-                  ordersCount: 1, isDraft: currentIsDraft, createdAt: rowTimestamp
-                }, { merge: true });
-                importSessionClients.set(normalizedName, newClientRef.id);
-              } else {
-                importSessionClients.set(normalizedName, clientSnap.docs[0].id);
-              }
-            }
 
             const saleRef = doc(collection(db, "sales"));
             await setDoc(saleRef, {
@@ -226,7 +207,7 @@ export default function ImportPage() {
               isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
               payments: [
                 { amount: historicalAvance, date: rowDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
-                { amount: currentAvance, date: rowDate.toISOString(), userName: "Import", note: "Journée" }
+                { amount: currentAvance, date: rowDate.toISOString(), userName: "Import", note: "Acompte Jour" }
               ]
             }, { merge: true });
 
@@ -241,11 +222,11 @@ export default function ImportPage() {
             }
           }
 
-          // 2. TRAITEMENT ACHAT VERRES
-          const glassAmount = cleanNum(row[mapping.glassAmount]);
+          // 2. ACHAT VERRES
+          const glassAmount = cleanNum(row[mapping.montant_v]);
           if (glassAmount > 0) {
-            const client = (row[mapping.glassClient] || "").toString().trim();
-            const detail = (row[mapping.glassType] || "ACHAT VERRES").toString().trim();
+            const client = (row[mapping.nom_client_v] || "").toString().trim();
+            const detail = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "ACHAT VERRES", label: detail, clientName: client,
@@ -254,11 +235,11 @@ export default function ImportPage() {
             dayExpensesTotal += glassAmount;
           }
 
-          // 3. TRAITEMENT ACHAT MONTURE
-          const frameAmount = cleanNum(row[mapping.frameAmount]);
+          // 3. ACHAT MONTURE
+          const frameAmount = cleanNum(row[mapping.montant_m]);
           if (frameAmount > 0) {
-            const client = (row[mapping.frameClient] || "").toString().trim();
-            const detail = (row[mapping.frameType] || "ACHAT MONTURE").toString().trim();
+            const client = (row[mapping.nom_client_m] || "").toString().trim();
+            const detail = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "ACHAT MONTURE", label: detail, clientName: client,
@@ -267,10 +248,10 @@ export default function ImportPage() {
             dayExpensesTotal += frameAmount;
           }
 
-          // 4. TRAITEMENT AUTRES DEPENSES
-          const expenseAmount = cleanNum(row[mapping.expenseAmount]);
+          // 4. DEPENSES AUTRES
+          const expenseAmount = cleanNum(row[mapping.montant_dep]);
           if (expenseAmount > 0) {
-            const label = (row[mapping.expenseLabel] || "AUTRE CHARGE").toString().trim();
+            const label = (row[mapping.libelle_dep] || "AUTRE CHARGE").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "DEPENSE", label: label,
@@ -279,8 +260,8 @@ export default function ImportPage() {
             dayExpensesTotal += expenseAmount;
           }
 
-          // 5. TRAITEMENT DES VERSEMENTS
-          const versementAmount = cleanNum(row[mapping.versementAmount]);
+          // 5. VERSEMENTS
+          const versementAmount = cleanNum(row[mapping.versement_mt]);
           if (versementAmount > 0) {
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
@@ -294,17 +275,15 @@ export default function ImportPage() {
         currentBalance = initialBalance + daySalesTotal - dayExpensesTotal - dayVersementsTotal;
 
         await setDoc(sessionRef, {
-          status: "CLOSED", closedAt: closeTime, closedBy: userName,
           totalSales: daySalesTotal, totalExpenses: dayExpensesTotal, totalVersements: dayVersementsTotal,
-          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0,
-          isDraft: currentIsDraft
+          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0
         }, { merge: true });
 
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
       await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Terminé", description: "L'importation de Janvier est terminée avec une répartition précise." });
+      toast({ variant: "success", title: "Importation Janvier Terminée" });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -321,13 +300,9 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe par colonnes Excel.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation calibrée sur votre structure Excel.</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={downloadTemplate} 
-            className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-primary/5"
-          >
+          <Button variant="outline" onClick={downloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm">
             <Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL
           </Button>
         </div>
@@ -346,7 +321,7 @@ export default function ImportPage() {
               <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
                 <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"><FileSpreadsheet className="h-8 w-8 text-primary" /></div>
-                <h3 className="text-sm font-black text-slate-800 uppercase">{file ? file.name : "Sélectionner le fichier"}</h3>
+                <h3 className="text-sm font-black text-slate-800 uppercase">{file ? file.name : "Choisir l'Excel"}</h3>
                 {workbook && (<p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full">{workbook.SheetNames.length} FEUILLES TROUVÉES</p>)}
               </div>
             </CardContent>
@@ -358,7 +333,7 @@ export default function ImportPage() {
             <CardHeader className="bg-primary text-white p-8">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-xl font-black uppercase">Mapping des Colonnes</CardTitle>
-                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt"}</div>
+                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt pour Janvier"}</div>
               </div>
             </CardHeader>
             <CardContent className="p-8">
@@ -376,8 +351,8 @@ export default function ImportPage() {
                   </div>
                 ))}
               </div>
-              <Button onClick={handleImportGlobal} disabled={isProcessing || !file} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl bg-primary mt-10 hover:scale-[1.01] transition-transform">
-                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "LANCER L'IMPORTATION JANVIER"}
+              <Button onClick={handleImportGlobal} disabled={isProcessing || !file} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl bg-primary mt-10">
+                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "LANCER L'IMPORTATION"}
               </Button>
             </CardContent>
           </Card>
