@@ -59,19 +59,19 @@ function NewSaleForm() {
   
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
-  const [total, setTotal] = useState<number | string>(searchParams.get("total") || "");
+  const [total, setTotal] = useState<string>(searchParams.get("total") || "");
   const [discountType, setDiscountType] = useState<"percent" | "amount">(searchParams.get("discountType") as any || "percent");
-  const [discountValue, setDiscountValue] = useState<number | string>(searchParams.get("discountValue") || "");
+  const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") || "");
   
-  const [historicalAdvance, setHistoricalAdvance] = useState<number | string>("");
-  const [avance, setAvance] = useState<number | string>(searchParams.get("avance") || "");
+  const [historicalAdvance, setHistoricalAdvance] = useState<string>("");
+  const [avance, setAvance] = useState<string>(searchParams.get("avance") || "");
   
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   
-  const [purchasePriceFrame, setPurchasePriceFrame] = useState<number | string>(searchParams.get("purchasePriceFrame") || "");
-  const [purchasePriceLenses, setPurchasePriceLenses] = useState<number | string>(searchParams.get("purchasePriceLenses") || "");
+  const [purchasePriceFrame, setPurchasePriceFrame] = useState<string>(searchParams.get("purchasePriceFrame") || "");
+  const [purchasePriceLenses, setPurchasePriceLenses] = useState<string>(searchParams.get("purchasePriceLenses") || "");
 
   const [prescription, setPrescription] = useState({
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
@@ -133,7 +133,7 @@ function NewSaleForm() {
     return () => clearTimeout(timer);
   }, [clientPhone, db, searchParams, isPrepaMode, role]);
 
-  const cleanVal = (val: string | number) => {
+  const cleanVal = (val: string | number): number => {
     if (typeof val === 'number') return val;
     if (!val) return 0;
     const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
@@ -389,7 +389,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
                   <Label className="text-[10px] font-black uppercase text-primary tracking-widest shrink-0">Prix Brut</Label>
                   <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
-                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" value={total} onChange={(e) => setTotal(e.target.value)} />
+                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" placeholder="0" value={total} onChange={(e) => setTotal(e.target.value)} />
                     <span className="text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
@@ -405,7 +405,7 @@ function NewSaleForm() {
                     </Tabs>
                   </div>
                   <div className="flex items-center gap-2 bg-white rounded-2xl p-4 shadow-sm">
-                    <input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg tabular-nums" type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+                    <input className="w-full h-8 text-right text-slate-950 font-black bg-transparent outline-none text-lg tabular-nums" type="number" placeholder="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
                     <span className="text-[9px] font-black text-slate-400">{discountType === 'percent' ? '%' : 'DH'}</span>
                   </div>
                 </div>
@@ -422,7 +422,7 @@ function NewSaleForm() {
                       <p className="text-[8px] font-bold text-accent uppercase">Historique</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
-                      <input className="w-full max-w-[100px] h-8 text-right font-black bg-transparent text-white outline-none text-lg tabular-nums" type="number" value={historicalAdvance} onChange={(e) => setHistoricalAdvance(e.target.value)} placeholder="0" />
+                      <input className="w-full max-w-[100px] h-8 text-right font-black bg-transparent text-white outline-none text-lg tabular-nums" type="number" placeholder="0" value={historicalAdvance} onChange={(e) => setHistoricalAdvance(e.target.value)} />
                       <span className="text-[9px] font-black text-white/20">DH</span>
                     </div>
                   </div>
@@ -435,7 +435,7 @@ function NewSaleForm() {
                 <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
                   <Label className="text-primary text-[10px] font-black uppercase tracking-widest shrink-0">Versé ce jour</Label>
                   <div className="flex items-center gap-1.5 flex-1 justify-end ml-4">
-                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" value={avance} onChange={(e) => setAvance(e.target.value)} />
+                    <input className="w-full max-w-[120px] h-8 text-right font-black bg-transparent text-slate-950 outline-none text-lg tabular-nums" type="number" placeholder="0" value={avance} onChange={(e) => setAvance(e.target.value)} />
                     <span className="text-[9px] font-black text-slate-400">DH</span>
                   </div>
                 </div>
@@ -451,14 +451,14 @@ function NewSaleForm() {
                     <div className="bg-white/5 p-3 rounded-xl border border-white/10">
                       <Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Monture</Label>
                       <div className="flex items-center gap-1">
-                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(e.target.value)} />
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" placeholder="0" value={purchasePriceFrame} onChange={(e) => setPurchasePriceFrame(e.target.value)} />
                         <span className="text-[8px] font-black text-white/20">DH</span>
                       </div>
                     </div>
                     <div className="bg-white/5 p-3 rounded-xl border border-white/10">
                       <Label className="text-[8px] font-black uppercase text-white/60 block mb-1">Verres</Label>
                       <div className="flex items-center gap-1">
-                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(e.target.value)} />
+                        <input className="w-full h-6 text-right font-bold bg-transparent text-white outline-none text-sm tabular-nums" type="number" placeholder="0" value={purchasePriceLenses} onChange={(e) => setPurchasePriceLenses(e.target.value)} />
                         <span className="text-[8px] font-black text-white/20">DH</span>
                       </div>
                     </div>

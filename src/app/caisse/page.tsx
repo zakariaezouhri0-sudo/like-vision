@@ -49,7 +49,7 @@ function CaisseContent() {
   
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("");
-  const [openingVal, setOpeningVal] = useState("0");
+  const [openingVal, setOpeningVal] = useState("");
   const [isAutoReport, setIsAutoReport] = useState(false);
   const [lastSessionDate, setLastSessionDate] = useState<string>("");
 
@@ -114,7 +114,7 @@ function CaisseContent() {
         setLastSessionDate(lastSessions[0].date);
       }
     } else if (!session) {
-      setOpeningVal("0");
+      setOpeningVal("");
       setIsAutoReport(false);
       setLastSessionDate("");
     }
@@ -139,7 +139,7 @@ function CaisseContent() {
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
   
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
@@ -371,6 +371,7 @@ function CaisseContent() {
                   isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
                 )}
                 value={openingVal} 
+                placeholder="0"
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                 readOnly={isAutoReport}
               />
@@ -492,7 +493,7 @@ function CaisseContent() {
                       {DENOMINATIONS.map(val => (
                         <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                           <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                          <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" value={denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                          <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" placeholder="0" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
                           <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
                         </div>
                       ))}
@@ -627,7 +628,7 @@ function CaisseContent() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" value={editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
+                <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0" value={editingTransaction.montant_raw === "0" ? "" : editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-orange-600">Motif de la modification (Obligatoire)</Label>

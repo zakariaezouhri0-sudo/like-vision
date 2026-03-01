@@ -38,7 +38,6 @@ export default function UnpaidSalesPage() {
 
   const isPrepaMode = role === "PREPA";
 
-  // Récupération globale pour filtrage en mémoire (plus robuste sans index)
   const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
@@ -96,7 +95,6 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        // Bascule de RC vers FC si payé
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
@@ -288,7 +286,8 @@ export default function UnpaidSalesPage() {
                 <input 
                   type="number" 
                   className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                  value={paymentAmount} 
+                  value={paymentAmount === "0" ? "" : paymentAmount} 
+                  placeholder="0"
                   onChange={(e) => setPaymentAmount(e.target.value)} 
                   autoFocus 
                 />

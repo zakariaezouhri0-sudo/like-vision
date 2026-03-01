@@ -45,7 +45,7 @@ export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentDayLabel, setCurrentDayLabel] = useState("");
-  const [startingBalance, setStartingBalance] = useState<string>("0");
+  const [startingBalance, setStartingBalance] = useState<string>("");
 
   const GLOBAL_FIELDS = [
     { key: "clientName", label: "Nom Client (Vente)", section: "VENTES" },
@@ -122,11 +122,10 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour depuis le nom de la feuille
+        // Extraction précise du jour depuis le nom de la feuille (doit être un nombre 1-31)
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
         if (sheetNumbers && sheetNumbers.length > 0) {
-          // On prend le dernier nombre trouvé dans le nom (souvent le jour si format AAAA-MM-JJ)
           const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
           if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
         }
@@ -211,7 +210,7 @@ export default function ImportPage() {
                 statut: isPaid ? "Payé" : "Partiel",
                 isDraft: currentIsDraft, createdAt: openTime, createdBy: userName,
                 payments: [
-                  { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Ancien" },
+                  { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
                   { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
                 ]
               }, { merge: true });
@@ -319,7 +318,7 @@ export default function ImportPage() {
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Caisse au 01/01/2026 (DH)</Label>
-                <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+                <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="0" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
               </div>
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase"><CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> Les clients seront automatiquement créés de manière étanche.</p></div>
             </CardContent>
