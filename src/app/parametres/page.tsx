@@ -73,7 +73,8 @@ export default function SettingsPage() {
   const handleSyncToReal = async () => {
     setIsSyncing(true);
     try {
-      // 1. Synchronisation des documents simples
+      // 1. Synchronisation des documents (Ventes, Transactions, Clients)
+      // On passe simplement le flag isDraft à false sans toucher aux IDs ni aux numéros
       const collectionsToSync = ["sales", "transactions", "clients"];
       for (const collName of collectionsToSync) {
         const q = query(collection(db, collName), where("isDraft", "==", true));
@@ -92,25 +93,20 @@ export default function SettingsPage() {
         }
       }
 
-      // 2. Sessions de caisse (changement d'ID car le mode draft utilise un préfixe)
+      // 2. Sessions de caisse
       const qSessions = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
       const snapSessions = await getDocs(qSessions);
       for (const d of snapSessions.docs) {
         const data = d.data();
         const realId = data.date; 
         if (realId) {
+          // On recrée la session sans le préfixe DRAFT- et on supprime l'ancienne
           await setDoc(doc(db, "cash_sessions", realId), { ...data, isDraft: false });
           await deleteDoc(d.ref);
         }
       }
 
-      // 3. Synchronisation des compteurs de facturation
-      const draftCounterSnap = await getDoc(doc(db, "settings", "counters_draft"));
-      if (draftCounterSnap.exists()) {
-        await setDoc(doc(db, "settings", "counters"), draftCounterSnap.data(), { merge: true });
-      }
-
-      toast({ variant: "success", title: "Synchronisation terminée", description: "Les données sont maintenant en mode réel." });
+      toast({ variant: "success", title: "Synchronisation terminée", description: "Les données sont maintenant en mode réel (Numérotation préservée)." });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur de synchronisation" });
     } finally {
@@ -237,7 +233,7 @@ export default function SettingsPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-xl font-black text-primary uppercase">Confirmer la publication ?</AlertDialogTitle>
                       <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                        Toutes vos saisies effectuées en compte `prepa` vont être transférées définitivement dans le compte `réel`. Cette action est recommandée après avoir terminé l'importation de l'historique.
+                        Toutes vos saisies effectuées en compte `prepa` vont être transférées définitivement dans le compte `réel`. Les numéros de factures et reçus seront conservés tels quels.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="pt-6">
