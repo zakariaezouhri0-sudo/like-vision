@@ -149,13 +149,13 @@ export default function CashSessionsPage() {
                                 <div className="h-10 w-10 rounded-xl bg-white border border-slate-100 text-primary/40 flex items-center justify-center shrink-0 shadow-sm">
                                   <CalendarIcon className="h-5 w-5" />
                                 </div>
-                                <div>
-                                  <span className="font-black text-sm tracking-tight block uppercase text-slate-800 leading-none">
+                                <div className="flex flex-col justify-center">
+                                  <span className="font-black text-sm tracking-tight block uppercase text-slate-800 leading-none whitespace-nowrap">
                                     {formatSessionDate(s.date)}
                                   </span>
-                                  <div className="flex items-center gap-1.5 mt-1.5">
-                                    <div className={cn("h-1.5 w-1.5 rounded-full", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                                    <span className={cn("text-[8px] font-black uppercase tracking-widest", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
+                                  <div className="flex items-center gap-1.5 mt-1.5 leading-none">
+                                    <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                                    <span className={cn("text-[8px] font-black uppercase tracking-widest whitespace-nowrap", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                       {s.status === "OPEN" ? "En cours" : "Clôturée"}
                                     </span>
                                   </div>
