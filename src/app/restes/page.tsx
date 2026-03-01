@@ -38,7 +38,7 @@ export default function UnpaidSalesPage() {
 
   const isPrepaMode = role === "PREPA";
 
-  // Requête simplifiée
+  // Récupération globale pour filtrage en mémoire (plus robuste sans index)
   const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
@@ -47,15 +47,12 @@ export default function UnpaidSalesPage() {
     
     return sales
       .filter((sale: any) => {
-        // Isolation par mode
         const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
         if (!matchesMode) return false;
 
-        // Uniquement les restes > 0
         const hasReste = (sale.reste || 0) > 0;
         if (!hasReste) return false;
 
-        // Recherche
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || 
           (sale.clientName || "").toLowerCase().includes(search) || 
@@ -99,6 +96,7 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
+        // Bascule de RC vers FC si payé
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
@@ -170,7 +168,6 @@ export default function UnpaidSalesPage() {
 
       setSelectedSale(null);
     } catch (err) {
-      console.error(err);
       toast({ variant: "destructive", title: "Erreur de transaction" });
     } finally {
       setIsProcessing(false);
@@ -219,45 +216,47 @@ export default function UnpaidSalesPage() {
                         <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
                       </TableCell>
                     </TableRow>
-                  ) : filteredSales.length > 0 ? filteredSales.map((sale: any) => (
-                    <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
-                      <TableCell className="px-3 md:px-6 py-4 md:py-5">
-                        <div className="flex flex-col min-w-[140px]">
-                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
-                            <Calendar className="h-2.5 w-2.5" />
-                            {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
+                  ) : filteredSales.length > 0 ? (
+                    filteredSales.map((sale: any) => (
+                      <TableRow key={sale.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                        <TableCell className="px-3 md:px-6 py-4 md:py-5">
+                          <div className="flex flex-col min-w-[140px]">
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
+                              <Calendar className="h-2.5 w-2.5" />
+                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
+                            </div>
+                            <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
+                              {sale.clientName}
+                            </span>
                           </div>
-                          <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">
-                            {sale.clientName}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                        <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
-                      </TableCell>
-                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                        <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
-                      </TableCell>
-                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                        <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
-                      </TableCell>
-                      <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
-                        <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
-                      </TableCell>
-                      <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
-                        <Button 
-                          onClick={() => handleOpenPayment(sale)} 
-                          size="sm"
-                          className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
-                        >
-                          <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )) : (
+                        </TableCell>
+                        <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                          <span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span>
+                        </TableCell>
+                        <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
+                          <Button 
+                            onClick={() => handleOpenPayment(sale)} 
+                            size="sm"
+                            className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
+                          >
+                            <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">
-                        Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
+                      <TableCell colSpan={6} className="text-center py-24">
+                        <p className="text-xs font-black uppercase opacity-20 tracking-widest">Aucun reste à régler trouvé {isPrepaMode ? "en brouillon" : "en réel"}.</p>
                       </TableCell>
                     </TableRow>
                   )}

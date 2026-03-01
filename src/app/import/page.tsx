@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, setDoc, query, getDocs, where, limit, increment, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, query, getDocs, getDoc, where, limit, increment, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
@@ -105,6 +105,15 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
+    // Initialisation des compteurs pour des IDs propres (FC-2026-0001)
+    const counterDocPath = currentIsDraft ? "counters_draft" : "counters";
+    const counterRef = doc(db, "settings", counterDocPath);
+    const counterSnap = await getDoc(counterRef);
+    let globalCounters = { fc: 0, rc: 0 };
+    if (counterSnap.exists()) {
+      globalCounters = counterSnap.data() as any;
+    }
+
     // Tri numérique des feuilles
     const sheetNames = [...workbook.SheetNames].sort((a, b) => {
       const na = parseInt(a.replace(/\D/g, '')) || 0;
@@ -119,25 +128,13 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
+        // Extraction robuste du jour
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
-        
         if (sheetNumbers && sheetNumbers.length > 0) {
-          // Si le nom ressemble à une date (2026-01-30), on prend le DERNIER nombre comme jour
-          if (sheetNumbers.length >= 3) {
-            const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
-            if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
-          } else {
-            // Sinon on cherche le premier nombre entre 1 et 31
-            const dayMatch = sheetNumbers.find(num => {
-              const n = parseInt(num);
-              return n >= 1 && n <= 31;
-            });
-            if (dayMatch) day = parseInt(dayMatch);
-          }
+          const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
+          if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
         }
-
-        // On sature le jour à 31 au max
         day = Math.min(31, Math.max(1, day));
 
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
@@ -176,12 +173,14 @@ export default function ImportPage() {
               const historicalAvance = cleanNum(row[mapping.historicalAdvance]);
               const totalAvance = currentAvance + historicalAvance;
               
-              const prefix = currentIsDraft ? "PREPA-" : "";
               const isPaid = totalAvance >= totalVal;
+              const prefix = currentIsDraft ? "PREPA-" : "";
+              
+              // Génération d'ID séquentiel propre
+              if (isPaid) globalCounters.fc++; else globalCounters.rc++;
               const docType = isPaid ? "FC" : "RC";
-              // ID unique pour éviter l'erreur "Document already exists"
-              const uniqueSuffix = Math.random().toString(36).substr(2, 4).toUpperCase();
-              const invoiceId = `${prefix}${docType}-2026-J${day.toString().padStart(2, '0')}-${uniqueSuffix}`;
+              const seqNum = isPaid ? globalCounters.fc : globalCounters.rc;
+              const invoiceId = `${prefix}${docType}-2026-${seqNum.toString().padStart(4, '0')}`;
 
               const normalizedName = clientName.toUpperCase().trim();
               if (!importSessionClients.has(normalizedName)) {
@@ -294,6 +293,9 @@ export default function ImportPage() {
 
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
+
+      // Mise à jour finale des compteurs globaux pour la suite manuelle
+      await setDoc(counterRef, globalCounters, { merge: true });
 
       toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec succès." });
       router.push("/caisse/sessions");

@@ -74,26 +74,18 @@ export default function CashSessionsPage() {
   const formatSessionDate = (dateStr: string) => {
     if (!dateStr) return "Date inconnue";
     try {
-      // Sécurité : On ne garde que les 10 premiers caractères (YYYY-MM-DD)
+      // Nettoyage strict pour éviter les bugs de concaténation (ex: 2026-01-3001)
       const cleanDate = dateStr.substring(0, 10);
-      const match = cleanDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      
-      if (match) {
-        const year = parseInt(match[1]);
-        const month = parseInt(match[2]);
-        const day = parseInt(match[3]);
+      const parts = cleanDate.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
           const formatted = format(d, "dd MMMM yyyy", { locale: fr });
-          // Mettre la première lettre du mois en majuscule pour correspondre à "01 Janvier 2026"
           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
-      }
-      
-      const d = new Date(cleanDate);
-      if (!isNaN(d.getTime())) {
-        const formatted = format(d, "dd MMMM yyyy", { locale: fr });
-        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
       }
       return cleanDate;
     } catch (e) {

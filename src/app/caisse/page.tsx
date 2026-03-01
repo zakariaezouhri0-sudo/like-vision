@@ -383,7 +383,8 @@ function CaisseContent() {
             </div>
             {!isAutoReport && (
               <div className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
-                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" /> {isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}
+                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" />
+                <span>{isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}</span>
               </div>
             )}
           </div>
