@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, getDoc } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [isCleaning, setIsCleaning] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isCleaningClients, setIsCleaningClients] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
@@ -70,6 +70,54 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSyncToReal = async () => {
+    setIsSyncing(true);
+    try {
+      // 1. Synchronisation des documents simples
+      const collectionsToSync = ["sales", "transactions", "clients"];
+      for (const collName of collectionsToSync) {
+        const q = query(collection(db, collName), where("isDraft", "==", true));
+        const snap = await getDocs(q);
+        if (snap.empty) continue;
+        
+        const chunks = [];
+        for (let i = 0; i < snap.docs.length; i += 500) {
+          chunks.push(snap.docs.slice(i, i + 500));
+        }
+
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.update(d.ref, { isDraft: false }));
+          await batch.commit();
+        }
+      }
+
+      // 2. Sessions de caisse (changement d'ID car le mode draft utilise un préfixe)
+      const qSessions = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
+      const snapSessions = await getDocs(qSessions);
+      for (const d of snapSessions.docs) {
+        const data = d.data();
+        const realId = data.date; 
+        if (realId) {
+          await setDoc(doc(db, "cash_sessions", realId), { ...data, isDraft: false });
+          await deleteDoc(d.ref);
+        }
+      }
+
+      // 3. Synchronisation des compteurs de facturation
+      const draftCounterSnap = await getDoc(doc(db, "settings", "counters_draft"));
+      if (draftCounterSnap.exists()) {
+        await setDoc(doc(db, "settings", "counters"), draftCounterSnap.data(), { merge: true });
+      }
+
+      toast({ variant: "success", title: "Synchronisation terminée", description: "Les données sont maintenant en mode réel." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur de synchronisation" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleResetAllData = async () => {
     setIsResetting(true);
     try {
@@ -105,7 +153,6 @@ export default function SettingsPage() {
   const handleCleanRealClients = async () => {
     setIsCleaningClients(true);
     try {
-      // Nettoyage ciblé : Uniquement les clients qui n'ont PAS isDraft = true
       const q = query(collection(db, "clients"));
       const snap = await getDocs(q);
       const realClients = snap.docs.filter(d => d.data().isDraft !== true);
@@ -115,7 +162,6 @@ export default function SettingsPage() {
         return;
       }
 
-      // Traitement par lots de 500 pour respecter les limites Firestore
       const chunks = [];
       for (let i = 0; i < realClients.length; i += 500) {
         chunks.push(realClients.slice(i, i + 500));
@@ -164,6 +210,42 @@ export default function SettingsPage() {
                   }
                 }} />
                 <Button variant="outline" className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white" onClick={() => fileInputRef.current?.click()}>IMPORTER</Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-blue-50 border-blue-100">
+              <CardHeader className="bg-blue-100/50 border-b p-6">
+                <CardTitle className="text-[11px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
+                  <RefreshCcw className="h-4 w-4" /> Synchronisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <p className="text-[9px] font-black text-blue-600 uppercase leading-relaxed tracking-wider">
+                  Publier les données préparées
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      disabled={isSyncing}
+                      className="w-full h-14 rounded-xl bg-blue-600 font-black text-[10px] uppercase shadow-lg shadow-blue-100"
+                    >
+                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+                      Synchroniser vers le Réel
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-[32px] p-8">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-xl font-black text-primary uppercase">Confirmer la publication ?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
+                        Toutes vos saisies effectuées en compte `prepa` vont être transférées définitivement dans le compte `réel`. Cette action est recommandée après avoir terminé l'importation de l'historique.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="pt-6">
+                      <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer la synchro</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
 
