@@ -82,18 +82,15 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  const allSessionsQuery = useMemoFirebase(() => {
-    return query(
-      collection(db, "cash_sessions"),
-      where("isDraft", "==", isPrepaMode),
-      orderBy("date", "desc")
-    );
-  }, [db, isPrepaMode]);
+  // Utilisation d'une requête simple pour éviter les problèmes d'index
+  const allSessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
   const { data: allSessions } = useCollection(allSessionsQuery);
 
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
-      const pastSessions = [...allSessions]
+      // Filtrage manuel pour éviter l'index
+      const filtered = allSessions.filter(s => (isPrepaMode ? s.isDraft === true : s.isDraft !== true));
+      const pastSessions = filtered
         .filter(s => s.date < dateStr && s.status === "CLOSED")
         .sort((a, b) => b.date.localeCompare(a.date));
       
@@ -108,7 +105,7 @@ function CaisseContent() {
       setOpeningVal("");
       setIsAutoReport(false);
     }
-  }, [allSessions, session, dateStr]);
+  }, [allSessions, session, dateStr, isPrepaMode]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -245,7 +242,7 @@ function CaisseContent() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
-        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-orange-500" : "bg-primary")}>
+        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-orange-50" : "bg-primary")}>
           <CalendarCheck className="h-12 w-12" />
         </div>
         <div className="space-y-4">
