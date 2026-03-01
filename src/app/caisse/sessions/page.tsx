@@ -100,12 +100,15 @@ export default function CashSessionsPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/80 border-b">
                     <TableRow>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Date & Statut</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Initial</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest text-primary">Calcul Théorique</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Réel (Compté)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Écart</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Actions</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Date & Statut</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Initial</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-green-600">Ventes (+)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-red-500">Dépenses (-)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-orange-600">Versement (-)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-primary">Théorique</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Réel (Compté)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Écart</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -117,7 +120,6 @@ export default function CashSessionsPage() {
                         const expenses = s.totalExpenses || 0;
                         const versements = s.totalVersements || 0;
                         
-                        // Calcul théorique : Initial + Ventes - Dépenses - Versements
                         const theorique = sunday ? initial : (initial + sales - expenses - versements);
                         const reel = sunday ? initial : (s.closingBalanceReal !== undefined ? s.closingBalanceReal : theorique);
                         const discrepancy = reel - theorique;
@@ -127,7 +129,7 @@ export default function CashSessionsPage() {
                             "hover:bg-primary/5 border-b last:border-0 transition-all",
                             sunday && "bg-red-50 hover:bg-red-100/80"
                           )}>
-                            <TableCell className="px-6 py-6">
+                            <TableCell className="px-4 py-6">
                               <div className={cn("flex items-center gap-3", sunday && "justify-center")}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-500" : "text-primary/40")} />
@@ -141,22 +143,34 @@ export default function CashSessionsPage() {
                               </div>
                             </TableCell>
                             
-                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-400">
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-400">
                               {formatCurrency(initial)}
                             </TableCell>
 
-                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-primary/60">
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-green-600">
+                              {sunday ? "---" : `+${formatCurrency(sales)}`}
+                            </TableCell>
+
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-red-500">
+                              {sunday ? "---" : `-${formatCurrency(expenses)}`}
+                            </TableCell>
+
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-orange-600">
+                              {sunday ? "---" : `-${formatCurrency(versements)}`}
+                            </TableCell>
+
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-primary/60">
                               {formatCurrency(theorique)}
                             </TableCell>
 
-                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-900">
+                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-900">
                               {formatCurrency(reel)}
                             </TableCell>
 
-                            <TableCell className="text-right px-6 py-6">
+                            <TableCell className="text-right px-2 py-6">
                               {sunday ? <span className="text-[10px] font-bold text-slate-300">---</span> : (
                                 <div className={cn(
-                                  "font-black text-sm tabular-nums",
+                                  "font-black text-xs tabular-nums",
                                   Math.abs(discrepancy) < 0.01 ? "text-green-600" : "text-destructive"
                                 )}>
                                   {discrepancy > 0 ? "+" : ""}{formatCurrency(discrepancy)}
@@ -164,7 +178,7 @@ export default function CashSessionsPage() {
                               )}
                             </TableCell>
 
-                            <TableCell className="text-right px-6 py-6">
+                            <TableCell className="text-right px-4 py-6">
                               <div className="flex items-center justify-end gap-2">
                                 <Button variant="outline" size="sm" onClick={() => router.push(`/caisse?date=${s.date}`)} className="h-9 px-4 rounded-xl font-black text-[10px] uppercase border-primary text-primary">Détails</Button>
                                 <DropdownMenu modal={false}>
@@ -180,7 +194,7 @@ export default function CashSessionsPage() {
                         );
                       })
                     ) : (
-                      <TableRow><TableCell colSpan={6} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
