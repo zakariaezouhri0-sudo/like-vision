@@ -244,27 +244,27 @@ function DailyCashReportContent() {
                     const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
-                        <td className="p-2">
+                        <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums align-middle">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
+                        <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{s.type} {s.label ? `| ${s.label}` : ''}</span>
                             {s.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{s.clientName}</span>}
                           </div>
                         </td>
-                        <td className="p-2 text-right font-bold text-slate-600 tabular-nums text-[9px]">{sale ? formatCurrency(totalNet) : "---"}</td>
-                        <td className="p-2 text-right font-bold text-green-600 tabular-nums text-[9px]">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
-                        <td className="p-2 text-right font-bold text-destructive tabular-nums text-[9px]">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
-                        <td className="p-2 text-center">
+                        <td className="p-2 text-right font-bold text-slate-600 tabular-nums text-[9px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
+                        <td className="p-2 text-right font-bold text-green-600 tabular-nums text-[9px] align-middle">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
+                        <td className="p-2 text-right font-bold text-destructive tabular-nums text-[9px] align-middle">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
+                        <td className="p-2 text-center align-middle">
                           {sale && (
                             <span className={cn(
-                              "text-[7px] px-1.5 py-0.5 rounded font-black uppercase",
+                              "text-[7px] px-1.5 py-0.5 rounded font-black uppercase leading-none relative -top-[1px] inline-flex items-center justify-center",
                               sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                             )}>
                               {sale.statut}
                             </span>
                           )}
                         </td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[10px]">+{formatCurrency(Math.abs(s.montant))}</td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[10px] align-middle">+{formatCurrency(Math.abs(s.montant))}</td>
                       </tr>
                     );
                   }) : (
@@ -295,13 +295,13 @@ function DailyCashReportContent() {
                   <tbody className="divide-y divide-slate-100">
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
-                        <td className="p-2">
+                        <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-900 uppercase leading-tight">{e.type} {e.label ? `| ${e.label}` : ''}</span>
                             {e.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{e.clientName}</span>}
                           </div>
                         </td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px]">-{formatCurrency(Math.abs(e.montant))}</td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
                       </tr>
                     )) : (
                       <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic text-[8px]">Aucune dépense.</td></tr>
@@ -331,8 +331,8 @@ function DailyCashReportContent() {
                     <tbody className="divide-y divide-slate-100">
                       {reportData.versements.map((v: any) => (
                         <tr key={v.id} className="hover:bg-slate-50">
-                          <td className="p-2 text-[9px] font-bold text-slate-900 uppercase leading-tight">{v.label}</td>
-                          <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px]">-{formatCurrency(Math.abs(v.montant))}</td>
+                          <td className="p-2 text-[9px] font-bold text-slate-900 uppercase leading-tight align-middle">{v.label}</td>
+                          <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px] align-middle">-{formatCurrency(Math.abs(v.montant))}</td>
                         </tr>
                       ))}
                     </tbody>
