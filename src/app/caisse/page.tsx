@@ -25,15 +25,14 @@ import {
   Calendar as CalendarIcon, 
   CalendarDays,
   MessageSquare,
-  Info,
   CalendarCheck
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, limit, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { startOfDay, endOfDay, format, setHours, setMinutes, setSeconds } from "date-fns";
+import { startOfDay, endOfDay, format, setHours, setMinutes, setSeconds, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -63,18 +62,15 @@ function CaisseContent() {
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const selectedDate = useMemo(() => {
-    if (!isPrepaMode) return new Date();
-
     const dateParam = searchParams.get("date");
     if (dateParam) {
       try {
-        const [y, m, d] = dateParam.split('-').map(Number);
-        const date = new Date(y, m - 1, d);
-        if (!isNaN(date.getTime())) return date;
+        const d = parseISO(dateParam);
+        if (!isNaN(d.getTime())) return d;
       } catch (e) {}
     }
     return new Date();
-  }, [searchParams, isPrepaMode]);
+  }, [searchParams]);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
@@ -88,48 +84,46 @@ function CaisseContent() {
 
   const session = useMemo(() => {
     if (!rawSession) return null;
-    const sessionIsDraft = rawSession.isDraft === true;
-    if (isPrepaMode !== sessionIsDraft) return null;
+    if (isPrepaMode !== (rawSession.isDraft === true)) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
+  // Récupération du dernier solde disponible pour le report
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
       where("status", "==", "CLOSED"),
-      where("isDraft", "==", isPrepaMode),
-      where("date", "<", dateStr),
-      orderBy("date", "desc"),
-      limit(1)
+      where("isDraft", "==", isPrepaMode)
     );
-  }, [db, isPrepaMode, dateStr]);
-  const { data: lastSessions } = useCollection(lastSessionQuery);
+  }, [db, isPrepaMode]);
+  const { data: allSessions } = useCollection(lastSessionQuery);
 
   useEffect(() => {
-    if (!session && lastSessions && lastSessions.length > 0) {
-      const lastClosing = lastSessions[0].closingBalanceReal;
-      if (lastClosing !== undefined) {
-        setOpeningVal(lastClosing.toString());
-        setIsAutoReport(true);
-        setLastSessionDate(lastSessions[0].date);
+    if (!session && allSessions && allSessions.length > 0) {
+      const pastSessions = allSessions
+        .filter(s => s.date < dateStr)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      
+      if (pastSessions.length > 0) {
+        const lastClosing = pastSessions[0].closingBalanceReal;
+        if (lastClosing !== undefined) {
+          setOpeningVal(lastClosing.toString());
+          setIsAutoReport(true);
+          setLastSessionDate(pastSessions[0].date);
+        }
       }
     } else if (!session) {
       setOpeningVal("");
       setIsAutoReport(false);
       setLastSessionDate("");
     }
-  }, [lastSessions, session]);
+  }, [allSessions, session, dateStr]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
-    return query(
-      collection(db, "transactions"), 
-      where("createdAt", ">=", Timestamp.fromDate(start)),
-      where("createdAt", "<=", Timestamp.fromDate(end))
-    );
+    return query(collection(db, "transactions"), where("createdAt", ">=", Timestamp.fromDate(start)), where("createdAt", "<=", Timestamp.fromDate(end)));
   }, [db, selectedDate]);
-  
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transactionsQuery);
 
   const transactions = useMemo(() => {
@@ -151,9 +145,9 @@ function CaisseContent() {
   const stats = useMemo(() => {
     return transactions.reduce((acc: any, t: any) => {
       const amt = Math.abs(Number(t.montant) || 0);
-      if (t.type === "VENTE") { acc.entrees += amt; } 
-      else if (t.type === "VERSEMENT") { acc.versements += amt; } 
-      else { acc.depenses += amt; }
+      if (t.type === "VENTE") acc.entrees += amt;
+      else if (t.type === "VERSEMENT") acc.versements += amt;
+      else acc.depenses += amt;
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
   }, [transactions]);
@@ -163,193 +157,60 @@ function CaisseContent() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleOpenSession = async () => {
-    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
-    const currentIsDraft = freshRole === "PREPA";
-
+    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     try {
       setOpLoading(true);
-      let openedAt;
-      if (currentIsDraft) {
-        const d = setSeconds(setMinutes(setHours(selectedDate, 10), 0), 0);
-        openedAt = Timestamp.fromDate(d);
-      } else {
-        openedAt = serverTimestamp();
-      }
-
-      await setDoc(sessionRef, { 
-        openingBalance: parseFloat(openingVal) || 0, 
-        status: "OPEN", 
-        openedAt: openedAt, 
-        date: dateStr,
-        openedBy: user?.displayName || "Inconnu", 
-        isDraft: currentIsDraft 
-      });
+      const openedAt = currentIsDraft ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
+      await setDoc(sessionRef, { openingBalance: parseFloat(openingVal) || 0, status: "OPEN", openedAt, date: dateStr, openedBy: user?.displayName || "Inconnu", isDraft: currentIsDraft });
       toast({ variant: "success", title: "Caisse Ouverte" });
-    } catch (e) { 
-      toast({ variant: "destructive", title: "Erreur lors de l'ouverture" }); 
-    } finally { 
-      setOpLoading(false); 
-    }
-  };
-
-  const handleDeleteCurrentSession = async () => {
-    if (!confirm("Voulez-vous vraiment SUPPRIMER cette session ?")) return;
-    setOpLoading(true);
-    try {
-      await deleteDoc(sessionRef);
-      toast({ variant: "success", title: "Session supprimée" });
-      window.location.reload();
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur" });
-    } finally {
-      setOpLoading(false);
-    }
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
-    
-    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
-    const currentIsDraft = freshRole === "PREPA";
-
+    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     setOpLoading(true);
     const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
-    
-    let finalLabel = newOp.label || newOp.type;
-    if (newOp.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
-      finalLabel = `ACHAT VERRES - ${finalLabel}`;
-    }
-    if (newOp.type === "ACHAT MONTURE" && !finalLabel.toUpperCase().startsWith("ACHAT MONTURE")) {
-      finalLabel = `ACHAT MONTURE - ${finalLabel}`;
-    }
-
-    const transData = {
-      type: newOp.type, 
-      label: finalLabel, 
-      category: "Général", 
-      montant: finalAmount,
-      userName: user?.displayName || "Inconnu", 
-      isDraft: currentIsDraft, 
-      createdAt: serverTimestamp()
-    };
     try {
       const transRef = doc(collection(db, "transactions"));
-      await setDoc(transRef, transData, { merge: true });
+      await setDoc(transRef, { type: newOp.type, label: newOp.label || newOp.type, category: "Général", montant: finalAmount, userName: user?.displayName || "Inconnu", isDraft: currentIsDraft, createdAt: serverTimestamp() });
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
       setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
-  const handleUpdateOperation = async () => {
-    if (!editingTransaction) return;
-    if (!editingTransaction.editReason) {
-      toast({ variant: "destructive", title: "Motif requis", description: "Veuillez expliquer pourquoi vous modifiez cette opération." });
-      return;
-    }
-    setOpLoading(true);
-    const transRef = doc(db, "transactions", editingTransaction.id);
-    const finalAmount = editingTransaction.type === "VENTE" ? Math.abs(parseFloat(editingTransaction.montant_raw)) : -Math.abs(parseFloat(editingTransaction.montant_raw));
-    
-    let finalLabel = editingTransaction.label;
-    if (editingTransaction.type === "ACHAT VERRES" && !finalLabel.toUpperCase().startsWith("ACHAT VERRES")) {
-      finalLabel = `ACHAT VERRES - ${finalLabel}`;
-    }
-    if (editingTransaction.type === "ACHAT MONTURE" && !finalLabel.toUpperCase().startsWith("ACHAT MONTURE")) {
-      finalLabel = `ACHAT MONTURE - ${finalLabel}`;
-    }
-
-    try {
-      await updateDoc(transRef, { 
-        type: editingTransaction.type, 
-        label: finalLabel, 
-        montant: finalAmount,
-        lastEditReason: editingTransaction.editReason,
-        lastEditedBy: user?.displayName || "Inconnu",
-        updatedAt: serverTimestamp()
-      });
-      toast({ variant: "success", title: "Mis à jour avec succès" });
-      setEditingTransaction(null);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
-  };
-
   const handleFinalizeClosure = async () => {
-    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
-    const currentIsDraft = freshRole === "PREPA";
-
+    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     try {
       setOpLoading(true);
-      let closedAt;
-      if (currentIsDraft) {
-        const d = setSeconds(setMinutes(setHours(selectedDate, 20), 0), 0);
-        closedAt = Timestamp.fromDate(d);
-      } else {
-        closedAt = serverTimestamp();
-      }
-
-      await updateDoc(sessionRef, {
-        status: "CLOSED", 
-        closedAt: closedAt, 
-        closingBalanceReal: soldeReel, 
-        closingBalanceTheoretical: soldeTheorique,
-        discrepancy: ecart, 
-        closedBy: user?.displayName || "Inconnu", 
-        totalSales: stats.entrees, 
-        totalExpenses: stats.depenses, 
-        totalVersements: stats.versements,
-        isDraft: currentIsDraft
-      });
+      const closedAt = currentIsDraft ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
+      await updateDoc(sessionRef, { status: "CLOSED", closedAt, closingBalanceReal: soldeReel, closingBalanceTheoretical: soldeTheorique, discrepancy: ecart, closedBy: user?.displayName || "Inconnu", totalSales: stats.entrees, totalExpenses: stats.depenses, totalVersements: stats.versements, isDraft: currentIsDraft });
       router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
-  if (!isClientReady || sessionLoading) return <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  if (!isClientReady || sessionLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
-        <div className={cn(
-          "h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3",
-          isPrepaMode ? "bg-orange-500" : "bg-primary"
-        )}>
+        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-orange-500" : "bg-primary")}>
           <CalendarCheck className="h-12 w-12" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">
-            Ouverture {isPrepaMode ? "Historique" : "Caisse"}
-          </h1>
+          <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date du jour</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
               <p className="text-xl font-black text-primary">
-                {(() => {
-                  const formatted = format(selectedDate, "dd MMMM yyyy", { locale: fr });
-                  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-                })()}
+                {format(selectedDate, "dd MMMM yyyy", { locale: fr }).split(' ').map((w,i)=>i===1?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ')}
               </p>
             </div>
-            
             {isPrepaMode && (
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white transition-all">
-                    <CalendarIcon className="mr-2 h-4 w-4" /> 1. CHOISIR UNE AUTRE DATE
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
-                  <Calendar 
-                    mode="single" 
-                    selected={selectedDate} 
-                    onSelect={(d) => {
-                      if (d) {
-                        const newDateStr = format(d, "yyyy-MM-dd");
-                        router.push(`/caisse?date=${newDateStr}`);
-                      }
-                    }} 
-                    locale={fr} 
-                    initialFocus 
-                  />
-                </PopoverContent>
+                <PopoverTrigger asChild><Button variant="outline" className="h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white transition-all"><CalendarIcon className="mr-2 h-4 w-4" /> CHOISIR UNE AUTRE DATE</Button></PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus /></PopoverContent>
               </Popover>
             )}
           </div>
@@ -357,53 +218,22 @@ function CaisseContent() {
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl border-none">
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{isPrepaMode ? "2. Solde Initial" : "Solde de départ"}</Label>
-              {isAutoReport && (
-                <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> Report du {(() => {
-                    if (!lastSessionDate) return "---";
-                    const parts = lastSessionDate.split('-');
-                    return `${parts[2]}/${parts[1]}`;
-                  })()}
-                </Badge>
-              )}
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial (DH)</Label>
+              {isAutoReport && <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100">Report auto</Badge>}
             </div>
-            <div className="relative group">
+            <div className="relative">
               <input 
                 type="number" 
-                className={cn(
-                  "w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none tabular-nums transition-all",
-                  isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
-                )}
+                className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
                 value={openingVal === "0" ? "" : openingVal} 
                 placeholder="0"
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                 readOnly={isAutoReport}
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
-              {isAutoReport && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/60 rounded-3xl pointer-events-none">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-white px-4 py-2 rounded-full shadow-lg border">Verrouillé (Report auto)</span>
-                </div>
-              )}
             </div>
-            {!isAutoReport && (
-              <div className="text-[9px] font-bold text-orange-600 uppercase flex items-center gap-1.5 justify-center mt-2">
-                <div className="h-1.5 w-1.5 bg-orange-500 rounded-full animate-pulse" />
-                <span>{isPrepaMode ? "Saisie manuelle requise" : "Saisie manuelle unique (Initialisation)"}</span>
-              </div>
-            )}
           </div>
-          <Button 
-            onClick={handleOpenSession} 
-            disabled={opLoading} 
-            className={cn(
-              "w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase",
-              isPrepaMode ? "bg-orange-500 hover:bg-orange-600 shadow-orange-200" : "bg-primary shadow-primary/20"
-            )}
-          >
-            {isPrepaMode ? "3. VALIDER L'OUVERTURE" : "OUVRIR LA CAISSE"}
-          </Button>
+          <Button onClick={handleOpenSession} disabled={opLoading} className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase", isPrepaMode ? "bg-orange-500" : "bg-primary")}>VALIDER L'OUVERTURE</Button>
         </Card>
       </div>
     );
@@ -415,36 +245,14 @@ function CaisseContent() {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className={cn(
-            "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
-            isClosed ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
-          )}>
+          <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center shrink-0", isClosed ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600")}>
             {isClosed ? <Lock className="h-6 w-6" /> : <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse" />}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">
-              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
-            </h1>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-[11px] text-slate-700 font-black tracking-widest">
-                  {(() => {
-                    const formatted = format(selectedDate, "dd MMMM yyyy", { locale: fr });
-                    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-                  })()}
-                </span>
-              </div>
-              {isAdminOrPrepa && (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={handleDeleteCurrentSession}
-                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100 flex items-center gap-2 border-2 border-red-200"
-                >
-                  <Trash2 className="h-4 w-4" /> SUPPRIMER LA SESSION
-                </Button>
-              )}
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">{isClosed ? "Session Clôturée" : "Caisse Ouverte"}</h1>
+            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border mt-2">
+              <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{formatSessionDate(dateStr)}</span>
             </div>
           </div>
         </div>
@@ -454,94 +262,61 @@ function CaisseContent() {
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl">
-                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Gestion des flux</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
-                    <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}>
-                      <option value="DEPENSE">Dépense (-)</option>
-                      <option value="ACHAT MONTURE">Achat Monture (-)</option>
-                      <option value="ACHAT VERRES">Achat Verres (-)</option>
-                      <option value="VERSEMENT">Versement (-)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé / Désignation</Label>
-                    <Input className="h-11 rounded-xl font-bold" placeholder="Ex: Frais transport, Achat papier..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                    <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0.00" value={newOp.montant === "0" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
-                  </div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="0" value={newOp.montant === "0" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
-                <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER L'OPÉRATION</Button></DialogFooter>
+                <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
             </Dialog>
           )}
-
-          <Button 
-            variant="outline" 
-            onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)}
-            className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"
-          >
-            <FileText className="mr-2 h-4 w-4" /> RAPPORT JOURNALIER
-          </Button>
-
+          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"><FileText className="mr-2 h-4 w-4" /> RAPPORT</Button>
           {!isClosed && (
-            <div className="flex gap-2 flex-1 sm:flex-none">
-              <Dialog>
-                <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
-                <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
-                  <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
-                    <div className="space-y-2">
-                      {DENOMINATIONS.map(val => (
-                        <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
-                          <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                          <Input type="number" className="h-9 w-20 text-center font-bold tabular-nums" placeholder="0" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
-                          <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
-                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
-                      <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Total Compté</span><span className="text-2xl font-black text-primary tabular-nums">{formatCurrency(soldeReel)}</span></div>
-                      <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart constaté</p><p className="text-xl font-black tabular-nums">{formatCurrency(ecart)}</p></div>
-                      <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black shadow-xl">VALIDER LA CLÔTURE</Button>
-                    </div>
+            <Dialog>
+              <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
+              <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
+                <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                  <div className="space-y-2">
+                    {DENOMINATIONS.map(val => (
+                      <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
+                        <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
+                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="0" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                        <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
+                      </div>
+                    ))}
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                  <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
+                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span>{formatCurrency(initialBalance)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span>{formatCurrency(stats.entrees)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span>{formatCurrency(stats.depenses)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span>{formatCurrency(stats.versements)}</span></div>
+                    <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Compté</span><span className="text-2xl font-black text-primary">{formatCurrency(soldeReel)}</span></div>
+                    <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart</p><p className="text-xl font-black">{formatCurrency(ecart)}</p></div>
+                    <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black">VALIDER LA CLÔTURE</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Initial</p><p className="text-xl font-black text-blue-600 tabular-nums">{formatCurrency(initialBalance)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes</p><p className="text-xl font-black text-green-600 tabular-nums">+{formatCurrency(stats.entrees)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses</p><p className="text-xl font-black text-red-500 tabular-nums">-{formatCurrency(stats.depenses)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements</p><p className="text-xl font-black text-orange-600 tabular-nums">-{formatCurrency(stats.versements)}</p></Card>
-        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Final Réel" : "Théorique"}</p><p className="text-xl font-black tabular-nums">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Initial</p><p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes</p><p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses</p><p className="text-xl font-black text-red-500">-{formatCurrency(stats.depenses)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements</p><p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p></Card>
+        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Final Réel" : "Théorique"}</p><p className="text-xl font-black">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
-      <Card className="rounded-[32px] overflow-hidden bg-white">
-        <CardHeader className="py-4 px-6 bg-slate-50 border-b">
-          <CardTitle className="text-[11px] font-black uppercase text-primary/60">
-            Détail des Opérations ({transactions.length})
-          </CardTitle>
-        </CardHeader>
+      <Card className="rounded-[32px] overflow-hidden bg-white shadow-sm border-none">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Libellé</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead>
-              </TableRow>
+              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Libellé</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {loadingTrans ? (
@@ -554,54 +329,16 @@ function CaisseContent() {
                     <TableCell className="px-6 py-4">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-bold text-slate-400 tabular-nums">
-                            {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
-                          </span>
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
-                            {t.clientName && (
-                              <span className="text-[9px] font-bold text-slate-500 uppercase">{t.clientName}</span>
-                            )}
-                          </div>
+                          <span className="text-[9px] font-bold text-slate-400">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                          <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
                         </div>
-                        {t.lastEditReason && (
-                          <div className="flex items-center gap-1.5 text-[9px] text-orange-600 font-bold italic bg-orange-50/50 px-2 py-1 rounded border border-orange-100 mb-2 w-fit">
-                            <MessageSquare className="h-3 w-3" /> {t.lastEditReason}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <Badge className={cn(
-                            "text-[8px] font-black border-none px-2 w-fit", 
-                            t.type === 'VENTE' ? 'bg-green-100 text-green-700' : 
-                            t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 
-                            'bg-red-100 text-red-700'
-                          )}>
-                            {t.type}
-                          </Badge>
-                          {t.lastEditReason && (
-                            <div className="flex items-center gap-1 text-[8px] text-orange-600 font-bold uppercase tracking-widest bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
-                              MODIFIÉ
-                            </div>
-                          )}
-                        </div>
+                        <Badge className={cn("text-[8px] font-black border-none px-2 w-fit", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700')}>{t.type}</Badge>
                       </div>
                     </TableCell>
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs tabular-nums whitespace-nowrap", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
-                      {formatCurrency(t.montant)}
-                    </TableCell>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      {isAdminOrPrepa ? (
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditingTransaction({ ...t, montant_raw: Math.abs(t.montant).toString(), editReason: t.lastEditReason || "" })} className="py-2.5 font-black text-[10px] uppercase rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
-                            {!isClosed && (
-                              <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-500 py-2.5 font-black text-[10px] uppercase rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span className="text-[8px] font-black text-slate-300 uppercase">Consultation seule</span>
+                      {isAdminOrPrepa && !isClosed && (
+                        <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
                       )}
                     </TableCell>
                   </TableRow>
@@ -611,47 +348,16 @@ function CaisseContent() {
           </Table>
         </div>
       </Card>
-
-      <Dialog open={!!editingTransaction} onOpenChange={(o) => !o && setEditingTransaction(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier l'opération</DialogTitle></DialogHeader>
-          {editingTransaction && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-muted-foreground">Type d'opération</Label>
-                <select className="w-full h-11 rounded-xl font-bold bg-white border border-slate-200 px-3 outline-none" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value})}>
-                  <option value="VENTE">Vente (+)</option>
-                  <option value="DEPENSE">Dépense (-)</option>
-                  <option value="ACHAT MONTURE">Achat Monture (-)</option>
-                  <option value="ACHAT VERRES">Achat Verres (-)</option>
-                  <option value="VERSEMENT">Versement (-)</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-muted-foreground">Libellé</Label>
-                <Input className="h-11 rounded-xl font-bold" value={editingTransaction.label} onChange={e => setEditingTransaction({...editingTransaction, label: e.target.value})} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0" value={editingTransaction.montant_raw === "0" ? "" : editingTransaction.montant_raw} onChange={e => setEditingTransaction({...editingTransaction, montant_raw: e.target.value})} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-orange-600">Motif de la modification (Obligatoire)</Label>
-                <textarea 
-                  className="w-full h-24 rounded-xl font-bold bg-white border border-orange-100 px-3 py-3 outline-none text-sm shadow-sm" 
-                  placeholder="Ex: Erreur de saisie, libellé incorrect..."
-                  value={editingTransaction.editReason || ""} 
-                  onChange={e => setEditingTransaction({...editingTransaction, editReason: e.target.value})}
-                />
-                <p className="text-[8px] font-bold text-muted-foreground uppercase px-1">Cette explication sera visible dans le journal pour l'administrateur.</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER LES MODIFICATIONS</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
+}
+
+function formatSessionDate(dateStr: string) {
+  if (!dateStr) return "---";
+  try {
+    const d = parseISO(dateStr);
+    return format(d, "dd MMMM yyyy", { locale: fr });
+  } catch (e) { return dateStr; }
 }
 
 export default function CaissePage() { return <AppShell><Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>}><CaisseContent /></Suspense></AppShell>; }
