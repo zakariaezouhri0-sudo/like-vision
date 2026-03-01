@@ -7,15 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { MUTUELLES } from "@/lib/constants";
-import { ShoppingBag, Save, Printer, Loader2, Search, AlertTriangle, CheckCircle2, Star, Calendar as CalendarIcon, Tag, History, Landmark, XCircle } from "lucide-react";
+import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, serverTimestamp, query, where, getDocs, increment, Timestamp, runTransaction, limit } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -30,7 +28,7 @@ function NewSaleForm() {
   
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeEditId, setActiveEditId] = useState<string | null>(searchParams.get("editId"));
+  const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
@@ -45,22 +43,15 @@ function NewSaleForm() {
     return d ? new Date(d) : new Date();
   });
   
-  const [mutuelle, setMutuelle] = useState("Aucun");
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   const [total, setTotal] = useState<string>(searchParams.get("total") || "");
-  const [discountType, setDiscountType] = useState<"percent" | "amount">("amount");
   const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") || "");
   const [avance, setAvance] = useState<string>(searchParams.get("avance") || "");
-  const [historicalAdvance, setHistoricalAdvance] = useState<string>("");
-  const [monture, setMonture] = useState(searchParams.get("monture") || "");
-  const [verres, setVerres] = useState(searchParams.get("verres") || "");
-  const [purchasePriceFrame, setPurchasePriceFrame] = useState<string>(searchParams.get("purchasePriceFrame") || "");
-  const [purchasePriceLenses, setPurchasePriceLenses] = useState<string>(searchParams.get("purchasePriceLenses") || "");
 
   const [prescription, setPrescription] = useState({
-    od: { sph: "", cyl: "", axe: "", add: "" },
-    og: { sph: "", cyl: "", axe: "", add: "" }
+    od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
+    og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
   const cleanVal = (val: string | number): number => {
@@ -73,22 +64,19 @@ function NewSaleForm() {
 
   const nTotal = cleanVal(total);
   const nDiscount = cleanVal(discountValue);
-  const nHistorical = cleanVal(historicalAdvance);
   const nAvance = cleanVal(avance);
   
-  const remiseAmountValue = discountType === "percent" ? (nTotal * nDiscount) / 100 : nDiscount;
-  const totalNetValue = Math.max(0, nTotal - remiseAmountValue);
-  const resteAPayerValue = Math.max(0, totalNetValue - nHistorical - nAvance);
+  const totalNetValue = Math.max(0, nTotal - nDiscount);
+  const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
 
   const handleSave = async () => {
-    const currentRole = localStorage.getItem('user_role')?.toUpperCase();
-    if (!currentRole || !clientName) {
+    if (!clientName) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom du client est requis." });
       return;
     }
     
     setLoading(true);
-    const currentIsDraft = currentRole === "PREPA";
+    const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
 
     try {
@@ -101,7 +89,7 @@ function NewSaleForm() {
         if (counterSnap.exists()) counters = counterSnap.data() as any;
 
         const isPaid = resteAPayerValue <= 0;
-        const statut = isPaid ? "Payé" : ((nAvance + nHistorical) > 0 ? "Partiel" : "En attente");
+        const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
         let invoiceId = searchParams.get("invoiceId") || "";
 
         if (!activeEditId) {
@@ -118,20 +106,17 @@ function NewSaleForm() {
 
         const saleData: any = {
           invoiceId,
-          clientName, clientPhone: clientPhone.replace(/\s/g, ""), mutuelle,
-          total: nTotal, remise: remiseAmountValue, discountType, discountValue: nDiscount,
-          avance: nHistorical + nAvance, reste: resteAPayerValue, statut,
-          prescription, monture, verres, isDraft: currentIsDraft, 
-          updatedAt: serverTimestamp(),
-          purchasePriceFrame: cleanVal(purchasePriceFrame), 
-          purchasePriceLenses: cleanVal(purchasePriceLenses)
+          clientName, clientPhone: clientPhone.replace(/\s/g, ""),
+          total: nTotal, remise: nDiscount,
+          avance: nAvance, reste: resteAPayerValue, statut,
+          prescription, isDraft: currentIsDraft, 
+          updatedAt: serverTimestamp()
         };
 
         if (!activeEditId) {
           saleData.createdAt = Timestamp.fromDate(saleDate);
           saleData.createdBy = currentUserName;
           saleData.payments = [];
-          if (nHistorical > 0) saleData.payments.push({ amount: nHistorical, date: saleDate.toISOString(), userName: "Historique" });
           if (nAvance > 0) saleData.payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
         }
 
@@ -165,9 +150,7 @@ function NewSaleForm() {
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", isPrepaMode ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}><ShoppingBag className="h-6 w-6" /></div>
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSave} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
-          </div>
+          <Button onClick={handleSave} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -182,7 +165,10 @@ function NewSaleForm() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="rounded-[32px] bg-white border-none shadow-sm"><CardHeader className="py-4 px-8 bg-slate-50 border-b"><CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription</CardTitle></CardHeader><CardContent className="p-8"><PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} /></CardContent></Card>
+            <Card className="rounded-[32px] bg-white border-none shadow-sm">
+              <CardHeader className="py-4 px-8 bg-slate-50 border-b"><CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription</CardTitle></CardHeader>
+              <CardContent className="p-8"><PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} /></CardContent>
+            </Card>
           </div>
 
           <Card className="bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden h-fit">
