@@ -82,14 +82,14 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  const lastSessionQuery = useMemoFirebase(() => {
+  const allSessionsQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
       where("isDraft", "==", isPrepaMode),
       orderBy("date", "desc")
     );
   }, [db, isPrepaMode]);
-  const { data: allSessions } = useCollection(lastSessionQuery);
+  const { data: allSessions } = useCollection(allSessionsQuery);
 
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
@@ -156,7 +156,14 @@ function CaisseContent() {
     try {
       setOpLoading(true);
       const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
-      await setDoc(sessionRef, { openingBalance: parseFloat(openingVal) || 0, status: "OPEN", openedAt, date: dateStr, openedBy: user?.displayName || "Inconnu", isDraft: isPrepaMode });
+      await setDoc(sessionRef, { 
+        openingBalance: parseFloat(openingVal) || 0, 
+        status: "OPEN", 
+        openedAt, 
+        date: dateStr, 
+        openedBy: user?.displayName || "Inconnu", 
+        isDraft: isPrepaMode 
+      });
       toast({ variant: "success", title: "Caisse Ouverte" });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
@@ -217,7 +224,18 @@ function CaisseContent() {
     try {
       setOpLoading(true);
       const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
-      await updateDoc(sessionRef, { status: "CLOSED", closedAt, closingBalanceReal: soldeReel, closingBalanceTheoretical: soldeTheorique, discrepancy: ecart, closedBy: user?.displayName || "Inconnu", totalSales: stats.entrees, totalExpenses: stats.depenses, totalVersements: stats.versements, isDraft: isPrepaMode });
+      await updateDoc(sessionRef, { 
+        status: "CLOSED", 
+        closedAt, 
+        closingBalanceReal: soldeReel, 
+        closingBalanceTheoretical: soldeTheorique, 
+        discrepancy: ecart, 
+        closedBy: user?.displayName || "Inconnu", 
+        totalSales: stats.entrees, 
+        totalExpenses: stats.depenses, 
+        totalVersements: stats.versements, 
+        isDraft: isPrepaMode 
+      });
       router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };

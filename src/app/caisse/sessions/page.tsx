@@ -9,19 +9,10 @@ import { Button } from "@/components/ui/button";
 import { 
   CalendarClock, 
   Loader2, 
-  User as UserIcon, 
   Calendar as CalendarIcon,
-  TrendingUp,
-  TrendingDown,
-  History,
-  Clock,
-  Eye,
-  Landmark,
   MoreVertical,
   Trash2,
-  AlertTriangle,
-  FileText,
-  Calculator
+  FileText
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -49,7 +40,7 @@ export default function CashSessionsPage() {
   const isPrepaMode = role === "PREPA";
 
   const sessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
-  const { data: rawSessions, isLoading, error } = useCollection(sessionsQuery);
+  const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
