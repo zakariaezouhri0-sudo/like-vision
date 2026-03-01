@@ -126,8 +126,7 @@ function CaisseContent() {
     return query(
       collection(db, "transactions"), 
       where("createdAt", ">=", Timestamp.fromDate(start)),
-      where("createdAt", "<=", Timestamp.fromDate(end)),
-      orderBy("createdAt", "desc")
+      where("createdAt", "<=", Timestamp.fromDate(end))
     );
   }, [db, selectedDate]);
   
@@ -135,11 +134,17 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    return rawTransactions
+      .filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true)
+      .sort((a, b) => {
+        const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return db - da;
+      });
   }, [rawTransactions, isPrepaMode]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 20, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
 
@@ -370,7 +375,7 @@ function CaisseContent() {
                   "w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none tabular-nums transition-all",
                   isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20"
                 )}
-                value={openingVal} 
+                value={openingVal === "0" ? "" : openingVal} 
                 placeholder="0"
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                 readOnly={isAutoReport}
@@ -466,7 +471,7 @@ function CaisseContent() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-black text-muted-foreground">Montant (DH)</Label>
-                    <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0.00" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
+                    <Input type="number" className="h-11 rounded-xl font-bold tabular-nums" placeholder="0.00" value={newOp.montant === "0" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} />
                   </div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER L'OPÉRATION</Button></DialogFooter>

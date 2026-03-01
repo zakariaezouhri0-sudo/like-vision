@@ -74,6 +74,7 @@ export default function CashSessionsPage() {
   const isSunday = (dateStr: string) => {
     if (!dateStr) return false;
     try {
+      // Format attendu: yyyy-MM-dd
       const cleanDate = dateStr.substring(0, 10);
       const parts = cleanDate.split('-');
       if (parts.length === 3) {
@@ -96,6 +97,7 @@ export default function CashSessionsPage() {
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
           const formatted = format(d, "dd MMMM yyyy", { locale: fr });
+          // Force la majuscule sur le mois
           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
       }
@@ -162,11 +164,13 @@ export default function CashSessionsPage() {
                         const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
                         const sunday = isSunday(s.date);
                         
-                        const fluxOp = (s.totalSales !== undefined && s.totalExpenses !== undefined) 
+                        // Pour les dimanches, solde ouverture = solde cloture
+                        const soldeCloture = sunday ? (s.openingBalance || 0) : (s.closingBalanceReal || 0);
+                        const fluxOp = sunday ? 0 : (s.totalSales !== undefined && s.totalExpenses !== undefined) 
                           ? (s.totalSales - Math.abs(s.totalExpenses)) 
                           : null;
                         
-                        const versement = s.totalVersements !== undefined ? Math.abs(s.totalVersements) : null;
+                        const versement = sunday ? 0 : (s.totalVersements !== undefined ? Math.abs(s.totalVersements) : null);
 
                         return (
                           <TableRow key={s.id} className={cn(
@@ -216,7 +220,7 @@ export default function CashSessionsPage() {
                                     </span>
                                   </div>
                                 </div>
-                              ) : <span className="text-[10px] font-black text-red-300 uppercase italic">Dimanche</span>}
+                              ) : <span className="text-[10px] font-black text-red-300 uppercase italic">Fermé</span>}
                             </TableCell>
                             
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
@@ -226,7 +230,9 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              {s.status === "CLOSED" && fluxOp !== null ? (
+                              {sunday ? (
+                                <span className="text-[10px] font-bold text-red-200">0,00 DH</span>
+                              ) : (s.status === "CLOSED" && fluxOp !== null ? (
                                 <div className={cn(
                                   "flex items-center justify-end gap-1.5 font-black text-sm",
                                   fluxOp >= 0 ? "text-green-600" : "text-destructive"
@@ -236,36 +242,36 @@ export default function CashSessionsPage() {
                                 </div>
                               ) : (
                                 <span className="text-xs font-bold text-slate-200">---</span>
-                              )}
+                              ))}
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              {s.status === "CLOSED" && versement !== null ? (
+                              {sunday ? (
+                                <span className="text-[10px] font-bold text-red-200">0,00 DH</span>
+                              ) : (s.status === "CLOSED" && versement !== null ? (
                                 <div className="flex items-center justify-end gap-1.5 font-black text-sm text-orange-600">
-                                  <Landmark className="h-3.5 w-3.5" />
+                                  < Landmark className="h-3.5 w-3.5" />
                                   {formatCurrency(versement)}
                                 </div>
                               ) : (
                                 <span className="text-xs font-bold text-slate-200">---</span>
-                              )}
+                              ))}
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              {s.status === "CLOSED" ? (
-                                <span className={cn("text-base font-black tracking-tighter", sunday ? "text-red-700" : "text-slate-900")}>
-                                  {formatCurrency(s.closingBalanceReal || 0)}
-                                </span>
-                              ) : (
-                                <span className="text-xs font-bold text-slate-200">---</span>
-                              )}
+                              <span className={cn("text-base font-black tracking-tighter", sunday ? "text-red-700" : "text-slate-900")}>
+                                {formatCurrency(soldeCloture)}
+                              </span>
                             </TableCell>
 
                             <TableCell className="px-6 py-6 whitespace-nowrap">
-                              {s.status === "CLOSED" ? (
+                              {sunday ? (
+                                <span className="text-[10px] font-black text-red-300 uppercase">Automatique</span>
+                              ) : (s.status === "CLOSED" ? (
                                 <div className="flex flex-col">
                                   <div className={cn(
                                     "flex items-center gap-1 text-[9px] font-black uppercase tracking-widest mb-0.5",
-                                    sunday ? "text-red-400" : "text-red-500"
+                                    "text-red-500"
                                   )}>
                                     <Clock className="h-3 w-3" />
                                     {closedDate ? format(closedDate, "HH:mm") : "--:--"}
@@ -282,12 +288,12 @@ export default function CashSessionsPage() {
                                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
                                   <span>En cours...</span>
                                 </div>
-                              )}
+                              ))}
                             </TableCell>
 
                             {isAdminOrPrepa && (
                               <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                                {s.status === "CLOSED" ? (
+                                {!sunday && s.status === "CLOSED" ? (
                                   <div className={cn(
                                     "flex items-center justify-end gap-2 px-3 py-2 rounded-xl border-2 w-fit ml-auto",
                                     Math.abs(s.discrepancy || 0) < 0.01 ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-600"
