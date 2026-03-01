@@ -79,14 +79,20 @@ export default function ImportPage() {
           let allHeaders: string[] = [];
           wb.SheetNames.forEach(name => {
             const sheet = wb.Sheets[name];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] as string[];
-            if (rows) allHeaders = Array.from(new Set([...allHeaders, ...rows.map(h => h?.toString().trim())]));
+            const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:Z1');
+            const rowHeaders = [];
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const cell = sheet[XLSX.utils.encode_cell({ r: range.s.r, c: C })];
+              if (cell) rowHeaders.push(cell.v?.toString().trim());
+            }
+            allHeaders = Array.from(new Set([...allHeaders, ...rowHeaders]));
           });
           
           setHeaders(allHeaders.filter(h => h));
           const newMapping: Mapping = {};
           GLOBAL_FIELDS.forEach(f => {
-            if (allHeaders.includes(f.label)) newMapping[f.key] = f.label;
+            const match = allHeaders.find(h => h?.toLowerCase() === f.label.toLowerCase());
+            if (match) newMapping[f.key] = match;
           });
           setMapping(newMapping);
         } catch (err) {
@@ -113,7 +119,7 @@ export default function ImportPage() {
   };
 
   const ensureClient = async (name: string, isDraft: boolean) => {
-    if (!name) return;
+    if (!name || name.toUpperCase() === "CLIENT DIVERS") return;
     const q = query(collection(db, "clients"), where("name", "==", name), where("isDraft", "==", isDraft));
     const snap = await getDocs(q);
     if (snap.empty) {
@@ -139,11 +145,11 @@ export default function ImportPage() {
     try {
       let allRows: any[] = [];
       workbook.SheetNames.forEach(sheetName => {
-        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" }) as any[];
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // Période étendue : 01 Janvier au 28 Février 2026
+      // Période étendue : 01 Janvier au 28 Février 2026 (59 jours)
       const totalDays = 59;
       const startDate = new Date(2026, 0, 1);
 
@@ -162,12 +168,11 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Filtrage ROBUSTE des lignes pour ce jour précis
         const dayRows = allRows.filter(row => {
           const rowDateVal = row[mapping.date_col];
           if (!rowDateVal) {
             const sheet = row._sheet?.toString();
-            return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM");
+            return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM") || sheet === format(currentDate, "MMMM", { locale: fr });
           }
           
           let d: Date | null = null;
@@ -177,20 +182,12 @@ export default function ImportPage() {
             d = new Date(Math.round((rowDateVal - 25569) * 86400 * 1000));
           } else {
             const s = rowDateVal.toString().trim();
-            const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy"];
+            const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy", "MM/dd/yyyy"];
             for (const f of formats) {
               const parsed = parse(s, f, new Date());
-              if (isValid(parsed)) {
+              if (isValid(parsed) && parsed.getFullYear() >= 2025) {
                 d = parsed;
                 break;
-              }
-            }
-            if (!d && s.includes('/')) {
-              const parts = s.split('/');
-              if (parts.length === 3) {
-                const year = parseInt(parts[2]);
-                const fullYear = year < 100 ? 2000 + year : year;
-                d = new Date(fullYear, parseInt(parts[1]) - 1, parseInt(parts[0]));
               }
             }
           }
@@ -200,7 +197,7 @@ export default function ImportPage() {
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-          // A. VENTES
+          // A. VENTES (Uniquement ici on enregistre le client auto)
           const clientName = (row[mapping.client_1] || "").toString().trim();
           const totalVal = cleanNum(row[mapping.total_brut]);
           if (clientName && totalVal > 0) {
@@ -237,7 +234,6 @@ export default function ImportPage() {
           if (vAmt > 0) {
             const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
             const cName = (row[mapping.nom_client_v] || "").toString().trim();
-            if (cName) await ensureClient(cName, currentIsDraft);
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT VERRES", label, clientName: cName,
               montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
@@ -250,7 +246,6 @@ export default function ImportPage() {
           if (mAmt > 0) {
             const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
             const cName = (row[mapping.nom_client_m] || "").toString().trim();
-            if (cName) await ensureClient(cName, currentIsDraft);
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT MONTURE", label, clientName: cName,
               montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
