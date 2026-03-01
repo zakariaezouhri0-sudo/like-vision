@@ -74,7 +74,6 @@ export default function CashSessionsPage() {
   const isSunday = (dateStr: string) => {
     if (!dateStr) return false;
     try {
-      // Format attendu: yyyy-MM-dd
       const cleanDate = dateStr.substring(0, 10);
       const parts = cleanDate.split('-');
       if (parts.length === 3) {
@@ -97,7 +96,6 @@ export default function CashSessionsPage() {
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
           const formatted = format(d, "dd MMMM yyyy", { locale: fr });
-          // Force la majuscule sur le mois
           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
       }

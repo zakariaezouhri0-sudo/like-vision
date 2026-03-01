@@ -362,8 +362,8 @@ function CaisseContent() {
                 <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100 flex items-center gap-1">
                   <CheckCircle2 className="h-2.5 w-2.5" /> Report du {(() => {
                     if (!lastSessionDate) return "---";
-                    const d = new Date(lastSessionDate);
-                    return isNaN(d.getTime()) ? lastSessionDate : format(d, "dd/MM");
+                    const parts = lastSessionDate.split('-');
+                    return `${parts[2]}/${parts[1]}`;
                   })()}
                 </Badge>
               )}

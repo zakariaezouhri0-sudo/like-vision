@@ -105,7 +105,6 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
-    // Initialisation des compteurs
     const counterDocPath = currentIsDraft ? "counters_draft" : "counters";
     const counterRef = doc(db, "settings", counterDocPath);
     const counterSnap = await getDoc(counterRef);
@@ -122,24 +121,20 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour : On cherche le numéro entre 1 et 31
         let day = null;
-        const sheetNumbers = sheetName.match(/\d+/g);
-        if (sheetNumbers && sheetNumbers.length > 0) {
-          // On prend le dernier groupe de chiffres (souvent le jour à la fin du nom)
-          const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
-          if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
+        const numbers = sheetName.match(/\d+/g);
+        if (numbers) {
+          const dayCandidates = numbers.map(n => parseInt(n)).filter(v => v >= 1 && v <= 31 && v !== 2026 && v !== 1);
+          if (dayCandidates.length > 0) day = dayCandidates[dayCandidates.length - 1];
+          else day = parseInt(numbers[numbers.length - 1]);
         }
 
-        // Si on ne trouve pas de jour dans le nom, on utilise l'index de la feuille par défaut
-        // Mais pour l'utilisateur, on préfère sauter si ce n'est pas une feuille de données
-        if (!day) {
-          console.warn(`Feuille ${sheetName} ignorée (Pas de jour détecté)`);
+        if (!day || day < 1 || day > 31) {
           continue;
         }
 
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
-        setCurrentDayLabel(`Jour ${day}`);
+        setCurrentDayLabel(`${day} Janvier`);
         
         const currentDate = new Date(2026, 0, day); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
