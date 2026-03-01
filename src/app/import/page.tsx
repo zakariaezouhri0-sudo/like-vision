@@ -14,7 +14,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, parse, isValid } from "date-fns";
+import { setHours, format, addDays, parse, isValid, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type Mapping = Record<string, string>;
@@ -125,14 +125,12 @@ export default function ImportPage() {
     let runningBalance = cleanNum(startingBalance);
 
     try {
-      // 1. COLLECT ALL DATA
       let allRows: any[] = [];
       workbook.SheetNames.forEach(sheetName => {
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" }) as any[];
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // Pre-process dates
       allRows = allRows.map(row => {
         const val = row[mapping.date_col];
         let d: Date | null = null;
@@ -150,7 +148,6 @@ export default function ImportPage() {
         return { ...row, _parsedDate: d };
       });
 
-      // 2. GROUP SALES BY REF (Vente)
       const salesGroups: Record<string, any> = {};
       
       allRows.forEach(row => {
@@ -174,9 +171,12 @@ export default function ImportPage() {
           
           if (totalBrut > 0) salesGroups[ref].totalBrut = totalBrut;
           
-          // Avance Ante uniquement si date <= 10 Janvier
-          const isAnteriorPeriod = row._parsedDate && row._parsedDate >= new Date(2026, 0, 1) && row._parsedDate <= new Date(2026, 0, 10);
-          if (isAnteriorPeriod && avanceAnte > 0) {
+          // Règle stricte : Avance Ante uniquement pour ventes du 01/01 au 10/01
+          const startPeriod = new Date(2026, 0, 1);
+          const endPeriod = new Date(2026, 0, 10, 23, 59, 59);
+          const isAnteriorAllowed = row._parsedDate && row._parsedDate >= startPeriod && row._parsedDate <= endPeriod;
+          
+          if (isAnteriorAllowed && avanceAnte > 0) {
             salesGroups[ref].anteAmt += avanceAnte;
           }
 
@@ -194,7 +194,6 @@ export default function ImportPage() {
         }
       });
 
-      // 3. CREATE SALES
       const finalSalesMap: Record<string, string> = {}; 
       const sortedRefs = Object.keys(salesGroups).sort((a, b) => {
         const da = salesGroups[a].earliestDate?.getTime() || 0;
@@ -209,10 +208,8 @@ export default function ImportPage() {
         
         await ensureClient(s.clientName, currentIsDraft);
         
-        // Logic RC / FC
-        const prefix = currentIsDraft ? "PREPA-" : "";
         const docType = isFullyPaid ? "FC" : "RC";
-        const invoiceId = `${prefix}${docType}-2026-${ref.padStart(4, '0')}`;
+        const invoiceId = `${docType}-2026-${s.ref}`; // Format FC-2026-REF demandé
         finalSalesMap[ref] = invoiceId;
 
         const allPayments = [...s.payments];
@@ -239,7 +236,6 @@ export default function ImportPage() {
         });
       }
 
-      // 4. PROCESS DAILY SESSIONS AND TRANSACTIONS
       const totalDays = 60; 
       const startDate = new Date(2026, 0, 1);
 
@@ -262,8 +258,6 @@ export default function ImportPage() {
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
-          
-          // Avances Payées (uniquement avance_paye génère une transaction)
           const ref = (row[mapping.ref_vente] || "").toString().trim();
           const currentAvance = cleanNum(row[mapping.avance_paye]);
           
@@ -271,7 +265,7 @@ export default function ImportPage() {
             const invoiceId = finalSalesMap[ref];
             await setDoc(doc(collection(db, "transactions")), {
               type: "VENTE", 
-              label: invoiceId, 
+              label: `VENTE ${invoiceId}`, 
               clientName: (row[mapping.client_1] || "").toString().trim(), 
               montant: currentAvance, 
               isDraft: currentIsDraft, 
@@ -282,7 +276,6 @@ export default function ImportPage() {
             daySales += currentAvance;
           }
 
-          // Dépenses et Versements
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {

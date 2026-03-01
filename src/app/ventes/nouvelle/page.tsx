@@ -100,13 +100,13 @@ function NewSaleForm() {
         let invoiceId = searchParams.get("invoiceId") || "";
 
         if (!activeEditId) {
-          const prefix = currentIsDraft ? "PREPA-" : "";
+          // Format FC-2026-XXXX ou RC-2026-XXXX sans préfixe PREPA
           if (isPaid) { 
             counters.fc += 1; 
-            invoiceId = `${prefix}FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
+            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
           } else { 
             counters.rc += 1; 
-            invoiceId = `${prefix}RC-2026-${counters.rc.toString().padStart(4, '0')}`; 
+            invoiceId = `RC-2026-${counters.rc.toString().padStart(4, '0')}`; 
           }
           transaction.set(counterRef, counters, { merge: true });
         }
@@ -171,7 +171,6 @@ function NewSaleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Dossier Client */}
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <User className="h-4 w-4 text-primary/40" />
@@ -214,7 +213,6 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            {/* Prescription */}
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <FileText className="h-4 w-4 text-primary/40" />
@@ -225,7 +223,6 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            {/* Détails Produits */}
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <Glasses className="h-4 w-4 text-primary/40" />
@@ -241,7 +238,6 @@ function NewSaleForm() {
             </Card>
           </div>
 
-          {/* Côté Finances */}
           <div className="space-y-6">
             <Card className="bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24">
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2">

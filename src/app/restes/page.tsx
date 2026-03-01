@@ -93,14 +93,16 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
+        // Si la facture était un RC et devient soldée (FC)
+        if (isFullyPaid && finalInvoiceId.includes("RC-2026-")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
           let counters = { fc: 0, rc: 0 };
           if (counterSnap.exists()) counters = counterSnap.data() as any;
           counters.fc += 1;
-          const prefix = isPrepaMode ? "PREPA-FC" : "FC";
-          finalInvoiceId = `${prefix}-2026-${counters.fc.toString().padStart(4, '0')}`;
+          
+          // Nouveau numéro FC-2026-XXXX sans préfixe PREPA
+          finalInvoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
           transaction.set(counterRef, counters, { merge: true });
         }
 
