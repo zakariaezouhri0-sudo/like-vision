@@ -76,14 +76,14 @@ export default function ImportPage() {
           setWorkbook(wb);
           
           const firstSheet = wb.Sheets[wb.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-          if (jsonData.length > 0) {
-            const fileHeaders = Object.keys(jsonData[0] as object);
-            setHeaders(fileHeaders);
+          // Obtenir les headers de la ligne 1 précisément
+          const headerRow = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })[0] as string[];
+          if (headerRow && headerRow.length > 0) {
+            setHeaders(headerRow);
             
             const newMapping: Mapping = {};
             GLOBAL_FIELDS.forEach(f => {
-              if (fileHeaders.includes(f.label)) {
+              if (headerRow.includes(f.label)) {
                 newMapping[f.key] = f.label;
               }
             });
@@ -102,7 +102,7 @@ export default function ImportPage() {
     const ws = XLSX.utils.aoa_to_sheet([templateHeaders]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Modele_Import");
-    XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
+    XLSX.writeFile(wb, "Modele_LikeVision_14_Colonnes.xlsx");
     toast({ title: "Modèle téléchargé" });
   };
 
@@ -137,7 +137,6 @@ export default function ImportPage() {
     if (counterSnap.exists()) globalCounters = counterSnap.data() as any;
 
     const sheetNames = [...workbook.SheetNames];
-    const importSessionClients = new Map<string, string>();
 
     try {
       for (let s = 0; s < sheetNames.length; s++) {
