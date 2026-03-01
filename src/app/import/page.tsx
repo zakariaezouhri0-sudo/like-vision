@@ -105,7 +105,7 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let currentBalance = cleanNum(startingBalance);
 
-    // Initialisation des compteurs pour des IDs propres (FC-2026-0001)
+    // Initialisation des compteurs
     const counterDocPath = currentIsDraft ? "counters_draft" : "counters";
     const counterRef = doc(db, "settings", counterDocPath);
     const counterSnap = await getDoc(counterRef);
@@ -114,13 +114,7 @@ export default function ImportPage() {
       globalCounters = counterSnap.data() as any;
     }
 
-    // Tri numérique des feuilles
-    const sheetNames = [...workbook.SheetNames].sort((a, b) => {
-      const na = parseInt(a.replace(/\D/g, '')) || 0;
-      const nb = parseInt(b.replace(/\D/g, '')) || 0;
-      return na - nb;
-    });
-
+    const sheetNames = [...workbook.SheetNames];
     const importSessionClients = new Map<string, string>();
 
     try {
@@ -128,14 +122,14 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction robuste du jour
+        // Extraction précise du jour depuis le nom de la feuille
         let day = s + 1;
         const sheetNumbers = sheetName.match(/\d+/g);
         if (sheetNumbers && sheetNumbers.length > 0) {
+          // On prend le dernier nombre trouvé dans le nom (souvent le jour si format AAAA-MM-JJ)
           const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
           if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
         }
-        day = Math.min(31, Math.max(1, day));
 
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
         setCurrentDayLabel(`Jour ${day}`);
@@ -176,7 +170,6 @@ export default function ImportPage() {
               const isPaid = totalAvance >= totalVal;
               const prefix = currentIsDraft ? "PREPA-" : "";
               
-              // Génération d'ID séquentiel propre
               if (isPaid) globalCounters.fc++; else globalCounters.rc++;
               const docType = isPaid ? "FC" : "RC";
               const seqNum = isPaid ? globalCounters.fc : globalCounters.rc;
@@ -294,7 +287,6 @@ export default function ImportPage() {
         setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
       }
 
-      // Mise à jour finale des compteurs globaux pour la suite manuelle
       await setDoc(counterRef, globalCounters, { merge: true });
 
       toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec succès." });

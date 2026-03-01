@@ -27,7 +27,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, where, deleteDoc, doc } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -71,10 +71,22 @@ export default function CashSessionsPage() {
     }
   };
 
+  const isSunday = (dateStr: string) => {
+    if (!dateStr) return false;
+    try {
+      const cleanDate = dateStr.substring(0, 10);
+      const parts = cleanDate.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return getDay(d) === 0;
+      }
+      return false;
+    } catch (e) { return false; }
+  };
+
   const formatSessionDate = (dateStr: string) => {
     if (!dateStr) return "Date inconnue";
     try {
-      // Nettoyage strict pour éviter les bugs de concaténation (ex: 2026-01-3001)
       const cleanDate = dateStr.substring(0, 10);
       const parts = cleanDate.split('-');
       if (parts.length === 3) {
@@ -83,8 +95,7 @@ export default function CashSessionsPage() {
         const day = parseInt(parts[2]);
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
-          const formatted = format(d, "dd MMMM yyyy", { locale: fr });
-          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+          return format(d, "dd MMMM yyyy", { locale: fr });
         }
       }
       return cleanDate;
@@ -148,6 +159,7 @@ export default function CashSessionsPage() {
                       sessions.map((s: any) => {
                         const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                         const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
+                        const sunday = isSunday(s.date);
                         
                         const fluxOp = (s.totalSales !== undefined && s.totalExpenses !== undefined) 
                           ? (s.totalSales - Math.abs(s.totalExpenses)) 
@@ -156,32 +168,46 @@ export default function CashSessionsPage() {
                         const versement = s.totalVersements !== undefined ? Math.abs(s.totalVersements) : null;
 
                         return (
-                          <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all group">
+                          <TableRow key={s.id} className={cn(
+                            "hover:bg-primary/5 border-b last:border-0 transition-all group",
+                            sunday && "bg-red-50 hover:bg-red-100/80"
+                          )}>
                             <TableCell className="px-6 py-6 whitespace-nowrap">
-                              <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "flex items-center gap-3",
+                                sunday && "justify-center"
+                              )}>
                                 <div className="flex items-center gap-2">
-                                  <CalendarIcon className="h-4 w-4 text-primary/40" />
-                                  <span className="font-black text-sm text-slate-800 tracking-tight">
+                                  <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-400" : "text-primary/40")} />
+                                  <span className={cn(
+                                    "font-black text-sm tracking-tight",
+                                    sunday ? "text-red-600" : "text-slate-800"
+                                  )}>
                                     {formatSessionDate(s.date)}
                                   </span>
                                 </div>
-                                <div 
-                                  className={cn(
-                                    "h-2.5 w-2.5 rounded-full shrink-0 transition-colors",
-                                    s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]"
-                                  )} 
-                                  title={s.status === "OPEN" ? "Ouverte" : "Clôturée"}
-                                />
+                                {!sunday && (
+                                  <div 
+                                    className={cn(
+                                      "h-2.5 w-2.5 rounded-full shrink-0 transition-colors",
+                                      s.status === "OPEN" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]"
+                                    )} 
+                                    title={s.status === "OPEN" ? "Ouverte" : "Clôturée"}
+                                  />
+                                )}
                               </div>
                             </TableCell>
 
                             <TableCell className="px-6 py-6 whitespace-nowrap">
                               <div className="flex flex-col">
-                                <div className="flex items-center gap-1 text-[9px] font-black text-green-600 uppercase tracking-widest mb-0.5">
+                                <div className={cn(
+                                  "flex items-center gap-1 text-[9px] font-black uppercase tracking-widest mb-0.5",
+                                  sunday ? "text-red-400" : "text-green-600"
+                                )}>
                                   <Clock className="h-3 w-3" />
                                   {openedDate ? format(openedDate, "HH:mm") : "--:--"}
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
+                                <div className="flex items-center gap-1.5 bg-white/50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
                                   <UserIcon className="h-2.5 w-2.5 text-primary/30" />
                                   <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
                                     {s.openedBy || "---"}
@@ -191,7 +217,7 @@ export default function CashSessionsPage() {
                             </TableCell>
                             
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              <span className="text-base font-black text-slate-900 tracking-tighter">
+                              <span className={cn("text-base font-black tracking-tighter", sunday ? "text-red-700" : "text-slate-900")}>
                                 {formatCurrency(s.openingBalance || 0)}
                               </span>
                             </TableCell>
@@ -223,7 +249,7 @@ export default function CashSessionsPage() {
 
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
                               {s.status === "CLOSED" ? (
-                                <span className="text-base font-black text-slate-900 tracking-tighter">
+                                <span className={cn("text-base font-black tracking-tighter", sunday ? "text-red-700" : "text-slate-900")}>
                                   {formatCurrency(s.closingBalanceReal || 0)}
                                 </span>
                               ) : (
@@ -234,11 +260,14 @@ export default function CashSessionsPage() {
                             <TableCell className="px-6 py-6 whitespace-nowrap">
                               {s.status === "CLOSED" ? (
                                 <div className="flex flex-col">
-                                  <div className="flex items-center gap-1 text-[9px] font-black text-red-500 uppercase tracking-widest mb-0.5">
+                                  <div className={cn(
+                                    "flex items-center gap-1 text-[9px] font-black uppercase tracking-widest mb-0.5",
+                                    sunday ? "text-red-400" : "text-red-500"
+                                  )}>
                                     <Clock className="h-3 w-3" />
                                     {closedDate ? format(closedDate, "HH:mm") : "--:--"}
                                   </div>
-                                  <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
+                                  <div className="flex items-center gap-1.5 bg-white/50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
                                     <UserIcon className="h-2.5 w-2.5 text-primary/30" />
                                     <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
                                       {s.closedBy || "---"}
@@ -276,7 +305,10 @@ export default function CashSessionsPage() {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => router.push(`/caisse?date=${s.date}`)}
-                                  className="h-10 px-4 rounded-xl font-black text-[10px] uppercase border-primary text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                                  className={cn(
+                                    "h-10 px-4 rounded-xl font-black text-[10px] uppercase transition-all shadow-sm",
+                                    sunday ? "border-red-200 text-red-600 bg-white" : "border-primary text-primary"
+                                  )}
                                 >
                                   <Eye className="mr-1.5 h-4 w-4" /> Détails
                                 </Button>
