@@ -295,7 +295,7 @@ function SalesHistoryContent() {
                   </TableRow>
                 ) : (
                   filteredSales.map((sale: any) => {
-                    const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note === "Avance antérieure") || [];
+                    const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note?.includes("Anterieure") || p.note?.includes("antérieure")) || [];
                     const historicalAmount = historicalPayments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
 
                     return (

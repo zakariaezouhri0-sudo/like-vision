@@ -140,6 +140,9 @@ export default function ImportPage() {
       for (let i = 0; i < totalDays; i++) {
         const currentDate = addDays(startDate, i);
         const dateStr = format(currentDate, "yyyy-MM-dd");
+        const dayOfMonth = currentDate.getDate();
+        const isHistoricalPeriod = currentDate.getMonth() === 0 && dayOfMonth <= 10;
+
         setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: fr }));
         setProgress(Math.round(((i + 1) / totalDays) * 100));
 
@@ -175,38 +178,51 @@ export default function ImportPage() {
           return isMonthMatch && (sheetNum === format(currentDate, "dd") || sheet.includes(format(currentDate, "dd-MM")));
         });
 
+        // Groupement des ventes par Client + Total Brut pour éviter les doublons de factures
+        const salesByClient: Record<string, any> = {};
+
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
           const clientName = (row[mapping.client_1] || "").toString().trim();
           const totalVal = cleanNum(row[mapping.total_brut]);
           
           if (clientName && totalVal > 0) {
-            await ensureClient(clientName, currentIsDraft);
-            const currentAvance = cleanNum(row[mapping.avance_paye]);
-            const historicalAvance = cleanNum(row[mapping.avance_ante]);
-            const totalAvance = currentAvance + historicalAvance;
-            const isPaid = totalAvance >= totalVal;
-            if (isPaid) globalCounters.fc++; else globalCounters.rc++;
-            const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${isPaid ? 'FC' : 'RC'}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
+            const groupKey = `${clientName}_${totalVal}`;
+            if (!salesByClient[groupKey]) {
+              salesByClient[groupKey] = {
+                clientName,
+                total: totalVal,
+                avanceJour: 0,
+                avanceAnterieure: 0,
+                payments: []
+              };
+            }
 
-            await setDoc(doc(collection(db, "sales")), {
-              invoiceId, clientName, total: totalVal, avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
-              statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
-              payments: [
-                { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
-                { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Acompte Jour" }
-              ]
-            });
+            const currentAvance = cleanNum(row[mapping.avance_paye]);
+            const historicalAvance = isHistoricalPeriod ? cleanNum(row[mapping.avance_ante]) : 0;
+
+            if (historicalAvance > 0) {
+              salesByClient[groupKey].avanceAnterieure += historicalAvance;
+              salesByClient[groupKey].payments.push({
+                amount: historicalAvance,
+                date: currentDate.toISOString(),
+                userName: "Historique",
+                note: "Avance antérieure (Décembre)"
+              });
+            }
 
             if (currentAvance > 0) {
-              await setDoc(doc(collection(db, "transactions")), {
-                type: "VENTE", label: invoiceId, clientName, montant: currentAvance, 
-                isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
+              salesByClient[groupKey].avanceJour += currentAvance;
+              salesByClient[groupKey].payments.push({
+                amount: currentAvance,
+                date: currentDate.toISOString(),
+                userName: "Import",
+                note: "Acompte Jour"
               });
-              daySales += currentAvance;
             }
           }
 
+          // Dépenses et Versements restent individuels par ligne
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
@@ -241,6 +257,32 @@ export default function ImportPage() {
               isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
             dayVersements += verAmt;
+          }
+        }
+
+        // Finalisation des ventes groupées
+        for (const key in salesByClient) {
+          const s = salesByClient[key];
+          const totalAvance = s.avanceJour + s.avanceAnterieure;
+          const isPaid = totalAvance >= s.total;
+          
+          await ensureClient(s.clientName, currentIsDraft);
+          
+          if (isPaid) globalCounters.fc++; else globalCounters.rc++;
+          const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${isPaid ? 'FC' : 'RC'}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
+
+          await setDoc(doc(collection(db, "sales")), {
+            invoiceId, clientName: s.clientName, total: s.total, avance: totalAvance, reste: Math.max(0, s.total - totalAvance),
+            statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: Timestamp.fromDate(setHours(currentDate, 12)), createdBy: userName,
+            payments: s.payments
+          });
+
+          if (s.avanceJour > 0) {
+            await setDoc(doc(collection(db, "transactions")), {
+              type: "VENTE", label: invoiceId, clientName: s.clientName, montant: s.avanceJour, 
+              isDraft: currentIsDraft, createdAt: Timestamp.fromDate(setHours(currentDate, 12)), userName, relatedId: invoiceId
+            });
+            daySales += s.avanceJour;
           }
         }
 
