@@ -23,8 +23,7 @@ const GLOBAL_FIELDS = [
   { key: "date_col", label: "DATE (Colonne)", section: "GÉNÉRAL" },
   { key: "client_1", label: "Nom Client 1", section: "VENTES" },
   { key: "total_brut", label: "Total Brut", section: "VENTES" },
-  { key: "avance_paye", label: "Avance Paye", section: "VENTES" },
-  { key: "avance_ante", label: "Avance Anterieure", section: "VENTES" },
+  { key: "avance_paye", label: "Avance Payée (Reçue)", section: "VENTES" },
   { key: "achat_verre_det", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
   { key: "nom_client_v", label: "NOM CLIENT (Verre)", section: "ACHATS" },
   { key: "montant_v", label: "MONTANT (Verre)", section: "ACHATS" },
@@ -140,9 +139,7 @@ export default function ImportPage() {
       for (let i = 0; i < totalDays; i++) {
         const currentDate = addDays(startDate, i);
         const dateStr = format(currentDate, "yyyy-MM-dd");
-        const dayOfMonth = currentDate.getDate();
-        const isHistoricalPeriod = currentDate.getMonth() === 0 && dayOfMonth <= 10;
-
+        
         setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: fr }));
         setProgress(Math.round(((i + 1) / totalDays) * 100));
 
@@ -178,7 +175,7 @@ export default function ImportPage() {
           return isMonthMatch && (sheetNum === format(currentDate, "dd") || sheet.includes(format(currentDate, "dd-MM")));
         });
 
-        // Groupement des ventes par Client + Total Brut pour éviter les doublons de factures
+        // Groupement des ventes par Client + Total Brut
         const salesByClient: Record<string, any> = {};
 
         for (const row of dayRows) {
@@ -193,23 +190,11 @@ export default function ImportPage() {
                 clientName,
                 total: totalVal,
                 avanceJour: 0,
-                avanceAnterieure: 0,
                 payments: []
               };
             }
 
             const currentAvance = cleanNum(row[mapping.avance_paye]);
-            const historicalAvance = isHistoricalPeriod ? cleanNum(row[mapping.avance_ante]) : 0;
-
-            if (historicalAvance > 0) {
-              salesByClient[groupKey].avanceAnterieure += historicalAvance;
-              salesByClient[groupKey].payments.push({
-                amount: historicalAvance,
-                date: currentDate.toISOString(),
-                userName: "Historique",
-                note: "Avance antérieure (Décembre)"
-              });
-            }
 
             if (currentAvance > 0) {
               salesByClient[groupKey].avanceJour += currentAvance;
@@ -222,7 +207,7 @@ export default function ImportPage() {
             }
           }
 
-          // Dépenses et Versements restent individuels par ligne
+          // Dépenses et Versements
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
@@ -260,10 +245,10 @@ export default function ImportPage() {
           }
         }
 
-        // Finalisation des ventes groupées
+        // Finalisation des ventes
         for (const key in salesByClient) {
           const s = salesByClient[key];
-          const totalAvance = s.avanceJour + s.avanceAnterieure;
+          const totalAvance = s.avanceJour;
           const isPaid = totalAvance >= s.total;
           
           await ensureClient(s.clientName, currentIsDraft);
@@ -273,7 +258,7 @@ export default function ImportPage() {
 
           await setDoc(doc(collection(db, "sales")), {
             invoiceId, clientName: s.clientName, total: s.total, avance: totalAvance, reste: Math.max(0, s.total - totalAvance),
-            statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: Timestamp.fromDate(setHours(currentDate, 12)), createdBy: userName,
+            statut: isPaid ? "Payé" : (totalAvance > 0 ? "Partiel" : "En attente"), isDraft: currentIsDraft, createdAt: Timestamp.fromDate(setHours(currentDate, 12)), createdBy: userName,
             payments: s.payments
           });
 

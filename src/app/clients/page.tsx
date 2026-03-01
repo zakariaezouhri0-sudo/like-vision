@@ -31,7 +31,6 @@ export default function ClientsPage() {
   const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // SÉCURITÉ : Pas de rôle par défaut. On attend la lecture du localStorage.
     const savedRole = localStorage.getItem('user_role');
     if (savedRole) {
       setRole(savedRole.toUpperCase());
@@ -62,8 +61,6 @@ export default function ClientsPage() {
     
     return allClients
       .filter((c: any) => {
-        // Isolation stricte par Mode (Brouillon vs Réel)
-        // Les anciens clients sans flag isDraft sont considérés comme réels
         const matchesMode = isPrepaMode ? c.isDraft === true : (c.isDraft !== true);
         if (!matchesMode) return false;
 
@@ -87,7 +84,6 @@ export default function ClientsPage() {
   }, [allClients, searchTerm, isPrepaMode, role]);
 
   const handleCreateClient = () => {
-    // SÉCURITÉ : Lecture directe du rôle au moment du clic pour éviter toute désynchronisation
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) return;
     
@@ -167,11 +163,10 @@ export default function ClientsPage() {
       toast({ title: "Note", description: "Nom du client manquant." });
       return;
     }
-    // On encode le nom pour gérer les espaces et caractères spéciaux dans l'URL
+    // Filtrage direct par le NOM du client
     router.push(`/ventes?search=${encodeURIComponent(name)}`);
   };
 
-  // SÉCURITÉ : Bloquer le rendu tant que le rôle n'est pas identifié
   if (!isClientReady || role === null) {
     return (
       <AppShell>
