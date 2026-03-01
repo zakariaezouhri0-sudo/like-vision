@@ -290,8 +290,8 @@ function DailyCashReportContent() {
                 <table className="w-full">
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-24">Nature</th>
-                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Détails / Bénéficiaire</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Désignation / Nature</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-40">Bénéficiaire / Client</th>
                       <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Montant</th>
                     </tr>
                   </thead>
@@ -299,13 +299,10 @@ function DailyCashReportContent() {
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
-                          <span className="text-[10px] font-black text-slate-900 uppercase leading-none">{e.type}</span>
+                          <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{e.label}</span>
                         </td>
                         <td className="p-2 align-middle">
-                          <div className="flex flex-col">
-                            {e.label && <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{e.label}</span>}
-                            {e.clientName && <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{e.clientName}</span>}
-                          </div>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{e.clientName || "---"}</span>
                         </td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
                       </tr>
