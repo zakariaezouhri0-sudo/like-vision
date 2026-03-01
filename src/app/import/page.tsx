@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Upload, CheckCircle2, Zap, CalendarDays, Download } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, setDoc, query, getDocs, getDoc, where, limit, increment, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { format, setHours, setMinutes, setSeconds, parseISO, isValid } from "date-fns";
+import { setHours, setMinutes, setSeconds, startOfDay, endOfDay, addDays, format, isSunday } from "date-fns";
 
 type Mapping = Record<string, string>;
 
@@ -24,7 +24,7 @@ const GLOBAL_FIELDS = [
   { key: "client_1", label: "Nom Client 1", section: "VENTES" },
   { key: "total_brut", label: "Total Brut", section: "VENTES" },
   { key: "avance_paye", label: "Avance Paye", section: "VENTES" },
-  { key: "avance_ante", label: "Avance Ante", section: "VENTES" },
+  { key: "avance_ante", label: "Avance Anterieure", section: "VENTES" },
   { key: "achat_verre_det", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
   { key: "nom_client_v", label: "NOM CLIENT (Verre)", section: "ACHATS" },
   { key: "montant_v", label: "MONTANT (Verre)", section: "ACHATS" },
@@ -76,21 +76,17 @@ export default function ImportPage() {
           setWorkbook(wb);
           
           const firstSheet = wb.Sheets[wb.SheetNames[0]];
-          // Obtenir les headers de la ligne 1 précisément
           const headerRow = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })[0] as string[];
           if (headerRow && headerRow.length > 0) {
-            setHeaders(headerRow);
-            
+            setHeaders(headerRow.map(h => h?.toString().trim()));
             const newMapping: Mapping = {};
             GLOBAL_FIELDS.forEach(f => {
-              if (headerRow.includes(f.label)) {
-                newMapping[f.key] = f.label;
-              }
+              if (headerRow.includes(f.label)) newMapping[f.key] = f.label;
             });
             setMapping(newMapping);
           }
         } catch (err) {
-          toast({ variant: "destructive", title: "Erreur de lecture du fichier" });
+          toast({ variant: "destructive", title: "Erreur de lecture" });
         }
       };
       reader.readAsBinaryString(selectedFile);
@@ -101,188 +97,145 @@ export default function ImportPage() {
     const templateHeaders = GLOBAL_FIELDS.map(f => f.label);
     const ws = XLSX.utils.aoa_to_sheet([templateHeaders]);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Modele_Import");
+    XLSX.utils.book_append_sheet(wb, ws, "Modèle Import");
     XLSX.writeFile(wb, "Modele_LikeVision_14_Colonnes.xlsx");
-    toast({ title: "Modèle téléchargé" });
   };
 
   const cleanNum = (val: any): number => {
-    if (val === undefined || val === null || val === "" || typeof val === 'object') return 0;
+    if (val === undefined || val === null || val === "") return 0;
     const s = val.toString().replace(/\s/g, '').replace(',', '.');
     const p = parseFloat(s);
     return isNaN(p) ? 0 : p;
   };
 
-  const parseRowDate = (val: any, defaultDate: Date): Date => {
-    if (!val) return defaultDate;
-    if (val instanceof Date) return val;
-    const d = parseISO(val.toString());
-    return isValid(d) ? d : defaultDate;
-  };
-
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
-    const freshRole = localStorage.getItem('user_role')?.toUpperCase();
-    if (!freshRole) return;
-
     setIsProcessing(true);
-    const currentIsDraft = freshRole === 'PREPA';
+    const currentIsDraft = role === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
-    let currentBalance = cleanNum(startingBalance);
+    let runningBalance = cleanNum(startingBalance);
 
     const counterDocPath = currentIsDraft ? "counters_draft" : "counters";
     const counterRef = doc(db, "settings", counterDocPath);
     const counterSnap = await getDoc(counterRef);
-    let globalCounters = { fc: 0, rc: 0 };
-    if (counterSnap.exists()) globalCounters = counterSnap.data() as any;
-
-    const sheetNames = [...workbook.SheetNames];
+    let globalCounters = counterSnap.exists() ? counterSnap.data() as any : { fc: 0, rc: 0 };
 
     try {
-      for (let s = 0; s < sheetNames.length; s++) {
-        const sheetName = sheetNames[s];
-        const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
-        
-        let dayNum = null;
-        const matches = sheetName.toString().match(/\d+/g);
-        if (matches) {
-          const num = parseInt(matches[matches.length - 1]);
-          if (num >= 1 && num <= 31) dayNum = num;
-        }
-        if (!dayNum) continue;
+      // On boucle sur les 31 jours de Janvier 2026
+      for (let day = 1; day <= 31; day++) {
+        const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
+        const currentDate = new Date(2026, 0, day);
+        setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: require('date-fns/locale').fr }));
+        setProgress(Math.round((day / 31) * 100));
 
-        const dateStr = `2026-01-${dayNum.toString().padStart(2, '0')}`;
-        setCurrentDayLabel(`${dayNum} Janvier`);
-        
-        const sheetDate = new Date(2026, 0, dayNum); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
-
-        let daySalesTotal = 0;
-        let dayExpensesTotal = 0;
-        let dayVersementsTotal = 0;
-        const initialBalance = currentBalance;
-
         const sessionRef = doc(db, "cash_sessions", sessionId);
-        const openTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(sheetDate, 10), 0), 0));
-        const closeTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(sheetDate, 20), 0), 0));
+
+        let daySales = 0;
+        let dayExpenses = 0;
+        let dayVersements = 0;
+        const initialBalanceForDay = runningBalance;
+
+        // Chercher la feuille correspondante dans l'Excel (ex: "05", "Janvier 05", etc)
+        const sheetName = workbook.SheetNames.find(n => n.includes(day.toString().padStart(2, '0')) || n === day.toString());
         
-        await setDoc(sessionRef, {
-          date: dateStr,
-          isDraft: currentIsDraft,
-          status: "CLOSED",
-          openedAt: openTime,
-          closedAt: closeTime,
-          openedBy: userName,
-          closedBy: userName,
-          openingBalance: initialBalance
-        }, { merge: true });
+        if (sheetName) {
+          const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+          for (const row of rawData) {
+            const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-        for (const row of rawData) {
-          const rowDate = parseRowDate(row[mapping.date_col], sheetDate);
-          const rowTimestamp = Timestamp.fromDate(rowDate);
+            // 1. VENTES
+            const clientName = (row[mapping.client_1] || "").toString().trim();
+            const totalVal = cleanNum(row[mapping.total_brut]);
+            if (clientName && totalVal > 0) {
+              const currentAvance = cleanNum(row[mapping.avance_paye]);
+              const historicalAvance = cleanNum(row[mapping.avance_ante]);
+              const totalAvance = currentAvance + historicalAvance;
+              const isPaid = totalAvance >= totalVal;
+              
+              if (isPaid) globalCounters.fc++; else globalCounters.rc++;
+              const docType = isPaid ? "FC" : "RC";
+              const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${docType}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
 
-          // 1. VENTES
-          const clientNameRaw = row[mapping.client_1];
-          const totalRaw = row[mapping.total_brut];
-          if (clientNameRaw && totalRaw !== undefined) {
-            const clientName = clientNameRaw.toString().trim();
-            const totalVal = cleanNum(totalRaw);
-            const currentAvance = cleanNum(row[mapping.avance_paye]);
-            const historicalAvance = cleanNum(row[mapping.avance_ante]);
-            const totalAvance = currentAvance + historicalAvance;
-            
-            const isPaid = totalAvance >= totalVal;
-            const prefix = currentIsDraft ? "PREPA-" : "";
-            if (isPaid) globalCounters.fc++; else globalCounters.rc++;
-            const docType = isPaid ? "FC" : "RC";
-            const seqNum = isPaid ? globalCounters.fc : globalCounters.rc;
-            const invoiceId = `${prefix}${docType}-2026-${seqNum.toString().padStart(4, '0')}`;
+              await setDoc(doc(collection(db, "sales")), {
+                invoiceId, clientName, total: totalVal, avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
+                statut: isPaid ? "Payé" : "Partiel", isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
+                payments: [
+                  { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
+                  { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Acompte Jour" }
+                ]
+              });
 
-            const saleRef = doc(collection(db, "sales"));
-            await setDoc(saleRef, {
-              invoiceId, clientName, total: totalVal, 
-              avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
-              statut: isPaid ? "Payé" : "Partiel",
-              isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
-              payments: [
-                { amount: historicalAvance, date: rowDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
-                { amount: currentAvance, date: rowDate.toISOString(), userName: "Import", note: "Acompte Jour" }
-              ]
-            }, { merge: true });
+              if (currentAvance > 0) {
+                await setDoc(doc(collection(db, "transactions")), {
+                  type: "VENTE", label: invoiceId, clientName, montant: currentAvance, 
+                  isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
+                });
+                daySales += currentAvance;
+              }
+            }
 
-            if (currentAvance > 0) {
-              const transRef = doc(collection(db, "transactions"));
-              await setDoc(transRef, {
-                type: "VENTE", label: `${invoiceId}`, clientName: clientName,
-                montant: currentAvance, isDraft: currentIsDraft, createdAt: rowTimestamp, 
-                userName, relatedId: invoiceId
-              }, { merge: true });
-              daySalesTotal += currentAvance;
+            // 2. ACHAT VERRES
+            const vAmt = cleanNum(row[mapping.montant_v]);
+            if (vAmt > 0) {
+              const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
+              await setDoc(doc(collection(db, "transactions")), {
+                type: "ACHAT VERRES", label, clientName: (row[mapping.nom_client_v] || "").toString().trim(),
+                montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              });
+              dayExpenses += vAmt;
+            }
+
+            // 3. ACHAT MONTURE
+            const mAmt = cleanNum(row[mapping.montant_m]);
+            if (mAmt > 0) {
+              const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
+              await setDoc(doc(collection(db, "transactions")), {
+                type: "ACHAT MONTURE", label, clientName: (row[mapping.nom_client_m] || "").toString().trim(),
+                montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              });
+              dayExpenses += mAmt;
+            }
+
+            // 4. DEPENSES
+            const dAmt = cleanNum(row[mapping.montant_dep]);
+            if (dAmt > 0) {
+              await setDoc(doc(collection(db, "transactions")), {
+                type: "DEPENSE", label: (row[mapping.libelle_dep] || "CHARGE").toString().trim(),
+                montant: -Math.abs(dAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              });
+              dayExpenses += dAmt;
+            }
+
+            // 5. VERSEMENTS
+            const verAmt = cleanNum(row[mapping.versement_mt]);
+            if (verAmt > 0) {
+              await setDoc(doc(collection(db, "transactions")), {
+                type: "VERSEMENT", label: "VERSEMENT CAISSE", montant: -Math.abs(verAmt),
+                isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              });
+              dayVersements += verAmt;
             }
           }
-
-          // 2. ACHAT VERRES
-          const glassAmount = cleanNum(row[mapping.montant_v]);
-          if (glassAmount > 0) {
-            const client = (row[mapping.nom_client_v] || "").toString().trim();
-            const detail = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
-            const transRef = doc(collection(db, "transactions"));
-            await setDoc(transRef, {
-              type: "ACHAT VERRES", label: detail, clientName: client,
-              montant: -Math.abs(glassAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-            }, { merge: true });
-            dayExpensesTotal += glassAmount;
-          }
-
-          // 3. ACHAT MONTURE
-          const frameAmount = cleanNum(row[mapping.montant_m]);
-          if (frameAmount > 0) {
-            const client = (row[mapping.nom_client_m] || "").toString().trim();
-            const detail = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
-            const transRef = doc(collection(db, "transactions"));
-            await setDoc(transRef, {
-              type: "ACHAT MONTURE", label: detail, clientName: client,
-              montant: -Math.abs(frameAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-            }, { merge: true });
-            dayExpensesTotal += frameAmount;
-          }
-
-          // 4. DEPENSES AUTRES
-          const expenseAmount = cleanNum(row[mapping.montant_dep]);
-          if (expenseAmount > 0) {
-            const label = (row[mapping.libelle_dep] || "AUTRE CHARGE").toString().trim();
-            const transRef = doc(collection(db, "transactions"));
-            await setDoc(transRef, {
-              type: "DEPENSE", label: label,
-              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-            }, { merge: true });
-            dayExpensesTotal += expenseAmount;
-          }
-
-          // 5. VERSEMENTS
-          const versementAmount = cleanNum(row[mapping.versement_mt]);
-          if (versementAmount > 0) {
-            const transRef = doc(collection(db, "transactions"));
-            await setDoc(transRef, {
-              type: "VERSEMENT", label: "VERSEMENT CAISSE",
-              montant: -Math.abs(versementAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
-            }, { merge: true });
-            dayVersementsTotal += versementAmount;
-          }
         }
 
-        currentBalance = initialBalance + daySalesTotal - dayExpensesTotal - dayVersementsTotal;
+        runningBalance = initialBalanceForDay + daySales - dayExpenses - dayVersements;
 
         await setDoc(sessionRef, {
-          totalSales: daySalesTotal, totalExpenses: dayExpensesTotal, totalVersements: dayVersementsTotal,
-          closingBalanceReal: currentBalance, closingBalanceTheoretical: currentBalance, discrepancy: 0
-        }, { merge: true });
-
-        setProgress(Math.round(((s + 1) / sheetNames.length) * 100));
+          date: dateStr, isDraft: currentIsDraft, status: "CLOSED",
+          openedAt: Timestamp.fromDate(setHours(currentDate, 9)),
+          closedAt: Timestamp.fromDate(setHours(currentDate, 20)),
+          openedBy: userName, closedBy: userName,
+          openingBalance: initialBalanceForDay,
+          closingBalanceReal: runningBalance,
+          closingBalanceTheoretical: runningBalance,
+          totalSales: daySales, totalExpenses: dayExpenses, totalVersements: dayVersements,
+          discrepancy: 0
+        });
       }
 
-      await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Importation Janvier Terminée" });
+      await setDoc(counterRef, globalCounters);
+      toast({ variant: "success", title: "Importation terminée avec succès" });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -295,63 +248,57 @@ export default function ImportPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-6xl mx-auto pb-10">
+      <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation calibrée sur votre structure Excel.</p>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Janvier</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Génération automatique des 31 sessions.</p>
           </div>
           <Button variant="outline" onClick={downloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm">
             <Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 rounded-[32px] bg-white overflow-hidden shadow-lg border-none">
-            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial (01/01)</CardTitle></CardHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="rounded-[32px] bg-white shadow-lg border-none">
+            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial au 01/01</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="DH" value={startingBalance === "0" || startingBalance === "" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-2 rounded-[32px] bg-white overflow-hidden shadow-lg border-none">
-            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">2. Sélection Fichier</CardTitle></CardHeader>
-            <CardContent className="p-8">
-              <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[32px] p-10 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => fileInputRef.current?.click()}>
-                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
-                <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"><FileSpreadsheet className="h-8 w-8 text-primary" /></div>
-                <h3 className="text-sm font-black text-slate-800 uppercase">{file ? file.name : "Choisir l'Excel"}</h3>
-                {workbook && (<p className="text-[9px] font-black text-green-600 mt-2 uppercase bg-green-50 px-3 py-1 rounded-full">{workbook.SheetNames.length} FEUILLES TROUVÉES</p>)}
-              </div>
+          <Card className="rounded-[32px] bg-white shadow-lg border-none" onClick={() => fileInputRef.current?.click()}>
+            <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">2. Fichier Excel</CardTitle></CardHeader>
+            <CardContent className="p-6 flex flex-col items-center justify-center cursor-pointer">
+              <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
+              <FileSpreadsheet className="h-10 w-10 text-primary mb-2" />
+              <span className="text-xs font-black uppercase">{file ? file.name : "Choisir le fichier"}</span>
             </CardContent>
           </Card>
         </div>
 
         {workbook && (
-          <Card className="rounded-[32px] bg-white overflow-hidden shadow-2xl border-none">
+          <Card className="rounded-[32px] bg-white shadow-2xl border-none overflow-hidden">
             <CardHeader className="bg-primary text-white p-8">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-xl font-black uppercase">Mapping des Colonnes</CardTitle>
-                <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{isProcessing ? `${currentDayLabel} : ${progress}%` : "Prêt pour Janvier"}</div>
+                <CardTitle className="text-xl font-black uppercase">Configuration de l'Import</CardTitle>
+                {isProcessing && <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{currentDayLabel} : {progress}%</div>}
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {GLOBAL_FIELDS.map(field => (
-                  <div key={field.key} className="space-y-2">
-                    <div className="flex justify-between items-center px-1">
-                      <Label className="text-[10px] font-black uppercase text-primary">{field.label}</Label>
-                      <Badge variant="outline" className="text-[8px] font-bold opacity-40">{field.section}</Badge>
-                    </div>
-                    <Select value={mapping[field.key] || ""} onValueChange={(v) => setMapping({...mapping, [field.key]: v})}>
-                      <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none shadow-inner px-4"><SelectValue placeholder="Choisir..." /></SelectTrigger>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {GLOBAL_FIELDS.map(f => (
+                  <div key={f.key} className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase ml-1">{f.label}</Label>
+                    <Select value={mapping[f.key] || ""} onValueChange={v => setMapping({...mapping, [f.key]: v})}>
+                      <SelectTrigger className="h-11 rounded-xl font-bold bg-slate-50 border-none"><SelectValue placeholder="Choisir..." /></SelectTrigger>
                       <SelectContent className="rounded-xl">{headers.map(h => <SelectItem key={h} value={h} className="font-bold text-xs">{h}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 ))}
               </div>
-              <Button onClick={handleImportGlobal} disabled={isProcessing || !file} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl bg-primary mt-10">
-                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "LANCER L'IMPORTATION"}
+              <Button onClick={handleImportGlobal} disabled={isProcessing || !file || !startingBalance} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl bg-primary">
+                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "LANCER L'IMPORTATION COMPLÈTE"}
               </Button>
             </CardContent>
           </Card>
