@@ -8,15 +8,24 @@ import { Printer, ArrowLeft, FileText, Calendar, User, Coins, Glasses, ThumbsUp,
 import Link from "next/link";
 import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { format, parseISO } from "date-fns";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
 function CashClosurePrintContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
+
+  const rawDate = searchParams.get("date") || format(new Date(), "yyyy-MM-dd");
+  
+  useEffect(() => {
+    const dateStr = rawDate.includes('-') ? format(parseISO(rawDate), "dd-MM-yyyy") : rawDate;
+    document.title = `Like Vision - ${dateStr}`;
+    return () => { document.title = "Like Vision"; };
+  }, [rawDate]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -29,7 +38,6 @@ function CashClosurePrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const date = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
   const initial = Number(searchParams.get("initial")) || 0;
   const ventes = Number(searchParams.get("ventes")) || 0;
   const depenses = Number(searchParams.get("depenses")) || 0;
@@ -62,7 +70,7 @@ function CashClosurePrintContent() {
         </Button>
         <div className="flex items-center gap-4">
           <span className="text-[10px] font-black uppercase text-slate-400 bg-white px-5 py-3 rounded-full border shadow-sm tracking-widest">
-            A4 Portrait • Rapport Officiel
+            A4 Portrait • Rapport de Clôture
           </span>
           <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-12 px-10 rounded-2xl font-black text-base">
             <Printer className="mr-3 h-5 w-5" /> IMPRIMER LE RAPPORT
@@ -97,7 +105,7 @@ function CashClosurePrintContent() {
             <div className="space-y-1">
               <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
                 <Calendar className="h-3 w-3 text-slate-400" />
-                <span>Date: {date}</span>
+                <span>Date: {rawDate}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
                 <User className="h-3 w-3" />
