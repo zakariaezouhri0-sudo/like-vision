@@ -228,11 +228,11 @@ function DailyCashReportContent() {
                 <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                   <tr>
                     <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest">Document / Client</th>
-                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-20">Total Net</th>
-                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-20 text-green-600">Versé</th>
-                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest text-destructive w-20">Reste</th>
-                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-16">Statut</th>
-                    <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-24">Acompte Jour</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-24">Total Net</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-24 text-green-600">Versé</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest text-destructive w-24">Reste</th>
+                    <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-20">Statut</th>
+                    <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-28">Acompte Jour</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -284,8 +284,8 @@ function DailyCashReportContent() {
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest">Désignation / Nature</th>
-                      <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest w-40">Bénéficiaire / Client</th>
+                      <th className="p-1.5 text-left text-[7px] font-black uppercase tracking-widest w-32">Désignation / Nature</th>
+                      <th className="p-1.5 text-center text-[7px] font-black uppercase tracking-widest">Bénéficiaire / Client</th>
                       <th className="p-1.5 text-right text-[7px] font-black uppercase tracking-widest w-24">Montant</th>
                     </tr>
                   </thead>
@@ -323,7 +323,7 @@ function DailyCashReportContent() {
                   <table className="w-full border-collapse">
                     <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                       <tr>
-                        <th className="p-1 text-left text-[7px] font-black uppercase tracking-widest">Désignation</th>
+                        <th className="p-1 text-left text-[7px] font-black uppercase tracking-widest w-32">Désignation</th>
                         <th className="p-1 text-right text-[7px] font-black uppercase tracking-widest w-24">Montant</th>
                       </tr>
                     </thead>
