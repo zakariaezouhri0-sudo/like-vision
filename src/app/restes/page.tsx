@@ -217,7 +217,7 @@ export default function UnpaidSalesPage() {
                 <input 
                   type="number" 
                   className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                  value={paymentAmount === "0" ? "" : paymentAmount} 
+                  value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
                   placeholder="0"
                   onChange={(e) => setPaymentAmount(e.target.value)} 
                   autoFocus 

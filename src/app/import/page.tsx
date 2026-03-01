@@ -52,10 +52,9 @@ export default function ImportPage() {
     { key: "total", label: "Total Brut (Vente)", section: "VENTES" },
     { key: "avance", label: "Avance Payée (Vente)", section: "VENTES" },
     { key: "historicalAdvance", label: "Avance Antérieure (Vente)", section: "VENTES" },
-    { key: "label", label: "Libellé (Dépense)", section: "CHARGES" },
-    { key: "supplierName", label: "Nom Client / Tiers (Dépense)", section: "CHARGES" },
-    { key: "montant", label: "Montant (Dépense)", section: "CHARGES" },
-    { key: "category", label: "Catégorie / Dépense", section: "CHARGES" }
+    { key: "label", label: "Libellé (Opération)", section: "FLUX" },
+    { key: "montant", label: "Montant (Dépense/Charge)", section: "FLUX" },
+    { key: "versement", label: "Montant (Versement)", section: "FLUX" }
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +112,7 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour depuis le nom de la feuille (format : JJ ou Janvier JJ)
+        // Extraction précise du jour depuis le nom de la feuille
         let dayNum = null;
         const matches = sheetName.toString().match(/\d+/g);
         if (matches) {
@@ -148,6 +147,7 @@ export default function ImportPage() {
         }, { merge: true });
 
         for (const row of rawData) {
+          // 1. TRAITEMENT DES VENTES
           const clientNameRaw = row[mapping.clientName];
           const totalRaw = row[mapping.total];
           
@@ -207,9 +207,10 @@ export default function ImportPage() {
             }
           }
 
+          // 2. TRAITEMENT DES DÉPENSES
           const expenseVal = cleanNum(row[mapping.montant]);
           if (expenseVal > 0) {
-            const labelRaw = row[mapping.label] || row[mapping.supplierName] || "Dépense";
+            const labelRaw = row[mapping.label] || "Dépense Import";
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "DEPENSE", label: labelRaw.toString().trim(), 
@@ -217,6 +218,19 @@ export default function ImportPage() {
               createdAt: openTime, userName
             }, { merge: true });
             dayExpensesTotal += expenseVal;
+          }
+
+          // 3. TRAITEMENT DES VERSEMENTS
+          const versementVal = cleanNum(row[mapping.versement]);
+          if (versementVal > 0) {
+            const labelRaw = row[mapping.label] || "Versement Import";
+            const transRef = doc(collection(db, "transactions"));
+            await setDoc(transRef, {
+              type: "VERSEMENT", label: labelRaw.toString().trim(), 
+              montant: -Math.abs(versementVal), isDraft: currentIsDraft, 
+              createdAt: openTime, userName
+            }, { merge: true });
+            dayVersementsTotal += versementVal;
           }
         }
 
@@ -233,7 +247,7 @@ export default function ImportPage() {
       }
 
       await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec continuité du solde." });
+      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec distinction des Versements." });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -250,7 +264,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe avec continuité du solde.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe avec séparation Versements/Charges.</p>
           </div>
         </div>
 

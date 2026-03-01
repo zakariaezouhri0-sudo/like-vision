@@ -87,7 +87,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Récupération du dernier solde disponible pour le report (Continuité Dimanche/Lundi)
+  // Récupération du dernier solde disponible pour le report (Continuité absolue)
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -288,7 +288,7 @@ function CaisseContent() {
                     {DENOMINATIONS.map(val => (
                       <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                         <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="0" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="0" value={denoms[val] === 0 ? "" : denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
                         <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
