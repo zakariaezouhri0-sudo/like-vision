@@ -379,7 +379,7 @@ function CaisseContent() {
                     </TableCell>
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      {isAdminOrPrepa && !isClosed && (
+                      {isAdminOrPrepa && (
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)} className="text-primary hover:bg-primary/10 rounded-lg"><Edit2 className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>

@@ -91,7 +91,7 @@ export default function ImportPage() {
           setHeaders(allHeaders.filter(h => h));
           const newMapping: Mapping = {};
           GLOBAL_FIELDS.forEach(f => {
-            const match = allHeaders.find(h => h?.toLowerCase() === f.label.toLowerCase());
+            const match = allHeaders.find(h => h?.toLowerCase().trim() === f.label.toLowerCase().trim());
             if (match) newMapping[f.key] = match;
           });
           setMapping(newMapping);
@@ -119,7 +119,7 @@ export default function ImportPage() {
   };
 
   const ensureClient = async (name: string, isDraft: boolean) => {
-    if (!name || name.toUpperCase() === "CLIENT DIVERS") return;
+    if (!name || name.toUpperCase() === "CLIENT DIVERS" || name === "---") return;
     const q = query(collection(db, "clients"), where("name", "==", name), where("isDraft", "==", isDraft));
     const snap = await getDocs(q);
     if (snap.empty) {
@@ -149,7 +149,7 @@ export default function ImportPage() {
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      const totalDays = 59;
+      const totalDays = 59; // Janvier (31) + Février (28)
       const startDate = new Date(2026, 0, 1);
 
       for (let i = 0; i < totalDays; i++) {
@@ -178,12 +178,11 @@ export default function ImportPage() {
               d = new Date(Math.round((rowDateVal - 25569) * 86400 * 1000));
             } else {
               const s = rowDateVal.toString().trim();
-              const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy", "MM/dd/yyyy", "d/M/yy"];
+              const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy", "MM/dd/yyyy", "d/M/yy", "dd MMMM yyyy", "dd MMMM"];
               for (const f of formats) {
-                const parsed = parse(s, f, new Date());
+                const parsed = parse(s, f, new Date(), { locale: fr });
                 if (isValid(parsed)) {
-                  if (parsed.getFullYear() < 100) parsed.setFullYear(2000 + parsed.getFullYear());
-                  if (parsed.getFullYear() < 2000) parsed.setFullYear(parsed.getFullYear() + 100);
+                  if (parsed.getFullYear() < 2000) parsed.setFullYear(2026);
                   d = parsed;
                   break;
                 }
@@ -194,9 +193,10 @@ export default function ImportPage() {
           if (!d) {
             const sheet = row._sheet?.toString();
             if (!sheet) return false;
-            return sheet === format(currentDate, "dd") || 
+            const sheetNum = sheet.replace(/\D/g, '');
+            return sheetNum === format(currentDate, "dd") || 
                    sheet === format(currentDate, "dd-MM") || 
-                   sheet === format(currentDate, "MMMM", { locale: fr });
+                   sheet.toLowerCase() === format(currentDate, "MMMM", { locale: fr }).toLowerCase();
           }
           
           return format(d, "yyyy-MM-dd") === dateStr;
