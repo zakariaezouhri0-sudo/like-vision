@@ -15,7 +15,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, query, getDocs, getDoc, where, limit, increment, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { format, setHours, setMinutes, setSeconds, parseISO } from "date-fns";
+import { format, setHours, setMinutes, setSeconds, parseISO, isValid } from "date-fns";
 
 type Mapping = Record<string, string>;
 
@@ -48,18 +48,18 @@ export default function ImportPage() {
   const [startingBalance, setStartingBalance] = useState<string>("");
 
   const GLOBAL_FIELDS = [
-    { key: "date", label: "Date (Optionnel)", section: "GÉNÉRAL" },
-    { key: "clientName", label: "Nom Client (Vente)", section: "VENTES" },
+    { key: "rowDate", label: "DATE (Colonne)", section: "GÉNÉRAL" },
+    { key: "clientName", label: "Nom Client 1 (Vente)", section: "VENTES" },
     { key: "total", label: "Total Brut (Vente)", section: "VENTES" },
-    { key: "avance", label: "Avance Payée (Vente)", section: "VENTES" },
-    { key: "historicalAdvance", label: "Avance Antérieure (Vente)", section: "VENTES" },
-    { key: "glassClient", label: "Nom Client (Achat Verres)", section: "ACHATS" },
-    { key: "glassAmount", label: "Montant (Achat Verres)", section: "ACHATS" },
-    { key: "frameClient", label: "Nom Client (Achat Monture)", section: "ACHATS" },
-    { key: "frameAmount", label: "Montant (Achat Monture)", section: "ACHATS" },
-    { key: "expenseLabel", label: "Libellé (Autre Charge)", section: "CHARGES" },
-    { key: "expenseAmount", label: "Montant (Autre Charge)", section: "CHARGES" },
-    { key: "versementAmount", label: "Montant (Versement)", section: "VERSEMENTS" }
+    { key: "avance", label: "Avance Paye (Vente)", section: "VENTES" },
+    { key: "historicalAdvance", label: "Avance Ante (Vente)", section: "VENTES" },
+    { key: "glassClient", label: "NOM CLIENT (Achat Verre)", section: "ACHATS" },
+    { key: "glassAmount", label: "MONTANT (Achat Verre)", section: "ACHATS" },
+    { key: "frameClient", label: "NOM CLIENT (Achat Monture)", section: "ACHATS" },
+    { key: "frameAmount", label: "MONTANT (Achat Monture)", section: "ACHATS" },
+    { key: "expenseLabel", label: "LIBELLE (Dépense)", section: "CHARGES" },
+    { key: "expenseAmount", label: "MONTANT (Dépense)", section: "CHARGES" },
+    { key: "versementAmount", label: "VERSEMENT (Montant)", section: "VERSEMENTS" }
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +91,13 @@ export default function ImportPage() {
     const s = val.toString().replace(/\s/g, '').replace(',', '.');
     const p = parseFloat(s);
     return isNaN(p) ? 0 : p;
+  };
+
+  const parseRowDate = (val: any, defaultDate: Date): Date => {
+    if (!val) return defaultDate;
+    if (val instanceof Date) return val;
+    const d = parseISO(val.toString());
+    return isValid(d) ? d : defaultDate;
   };
 
   const handleImportGlobal = async () => {
@@ -128,7 +135,7 @@ export default function ImportPage() {
         const dateStr = `2026-01-${dayNum.toString().padStart(2, '0')}`;
         setCurrentDayLabel(`${dayNum} Janvier`);
         
-        const currentDate = new Date(2026, 0, dayNum); 
+        const sheetDate = new Date(2026, 0, dayNum); 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
 
         let daySalesTotal = 0;
@@ -137,8 +144,8 @@ export default function ImportPage() {
         const initialBalance = currentBalance;
 
         const sessionRef = doc(db, "cash_sessions", sessionId);
-        const openTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 10), 0), 0));
-        const closeTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(currentDate, 20), 0), 0));
+        const openTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(sheetDate, 10), 0), 0));
+        const closeTime = Timestamp.fromDate(setSeconds(setMinutes(setHours(sheetDate, 20), 0), 0));
         
         await setDoc(sessionRef, {
           date: dateStr,
@@ -150,6 +157,9 @@ export default function ImportPage() {
         }, { merge: true });
 
         for (const row of rawData) {
+          const rowDate = parseRowDate(row[mapping.rowDate], sheetDate);
+          const rowTimestamp = Timestamp.fromDate(rowDate);
+
           // 1. TRAITEMENT DES VENTES
           const clientNameRaw = row[mapping.clientName];
           const totalRaw = row[mapping.total];
@@ -178,8 +188,8 @@ export default function ImportPage() {
                 const newClientRef = doc(collection(db, "clients"));
                 await setDoc(newClientRef, {
                   name: clientName, phone: "", mutuelle: "Aucun",
-                  lastVisit: format(currentDate, "dd/MM/yyyy"),
-                  ordersCount: 1, isDraft: currentIsDraft, createdAt: openTime
+                  lastVisit: format(rowDate, "dd/MM/yyyy"),
+                  ordersCount: 1, isDraft: currentIsDraft, createdAt: rowTimestamp
                 }, { merge: true });
                 importSessionClients.set(normalizedName, newClientRef.id);
               } else {
@@ -192,10 +202,10 @@ export default function ImportPage() {
               invoiceId, clientName, total: totalVal, 
               avance: totalAvance, reste: Math.max(0, totalVal - totalAvance),
               statut: isPaid ? "Payé" : "Partiel",
-              isDraft: currentIsDraft, createdAt: openTime, createdBy: userName,
+              isDraft: currentIsDraft, createdAt: rowTimestamp, createdBy: userName,
               payments: [
-                { amount: historicalAvance, date: currentDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
-                { amount: currentAvance, date: currentDate.toISOString(), userName: "Import", note: "Journée" }
+                { amount: historicalAvance, date: rowDate.toISOString(), userName: "Historique", note: "Avance antérieure" },
+                { amount: currentAvance, date: rowDate.toISOString(), userName: "Import", note: "Journée" }
               ]
             }, { merge: true });
 
@@ -203,7 +213,7 @@ export default function ImportPage() {
               const transRef = doc(collection(db, "transactions"));
               await setDoc(transRef, {
                 type: "VENTE", label: `${invoiceId}`, clientName: clientName,
-                montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
+                montant: currentAvance, isDraft: currentIsDraft, createdAt: rowTimestamp, 
                 userName, relatedId: invoiceId
               }, { merge: true });
               daySalesTotal += currentAvance;
@@ -217,7 +227,7 @@ export default function ImportPage() {
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "ACHAT VERRES", label: "ACHAT VERRES", clientName: client,
-              montant: -Math.abs(glassAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+              montant: -Math.abs(glassAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayExpensesTotal += glassAmount;
           }
@@ -229,7 +239,7 @@ export default function ImportPage() {
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "ACHAT MONTURE", label: "ACHAT MONTURE", clientName: client,
-              montant: -Math.abs(frameAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+              montant: -Math.abs(frameAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayExpensesTotal += frameAmount;
           }
@@ -241,7 +251,7 @@ export default function ImportPage() {
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "DEPENSE", label: label,
-              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayExpensesTotal += expenseAmount;
           }
@@ -251,8 +261,8 @@ export default function ImportPage() {
           if (versementAmount > 0) {
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
-              type: "VERSEMENT", label: "VERSEMENT",
-              montant: -Math.abs(versementAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+              type: "VERSEMENT", label: "VERSEMENT CAISSE",
+              montant: -Math.abs(versementAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayVersementsTotal += versementAmount;
           }

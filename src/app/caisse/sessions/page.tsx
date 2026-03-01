@@ -139,7 +139,7 @@ export default function CashSessionsPage() {
                               <div className={cn("flex items-center gap-3", sunday && "justify-center")}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-500" : "text-primary/40")} />
-                                  <span className={cn("font-black text-sm tracking-tight", sunday ? "text-red-600" : "text-slate-800")}>
+                                  <span className={cn("font-black text-sm tracking-tight", sunday ? "text-red-600 text-base" : "text-slate-800")}>
                                     {formatSessionDate(s.date)}
                                   </span>
                                 </div>
