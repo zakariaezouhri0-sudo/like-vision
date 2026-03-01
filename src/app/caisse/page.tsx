@@ -150,23 +150,22 @@ function CaisseContent() {
   const ecart = soldeReel - soldeTheorique;
 
   const handleOpenSession = async () => {
-    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     try {
       setOpLoading(true);
-      const openedAt = currentIsDraft ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
-      await setDoc(sessionRef, { openingBalance: parseFloat(openingVal) || 0, status: "OPEN", openedAt, date: dateStr, openedBy: user?.displayName || "Inconnu", isDraft: currentIsDraft });
+      const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
+      await setDoc(sessionRef, { openingBalance: parseFloat(openingVal) || 0, status: "OPEN", openedAt, date: dateStr, openedBy: user?.displayName || "Inconnu", isDraft: isPrepaMode });
       toast({ variant: "success", title: "Caisse Ouverte" });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
-    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     setOpLoading(true);
-    const finalAmount = newOp.type === "VENTE" ? Math.abs(parseFloat(newOp.montant)) : -Math.abs(parseFloat(newOp.montant));
+    const amt = parseFloat(newOp.montant);
+    const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     try {
       const transRef = doc(collection(db, "transactions"));
-      await setDoc(transRef, { type: newOp.type, label: newOp.label || newOp.type, category: "Général", montant: finalAmount, userName: user?.displayName || "Inconnu", isDraft: currentIsDraft, createdAt: serverTimestamp() });
+      await setDoc(transRef, { type: newOp.type, label: newOp.label || newOp.type, category: "Général", montant: finalAmount, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
       setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
@@ -174,11 +173,10 @@ function CaisseContent() {
   };
 
   const handleFinalizeClosure = async () => {
-    const currentIsDraft = localStorage.getItem('user_role')?.toUpperCase() === "PREPA";
     try {
       setOpLoading(true);
-      const closedAt = currentIsDraft ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
-      await updateDoc(sessionRef, { status: "CLOSED", closedAt, closingBalanceReal: soldeReel, closingBalanceTheoretical: soldeTheorique, discrepancy: ecart, closedBy: user?.displayName || "Inconnu", totalSales: stats.entrees, totalExpenses: stats.depenses, totalVersements: stats.versements, isDraft: currentIsDraft });
+      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
+      await updateDoc(sessionRef, { status: "CLOSED", closedAt, closingBalanceReal: soldeReel, closingBalanceTheoretical: soldeTheorique, discrepancy: ecart, closedBy: user?.displayName || "Inconnu", totalSales: stats.entrees, totalExpenses: stats.depenses, totalVersements: stats.versements, isDraft: isPrepaMode });
       router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
@@ -218,7 +216,7 @@ function CaisseContent() {
               <input 
                 type="number" 
                 className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
-                value={openingVal === "0" || openingVal === "" ? "" : openingVal} 
+                value={openingVal} 
                 placeholder="---"
                 onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                 readOnly={isAutoReport}
@@ -259,7 +257,7 @@ function CaisseContent() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant === "0" || newOp.montant === "" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
@@ -276,7 +274,7 @@ function CaisseContent() {
                     {DENOMINATIONS.map(val => (
                       <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                         <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="---" value={denoms[val] === 0 ? "" : denoms[val]} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="---" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
                         <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
@@ -320,16 +318,16 @@ function CaisseContent() {
                 transactions.map((t: any) => (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
                     <TableCell className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[9px] font-bold text-slate-400 w-10">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                           <span className="text-[11px] font-black uppercase text-slate-800">
                             {t.type} {t.label ? `| ${t.label}` : ''}
                           </span>
                         </div>
                         {t.clientName && (
-                          <div className="flex items-center gap-2 ml-12">
-                            <span className="text-[9px] font-black text-primary/50 uppercase tracking-widest leading-none">{t.clientName}</span>
+                          <div className="ml-12">
+                            <span className="text-[10px] font-black text-primary/70 uppercase tracking-tight leading-none bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10">{t.clientName}</span>
                           </div>
                         )}
                       </div>

@@ -143,7 +143,7 @@ export default function ImportPage() {
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // Période : 01 Janvier au 28 Février 2026
+      // Période étendue : 01 Janvier au 28 Février 2026
       const totalDays = 59;
       const startDate = new Date(2026, 0, 1);
 
@@ -162,20 +162,28 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Filtrage STRICT des lignes pour ce jour précis
+        // Filtrage STRICT des lignes pour ce jour précis avec détection robuste
         const dayRows = allRows.filter(row => {
           const rowDateVal = row[mapping.date_col];
           if (rowDateVal) {
             let d: Date | null = null;
             if (rowDateVal instanceof Date) {
               d = rowDateVal;
+            } else if (typeof rowDateVal === 'number') {
+              // Conversion date série Excel
+              d = new Date((rowDateVal - 25569) * 86400 * 1000);
             } else {
               try {
-                d = parse(rowDateVal.toString(), "dd/MM/yyyy", new Date());
+                const s = rowDateVal.toString().trim();
+                const parts = s.split('/');
+                if (parts.length === 3) {
+                  d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                } else {
+                  d = parse(s, "yyyy-MM-dd", new Date());
+                }
               } catch (e) {}
             }
-            // On vérifie que c'est strictement le même jour
-            return d && isValid(d) && isSameDay(d, currentDate);
+            return d && isValid(d) && format(d, "yyyy-MM-dd") === dateStr;
           }
           
           // Fallback sur le nom de la feuille seulement si la colonne date n'est pas mappée
@@ -190,7 +198,7 @@ export default function ImportPage() {
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-          // A. VENTES
+          // A. VENTES (Acomptes du jour)
           const clientName = (row[mapping.client_1] || "").toString().trim();
           const totalVal = cleanNum(row[mapping.total_brut]);
           if (clientName && totalVal > 0) {
@@ -248,7 +256,7 @@ export default function ImportPage() {
             dayExpenses += mAmt;
           }
 
-          // D. DEPENSES
+          // D. DEPENSES GENERALES
           const dAmt = cleanNum(row[mapping.montant_dep]);
           if (dAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
@@ -313,7 +321,7 @@ export default function ImportPage() {
           <Card className="rounded-[32px] bg-white shadow-lg border-none">
             <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial au 01/01</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance === "0" || startingBalance === "0.00" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 
