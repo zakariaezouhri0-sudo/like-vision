@@ -245,7 +245,12 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums align-middle">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
                         <td className="p-2 align-middle">
-                          <span className="text-[9px] font-black text-slate-900 uppercase leading-none">{s.type}</span>
+                          <span className={cn(
+                            "text-[7px] px-1.5 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
+                            s.type === 'VENTE' ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                          )}>
+                            {s.type}
+                          </span>
                         </td>
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
@@ -299,7 +304,9 @@ function DailyCashReportContent() {
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
-                          <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{e.label}</span>
+                          <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">
+                            {e.type !== "DEPENSE" ? `${e.type} | ${e.label}` : e.label}
+                          </span>
                         </td>
                         <td className="p-2 align-middle">
                           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{e.clientName || "---"}</span>
@@ -314,7 +321,7 @@ function DailyCashReportContent() {
               </div>
             </div>
 
-            {reportData.versements.length > 1 && (
+            {reportData.versements.length > 0 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 px-1">
                   <h3 className="text-[9px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
