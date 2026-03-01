@@ -255,7 +255,7 @@ function CaisseContent() {
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">{isClosed ? "Session Clôturée" : "Caisse Ouverte"}</h1>
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border mt-2">
               <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{formatSessionDate(dateStr)}</span>
+              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
             </div>
           </div>
         </div>
@@ -339,7 +339,7 @@ function CaisseContent() {
                         </div>
                         {t.clientName && (
                           <div className="flex items-center gap-2 ml-12">
-                            <span className="text-[9px] font-bold text-primary/50 uppercase tracking-widest leading-none">{t.clientName}</span>
+                            <span className="text-[9px] font-black text-primary/50 uppercase tracking-widest leading-none">{t.clientName}</span>
                           </div>
                         )}
                       </div>
@@ -359,14 +359,6 @@ function CaisseContent() {
       </Card>
     </div>
   );
-}
-
-function formatSessionDate(dateStr: string) {
-  if (!dateStr) return "---";
-  try {
-    const d = parseISO(dateStr);
-    return format(d, "dd MMMM yyyy", { locale: fr });
-  } catch (e) { return dateStr; }
 }
 
 export default function CaissePage() { return <AppShell><Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>}><CaisseContent /></Suspense></AppShell>; }

@@ -125,7 +125,6 @@ export default function CashSessionsPage() {
                         const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
                         const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
                         
-                        // Règle Métier : Si Dimanche, le solde final = solde d'ouverture (car pas d'activité)
                         const soldeCloture = sunday ? (s.openingBalance || 0) : (s.closingBalanceReal || 0);
                         const fluxOp = sunday ? 0 : (s.totalSales !== undefined && s.totalExpenses !== undefined) ? (s.totalSales - Math.abs(s.totalExpenses)) : 0;
                         const versement = sunday ? 0 : (s.totalVersements || 0);
@@ -135,7 +134,7 @@ export default function CashSessionsPage() {
                             "hover:bg-primary/5 border-b last:border-0 transition-all",
                             sunday && "bg-red-50 hover:bg-red-100/80"
                           )}>
-                            <TableCell className="px-6 py-6">
+                            <TableCell className="px-6 py-6" colSpan={sunday ? 1 : 1}>
                               <div className={cn("flex items-center gap-3", sunday && "justify-center")}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-500" : "text-primary/40")} />
@@ -157,7 +156,7 @@ export default function CashSessionsPage() {
                                   </span>
                                   <span className="text-[9px] font-black text-slate-700 uppercase truncate max-w-[100px]">{s.openedBy || "---"}</span>
                                 </div>
-                              ) : <span className="text-[10px] font-black text-red-300 uppercase italic">Fermé</span>}
+                              ) : null}
                             </TableCell>
                             
                             <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums">
@@ -183,7 +182,7 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="px-6 py-6">
-                              {sunday ? <span className="text-[10px] font-black text-red-300 uppercase">Auto</span> : (
+                              {!sunday ? (
                                 s.status === "CLOSED" ? (
                                   <div className="flex flex-col">
                                     <span className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-0.5">
@@ -192,7 +191,7 @@ export default function CashSessionsPage() {
                                     <span className="text-[9px] font-black text-slate-700 uppercase truncate max-w-[100px]">{s.closedBy || "---"}</span>
                                   </div>
                                 ) : <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">En cours</span>
-                              )}
+                              ) : null}
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6">

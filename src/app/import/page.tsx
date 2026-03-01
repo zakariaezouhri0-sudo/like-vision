@@ -53,10 +53,12 @@ export default function ImportPage() {
     { key: "total", label: "Total Brut (Vente)", section: "VENTES" },
     { key: "avance", label: "Avance Paye (Vente)", section: "VENTES" },
     { key: "historicalAdvance", label: "Avance Ante (Vente)", section: "VENTES" },
-    { key: "glassClient", label: "NOM CLIENT (Achat Verre)", section: "ACHATS" },
-    { key: "glassAmount", label: "MONTANT (Achat Verre)", section: "ACHATS" },
-    { key: "frameClient", label: "NOM CLIENT (Achat Monture)", section: "ACHATS" },
-    { key: "frameAmount", label: "MONTANT (Achat Monture)", section: "ACHATS" },
+    { key: "glassType", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
+    { key: "glassClient", label: "NOM CLIENT (Verre)", section: "ACHATS" },
+    { key: "glassAmount", label: "MONTANT (Verre)", section: "ACHATS" },
+    { key: "frameType", label: "ACHAT MONTURE (Détail)", section: "ACHATS" },
+    { key: "frameClient", label: "NOM CLIENT (Monture)", section: "ACHATS" },
+    { key: "frameAmount", label: "MONTANT (Monture)", section: "ACHATS" },
     { key: "expenseLabel", label: "LIBELLE (Dépense)", section: "CHARGES" },
     { key: "expenseAmount", label: "MONTANT (Dépense)", section: "CHARGES" },
     { key: "versementAmount", label: "VERSEMENT (Montant)", section: "VERSEMENTS" }
@@ -224,9 +226,10 @@ export default function ImportPage() {
           const glassAmount = cleanNum(row[mapping.glassAmount]);
           if (glassAmount > 0) {
             const client = (row[mapping.glassClient] || "").toString().trim();
+            const detail = (row[mapping.glassType] || "ACHAT VERRES").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
-              type: "ACHAT VERRES", label: "ACHAT VERRES", clientName: client,
+              type: "ACHAT VERRES", label: detail, clientName: client,
               montant: -Math.abs(glassAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayExpensesTotal += glassAmount;
@@ -236,9 +239,10 @@ export default function ImportPage() {
           const frameAmount = cleanNum(row[mapping.frameAmount]);
           if (frameAmount > 0) {
             const client = (row[mapping.frameClient] || "").toString().trim();
+            const detail = (row[mapping.frameType] || "ACHAT MONTURE").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
-              type: "ACHAT MONTURE", label: "ACHAT MONTURE", clientName: client,
+              type: "ACHAT MONTURE", label: detail, clientName: client,
               montant: -Math.abs(frameAmount), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             }, { merge: true });
             dayExpensesTotal += frameAmount;
