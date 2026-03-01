@@ -122,12 +122,20 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour depuis le nom de la feuille (doit être un nombre 1-31)
-        let day = s + 1;
+        // Extraction précise du jour : On cherche le numéro entre 1 et 31
+        let day = null;
         const sheetNumbers = sheetName.match(/\d+/g);
         if (sheetNumbers && sheetNumbers.length > 0) {
+          // On prend le dernier groupe de chiffres (souvent le jour à la fin du nom)
           const potentialDay = parseInt(sheetNumbers[sheetNumbers.length - 1]);
           if (potentialDay >= 1 && potentialDay <= 31) day = potentialDay;
+        }
+
+        // Si on ne trouve pas de jour dans le nom, on utilise l'index de la feuille par défaut
+        // Mais pour l'utilisateur, on préfère sauter si ce n'est pas une feuille de données
+        if (!day) {
+          console.warn(`Feuille ${sheetName} ignorée (Pas de jour détecté)`);
+          continue;
         }
 
         const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
@@ -318,7 +326,7 @@ export default function ImportPage() {
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Caisse au 01/01/2026 (DH)</Label>
-                <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="0" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+                <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="0" value={startingBalance === "0" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
               </div>
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100"><p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase"><CheckCircle2 className="h-3 w-3 inline mr-1 mb-0.5" /> Les clients seront automatiquement créés de manière étanche.</p></div>
             </CardContent>

@@ -95,7 +95,8 @@ export default function CashSessionsPage() {
         const day = parseInt(parts[2]);
         const d = new Date(year, month - 1, day);
         if (!isNaN(d.getTime())) {
-          return format(d, "dd MMMM yyyy", { locale: fr });
+          const formatted = format(d, "dd MMMM yyyy", { locale: fr });
+          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
       }
       return cleanDate;
@@ -199,21 +200,23 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="px-6 py-6 whitespace-nowrap">
-                              <div className="flex flex-col">
-                                <div className={cn(
-                                  "flex items-center gap-1 text-[9px] font-black uppercase tracking-widest mb-0.5",
-                                  sunday ? "text-red-400" : "text-green-600"
-                                )}>
-                                  <Clock className="h-3 w-3" />
-                                  {openedDate ? format(openedDate, "HH:mm") : "--:--"}
+                              {!sunday ? (
+                                <div className="flex flex-col">
+                                  <div className={cn(
+                                    "flex items-center gap-1 text-[9px] font-black uppercase tracking-widest mb-0.5",
+                                    "text-green-600"
+                                  )}>
+                                    <Clock className="h-3 w-3" />
+                                    {openedDate ? format(openedDate, "HH:mm") : "--:--"}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 bg-white/50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
+                                    <UserIcon className="h-2.5 w-2.5 text-primary/30" />
+                                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
+                                      {s.openedBy || "---"}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-white/50 px-2 py-0.5 rounded-lg border border-slate-100 w-fit">
-                                  <UserIcon className="h-2.5 w-2.5 text-primary/30" />
-                                  <span className="text-[9px] font-black text-slate-700 uppercase tracking-tighter truncate max-w-[100px]">
-                                    {s.openedBy || "---"}
-                                  </span>
-                                </div>
-                              </div>
+                              ) : <span className="text-[10px] font-black text-red-300 uppercase italic">Dimanche</span>}
                             </TableCell>
                             
                             <TableCell className="text-right px-6 py-6 whitespace-nowrap">
