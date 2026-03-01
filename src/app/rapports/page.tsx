@@ -60,7 +60,6 @@ export default function ReportsPage() {
     const from = startOfDay(dateRange.from);
     const to = endOfDay(dateRange.to);
 
-    // Filtrage par Mode Préparation
     const filteredSales = (rawSales || []).filter((s: any) => {
       const matchesMode = isPrepaMode ? s.isDraft === true : !s.isDraft;
       if (!matchesMode) return false;
@@ -73,13 +72,10 @@ export default function ReportsPage() {
       return t.createdAt?.toDate && isWithinInterval(t.createdAt.toDate(), { start: from, end: to });
     });
 
-    // CA Net = Argent RÉELLEMENT encaissé (Somme des transactions de type VENTE sur la période)
-    // C'est ce qui exclut les "Déjà Versés (Ancien)" déclaratifs.
     const ca = filteredTrans
       .filter(t => t.type === "VENTE")
       .reduce((acc, t) => acc + (Number(t.montant) || 0), 0);
     
-    // Marge Brute = (Volume facturé - Coûts d'achat)
     const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0), 0);
     
@@ -113,7 +109,8 @@ export default function ReportsPage() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `rapport_${isPrepaMode ? 'prepa_' : ''}${format(new Date(), "yyyyMMdd")}.csv`);
+    // Nom du fichier personnalisé
+    link.setAttribute("download", `Like Vision - ${format(new Date(), "dd-MM-yyyy")}.csv`);
     link.click();
   };
 

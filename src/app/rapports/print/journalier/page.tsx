@@ -36,7 +36,8 @@ function DailyCashReportContent() {
     const now = new Date();
     setPrintTime(format(now, "HH:mm"));
     const dateStr = format(selectedDate, "dd-MM-yyyy");
-    document.title = `Rapport Journalier - ${dateStr}`;
+    // Format du nom pour l'impression/téléchargement PDF
+    document.title = `Like Vision - ${dateStr}`;
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
@@ -151,7 +152,6 @@ function DailyCashReportContent() {
 
       <div className="pdf-a4-portrait shadow-[0_0_60px_rgba(0,0,0,0.05)] bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm px-[6mm] pb-[6mm] pt-[3mm] print:pt-[3mm] flex flex-col min-h-[297mm]">
         
-        {/* Header Compacté */}
         <div className="flex justify-between items-start border-b border-slate-200 pb-2 mb-3">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-xl bg-white shadow-sm">
@@ -189,7 +189,6 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Résumé des Flux Compacté */}
         <div className="grid grid-cols-4 gap-2.5 mb-4">
           <div className="p-2.5 rounded-lg border border-slate-300 bg-slate-50/30 text-center">
             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p>
@@ -212,7 +211,6 @@ function DailyCashReportContent() {
         </div>
 
         <div className="space-y-4 flex-1">
-          {/* Section Encaissements - Centrée et Police Agrandie */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1">
               <h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
@@ -227,7 +225,7 @@ function DailyCashReportContent() {
               <table className="w-full border-collapse">
                 <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
                   <tr>
-                    <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[30%]">Document / Client</th>
+                    <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">Document / Client</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28">Total Net</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-600">Versé</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-destructive w-28">Reste</th>
@@ -271,7 +269,6 @@ function DailyCashReportContent() {
             </div>
           </div>
 
-          {/* Sorties et Versements - Lignes Compactées */}
           <div className="space-y-4">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1">
@@ -295,7 +292,6 @@ function DailyCashReportContent() {
                       const isAchat = e.type === "ACHAT MONTURE" || e.type === "ACHAT VERRES";
                       const rawLabel = e.label || "";
                       const typeWord = e.type === "ACHAT MONTURE" ? "monture" : "verres";
-                      // Nettoyage intelligent du libellé pour éviter la répétition
                       const cleanedLabel = isAchat 
                         ? rawLabel.replace(new RegExp(`achat ${typeWord}`, 'gi'), '').replace(/['"]/g, '').trim()
                         : rawLabel;
@@ -355,7 +351,6 @@ function DailyCashReportContent() {
           </div>
         </div>
 
-        {/* Pied de page Compacté */}
         <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-10">
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-slate-400">
