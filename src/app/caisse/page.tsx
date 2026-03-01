@@ -369,7 +369,7 @@ function CaisseContent() {
                         </div>
                         {t.clientName && (
                           <div className="ml-12">
-                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight leading-none opacity-80">
+                            <span className="text-[9px] font-bold text-primary/60 uppercase tracking-tight leading-none opacity-80">
                               {t.clientName}
                             </span>
                           </div>
@@ -378,9 +378,23 @@ function CaisseContent() {
                     </TableCell>
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)} className="text-primary hover:bg-primary/10 rounded-lg"><Edit2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => handleOpenEdit(t)} 
+                          className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
+                          className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

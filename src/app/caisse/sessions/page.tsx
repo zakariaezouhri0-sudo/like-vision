@@ -20,7 +20,8 @@ import {
   MoreVertical,
   Trash2,
   AlertTriangle,
-  FileText
+  FileText,
+  Calculator
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -92,7 +93,7 @@ export default function CashSessionsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions {isPrepaMode ? "(Brouillon)" : ""}</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique complet du magasin.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-1 opacity-60">Historique et vérification des écarts.</p>
           </div>
         </div>
 
@@ -109,12 +110,10 @@ export default function CashSessionsPage() {
                   <TableHeader className="bg-slate-50/80 border-b">
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Date & Statut</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Ouvert par</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Initial</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Flux (Op)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Versements</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Final</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-widest">Clôturé par</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest text-primary">Calcul Théorique</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Solde Réel (Compté)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Écart</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-widest">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -122,23 +121,26 @@ export default function CashSessionsPage() {
                     {sessions.length > 0 ? (
                       sessions.map((s: any) => {
                         const sunday = isSunday(s.date);
-                        const openedDate = s.openedAt?.toDate ? s.openedAt.toDate() : null;
-                        const closedDate = s.closedAt?.toDate ? s.closedAt.toDate() : null;
+                        const initial = s.openingBalance || 0;
+                        const sales = s.totalSales || 0;
+                        const expenses = s.totalExpenses || 0;
+                        const versements = s.totalVersements || 0;
                         
-                        const soldeCloture = sunday ? (s.openingBalance || 0) : (s.closingBalanceReal || 0);
-                        const fluxOp = sunday ? 0 : (s.totalSales !== undefined && s.totalExpenses !== undefined) ? (s.totalSales - Math.abs(s.totalExpenses)) : 0;
-                        const versement = sunday ? 0 : (s.totalVersements || 0);
+                        // Calcul théorique : Initial + Ventes - Dépenses - Versements
+                        const theorique = sunday ? initial : (initial + sales - expenses - versements);
+                        const reel = sunday ? initial : (s.closingBalanceReal !== undefined ? s.closingBalanceReal : theorique);
+                        const discrepancy = reel - theorique;
 
                         return (
                           <TableRow key={s.id} className={cn(
                             "hover:bg-primary/5 border-b last:border-0 transition-all",
                             sunday && "bg-red-50 hover:bg-red-100/80"
                           )}>
-                            <TableCell className="px-6 py-6" colSpan={sunday ? 1 : 1}>
+                            <TableCell className="px-6 py-6">
                               <div className={cn("flex items-center gap-3", sunday && "justify-center")}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon className={cn("h-4 w-4", sunday ? "text-red-500" : "text-primary/40")} />
-                                  <span className={cn("font-black text-sm tracking-tight", sunday ? "text-red-600 text-base" : "text-slate-800")}>
+                                  <span className={cn("font-black text-sm tracking-tight", sunday ? "text-red-600" : "text-slate-800")}>
                                     {formatSessionDate(s.date)}
                                   </span>
                                 </div>
@@ -147,51 +149,28 @@ export default function CashSessionsPage() {
                                 )}
                               </div>
                             </TableCell>
-
-                            <TableCell className="px-6 py-6">
-                              {!sunday ? (
-                                <div className="flex flex-col">
-                                  <span className="text-[9px] font-black text-green-600 uppercase tracking-widest mb-0.5">
-                                    <Clock className="h-2.5 w-2.5 inline mr-1" />{openedDate ? format(openedDate, "HH:mm") : "--:--"}
-                                  </span>
-                                  <span className="text-[9px] font-black text-slate-700 uppercase truncate max-w-[100px]">{s.openedBy || "---"}</span>
-                                </div>
-                              ) : null}
-                            </TableCell>
                             
-                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums">
-                              {formatCurrency(s.openingBalance || 0)}
+                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-400">
+                              {formatCurrency(initial)}
                             </TableCell>
 
-                            <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              {sunday ? <span className="text-[10px] font-bold text-red-200">0,00 DH</span> : (
-                                <div className={cn("flex items-center justify-end gap-1.5 font-black text-sm", fluxOp >= 0 ? "text-green-600" : "text-destructive")}>
-                                  {fluxOp > 0 ? "+" : ""}{formatCurrency(fluxOp)}
-                                </div>
-                              )}
-                            </TableCell>
-
-                            <TableCell className="text-right px-6 py-6 whitespace-nowrap">
-                              {sunday ? <span className="text-[10px] font-bold text-red-200">0,00 DH</span> : (
-                                <div className="font-black text-sm text-orange-600">-{formatCurrency(Math.abs(versement))}</div>
-                              )}
+                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-primary/60">
+                              {formatCurrency(theorique)}
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-900">
-                              {formatCurrency(soldeCloture)}
+                              {formatCurrency(reel)}
                             </TableCell>
 
-                            <TableCell className="px-6 py-6">
-                              {!sunday ? (
-                                s.status === "CLOSED" ? (
-                                  <div className="flex flex-col">
-                                    <span className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-0.5">
-                                      <Clock className="h-2.5 w-2.5 inline mr-1" />{closedDate ? format(closedDate, "HH:mm") : "--:--"}
-                                    </span>
-                                    <span className="text-[9px] font-black text-slate-700 uppercase truncate max-w-[100px]">{s.closedBy || "---"}</span>
-                                  </div>
-                                ) : <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">En cours</span>
-                              ) : null}
+                            <TableCell className="text-right px-6 py-6">
+                              {sunday ? <span className="text-[10px] font-bold text-slate-300">---</span> : (
+                                <div className={cn(
+                                  "font-black text-sm tabular-nums",
+                                  Math.abs(discrepancy) < 0.01 ? "text-green-600" : "text-destructive"
+                                )}>
+                                  {discrepancy > 0 ? "+" : ""}{formatCurrency(discrepancy)}
+                                </div>
+                              )}
                             </TableCell>
 
                             <TableCell className="text-right px-6 py-6">
@@ -210,7 +189,7 @@ export default function CashSessionsPage() {
                         );
                       })
                     ) : (
-                      <TableRow><TableCell colSpan={8} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
