@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses } from "lucide-react";
+import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
-import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -61,6 +62,41 @@ function NewSaleForm() {
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
+
+  // RÉCUPÉRATION DES CLIENTS ET DES VENTES POUR L'AUTOCOMPLÉTION ET LE CRÉDIT
+  const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
+  const { data: allClients } = useCollection(clientsQuery);
+
+  const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
+  const { data: allSales } = useCollection(salesQuery);
+
+  // LOGIQUE DE RECHERCHE AUTOMATIQUE
+  useEffect(() => {
+    if (!clientPhone || clientPhone.length < 8 || activeEditId) return;
+
+    const cleanedSearch = clientPhone.replace(/\s/g, "");
+    const foundClient = allClients?.find(c => {
+      const matchMode = isPrepaMode ? c.isDraft === true : !c.isDraft;
+      if (!matchMode) return false;
+      const phone = (c.phone || "").replace(/\s/g, "");
+      return phone === cleanedSearch;
+    });
+
+    if (foundClient) {
+      setClientName(foundClient.name);
+      if (foundClient.mutuelle) setMutuelle(foundClient.mutuelle);
+    }
+  }, [clientPhone, allClients, isPrepaMode, activeEditId]);
+
+  // CALCUL DU RESTE À PAYER DU CLIENT
+  const clientDebt = useMemo(() => {
+    if (!clientName || !allSales) return 0;
+    const filteredSales = allSales.filter(s => {
+      const matchMode = isPrepaMode ? s.isDraft === true : !s.isDraft;
+      return matchMode && s.clientName?.toLowerCase().trim() === clientName.toLowerCase().trim();
+    });
+    return filteredSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
+  }, [clientName, allSales, isPrepaMode]);
 
   const cleanVal = (val: string | number): number => {
     if (typeof val === 'number') return val;
@@ -169,22 +205,48 @@ function NewSaleForm() {
           <Button onClick={handleSave} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />}ENREGISTRER</Button>
         </div>
 
+        {clientDebt > 0 && (
+          <Alert variant="destructive" className="rounded-[24px] border-2 border-destructive bg-destructive/5 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="font-black uppercase text-xs">Attention : Client débiteur</AlertTitle>
+            <AlertDescription className="font-bold text-sm">
+              Ce client a un reste à payer total de <span className="font-black">{formatCurrency(clientDebt)}</span> sur ses dossiers précédents.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <User className="h-4 w-4 text-primary/40" />
-                <CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client & Date</CardTitle>
+                <CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
-                    <Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="06..." value={clientPhone} onChange={e => setClientPhone(e.target.value)} />
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
+                      <Input 
+                        className="h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        placeholder="06..." 
+                        value={clientPhone} 
+                        onChange={e => setClientPhone(e.target.value)} 
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
-                    <Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="M. Mohamed..." value={clientName} onChange={e => setClientName(e.target.value)} />
+                    <div className="relative">
+                      <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
+                      <Input 
+                        className="h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        placeholder="M. Mohamed..." 
+                        value={clientName} 
+                        onChange={e => setClientName(e.target.value)} 
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label>
