@@ -243,8 +243,8 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            {s.label && <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{s.label}</span>}
-                            {s.clientName && <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
+                            {s.label && <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label}</span>}
+                            {s.clientName && <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
@@ -293,7 +293,7 @@ function DailyCashReportContent() {
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle text-left whitespace-nowrap overflow-hidden">
-                          <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">
+                          <span className="text-[10px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">
                             {e.type !== "DEPENSE" ? `${e.type} | ${e.label}` : e.label}
                           </span>
                         </td>
