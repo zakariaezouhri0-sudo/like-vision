@@ -227,13 +227,14 @@ function DailyCashReportContent() {
               <table className="w-full">
                 <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                   <tr>
-                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-16">Heure</th>
-                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Opération & Détails</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest">Total Net</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest">Versé</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest text-destructive">Reste</th>
-                    <th className="p-2 text-center text-[8px] font-black uppercase tracking-widest">Statut</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Acompte</th>
+                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-12">Heure</th>
+                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-20">Nature</th>
+                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Client / Détails</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Total Net</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Versé</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest text-destructive w-20">Reste</th>
+                    <th className="p-2 text-center text-[8px] font-black uppercase tracking-widest w-16">Statut</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Acompte</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -244,9 +245,12 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums align-middle">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
                         <td className="p-2 align-middle">
+                          <span className="text-[9px] font-black text-slate-900 uppercase leading-none">{s.type}</span>
+                        </td>
+                        <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{s.type} {s.label ? `| ${s.label}` : ''}</span>
-                            {s.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{s.clientName}</span>}
+                            {s.clientName && <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{s.clientName}</span>}
+                            {s.label && <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{s.label}</span>}
                           </div>
                         </td>
                         <td className="p-2 text-right font-bold text-slate-600 tabular-nums text-[9px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
@@ -266,7 +270,7 @@ function DailyCashReportContent() {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={7} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
+                    <tr><td colSpan={8} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -276,7 +280,7 @@ function DailyCashReportContent() {
           <div className="space-y-6">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 px-1">
-                <h3 className="text-[9px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
+                <h3 className="text-[10px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest">
                   <FileText className="h-3.5 w-3.5 text-red-600" />
                   Sorties de Caisse
                 </h3>
@@ -286,7 +290,8 @@ function DailyCashReportContent() {
                 <table className="w-full">
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Opération & Détails</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-24">Nature</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Détails / Bénéficiaire</th>
                       <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Montant</th>
                     </tr>
                   </thead>
@@ -294,15 +299,18 @@ function DailyCashReportContent() {
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
+                          <span className="text-[10px] font-black text-slate-900 uppercase leading-none">{e.type}</span>
+                        </td>
+                        <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{e.type} {e.label ? `| ${e.label}` : ''}</span>
-                            {e.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{e.clientName}</span>}
+                            {e.label && <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{e.label}</span>}
+                            {e.clientName && <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{e.clientName}</span>}
                           </div>
                         </td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[9px] align-middle">-{formatCurrency(Math.abs(e.montant))}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={2} className="p-4 text-center text-slate-300 font-bold italic text-[8px]">Aucune dépense.</td></tr>
+                      <tr><td colSpan={3} className="p-4 text-center text-slate-300 font-bold italic text-[8px]">Aucune dépense.</td></tr>
                     )}
                   </tbody>
                 </table>
