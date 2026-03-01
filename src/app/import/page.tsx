@@ -11,27 +11,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileSpreadsheet, Loader2, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, parse, isValid, isSameDay } from "date-fns";
+import { setHours, format, addDays, parse, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type Mapping = Record<string, string>;
 
 const GLOBAL_FIELDS = [
-  { key: "date_col", label: "DATE (Colonne)", section: "GÉNÉRAL" },
+  { key: "date_col", label: "DATE", section: "GÉNÉRAL" },
+  { key: "ref_vente", label: "REF (Vente)", section: "VENTES" },
   { key: "client_1", label: "Nom Client 1", section: "VENTES" },
   { key: "total_brut", label: "Total Brut", section: "VENTES" },
-  { key: "avance_paye", label: "Avance Payée (Reçue)", section: "VENTES" },
-  { key: "achat_verre_det", label: "ACHAT VERRE (Détail)", section: "ACHATS" },
+  { key: "avance_paye", label: "Avance Paye", section: "VENTES" },
+  { key: "avance_ante", label: "Avance Ante", section: "VENTES" },
+  { key: "achat_verre_det", label: "ACHAT VERRE (DEtail)", section: "ACHATS" },
   { key: "nom_client_v", label: "NOM CLIENT (Verre)", section: "ACHATS" },
   { key: "montant_v", label: "MONTANT (Verre)", section: "ACHATS" },
-  { key: "achat_mont_det", label: "ACHAT MONTURE (Détail)", section: "ACHATS" },
+  { key: "achat_mont_det", label: "ACHAT MONTURE (DEtail)", section: "ACHATS" },
   { key: "nom_client_m", label: "NOM CLIENT (Monture)", section: "ACHATS" },
   { key: "montant_m", label: "MONTANT (Monture)", section: "ACHATS" },
-  { key: "libelle_dep", label: "LIBELLE (Dépense)", section: "CHARGES" },
-  { key: "montant_dep", label: "MONTANT (Dépense)", section: "CHARGES" },
+  { key: "libelle_dep", label: "LIBELLE (DEpense)", section: "CHARGES" },
+  { key: "montant_dep", label: "MONTANT (DEpense)", section: "CHARGES" },
   { key: "versement_mt", label: "VERSEMENT (Montant)", section: "VERSEMENTS" }
 ];
 
@@ -122,10 +124,6 @@ export default function ImportPage() {
     const userName = user?.displayName || "Import Automatique";
     let runningBalance = cleanNum(startingBalance);
 
-    const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
-    const counterSnap = await getDoc(counterRef);
-    let globalCounters = counterSnap.exists() ? counterSnap.data() as any : { fc: 0, rc: 0 };
-
     try {
       // 1. COLLECT ALL DATA
       let allRows: any[] = [];
@@ -134,7 +132,7 @@ export default function ImportPage() {
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // Pre-process dates for all rows
+      // Pre-process dates
       allRows = allRows.map(row => {
         const val = row[mapping.date_col];
         let d: Date | null = null;
@@ -152,75 +150,97 @@ export default function ImportPage() {
         return { ...row, _parsedDate: d };
       });
 
-      // 2. GROUP SALES CROSS-DAYS
-      // Key: clientName + totalBrut
+      // 2. GROUP SALES BY REF (Vente)
       const salesGroups: Record<string, any> = {};
       
       allRows.forEach(row => {
+        const ref = (row[mapping.ref_vente] || "").toString().trim();
         const clientName = (row[mapping.client_1] || "").toString().trim();
-        const totalVal = cleanNum(row[mapping.total_brut]);
-        const avance = cleanNum(row[mapping.avance_paye]);
+        const totalBrut = cleanNum(row[mapping.total_brut]);
+        const avancePaye = cleanNum(row[mapping.avance_paye]);
+        const avanceAnte = cleanNum(row[mapping.avance_ante]);
         
-        if (clientName && totalVal > 0) {
-          const key = `${clientName.toLowerCase()}_${totalVal}`;
-          if (!salesGroups[key]) {
-            salesGroups[key] = {
+        if (ref && clientName) {
+          if (!salesGroups[ref]) {
+            salesGroups[ref] = {
+              ref,
               clientName,
-              total: totalVal,
+              totalBrut: 0,
               payments: [],
+              anteAmt: 0,
               earliestDate: null
             };
           }
           
-          if (avance > 0 && row._parsedDate) {
-            salesGroups[key].payments.push({
-              amount: avance,
+          if (totalBrut > 0) salesGroups[ref].totalBrut = totalBrut;
+          
+          // Avance Ante uniquement si date <= 10 Janvier
+          const isAnteriorPeriod = row._parsedDate && row._parsedDate >= new Date(2026, 0, 1) && row._parsedDate <= new Date(2026, 0, 10);
+          if (isAnteriorPeriod && avanceAnte > 0) {
+            salesGroups[ref].anteAmt += avanceAnte;
+          }
+
+          if (avancePaye > 0 && row._parsedDate) {
+            salesGroups[ref].payments.push({
+              amount: avancePaye,
               date: row._parsedDate,
               userName: "Import",
               note: "Versement"
             });
-            if (!salesGroups[key].earliestDate || row._parsedDate < salesGroups[key].earliestDate) {
-              salesGroups[key].earliestDate = row._parsedDate;
+            if (!salesGroups[ref].earliestDate || row._parsedDate < salesGroups[ref].earliestDate) {
+              salesGroups[ref].earliestDate = row._parsedDate;
             }
           }
         }
       });
 
-      // 3. GENERATE INVOICE IDS AND CREATE SALES
-      const finalSalesMap: Record<string, string> = {}; // groupKey -> invoiceId
-      const sortedSalesKeys = Object.keys(salesGroups).sort((a, b) => {
+      // 3. CREATE SALES
+      const finalSalesMap: Record<string, string> = {}; 
+      const sortedRefs = Object.keys(salesGroups).sort((a, b) => {
         const da = salesGroups[a].earliestDate?.getTime() || 0;
         const db = salesGroups[b].earliestDate?.getTime() || 0;
         return da - db;
       });
 
-      for (const key of sortedSalesKeys) {
-        const s = salesGroups[key];
-        const totalPaid = s.payments.reduce((acc: number, p: any) => acc + p.amount, 0);
-        const isPaid = totalPaid >= s.total;
+      for (const ref of sortedRefs) {
+        const s = salesGroups[ref];
+        const totalPaid = s.payments.reduce((acc: number, p: any) => acc + p.amount, 0) + s.anteAmt;
+        const isFullyPaid = totalPaid >= s.totalBrut;
         
         await ensureClient(s.clientName, currentIsDraft);
         
-        if (isPaid) globalCounters.fc++; else globalCounters.rc++;
-        const invoiceId = `${currentIsDraft ? 'PREPA-' : ''}${isPaid ? 'FC' : 'RC'}-2026-${(isPaid ? globalCounters.fc : globalCounters.rc).toString().padStart(4, '0')}`;
-        finalSalesMap[key] = invoiceId;
+        // Logic RC / FC
+        const prefix = currentIsDraft ? "PREPA-" : "";
+        const docType = isFullyPaid ? "FC" : "RC";
+        const invoiceId = `${prefix}${docType}-2026-${ref.padStart(4, '0')}`;
+        finalSalesMap[ref] = invoiceId;
+
+        const allPayments = [...s.payments];
+        if (s.anteAmt > 0) {
+          allPayments.unshift({
+            amount: s.anteAmt,
+            date: new Date(2025, 11, 31).toISOString(),
+            userName: "Historique",
+            note: "Avance antérieure"
+          });
+        }
 
         await setDoc(doc(collection(db, "sales")), {
           invoiceId, 
           clientName: s.clientName, 
-          total: s.total, 
+          total: s.totalBrut, 
           avance: totalPaid, 
-          reste: Math.max(0, s.total - totalPaid),
-          statut: isPaid ? "Payé" : (totalPaid > 0 ? "Partiel" : "En attente"), 
+          reste: Math.max(0, s.totalBrut - totalPaid),
+          statut: isFullyPaid ? "Payé" : (totalPaid > 0 ? "Partiel" : "En attente"), 
           isDraft: currentIsDraft, 
           createdAt: Timestamp.fromDate(setHours(s.earliestDate || new Date(2026, 0, 1), 12)), 
           createdBy: userName,
-          payments: s.payments.map((p: any) => ({ ...p, date: p.date.toISOString() }))
+          payments: allPayments.map((p: any) => ({ ...p, date: typeof p.date === 'string' ? p.date : p.date.toISOString() }))
         });
       }
 
       // 4. PROCESS DAILY SESSIONS AND TRANSACTIONS
-      const totalDays = 59; 
+      const totalDays = 60; 
       const startDate = new Date(2026, 0, 1);
 
       for (let i = 0; i < totalDays; i++) {
@@ -238,34 +258,21 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = runningBalance;
 
-        // Filter rows for this specific day
-        const dayRows = allRows.filter(row => {
-          if (row._parsedDate && format(row._parsedDate, "yyyy-MM-dd") === dateStr) return true;
-          
-          // Fallback to sheet name matching if date is missing
-          const sheet = row._sheet?.toString() || "";
-          const sheetNum = sheet.replace(/\D/g, '');
-          const isMonthMatch = (currentDate.getMonth() === 0 && sheet.toLowerCase().includes('janv')) || 
-                               (currentDate.getMonth() === 1 && sheet.toLowerCase().includes('fevr'));
-          return isMonthMatch && (sheetNum === format(currentDate, "dd") || sheet.includes(format(currentDate, "dd-MM")));
-        });
+        const dayRows = allRows.filter(row => row._parsedDate && format(row._parsedDate, "yyyy-MM-dd") === dateStr);
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
           
-          // Advances (Sales)
-          const clientName = (row[mapping.client_1] || "").toString().trim();
-          const totalVal = cleanNum(row[mapping.total_brut]);
+          // Avances Payées (uniquement avance_paye génère une transaction)
+          const ref = (row[mapping.ref_vente] || "").toString().trim();
           const currentAvance = cleanNum(row[mapping.avance_paye]);
           
-          if (clientName && totalVal > 0 && currentAvance > 0) {
-            const groupKey = `${clientName.toLowerCase()}_${totalVal}`;
-            const invoiceId = finalSalesMap[groupKey];
-            
+          if (ref && currentAvance > 0) {
+            const invoiceId = finalSalesMap[ref];
             await setDoc(doc(collection(db, "transactions")), {
               type: "VENTE", 
               label: invoiceId, 
-              clientName, 
+              clientName: (row[mapping.client_1] || "").toString().trim(), 
               montant: currentAvance, 
               isDraft: currentIsDraft, 
               createdAt: rowTimestamp, 
@@ -275,7 +282,7 @@ export default function ImportPage() {
             daySales += currentAvance;
           }
 
-          // Expenses and Versements
+          // Dépenses et Versements
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
@@ -327,7 +334,6 @@ export default function ImportPage() {
         });
       }
 
-      await setDoc(counterRef, globalCounters);
       toast({ variant: "success", title: "Importation terminée" });
       router.push("/caisse/sessions");
     } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'importation" }); } finally { setIsProcessing(false); }
