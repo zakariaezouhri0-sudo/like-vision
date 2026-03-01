@@ -71,7 +71,6 @@ function DailyCashReportContent() {
   
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
-  // Récupération des factures liées pour enrichir le tableau des encaissements
   const relatedInvoiceIds = useMemo(() => {
     if (!rawTransactions) return [];
     return Array.from(new Set(rawTransactions
@@ -82,7 +81,6 @@ function DailyCashReportContent() {
 
   const salesDetailsQuery = useMemoFirebase(() => {
     if (relatedInvoiceIds.length === 0) return null;
-    // Firestore limite le "in" à 30 éléments, ce qui suffit généralement pour une journée
     return query(collection(db, "sales"), where("invoiceId", "in", relatedInvoiceIds.slice(0, 30)));
   }, [db, relatedInvoiceIds]);
   const { data: salesDocs } = useCollection(salesDetailsQuery);
@@ -288,8 +286,8 @@ function DailyCashReportContent() {
                 <table className="w-full">
                   <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                     <tr>
-                      <th className="p-2 text-left text-[8px] font-black uppercase">Opération & Détails</th>
-                      <th className="p-2 text-right text-[8px] font-black uppercase w-24">Montant</th>
+                      <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Opération & Détails</th>
+                      <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Montant</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -297,7 +295,7 @@ function DailyCashReportContent() {
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-900 uppercase leading-tight">{e.type} {e.label ? `| ${e.label}` : ''}</span>
+                            <span className="text-[10px] font-black text-slate-900 uppercase leading-tight">{e.type} {e.label ? `| ${e.label}` : ''}</span>
                             {e.clientName && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter ml-4">{e.clientName}</span>}
                           </div>
                         </td>
@@ -324,8 +322,8 @@ function DailyCashReportContent() {
                   <table className="w-full">
                     <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                       <tr>
-                        <th className="p-2 text-left text-[8px] font-black uppercase">Désignation</th>
-                        <th className="p-2 text-right text-[8px] font-black uppercase w-24">Montant</th>
+                        <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Désignation</th>
+                        <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Montant</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
