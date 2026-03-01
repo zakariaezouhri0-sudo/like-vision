@@ -118,12 +118,12 @@ export default function CashSessionsPage() {
                   <TableHeader className="bg-slate-50/50 border-b">
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400">Date & Statut</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Ouverture / Par</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Solde Ouv.</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Ouverture</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Fonds Initial</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">FLUX (Net)</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-orange-500">Versement</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Solde Clôt.</TableHead>
-                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Clôture / Par</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Fonds Final</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Clôture</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -137,7 +137,6 @@ export default function CashSessionsPage() {
                         const flux = sales - expenses;
                         const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements);
                         
-                        // Détection dimanche pour coloration
                         const dateObj = s.date ? parseISO(s.date) : new Date();
                         const isDaySunday = isSunday(dateObj);
 
