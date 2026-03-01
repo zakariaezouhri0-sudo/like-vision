@@ -149,7 +149,6 @@ export default function ImportPage() {
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // Période étendue : 01 Janvier au 28 Février 2026 (59 jours)
       const totalDays = 59;
       const startDate = new Date(2026, 0, 1);
 
@@ -170,34 +169,42 @@ export default function ImportPage() {
 
         const dayRows = allRows.filter(row => {
           const rowDateVal = row[mapping.date_col];
-          if (!rowDateVal) {
-            const sheet = row._sheet?.toString();
-            return sheet === format(currentDate, "dd") || sheet === format(currentDate, "dd-MM") || sheet === format(currentDate, "MMMM", { locale: fr });
-          }
-          
           let d: Date | null = null;
-          if (rowDateVal instanceof Date) {
-            d = rowDateVal;
-          } else if (typeof rowDateVal === 'number') {
-            d = new Date(Math.round((rowDateVal - 25569) * 86400 * 1000));
-          } else {
-            const s = rowDateVal.toString().trim();
-            const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy", "MM/dd/yyyy"];
-            for (const f of formats) {
-              const parsed = parse(s, f, new Date());
-              if (isValid(parsed) && parsed.getFullYear() >= 2025) {
-                d = parsed;
-                break;
+
+          if (rowDateVal) {
+            if (rowDateVal instanceof Date) {
+              d = rowDateVal;
+            } else if (typeof rowDateVal === 'number') {
+              d = new Date(Math.round((rowDateVal - 25569) * 86400 * 1000));
+            } else {
+              const s = rowDateVal.toString().trim();
+              const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd-MM-yyyy", "dd/MM/yy", "MM/dd/yyyy", "d/M/yy"];
+              for (const f of formats) {
+                const parsed = parse(s, f, new Date());
+                if (isValid(parsed)) {
+                  if (parsed.getFullYear() < 100) parsed.setFullYear(2000 + parsed.getFullYear());
+                  if (parsed.getFullYear() < 2000) parsed.setFullYear(parsed.getFullYear() + 100);
+                  d = parsed;
+                  break;
+                }
               }
             }
           }
-          return d && isValid(d) && isSameDay(d, currentDate);
+
+          if (!d) {
+            const sheet = row._sheet?.toString();
+            if (!sheet) return false;
+            return sheet === format(currentDate, "dd") || 
+                   sheet === format(currentDate, "dd-MM") || 
+                   sheet === format(currentDate, "MMMM", { locale: fr });
+          }
+          
+          return format(d, "yyyy-MM-dd") === dateStr;
         });
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
 
-          // A. VENTES (Uniquement ici on enregistre le client auto)
           const clientName = (row[mapping.client_1] || "").toString().trim();
           const totalVal = cleanNum(row[mapping.total_brut]);
           if (clientName && totalVal > 0) {
@@ -229,7 +236,6 @@ export default function ImportPage() {
             }
           }
 
-          // B. ACHATS VERRES
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             const label = (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim();
@@ -241,7 +247,6 @@ export default function ImportPage() {
             dayExpenses += vAmt;
           }
 
-          // C. ACHATS MONTURES
           const mAmt = cleanNum(row[mapping.montant_m]);
           if (mAmt > 0) {
             const label = (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim();
@@ -253,7 +258,6 @@ export default function ImportPage() {
             dayExpenses += mAmt;
           }
 
-          // D. DEPENSES GENERALES
           const dAmt = cleanNum(row[mapping.montant_dep]);
           if (dAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
@@ -263,7 +267,6 @@ export default function ImportPage() {
             dayExpenses += dAmt;
           }
 
-          // E. VERSEMENTS
           const verAmt = cleanNum(row[mapping.versement_mt]);
           if (verAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
