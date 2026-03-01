@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer } from "lucide-react";
+import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -65,6 +65,11 @@ function NewSaleForm() {
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   const [total, setTotal] = useState<string>(searchParams.get("total") || "");
+  
+  // Nouveau : Type de remise et Valeur
+  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>(
+    (searchParams.get("discountType") as 'fixed' | 'percent') || 'fixed'
+  );
   const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") || "");
   const [avance, setAvance] = useState<string>(searchParams.get("avance") || "");
 
@@ -122,10 +127,18 @@ function NewSaleForm() {
   };
 
   const nTotal = cleanVal(total);
-  const nDiscount = cleanVal(discountValue);
+  const nDiscountVal = cleanVal(discountValue);
   const nAvance = cleanVal(avance);
   
-  const totalNetValue = Math.max(0, nTotal - nDiscount);
+  // Calcul de la remise réelle
+  const calculatedRemise = useMemo(() => {
+    if (discountType === 'percent') {
+      return (nTotal * nDiscountVal) / 100;
+    }
+    return nDiscountVal;
+  }, [nTotal, nDiscountVal, discountType]);
+
+  const totalNetValue = Math.max(0, nTotal - calculatedRemise);
   const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
 
   const handleSave = async (shouldPrint: boolean = false) => {
@@ -173,7 +186,9 @@ function NewSaleForm() {
           verres,
           notes,
           total: nTotal, 
-          remise: nDiscount,
+          remise: calculatedRemise,
+          discountType,
+          discountValue: nDiscountVal,
           avance: nAvance, 
           reste: resteAPayerValue, 
           statut,
@@ -210,8 +225,8 @@ function NewSaleForm() {
           phone: clientPhone, 
           mutuelle: finalMutuelle, 
           total: nTotal.toString(), 
-          remise: nDiscount.toString(), 
-          remisePercent: "Fixe",
+          remise: calculatedRemise.toString(), 
+          remisePercent: discountType === 'percent' ? nDiscountVal.toString() : "Fixe",
           avance: nAvance.toString(), 
           od_sph: prescription.od.sph, od_cyl: prescription.od.cyl, od_axe: prescription.od.axe, od_add: prescription.od.add,
           og_sph: prescription.og.sph, og_cyl: prescription.og.cyl, og_axe: prescription.og.axe, og_add: prescription.og.add,
@@ -386,15 +401,42 @@ function NewSaleForm() {
                   />
                 </div>
                 
-                <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center group transition-all focus-within:bg-white/20">
-                  <Label className="text-[10px] font-black uppercase text-white/80">Remise (DH)</Label>
-                  <input 
-                    type="number" 
-                    className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" 
-                    placeholder="---" 
-                    value={discountValue === "0" || discountValue === "" ? "" : discountValue} 
-                    onChange={e => setDiscountValue(e.target.value)} 
-                  />
+                <div className="bg-white/10 p-4 rounded-2xl flex flex-col gap-3 group transition-all">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-[10px] font-black uppercase text-white/80">Remise</Label>
+                    <div className="flex bg-slate-950/20 p-1 rounded-lg">
+                      <button 
+                        onClick={() => setDiscountType('fixed')} 
+                        className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}
+                      >
+                        DH
+                      </button>
+                      <button 
+                        onClick={() => setDiscountType('percent')} 
+                        className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}
+                      >
+                        %
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" 
+                        placeholder="---" 
+                        value={discountValue === "0" || discountValue === "" ? "" : discountValue} 
+                        onChange={e => setDiscountValue(e.target.value)} 
+                      />
+                      {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
+                    </div>
+                  </div>
+                  {discountType === 'percent' && calculatedRemise > 0 && (
+                    <div className="text-right">
+                      <span className="text-[9px] font-black text-accent uppercase">- {formatCurrency(calculatedRemise)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
