@@ -112,12 +112,11 @@ export default function CashSessionsPage() {
                     <TableRow>
                       <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Date & Statut</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Ouverture / Par</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Solde Ouv.</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">FLUX (Net)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest text-orange-600">Versement (-)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Solde Clôt.</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-4 py-6 tracking-widest">Clôture / Par</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Solde Ouv.</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-primary">FLUX (Net)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-orange-600">Versement (-)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest text-slate-400">Théorique</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-2 py-6 tracking-widest">Solde Clôt.</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 tracking-widest">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -157,6 +156,22 @@ export default function CashSessionsPage() {
                                 <span className="text-[10px] font-bold text-slate-600 uppercase truncate max-w-[100px]">{s.openedBy || "---"}</span>
                               </div>
                             </TableCell>
+                            
+                            <TableCell className="text-right px-4 py-6 font-black text-xs tabular-nums text-slate-500">
+                              {formatCurrency(initial)}
+                            </TableCell>
+
+                            <TableCell className={cn("text-right px-4 py-6 font-black text-xs tabular-nums", flux > 0 ? "text-primary" : "text-slate-900")}>
+                              {flux > 0 ? "+" : ""}{formatCurrency(flux)}
+                            </TableCell>
+
+                            <TableCell className="text-right px-4 py-6 font-black text-xs tabular-nums text-orange-600">
+                              -{formatCurrency(versements)}
+                            </TableCell>
+
+                            <TableCell className="text-right px-4 py-6 font-black text-sm tabular-nums text-slate-900">
+                              {formatCurrency(reel)}
+                            </TableCell>
 
                             <TableCell className="px-4 py-6">
                               {s.status === "CLOSED" ? (
@@ -167,26 +182,6 @@ export default function CashSessionsPage() {
                               ) : (
                                 <span className="text-[9px] font-black text-slate-300 uppercase italic">En cours...</span>
                               )}
-                            </TableCell>
-                            
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-500">
-                              {formatCurrency(initial)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-primary">
-                              {flux > 0 ? "+" : ""}{formatCurrency(flux)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-orange-600">
-                              -{formatCurrency(versements)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-400">
-                              {formatCurrency(theorique)}
-                            </TableCell>
-
-                            <TableCell className="text-right px-2 py-6 font-black text-sm tabular-nums text-slate-900">
-                              {formatCurrency(reel)}
                             </TableCell>
 
                             <TableCell className="text-right px-4 py-6">
@@ -205,7 +200,7 @@ export default function CashSessionsPage() {
                         );
                       })
                     ) : (
-                      <TableRow><TableCell colSpan={9} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-40 text-xs font-black uppercase opacity-20 tracking-widest">Aucune session enregistrée.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
