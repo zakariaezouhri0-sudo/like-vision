@@ -42,13 +42,11 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // Utilisation d'une requête simple pour éviter les index complexes
   const sessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
   const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    // Filtrage et tri en mémoire pour garantir la visibilité immédiate sans index
     return [...rawSessions]
       .filter(s => isPrepaMode ? s.isDraft === true : (s.isDraft !== true))
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -123,7 +121,7 @@ export default function CashSessionsPage() {
                       <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Ouverture / Par</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Solde Ouv.</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">FLUX (Net)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-orange-500">Versement (-)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-orange-500">Versement</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Solde Clôt.</TableHead>
                       <TableHead className="text-[10px] uppercase font-black px-6 py-7 tracking-[0.2em] text-slate-400">Clôture / Par</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-black px-8 py-7 tracking-[0.2em] text-slate-400">Actions</TableHead>
@@ -138,9 +136,16 @@ export default function CashSessionsPage() {
                         const versements = s.totalVersements || 0;
                         const flux = sales - expenses;
                         const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements);
+                        
+                        // Détecter si c'est un dimanche pour la mise en évidence
+                        const dateObj = s.date ? parseISO(s.date) : new Date();
+                        const isSunday = dateObj.getDay() === 0;
 
                         return (
-                          <TableRow key={s.id} className="hover:bg-slate-50/80 border-b last:border-0 transition-all group">
+                          <TableRow key={s.id} className={cn(
+                            "hover:bg-slate-50/80 border-b last:border-0 transition-all group",
+                            isSunday && "bg-red-50/60 hover:bg-red-100/60"
+                          )}>
                             <TableCell className="px-8 py-6">
                               <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-white border border-slate-100 text-primary/40 flex items-center justify-center shrink-0 shadow-sm">
@@ -169,7 +174,7 @@ export default function CashSessionsPage() {
                               </div>
                             </TableCell>
                             
-                            <TableCell className="text-right px-6 py-6 font-black text-xs tabular-nums text-slate-400">
+                            <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-900">
                               {formatCurrency(initial)}
                             </TableCell>
 
@@ -184,7 +189,7 @@ export default function CashSessionsPage() {
 
                             <TableCell className="text-right px-6 py-6">
                               <span className="font-black text-xs tabular-nums text-orange-600">
-                                -{formatCurrency(versements)}
+                                {formatCurrency(versements)}
                               </span>
                             </TableCell>
 
