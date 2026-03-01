@@ -164,7 +164,7 @@ export default function ClientsPage() {
       return;
     }
     // Filtrage direct par le NOM du client
-    router.push(`/ventes?search=${encodeURIComponent(name)}`);
+    router.push(`/ventes?search=${encodeURIComponent(name.trim())}`);
   };
 
   if (!isClientReady || role === null) {
