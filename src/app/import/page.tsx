@@ -122,11 +122,19 @@ export default function ImportPage() {
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
         let day = null;
+        // Extraction précise du jour : cherche un nombre entre 1 et 31
         const numbers = sheetName.match(/\d+/g);
         if (numbers) {
-          const dayCandidates = numbers.map(n => parseInt(n)).filter(v => v >= 1 && v <= 31 && v !== 2026 && v !== 1);
-          if (dayCandidates.length > 0) day = dayCandidates[dayCandidates.length - 1];
-          else day = parseInt(numbers[numbers.length - 1]);
+          const dayCandidates = numbers.map(n => parseInt(n)).filter(v => v >= 1 && v <= 31);
+          if (dayCandidates.length > 0) {
+            // On prend le dernier candidat trouvé (ex: "Janvier 30" -> 30)
+            day = dayCandidates[dayCandidates.length - 1];
+          }
+        }
+
+        // Si vraiment rien n'est trouvé, on utilise l'index de la feuille (si < 31)
+        if (!day) {
+          day = (s + 1 <= 31) ? s + 1 : null;
         }
 
         if (!day || day < 1 || day > 31) {

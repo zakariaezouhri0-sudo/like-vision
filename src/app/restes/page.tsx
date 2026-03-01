@@ -95,6 +95,7 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
+        // Si c'était un Reçu (RC) et que c'est payé, on passe en Facture (FC)
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);

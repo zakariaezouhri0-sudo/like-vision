@@ -79,10 +79,10 @@ export default function DashboardPage() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
+  const salesQuery = useMemoFirebase(() => query(collection(db, "sales")), [db]);
   const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
 
-  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc")), [db]);
+  const transQuery = useMemoFirebase(() => query(collection(db, "transactions")), [db]);
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
   const clientsQuery = useMemoFirebase(() => query(collection(db, "clients")), [db]);
@@ -149,7 +149,11 @@ export default function DashboardPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [allSales]);
 
-  const recentSales = useMemo(() => allSales.slice(0, 5), [allSales]);
+  const recentSales = useMemo(() => allSales.sort((a,b) => {
+    const da = a.createdAt?.toDate?.().getTime() || 0;
+    const db = b.createdAt?.toDate?.().getTime() || 0;
+    return db - da;
+  }).slice(0, 5), [allSales]);
 
   if (!isClientReady || loadingSales || loadingClients || sessionLoading || loadingTrans) {
     return (

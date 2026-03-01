@@ -364,8 +364,8 @@ function SalesHistoryContent() {
           <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase flex items-center gap-3">Coûts d'Achat</DialogTitle></DialogHeader>
           <div className="p-6 space-y-6 bg-white">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame === "0" ? "" : purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.lenses === "0" ? "" : purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} /></div>
             </div>
             <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé d'achat</Label><Input placeholder="Ex: Verres Nikon..." className="h-14 rounded-2xl bg-slate-50 border-none" value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
           </div>
