@@ -49,12 +49,11 @@ export default function ClientsPage() {
   const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", phone: "", mutuelle: "Aucun" });
+  const [newCustomMutuelle, setNewCustomMutuelle] = useState("");
+
   const [editingClient, setEditingClient] = useState<any>(null);
-  const [newClient, setNewClient] = useState({
-    name: "",
-    phone: "",
-    mutuelle: "Aucun"
-  });
+  const [editCustomMutuelle, setEditCustomMutuelle] = useState("");
 
   const filteredClients = useMemo(() => {
     if (!allClients || !role) return [];
@@ -94,12 +93,13 @@ export default function ClientsPage() {
       return;
     }
 
+    const finalMutuelle = newClient.mutuelle === "Autre" ? newCustomMutuelle : newClient.mutuelle;
     const cleanedPhone = newClient.phone ? newClient.phone.replace(/\s/g, '') : "";
 
     const clientData = {
       name: newClient.name,
       phone: cleanedPhone,
-      mutuelle: newClient.mutuelle,
+      mutuelle: finalMutuelle || "Aucun",
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
       isDraft: currentIsDraft,
@@ -108,6 +108,7 @@ export default function ClientsPage() {
 
     setIsCreateOpen(false);
     setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
+    setNewCustomMutuelle("");
 
     addDoc(collection(db, "clients"), clientData)
       .then(() => {
@@ -122,13 +123,24 @@ export default function ClientsPage() {
       });
   };
 
+  const handleOpenEdit = (client: any) => {
+    const isStandard = MUTUELLES.filter(m => m !== "Autre").includes(client.mutuelle);
+    setEditingClient({
+      ...client,
+      mutuelle: isStandard ? client.mutuelle : (client.mutuelle === "Aucun" ? "Aucun" : "Autre")
+    });
+    setEditCustomMutuelle(isStandard ? "" : (client.mutuelle === "Aucun" ? "" : client.mutuelle));
+  };
+
   const handleUpdateClient = () => {
     if (!editingClient || !role) return;
     const clientRef = doc(db, "clients", editingClient.id);
+    const finalMutuelle = editingClient.mutuelle === "Autre" ? editCustomMutuelle : editingClient.mutuelle;
+    
     const updateData = {
       name: editingClient.name,
       phone: editingClient.phone ? editingClient.phone.replace(/\s/g, '') : "",
-      mutuelle: editingClient.mutuelle
+      mutuelle: finalMutuelle || "Aucun"
     };
 
     setEditingClient(null);
@@ -163,7 +175,6 @@ export default function ClientsPage() {
       toast({ title: "Note", description: "Nom du client manquant." });
       return;
     }
-    // Filtrage direct par le NOM du client
     router.push(`/ventes?search=${encodeURIComponent(name.trim())}`);
   };
 
@@ -217,6 +228,12 @@ export default function ClientsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {newClient.mutuelle === "Autre" && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Libellé Mutuelle</Label>
+                    <Input placeholder="Précisez la mutuelle..." className="h-11 rounded-xl font-bold" value={newCustomMutuelle} onChange={(e) => setNewCustomMutuelle(e.target.value)} />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateClient} className="w-full h-12 text-base font-black rounded-xl shadow-xl">ENREGISTRER</Button>
@@ -296,7 +313,7 @@ export default function ClientsPage() {
                                 <DropdownMenuItem onClick={() => goToHistory(c.name)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <History className="mr-3 h-4 w-4 text-primary" /> Historique
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setEditingClient(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
+                                <DropdownMenuItem onClick={() => handleOpenEdit(c)} className="py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl">
                                   <Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive py-3 font-black text-[10px] md:text-[11px] uppercase cursor-pointer rounded-xl" onClick={() => handleDeleteClient(c.id, c.name)}>
@@ -344,6 +361,12 @@ export default function ClientsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {editingClient.mutuelle === "Autre" && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                  <Label className="text-[10px] uppercase font-black">Libellé Mutuelle</Label>
+                  <Input placeholder="Précisez la mutuelle..." className="font-bold" value={editCustomMutuelle} onChange={(e) => setEditCustomMutuelle(e.target.value)} />
+                </div>
+              )}
             </div>
           )}
           <DialogFooter><Button onClick={handleUpdateClient} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>

@@ -50,7 +50,19 @@ function NewSaleForm() {
   
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
-  const [mutuelle, setMutuelle] = useState(searchParams.get("mutuelle") || "Aucun");
+  
+  // Gestion Mutuelle Autre
+  const [mutuelle, setMutuelle] = useState(() => {
+    const m = searchParams.get("mutuelle");
+    if (m && m !== "Aucun" && !MUTUELLES.filter(opt => opt !== "Autre").includes(m)) return "Autre";
+    return m || "Aucun";
+  });
+  const [customMutuelle, setCustomMutuelle] = useState(() => {
+    const m = searchParams.get("mutuelle");
+    if (m && m !== "Aucun" && !MUTUELLES.filter(opt => opt !== "Autre").includes(m)) return m;
+    return "";
+  });
+
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
@@ -63,14 +75,12 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  // RÉCUPÉRATION DES CLIENTS ET DES VENTES POUR L'AUTOCOMPLÉTION ET LE CRÉDIT
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
 
   const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: allSales } = useCollection(salesQuery);
 
-  // LOGIQUE DE RECHERCHE AUTOMATIQUE
   useEffect(() => {
     if (!clientPhone || clientPhone.length < 8 || activeEditId) return;
 
@@ -84,11 +94,18 @@ function NewSaleForm() {
 
     if (foundClient) {
       setClientName(foundClient.name);
-      if (foundClient.mutuelle) setMutuelle(foundClient.mutuelle);
+      if (foundClient.mutuelle) {
+        if (MUTUELLES.filter(m => m !== 'Autre').includes(foundClient.mutuelle)) {
+          setMutuelle(foundClient.mutuelle);
+          setCustomMutuelle("");
+        } else {
+          setMutuelle("Autre");
+          setCustomMutuelle(foundClient.mutuelle);
+        }
+      }
     }
   }, [clientPhone, allClients, isPrepaMode, activeEditId]);
 
-  // CALCUL DU RESTE À PAYER DU CLIENT
   const clientDebt = useMemo(() => {
     if (!clientName || !allSales) return 0;
     const filteredSales = allSales.filter(s => {
@@ -122,6 +139,7 @@ function NewSaleForm() {
     setLoading(true);
     const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
+    const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -151,7 +169,7 @@ function NewSaleForm() {
           invoiceId,
           clientName, 
           clientPhone: clientPhone.replace(/\s/g, ""),
-          mutuelle,
+          mutuelle: finalMutuelle,
           monture,
           verres,
           notes,
@@ -223,7 +241,7 @@ function NewSaleForm() {
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
                     <div className="relative">
@@ -267,7 +285,7 @@ function NewSaleForm() {
                     </Popover>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle}>
@@ -277,6 +295,17 @@ function NewSaleForm() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {mutuelle === "Autre" && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
+                      <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
+                      <Input 
+                        className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        placeholder="Précisez la mutuelle..." 
+                        value={customMutuelle} 
+                        onChange={e => setCustomMutuelle(e.target.value)} 
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
