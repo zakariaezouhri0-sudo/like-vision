@@ -19,7 +19,8 @@ import {
   Lock, 
   Calendar as CalendarIcon, 
   CalendarDays,
-  CalendarCheck
+  CalendarCheck,
+  Edit2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -69,7 +70,9 @@ function CaisseContent() {
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   
   const [isOpDialogOpen, setIsOpDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [opLoading, setOpLoading] = useState(false);
+  const [selectedTrans, setSelectedTrans] = useState<any>(null);
   
   const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
   const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
@@ -130,7 +133,8 @@ function CaisseContent() {
       });
   }, [rawTransactions, isPrepaMode]);
 
-  const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", category: "Général", montant: "" });
+  const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
+  const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   
   const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
@@ -165,10 +169,48 @@ function CaisseContent() {
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     try {
       const transRef = doc(collection(db, "transactions"));
-      await setDoc(transRef, { type: newOp.type, label: newOp.label || newOp.type, category: "Général", montant: finalAmount, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
+      await setDoc(transRef, { 
+        type: newOp.type, 
+        label: newOp.label || newOp.type, 
+        clientName: newOp.clientName || "",
+        category: "Général", 
+        montant: finalAmount, 
+        userName: user?.displayName || "Inconnu", 
+        isDraft: isPrepaMode, 
+        createdAt: serverTimestamp() 
+      });
       toast({ variant: "success", title: "Opération enregistrée" });
       setIsOpDialogOpen(false);
-      setNewOp({ type: "DEPENSE", label: "", category: "Général", montant: "" });
+      setNewOp({ type: "DEPENSE", label: "", clientName: "", montant: "" });
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+  };
+
+  const handleOpenEdit = (t: any) => {
+    setSelectedTrans(t);
+    setEditOp({
+      type: t.type,
+      label: t.label || "",
+      clientName: t.clientName || "",
+      montant: Math.abs(t.montant).toString()
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateOperation = async () => {
+    if (!selectedTrans || !editOp.montant) return;
+    setOpLoading(true);
+    const amt = parseFloat(editOp.montant);
+    const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
+    try {
+      await updateDoc(doc(db, "transactions", selectedTrans.id), {
+        type: editOp.type,
+        label: editOp.label || editOp.type,
+        clientName: editOp.clientName || "",
+        montant: finalAmount,
+        updatedAt: serverTimestamp()
+      });
+      toast({ variant: "success", title: "Opération mise à jour" });
+      setIsEditDialogOpen(false);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
@@ -255,9 +297,10 @@ function CaisseContent() {
               <DialogContent className="max-w-md rounded-3xl">
                 <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant === "0" || newOp.montant === "" ? "" : newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
@@ -337,7 +380,10 @@ function CaisseContent() {
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
                     <TableCell className="text-right px-6 py-4">
                       {isAdminOrPrepa && !isClosed && (
-                        <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)} className="text-primary hover:bg-primary/10 rounded-lg"><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "transactions", t.id)) }} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -347,6 +393,19 @@ function CaisseContent() {
           </Table>
         </div>
       </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Opération</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
