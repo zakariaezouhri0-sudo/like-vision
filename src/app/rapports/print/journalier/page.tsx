@@ -227,14 +227,12 @@ function DailyCashReportContent() {
               <table className="w-full">
                 <thead className="bg-slate-50 text-slate-900 border-b border-slate-200">
                   <tr>
-                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-12">Heure</th>
-                    <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest w-20">Nature</th>
                     <th className="p-2 text-left text-[8px] font-black uppercase tracking-widest">Client / Détails</th>
                     <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Total Net</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Versé</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20 text-green-600">Versé</th>
                     <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest text-destructive w-20">Reste</th>
                     <th className="p-2 text-center text-[8px] font-black uppercase tracking-widest w-16">Statut</th>
-                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-20">Acompte</th>
+                    <th className="p-2 text-right text-[8px] font-black uppercase tracking-widest w-24">Acompte Jour</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -243,15 +241,6 @@ function DailyCashReportContent() {
                     const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="p-2 text-[9px] font-bold text-slate-400 tabular-nums align-middle">{s.createdAt?.toDate ? format(s.createdAt.toDate(), "HH:mm") : "--:--"}</td>
-                        <td className="p-2 align-middle">
-                          <span className={cn(
-                            "text-[7px] px-1.5 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
-                            s.type === 'VENTE' ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
-                          )}>
-                            {s.type}
-                          </span>
-                        </td>
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             {s.clientName && <span className="text-[10px] font-black text-slate-800 uppercase leading-tight">{s.clientName}</span>}
@@ -275,7 +264,7 @@ function DailyCashReportContent() {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={8} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
+                    <tr><td colSpan={6} className="p-4 text-center text-slate-300 font-bold italic text-[9px]">Aucune vente enregistrée.</td></tr>
                   )}
                 </tbody>
               </table>
