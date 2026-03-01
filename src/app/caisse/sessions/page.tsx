@@ -150,12 +150,12 @@ export default function CashSessionsPage() {
                                   <CalendarIcon className="h-5 w-5" />
                                 </div>
                                 <div>
-                                  <span className="font-black text-sm tracking-tight block uppercase text-slate-800">
+                                  <span className="font-black text-sm tracking-tight block uppercase text-slate-800 leading-none">
                                     {formatSessionDate(s.date)}
                                   </span>
-                                  <div className="flex items-center gap-1.5 mt-1">
-                                    <div className={cn("h-1.5 w-1.5 rounded-full", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-slate-300")} />
-                                    <span className={cn("text-[8px] font-black uppercase tracking-widest", s.status === "OPEN" ? "text-green-600" : "text-slate-400")}>
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    <div className={cn("h-1.5 w-1.5 rounded-full", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                                    <span className={cn("text-[8px] font-black uppercase tracking-widest", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                       {s.status === "OPEN" ? "En cours" : "Clôturée"}
                                     </span>
                                   </div>
