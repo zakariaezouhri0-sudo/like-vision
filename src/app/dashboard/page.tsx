@@ -228,22 +228,22 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
+        <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group flex flex-col items-center text-center">
           <Wallet className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Total Encaissé {isPrepaMode ? "(Brouillon)" : ""}</p>
-          <div className="flex flex-col">
+          <div className="flex flex-col items-center">
             <span className="text-2xl md:text-3xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
             <span className="text-[8px] font-black uppercase opacity-40 mt-1">Volume Facturé: {formatCurrency(stats.volume)}</span>
           </div>
         </Card>
         
-        <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group">
+        <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group flex flex-col items-center text-center">
           <ShoppingCart className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Nombre de Ventes {isPrepaMode ? "(Brouillon)" : ""}</p>
           <p className="text-3xl md:text-4xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
-        <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive">
+        <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive flex flex-col items-center text-center">
           <AlertCircle className="absolute -right-6 -top-6 h-40 w-40 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer {isPrepaMode ? "(Brouillon)" : ""}</p>
           <div className="flex items-baseline">
@@ -251,7 +251,7 @@ export default function DashboardPage() {
           </div>
         </Card>
         
-        <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500">
+        <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500 flex flex-col items-center text-center">
           <Users className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}</p>
           <p className="text-3xl md:text-4xl font-black text-green-600 tracking-tighter">{stats.newClients}</p>
