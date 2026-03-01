@@ -112,7 +112,6 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction précise du jour depuis le nom de la feuille
         let dayNum = null;
         const matches = sheetName.toString().match(/\d+/g);
         if (matches) {
@@ -147,7 +146,6 @@ export default function ImportPage() {
         }, { merge: true });
 
         for (const row of rawData) {
-          // 1. TRAITEMENT DES VENTES
           const clientNameRaw = row[mapping.clientName];
           const totalRaw = row[mapping.total];
           
@@ -199,7 +197,7 @@ export default function ImportPage() {
             if (currentAvance > 0) {
               const transRef = doc(collection(db, "transactions"));
               await setDoc(transRef, {
-                type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName,
+                type: "VENTE", label: `${invoiceId}`, clientName: clientName,
                 montant: currentAvance, isDraft: currentIsDraft, createdAt: openTime, 
                 userName, relatedId: invoiceId
               }, { merge: true });
@@ -207,10 +205,9 @@ export default function ImportPage() {
             }
           }
 
-          // 2. TRAITEMENT DES DÉPENSES
           const expenseVal = cleanNum(row[mapping.montant]);
           if (expenseVal > 0) {
-            const labelRaw = row[mapping.label] || "Dépense Import";
+            const labelRaw = row[mapping.label] || "DEPENSE";
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "DEPENSE", label: labelRaw.toString().trim(), 
@@ -220,10 +217,9 @@ export default function ImportPage() {
             dayExpensesTotal += expenseVal;
           }
 
-          // 3. TRAITEMENT DES VERSEMENTS
           const versementVal = cleanNum(row[mapping.versement]);
           if (versementVal > 0) {
-            const labelRaw = row[mapping.label] || "Versement Import";
+            const labelRaw = row[mapping.label] || "VERSEMENT";
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
               type: "VERSEMENT", label: labelRaw.toString().trim(), 
@@ -247,7 +243,7 @@ export default function ImportPage() {
       }
 
       await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec distinction des Versements." });
+      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec séparation Versements/Charges." });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -272,7 +268,7 @@ export default function ImportPage() {
           <Card className="lg:col-span-1 rounded-[32px] bg-white overflow-hidden shadow-lg border-none">
             <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial (01/01)</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="Saisir solde départ..." value={startingBalance === "0" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="Saisir solde départ..." value={startingBalance === "0" || startingBalance === "" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 

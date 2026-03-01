@@ -87,7 +87,6 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Récupération du dernier solde disponible pour le report (Continuité absolue)
   const lastSessionQuery = useMemoFirebase(() => {
     return query(
       collection(db, "cash_sessions"),
@@ -99,7 +98,6 @@ function CaisseContent() {
 
   useEffect(() => {
     if (!session && allSessions && allSessions.length > 0) {
-      // On cherche la session la plus proche avant la date sélectionnée
       const pastSessions = [...allSessions]
         .filter(s => s.date < dateStr)
         .sort((a, b) => b.date.localeCompare(a.date));
@@ -280,7 +278,7 @@ function CaisseContent() {
           <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"><FileText className="mr-2 h-4 w-4" /> RAPPORT</Button>
           {!isClosed && (
             <Dialog>
-              <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-500 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
+              <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-50 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
               <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
                 <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
@@ -321,7 +319,7 @@ function CaisseContent() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50">
-              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Heure & Libellé</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
+              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération & Client</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {loadingTrans ? (
@@ -333,11 +331,17 @@ function CaisseContent() {
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
                     <TableCell className="px-6 py-4">
                       <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-bold text-slate-400">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
-                          <span className="text-[11px] font-black uppercase text-slate-800">{t.label}</span>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 w-10">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                          <span className="text-[11px] font-black uppercase text-slate-800">
+                            {t.type} {t.label ? `| ${t.label}` : ''}
+                          </span>
                         </div>
-                        <Badge className={cn("text-[8px] font-black border-none px-2 w-fit", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : t.type === 'VERSEMENT' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700')}>{t.type}</Badge>
+                        {t.clientName && (
+                          <div className="flex items-center gap-2 ml-12">
+                            <span className="text-[9px] font-bold text-primary/50 uppercase tracking-widest">{t.clientName}</span>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
