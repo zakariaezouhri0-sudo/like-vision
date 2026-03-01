@@ -209,15 +209,7 @@ export default function CashSessionsPage() {
                             </TableCell>
 
                             <TableCell className="text-right px-8 py-6">
-                              <div className="flex items-center justify-end gap-3">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => router.push(`/caisse?date=${s.date}`)} 
-                                  className="h-10 px-5 rounded-xl font-black text-[10px] uppercase border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
-                                >
-                                  Détails <ArrowRight className="ml-2 h-3 w-3" />
-                                </Button>
+                              <div className="flex items-center justify-end">
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
@@ -225,6 +217,9 @@ export default function CashSessionsPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px] shadow-2xl border-primary/5">
+                                    <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase rounded-xl cursor-pointer">
+                                      <ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase rounded-xl cursor-pointer">
                                       <FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport
                                     </DropdownMenuItem>
