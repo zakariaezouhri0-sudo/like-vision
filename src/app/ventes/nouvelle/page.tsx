@@ -21,7 +21,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -51,7 +50,6 @@ function NewSaleForm() {
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   
-  // Gestion Mutuelle Autre
   const [mutuelle, setMutuelle] = useState(() => {
     const m = searchParams.get("mutuelle");
     if (m && m !== "Aucun" && !MUTUELLES.filter(opt => opt !== "Autre").includes(m)) return "Autre";
@@ -224,13 +222,20 @@ function NewSaleForm() {
         </div>
 
         {clientDebt > 0 && (
-          <Alert variant="destructive" className="rounded-[24px] border-2 border-destructive bg-destructive/5 animate-in fade-in slide-in-from-top-2">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle className="font-black uppercase text-xs">Attention : Client débiteur</AlertTitle>
-            <AlertDescription className="font-bold text-sm">
-              Ce client a un reste à payer total de <span className="font-black">{formatCurrency(clientDebt)}</span> sur ses dossiers précédents.
-            </AlertDescription>
-          </Alert>
+          <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in zoom-in-95 slide-in-from-top-4 duration-500 relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 transition-transform group-hover:scale-110 duration-700">
+              <AlertCircle className="h-32 w-32 text-destructive" />
+            </div>
+            <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+              <AlertCircle className="h-8 w-8 text-destructive animate-pulse" />
+            </div>
+            <div className="flex-1 relative z-10">
+              <h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Attention : Client débiteur</h3>
+              <p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">
+                Ce client a un impayé total de <span className="text-destructive font-black text-2xl tabular-nums drop-shadow-sm">{formatCurrency(clientDebt)}</span> sur ses dossiers précédents.
+              </p>
+            </div>
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
