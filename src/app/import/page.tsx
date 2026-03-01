@@ -15,7 +15,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, query, getDocs, getDoc, where, limit, increment, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { format, setHours, setMinutes, setSeconds } from "date-fns";
+import { format, setHours, setMinutes, setSeconds, parseISO } from "date-fns";
 
 type Mapping = Record<string, string>;
 
@@ -48,16 +48,18 @@ export default function ImportPage() {
   const [startingBalance, setStartingBalance] = useState<string>("");
 
   const GLOBAL_FIELDS = [
+    { key: "date", label: "Date (Optionnel)", section: "GÉNÉRAL" },
     { key: "clientName", label: "Nom Client (Vente)", section: "VENTES" },
     { key: "total", label: "Total Brut (Vente)", section: "VENTES" },
     { key: "avance", label: "Avance Payée (Vente)", section: "VENTES" },
     { key: "historicalAdvance", label: "Avance Antérieure (Vente)", section: "VENTES" },
-    { key: "chargeLabel", label: "Libellé (Charge)", section: "CHARGES" },
-    { key: "chargeClient", label: "Nom Client (Charge)", section: "CHARGES" },
-    { key: "chargeAmount", label: "Montant (Charge)", section: "CHARGES" },
-    { key: "chargeType", label: "Type (Achat Verres/Monture/...)", section: "CHARGES" },
-    { key: "versementAmount", label: "Montant (Versement)", section: "VERSEMENTS" },
-    { key: "versementLabel", label: "Désignation (Versement)", section: "VERSEMENTS" }
+    { key: "glassClient", label: "Nom Client (Achat Verres)", section: "ACHATS" },
+    { key: "glassAmount", label: "Montant (Achat Verres)", section: "ACHATS" },
+    { key: "frameClient", label: "Nom Client (Achat Monture)", section: "ACHATS" },
+    { key: "frameAmount", label: "Montant (Achat Monture)", section: "ACHATS" },
+    { key: "expenseLabel", label: "Libellé (Autre Charge)", section: "CHARGES" },
+    { key: "expenseAmount", label: "Montant (Autre Charge)", section: "CHARGES" },
+    { key: "versementAmount", label: "Montant (Versement)", section: "VERSEMENTS" }
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,14 +117,13 @@ export default function ImportPage() {
         const sheetName = sheetNames[s];
         const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
         
-        // Extraction intelligente du jour depuis le nom de la feuille
         let dayNum = null;
         const matches = sheetName.toString().match(/\d+/g);
         if (matches) {
           const num = parseInt(matches[matches.length - 1]);
           if (num >= 1 && num <= 31) dayNum = num;
         }
-        if (!dayNum) continue; // Si pas de jour trouvé, on ignore la feuille
+        if (!dayNum) continue;
 
         const dateStr = `2026-01-${dayNum.toString().padStart(2, '0')}`;
         setCurrentDayLabel(`${dayNum} Janvier`);
@@ -149,7 +150,7 @@ export default function ImportPage() {
         }, { merge: true });
 
         for (const row of rawData) {
-          // --- 1. TRAITEMENT DES VENTES ---
+          // 1. TRAITEMENT DES VENTES
           const clientNameRaw = row[mapping.clientName];
           const totalRaw = row[mapping.total];
           
@@ -209,42 +210,49 @@ export default function ImportPage() {
             }
           }
 
-          // --- 2. TRAITEMENT DES CHARGES (DEPENSES) ---
-          const chargeAmount = cleanNum(row[mapping.chargeAmount]);
-          if (chargeAmount > 0) {
-            const label = (row[mapping.chargeLabel] || "DEPENSE").toString().trim();
-            const client = (row[mapping.chargeClient] || "").toString().trim();
-            const rawType = (row[mapping.chargeType] || "DEPENSE").toString().toUpperCase();
-            
-            let finalType = "DEPENSE";
-            if (rawType.includes("VERRE")) finalType = "ACHAT VERRES";
-            else if (rawType.includes("MONTURE")) finalType = "ACHAT MONTURE";
-
+          // 2. TRAITEMENT ACHAT VERRES
+          const glassAmount = cleanNum(row[mapping.glassAmount]);
+          if (glassAmount > 0) {
+            const client = (row[mapping.glassClient] || "").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
-              type: finalType, 
-              label: label, 
-              clientName: client,
-              montant: -Math.abs(chargeAmount), 
-              isDraft: currentIsDraft, 
-              createdAt: openTime, 
-              userName
+              type: "ACHAT VERRES", label: "ACHAT VERRES", clientName: client,
+              montant: -Math.abs(glassAmount), isDraft: currentIsDraft, createdAt: openTime, userName
             }, { merge: true });
-            dayExpensesTotal += chargeAmount;
+            dayExpensesTotal += glassAmount;
           }
 
-          // --- 3. TRAITEMENT DES VERSEMENTS ---
-          const versementAmount = cleanNum(row[mapping.versementAmount]);
-          if (versementAmount > 0) {
-            const label = (row[mapping.versementLabel] || "VERSEMENT").toString().trim();
+          // 3. TRAITEMENT ACHAT MONTURE
+          const frameAmount = cleanNum(row[mapping.frameAmount]);
+          if (frameAmount > 0) {
+            const client = (row[mapping.frameClient] || "").toString().trim();
             const transRef = doc(collection(db, "transactions"));
             await setDoc(transRef, {
-              type: "VERSEMENT", 
-              label: label, 
-              montant: -Math.abs(versementAmount), 
-              isDraft: currentIsDraft, 
-              createdAt: openTime, 
-              userName
+              type: "ACHAT MONTURE", label: "ACHAT MONTURE", clientName: client,
+              montant: -Math.abs(frameAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+            }, { merge: true });
+            dayExpensesTotal += frameAmount;
+          }
+
+          // 4. TRAITEMENT AUTRES DEPENSES
+          const expenseAmount = cleanNum(row[mapping.expenseAmount]);
+          if (expenseAmount > 0) {
+            const label = (row[mapping.expenseLabel] || "AUTRE CHARGE").toString().trim();
+            const transRef = doc(collection(db, "transactions"));
+            await setDoc(transRef, {
+              type: "DEPENSE", label: label,
+              montant: -Math.abs(expenseAmount), isDraft: currentIsDraft, createdAt: openTime, userName
+            }, { merge: true });
+            dayExpensesTotal += expenseAmount;
+          }
+
+          // 5. TRAITEMENT DES VERSEMENTS
+          const versementAmount = cleanNum(row[mapping.versementAmount]);
+          if (versementAmount > 0) {
+            const transRef = doc(collection(db, "transactions"));
+            await setDoc(transRef, {
+              type: "VERSEMENT", label: "VERSEMENT",
+              montant: -Math.abs(versementAmount), isDraft: currentIsDraft, createdAt: openTime, userName
             }, { merge: true });
             dayVersementsTotal += versementAmount;
           }
@@ -263,7 +271,7 @@ export default function ImportPage() {
       }
 
       await setDoc(counterRef, globalCounters, { merge: true });
-      toast({ variant: "success", title: "Terminé", description: "Le mois de Janvier a été traité avec séparation précise." });
+      toast({ variant: "success", title: "Terminé", description: "L'importation de Janvier est terminée avec une répartition précise." });
       router.push("/caisse/sessions");
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'importation" });
@@ -280,7 +288,7 @@ export default function ImportPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate Historique</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe avec séparation Charges/Versements.</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Importation directe par colonnes Excel.</p>
           </div>
         </div>
 
@@ -288,7 +296,7 @@ export default function ImportPage() {
           <Card className="lg:col-span-1 rounded-[32px] bg-white overflow-hidden shadow-lg border-none">
             <CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial (01/01)</CardTitle></CardHeader>
             <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="Saisir solde départ..." value={startingBalance === "0" || startingBalance === "" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none shadow-inner" placeholder="DH" value={startingBalance === "0" || startingBalance === "" ? "" : startingBalance} onChange={e => setStartingBalance(e.target.value)} />
             </CardContent>
           </Card>
 
@@ -314,10 +322,13 @@ export default function ImportPage() {
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {GLOBAL_FIELDS.map(field => (
                   <div key={field.key} className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-primary ml-1">{field.label}</Label>
+                    <div className="flex justify-between items-center px-1">
+                      <Label className="text-[10px] font-black uppercase text-primary">{field.label}</Label>
+                      <Badge variant="outline" className="text-[8px] font-bold opacity-40">{field.section}</Badge>
+                    </div>
                     <Select value={mapping[field.key] || ""} onValueChange={(v) => setMapping({...mapping, [field.key]: v})}>
                       <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none shadow-inner px-4"><SelectValue placeholder="Choisir..." /></SelectTrigger>
                       <SelectContent className="rounded-xl">{headers.map(h => <SelectItem key={h} value={h} className="font-bold text-xs">{h}</SelectItem>)}</SelectContent>

@@ -93,7 +93,6 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        // Passage RC -> FC si payé
         if (isFullyPaid && finalInvoiceId.startsWith(isPrepaMode ? "PREPA-RC" : "RC")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
