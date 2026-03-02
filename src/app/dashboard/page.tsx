@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -19,7 +18,7 @@ import {
   Eye,
   Wallet
 } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { 
   Bar, 
   BarChart, 
@@ -67,12 +66,10 @@ export default function DashboardPage() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // ISOLATION PAR ID : DRAFT- pour le mode prépa
   const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
   const sessionRef = useMemoFirebase(() => dateStr ? doc(db, "cash_sessions", sessionDocId) : null, [db, dateStr, sessionDocId]);
   const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
 
-  // DOUBLE VERROUILLAGE SÉCURITÉ
   const session = useMemo(() => {
     if (!rawSession) return null;
     if (isPrepaMode !== (rawSession.isDraft === true)) return null;
@@ -90,13 +87,11 @@ export default function DashboardPage() {
 
   const allSales = useMemo(() => {
     if (!rawSales) return [];
-    // FILTRAGE STRICT PAR MODE
     return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [rawSales, isPrepaMode]);
 
   const allTransactions = useMemo(() => {
     if (!rawTransactions) return [];
-    // FILTRAGE STRICT PAR MODE
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
@@ -108,16 +103,15 @@ export default function DashboardPage() {
     const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
-    // FILTRAGE CRITIQUE DES CLIENTS PAR MODE
     const filteredClientsCount = (allClients || []).filter((c: any) => 
       isPrepaMode ? c.isDraft === true : (c.isDraft !== true)
     ).length;
 
     return {
-      ca,
-      volume,
+      ca: roundAmount(ca),
+      volume: roundAmount(volume),
       count: allSales.length,
-      reste,
+      reste: roundAmount(reste),
       newClients: filteredClientsCount
     };
   }, [allSales, allTransactions, allClients, isPrepaMode]);
@@ -135,7 +129,7 @@ export default function DashboardPage() {
       });
       return {
         name: format(day, "EEE", { locale: fr }),
-        total: dayTrans.reduce((acc, t) => acc + (Number(t.montant) || 0), 0)
+        total: roundAmount(dayTrans.reduce((acc, t) => acc + (Number(t.montant) || 0), 0))
       };
     });
   }, [allTransactions]);

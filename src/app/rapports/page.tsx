@@ -17,7 +17,7 @@ import {
   Wallet
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -83,11 +83,11 @@ export default function ReportsPage() {
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     return {
-      ca, 
-      volumeFacture,
-      marge: volumeFacture - costs, 
-      expenses, 
-      versements, 
+      ca: roundAmount(ca), 
+      volumeFacture: roundAmount(volumeFacture),
+      marge: roundAmount(volumeFacture - costs), 
+      expenses: roundAmount(expenses), 
+      versements: roundAmount(versements), 
       count: filteredSales.length,
       filteredSales, 
       filteredTrans
@@ -109,7 +109,6 @@ export default function ReportsPage() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    // Nom du fichier personnalisé
     link.setAttribute("download", `Like Vision - ${format(new Date(), "dd-MM-yyyy")}.csv`);
     link.click();
   };
@@ -269,8 +268,8 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {stats.filteredSales.length > 0 ? stats.filteredSales.map((s: any) => {
-                    const net = (Number(s.total) || 0) - (Number(s.remise) || 0);
-                    const cost = (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0);
+                    const net = roundAmount((Number(s.total) || 0) - (Number(s.remise) || 0));
+                    const cost = roundAmount((Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0));
                     return (
                       <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
                         <TableCell className="px-6 py-5">

@@ -7,6 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Arrondit un nombre à 2 décimales pour la précision financière.
+ * Utilise EPSILON pour éviter les erreurs d'arrondi binaire.
  */
 export function roundAmount(amount: number): number {
   return Math.round((amount + Number.EPSILON) * 100) / 100;
@@ -23,7 +24,7 @@ export function formatCurrency(amount: number): string {
     maximumFractionDigits: 2,
   }).format(rounded);
   
-  // Utilisation de \u00A0 (espace insécable)
+  // Utilisation de \u00A0 (espace insécable) pour un rendu professionnel
   return formatted.replace(/\s/g, '\u00A0') + '\u00A0DH';
 }
 
