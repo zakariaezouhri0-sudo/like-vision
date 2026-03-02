@@ -14,6 +14,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Sécurité Date** : Le sélecteur de date est désactivé (`disabled`) pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 - **Logique de Remise** : Le système doit gérer les deux types : Montant Fixe (DH) et Pourcentage (%).
 - **Automatisation** : La saisie du téléphone doit déclencher la recherche auto et l'affichage de l'alerte de dette si nécessaire.
+- **Verrouillage Session** : Il est strictement interdit d'enregistrer ou de modifier une vente pour une date dont la caisse a déjà été clôturée (`status: CLOSED`).
 
 ## 4. Journal de Caisse
 - **Groupement** : Les sessions de caisse sont groupées par mois.
@@ -23,6 +24,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 5. Synchronisation & Données
 - **Numérotation** : La synchronisation du mode PREPA vers le REEL ne doit JAMAIS changer les identifiants de factures (`FC-...`) ou de reçus (`RC-...`). Ils sont définitifs dès leur création.
 - **Champ Mutuelle** : L'option "Autre" doit toujours afficher un champ de saisie libre.
+- **Précision Financière** : TOUS les montants doivent être arrondis à 2 chiffres après la virgule (utilisation de `roundAmount`).
 
 ---
 *Ce document fait office de mémoire pour l'assistant IA.*
