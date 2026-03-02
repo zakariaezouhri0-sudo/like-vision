@@ -114,6 +114,24 @@ function DailyCashReportContent() {
       }
     });
 
+    // Tri prioritaire des dépenses : ACHAT VERRES > ACHAT MONTURE > RESTES (DEPENSE)
+    expensesList.sort((a, b) => {
+      const order: Record<string, number> = {
+        "ACHAT VERRES": 1,
+        "ACHAT MONTURE": 2,
+        "DEPENSE": 3
+      };
+      const priorityA = order[a.type as string] || 4;
+      const priorityB = order[b.type as string] || 4;
+      
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      
+      // En cas de même type, on garde l'ordre chronologique
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return timeA - timeB;
+    });
+
     const totalSales = roundAmount(salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
     const totalExpenses = roundAmount(expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
     const totalVersements = roundAmount(versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
