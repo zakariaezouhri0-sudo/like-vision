@@ -382,15 +382,14 @@ function CaisseContent() {
                 transactions.map((t: any) => (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
                     <TableCell className="px-6 py-4">
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                           <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                            {(t.type || "---")} {(t.label ? `| ${t.label}` : '')}
+                            {t.label || t.type || "---"}
                           </span>
-                        </div>
-                        <div className="ml-12">
-                          <span className="text-[9px] font-bold text-primary/60 uppercase tracking-tight leading-none opacity-80">
+                          <span className="hidden md:block text-slate-300">|</span>
+                          <span className="text-[9px] font-black text-primary/60 uppercase tracking-tight leading-none opacity-80">
                             {t.clientName || "---"}
                           </span>
                         </div>
