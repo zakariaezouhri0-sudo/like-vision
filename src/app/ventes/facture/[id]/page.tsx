@@ -36,32 +36,32 @@ function InvoicePrintContent() {
 
   const getParam = (key: string) => {
     const val = searchParams.get(key);
-    return (val && val !== "undefined" && val !== "null") ? val : null;
+    return (val && val !== "undefined" && val !== "null") ? val : "---";
   };
 
-  const clientName = getParam("client") || "---";
-  const clientPhone = getParam("phone") || "---";
-  const rawDate = getParam("date") || "---";
+  const clientName = getParam("client");
+  const clientPhone = getParam("phone");
+  const rawDate = getParam("date");
   const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   const invoiceNo = params.id as string || "---";
-  const mutuelle = getParam("mutuelle") || "---";
+  const mutuelle = getParam("mutuelle");
   const total = roundAmount(Number(searchParams.get("total")) || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || 0);
-  const remisePercent = getParam("remisePercent") || "0";
+  const remisePercent = getParam("remisePercent");
   const totalNet = roundAmount(Math.max(0, total - remise));
 
   const od = {
-    sph: getParam("od_sph") || "---",
-    cyl: getParam("od_cyl") || "---",
-    axe: getParam("od_axe") || "---",
-    add: getParam("od_add") || "---"
+    sph: getParam("od_sph"),
+    cyl: getParam("od_cyl"),
+    axe: getParam("od_axe"),
+    add: getParam("od_add")
   };
   const og = {
-    sph: getParam("og_sph") || "---",
-    cyl: getParam("og_cyl") || "---",
-    axe: getParam("og_axe") || "---",
-    add: getParam("og_add") || "---"
+    sph: getParam("og_sph"),
+    cyl: getParam("og_cyl"),
+    axe: getParam("og_axe"),
+    add: getParam("og_add")
   };
 
   const InvoiceCopy = () => (
@@ -114,12 +114,12 @@ function InvoicePrintContent() {
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
           <thead>
-            <tr className="bg-slate-800 text-white">
-              <th className="border border-slate-700 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
-              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
-              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
-              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
-              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
+            <tr className="bg-slate-100 text-slate-900 border-b border-slate-300">
+              <th className="border border-slate-200 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
+              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
+              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
+              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
+              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
             </tr>
           </thead>
           <tbody>

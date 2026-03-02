@@ -114,7 +114,6 @@ function DailyCashReportContent() {
       }
     });
 
-    // Tri prioritaire des dépenses : ACHAT VERRES > ACHAT MONTURE > RESTES (DEPENSE)
     expensesList.sort((a, b) => {
       const order: Record<string, number> = {
         "ACHAT VERRES": 1,
@@ -123,9 +122,7 @@ function DailyCashReportContent() {
       };
       const priorityA = order[a.type as string] || 4;
       const priorityB = order[b.type as string] || 4;
-      
       if (priorityA !== priorityB) return priorityA - priorityB;
-      
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
@@ -138,15 +135,7 @@ function DailyCashReportContent() {
     const fluxOp = roundAmount(totalSales - totalExpenses);
     const final = roundAmount(initialBalance + fluxOp - totalVersements);
 
-    return { 
-      sales: salesList, 
-      expenses: expensesList, 
-      versements: versementsList, 
-      initial: initialBalance, 
-      fluxOp, 
-      totalVersements, 
-      final 
-    };
+    return { sales: salesList, expenses: expensesList, versements: versementsList, initial: initialBalance, fluxOp, totalVersements, final };
   }, [rawTransactions, session, isPrepaMode, salesDocs]);
 
   if (settingsLoading || transLoading || sessionLoading) {
@@ -239,12 +228,12 @@ function DailyCashReportContent() {
             </div>
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
-                <thead className="bg-slate-800 text-white border-b border-slate-700">
+                <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
                   <tr>
                     <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">Document / Client</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28">Total Net</th>
-                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-400">Versé</th>
-                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-28">Reste</th>
+                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-700">Versé</th>
+                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-28">Reste</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24">Statut</th>
                     <th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-36">Acompte Jour</th>
                   </tr>
@@ -296,7 +285,7 @@ function DailyCashReportContent() {
               </div>
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
-                  <thead className="bg-slate-800 text-white border-b border-slate-700">
+                  <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
                     <tr>
                       <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Désignation / Nature</th>
                       <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">LIBELLE</th>
@@ -346,7 +335,7 @@ function DailyCashReportContent() {
                 </div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                   <table className="w-full border-collapse">
-                    <thead className="bg-slate-800 text-white border-b border-slate-700">
+                    <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
                       <tr>
                         <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Désignation</th>
                         <th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>

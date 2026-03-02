@@ -39,12 +39,12 @@ function ReceiptPrintContent() {
 
   const getParam = (key: string) => {
     const val = searchParams.get(key);
-    return (val && val !== "undefined" && val !== "null") ? val : null;
+    return (val && val !== "undefined" && val !== "null") ? val : "---";
   };
 
-  const clientName = getParam("client") || saleData?.clientName || "---";
-  const clientPhone = getParam("phone") || saleData?.clientPhone || "---";
-  const rawDate = getParam("date") || "---";
+  const clientName = getParam("client") !== "---" ? getParam("client") : (saleData?.clientName || "---");
+  const clientPhone = getParam("phone") !== "---" ? getParam("phone") : (saleData?.clientPhone || "---");
+  const rawDate = getParam("date") !== "---" ? getParam("date") : "---";
   const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   const receiptNo = params.id as string || "---";
@@ -55,16 +55,16 @@ function ReceiptPrintContent() {
   const reste = roundAmount(Math.max(0, totalNet - avance));
 
   const od = {
-    sph: getParam("od_sph") || saleData?.prescription?.od?.sph || "---",
-    cyl: getParam("od_cyl") || saleData?.prescription?.od?.cyl || "---",
-    axe: getParam("od_axe") || saleData?.prescription?.od?.axe || "---",
-    add: getParam("od_add") || saleData?.prescription?.od?.add || "---"
+    sph: getParam("od_sph") !== "---" ? getParam("od_sph") : (saleData?.prescription?.od?.sph || "---"),
+    cyl: getParam("od_cyl") !== "---" ? getParam("od_cyl") : (saleData?.prescription?.od?.cyl || "---"),
+    axe: getParam("od_axe") !== "---" ? getParam("od_axe") : (saleData?.prescription?.od?.axe || "---"),
+    add: getParam("od_add") !== "---" ? getParam("od_add") : (saleData?.prescription?.od?.add || "---")
   };
   const og = {
-    sph: getParam("og_sph") || saleData?.prescription?.og?.sph || "---",
-    cyl: getParam("og_cyl") || saleData?.prescription?.og?.cyl || "---",
-    axe: getParam("og_axe") || saleData?.prescription?.og?.axe || "---",
-    add: getParam("og_add") || saleData?.prescription?.og?.add || "---"
+    sph: getParam("og_sph") !== "---" ? getParam("og_sph") : (saleData?.prescription?.og?.sph || "---"),
+    cyl: getParam("og_cyl") !== "---" ? getParam("og_cyl") : (saleData?.prescription?.og?.cyl || "---"),
+    axe: getParam("og_axe") !== "---" ? getParam("og_axe") : (saleData?.prescription?.og?.axe || "---"),
+    add: getParam("og_add") !== "---" ? getParam("og_add") : (saleData?.prescription?.og?.add || "---")
   };
 
   const ReceiptCopy = () => (
@@ -112,12 +112,12 @@ function ReceiptPrintContent() {
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
           <thead>
-            <tr className="bg-slate-800 text-white">
-              <th className="border border-slate-700 p-1.5 text-left w-[24%] uppercase tracking-widest text-[8px]">Oeil</th>
-              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Sph</th>
-              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Cyl</th>
-              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Axe</th>
-              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">ADD</th>
+            <tr className="bg-slate-100 text-slate-900 border-b border-slate-300">
+              <th className="border border-slate-200 p-1.5 text-left w-[24%] uppercase tracking-widest text-[8px]">Oeil</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Sph</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Cyl</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Axe</th>
+              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +142,7 @@ function ReceiptPrintContent() {
       <div className="mb-8 flex-1">
         <h3 className="text-[8px] font-black uppercase text-slate-400 mb-2 border-b border-slate-100 pb-1 tracking-widest">Historique Versements</h3>
         <table className="w-full text-[9px]">
-          <thead className="bg-slate-800 text-white">
+          <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
             <tr><th className="p-2 text-left uppercase tracking-widest">Date</th><th className="p-2 text-right uppercase tracking-widest">Montant</th></tr>
           </thead>
           <tbody>
