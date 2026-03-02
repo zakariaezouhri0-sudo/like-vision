@@ -154,7 +154,7 @@ function DailyCashReportContent() {
             <div className="h-12 w-12 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-xl bg-white shadow-sm">{shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />) : (<div className="relative text-primary"><Glasses className="h-8 w-8" /><ThumbsUp className="h-4 w-4 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" /></div>)}</div>
             <div className="space-y-0"><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1><p className="text-[8px] text-slate-500 font-bold leading-tight max-w-[300px]">{shop.address || "---"}</p><div className="flex items-center gap-2 mt-0.5"><span className="text-[8px] font-black text-slate-800 uppercase">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</span></div></div>
           </div>
-          <div className="text-right"><div className="border-2 border-slate-900 px-3 py-1 rounded-md inline-block mb-1"><h2 className="text-[11px] font-black uppercase tracking-[0.2em] leading-none text-slate-900">Rapport de Caisse</h2></div><div className="space-y-0"><div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900 uppercase"><Calendar className="h-4 w-4 text-primary/40" /><span>{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span></div><div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic"><Clock className="h-2.5 w-2.5" /><span>Édité à {printTime}</span></div></div></div>
+          <div className="text-right"><div className="border-2 border-slate-900 px-3 py-1 rounded-md inline-block mb-1"><h2 className="text-[11px] font-black uppercase tracking-[0.2em] leading-none text-slate-900">Rapport de Caisse</h2></div><div className="space-y-0"><div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900 uppercase"><Calendar className="h-4 w-4 text-primary/40" /><span>{format(selectedDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span></div><div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic"><Clock className="h-2.5 w-2.5" /><span>Édité à {printTime}</span></div></div></div>
         </div>
 
         <div className="grid grid-cols-4 gap-2.5 mb-4">
@@ -170,7 +170,7 @@ function DailyCashReportContent() {
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
                 <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
-                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[45%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-24">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-28">Acompte</th></tr>
+                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
@@ -179,17 +179,17 @@ function DailyCashReportContent() {
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-black text-slate-800 uppercase whitespace-nowrap">{s.label || "---"}</span>
-                            <span className="text-slate-300">|</span>
+                          <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap overflow-hidden">
+                            <span className="text-[11px] font-black text-slate-800 uppercase shrink-0">{s.label || "---"}</span>
+                            <span className="text-slate-300 shrink-0">|</span>
                             <span className="text-[10px] font-bold text-slate-500 uppercase truncate">{s.clientName || "---"}</span>
                           </div>
                         </td>
-                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
-                        <td className="p-2 text-center"><span className={cn("text-[8px] px-1.5 py-0.5 rounded font-black uppercase", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[12px] whitespace-nowrap">+{formatCurrency(Math.abs(s.montant))}</td>
+                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet).replace('DH', '') : "---"}</td>
+                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0).replace('DH', '') : "---"}</td>
+                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0).replace('DH', '') : "---"}</td>
+                        <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(s.montant))}</td>
                       </tr>
                     );
                   }) : (<tr><td colSpan={6} className="p-4 text-center text-slate-300 font-bold italic text-[11px]">Aucune vente.</td></tr>)}
