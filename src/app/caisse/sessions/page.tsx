@@ -204,16 +204,18 @@ export default function CashSessionsPage() {
                       </div>
                     </div>
 
-                    {/* Flux Net Total Mensuel au Centre */}
-                    <div className="hidden md:flex flex-col items-center">
-                      <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
-                      <span className={cn(
-                        "text-sm font-black tabular-nums",
-                        isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
-                      )}>
-                        {group.totalFlux > 0 ? "+" : ""}{formatCurrency(group.totalFlux)}
-                      </span>
-                    </div>
+                    {/* Flux Net Total Mensuel au Centre - VISIBLE UNIQUEMENT POUR ADMIN/PREPA */}
+                    {isAdminOrPrepa && (
+                      <div className="hidden md:flex flex-col items-center">
+                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
+                        <span className={cn(
+                          "text-sm font-black tabular-nums",
+                          isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
+                        )}>
+                          {group.totalFlux > 0 ? "+" : ""}{formatCurrency(group.totalFlux)}
+                        </span>
+                      </div>
+                    )}
 
                     <Button 
                       size="sm" 
@@ -232,16 +234,16 @@ export default function CashSessionsPage() {
                     <CardContent className="p-0 animate-in slide-in-from-top-2 duration-300">
                       <div className="overflow-x-auto">
                         <Table className="min-w-[1200px]">
-                          <TableHeader className="bg-slate-50/50 border-b">
+                          <TableHeader className="bg-slate-800">
                             <TableRow>
-                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Date & Statut</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Ouverture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Fonds Initial</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-orange-500 whitespace-nowrap">Versement</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Fonds Final</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-slate-400 whitespace-nowrap">Actions</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-white whitespace-nowrap">Date & Statut</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Ouverture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-orange-400 whitespace-nowrap">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Final</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Clôture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-white whitespace-nowrap">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
