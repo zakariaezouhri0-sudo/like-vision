@@ -126,7 +126,6 @@ function DailyCashReportContent() {
       
       if (priorityA !== priorityB) return priorityA - priorityB;
       
-      // En cas de même type, on garde l'ordre chronologique
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
@@ -196,7 +195,7 @@ function DailyCashReportContent() {
             <div className="space-y-0">
               <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900">
                 <Calendar className="h-4 w-4 text-primary/40" />
-                <span>{format(selectedDate, "yyyy-MM-dd", { locale: fr })}</span>
+                <span>{format(selectedDate, "yyyy-MM-dd")}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic">
                 <Clock className="h-2.5 w-2.5" />
