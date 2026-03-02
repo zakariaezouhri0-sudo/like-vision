@@ -115,7 +115,7 @@ export default function UnpaidSalesPage() {
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
-          label: isFullyPaid ? `Solde Facture ${finalInvoiceId}` : `Acompte Reçu ${finalInvoiceId}`,
+          label: `VENTE ${finalInvoiceId}`,
           clientName: currentData.clientName,
           category: "Optique", montant: amount, relatedId: finalInvoiceId,
           userName: currentUserName, isDraft: isPrepaMode, createdAt: serverTimestamp()

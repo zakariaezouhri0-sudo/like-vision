@@ -170,7 +170,7 @@ function DailyCashReportContent() {
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
                 <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
-                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-28">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-36">Acompte</th></tr>
+                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[45%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-24">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-28">Acompte</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
@@ -178,12 +178,18 @@ function DailyCashReportContent() {
                     const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="p-2 align-middle"><div className="flex flex-col"><span className="text-[11px] font-black text-slate-800 uppercase leading-tight">{s.label || "---"}</span><span className="text-[10px] font-bold text-slate-400 uppercase">{s.clientName || "---"}</span></div></td>
-                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[11px]">{sale ? formatCurrency(totalNet) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[11px]">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[11px]">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
-                        <td className="p-2 text-center"><span className={cn("text-[9px] px-2 py-0.5 rounded font-black uppercase", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[13px]">+{formatCurrency(Math.abs(s.montant))}</td>
+                        <td className="p-2 align-middle">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black text-slate-800 uppercase whitespace-nowrap">{s.label || "---"}</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase truncate">{s.clientName || "---"}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
+                        <td className="p-2 text-center"><span className={cn("text-[8px] px-1.5 py-0.5 rounded font-black uppercase", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[12px] whitespace-nowrap">+{formatCurrency(Math.abs(s.montant))}</td>
                       </tr>
                     );
                   }) : (<tr><td colSpan={6} className="p-4 text-center text-slate-300 font-bold italic text-[11px]">Aucune vente.</td></tr>)}
