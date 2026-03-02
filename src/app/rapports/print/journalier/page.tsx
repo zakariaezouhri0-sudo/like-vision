@@ -180,7 +180,9 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">{s.label || "---"}</span>
+                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
+                              {s.type === "VENTE" && s.relatedId ? `VENTE ${s.relatedId}` : (s.label || "---")}
+                            </span>
                             <span className="text-[10px] font-bold text-slate-500 uppercase truncate">{s.clientName || "---"}</span>
                           </div>
                         </td>

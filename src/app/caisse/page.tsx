@@ -386,7 +386,7 @@ function CaisseContent() {
                         <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                         <div className="flex flex-col">
                           <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                            {t.label || t.type || "---"}
+                            {t.type === "VENTE" && t.relatedId ? `VENTE ${t.relatedId}` : (t.label || t.type || "---")}
                           </span>
                           <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none opacity-80 truncate">
                             {t.clientName || "---"}
