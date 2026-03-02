@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -11,17 +10,35 @@ import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
 import { Suspense, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { format, parseISO, isValid } from "date-fns";
 
 function InvoicePrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const db = useFirestore();
 
+  const getParam = (key: string) => {
+    const val = searchParams.get(key);
+    return (val && val !== "undefined" && val !== "null") ? val : "---";
+  };
+
+  const invoiceNo = params.id as string || "---";
+  const rawDate = getParam("date");
+  let dateDisplay = "---";
+  try {
+    const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+    const d = rawDate.includes('-') ? parseISO(cleanDate) : null;
+    if (d && isValid(d)) {
+      dateDisplay = format(d, "dd-MM-yyyy");
+    } else if (rawDate !== "---") {
+      dateDisplay = rawDate;
+    }
+  } catch (e) {}
+
   useEffect(() => {
-    const invoiceNo = params.id as string || "FACT";
     document.title = `Like Vision - ${invoiceNo}`;
     return () => { document.title = "Like Vision"; };
-  }, [params.id]);
+  }, [invoiceNo]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -34,17 +51,8 @@ function InvoicePrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const getParam = (key: string) => {
-    const val = searchParams.get(key);
-    return (val && val !== "undefined" && val !== "null") ? val : "---";
-  };
-
   const clientName = getParam("client");
   const clientPhone = getParam("phone");
-  const rawDate = getParam("date");
-  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
-  
-  const invoiceNo = params.id as string || "---";
   const mutuelle = getParam("mutuelle");
   const total = roundAmount(Number(searchParams.get("total")) || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || 0);

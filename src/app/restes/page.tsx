@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -16,7 +15,7 @@ import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function UnpaidSalesPage() {
@@ -93,7 +92,6 @@ export default function UnpaidSalesPage() {
         let finalInvoiceId = currentData.invoiceId;
         const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        // Si la facture était un RC et devient soldée (FC)
         if (isFullyPaid && finalInvoiceId.includes("RC-2026-")) {
           const counterRef = doc(db, "settings", counterDocPath);
           const counterSnap = await transaction.get(counterRef);
@@ -101,7 +99,6 @@ export default function UnpaidSalesPage() {
           if (counterSnap.exists()) counters = counterSnap.data() as any;
           counters.fc += 1;
           
-          // Nouveau numéro FC-2026-XXXX sans préfixe PREPA
           finalInvoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
           transaction.set(counterRef, counters, { merge: true });
         }
@@ -179,7 +176,7 @@ export default function UnpaidSalesPage() {
                           <div className="flex flex-col min-w-[140px]">
                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase mb-1">
                               <Calendar className="h-2.5 w-2.5" />
-                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy", { locale: fr }) : "---"}
+                              {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd-MM-yyyy", { locale: fr }) : "---"}
                             </div>
                             <span className="font-black text-[11px] md:text-sm text-slate-800 uppercase leading-tight truncate">{sale.clientName}</span>
                           </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -11,7 +10,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Suspense, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -20,13 +19,19 @@ function CashClosurePrintContent() {
   const db = useFirestore();
 
   const rawDate = searchParams.get("date") || format(new Date(), "yyyy-MM-dd");
-  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+  let dateDisplay = rawDate;
+  try {
+    const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+    const d = parseISO(cleanDate);
+    if (isValid(d)) {
+      dateDisplay = format(d, "dd-MM-yyyy");
+    }
+  } catch (e) {}
   
   useEffect(() => {
-    const dateTitle = rawDate.includes('-') ? format(parseISO(rawDate.substring(0, 10)), "dd-MM-yyyy") : rawDate;
-    document.title = `Like Vision - ${dateTitle}`;
+    document.title = `Like Vision - ${dateDisplay}`;
     return () => { document.title = "Like Vision"; };
-  }, [rawDate]);
+  }, [dateDisplay]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);

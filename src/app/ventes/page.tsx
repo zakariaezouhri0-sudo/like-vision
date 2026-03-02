@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -20,7 +19,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -127,6 +126,12 @@ function SalesHistoryContent() {
 
   const handlePrint = (sale: any) => {
     const page = sale.reste <= 0 ? 'facture' : 'recu';
+    let formattedDate = "---";
+    try {
+      const d = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
+      if (d && isValid(d)) formattedDate = format(d, "dd-MM-yyyy");
+    } catch (e) {}
+
     const params = new URLSearchParams({ 
       client: sale.clientName || "---", phone: sale.clientPhone || "---", mutuelle: sale.mutuelle || "---", 
       total: sale.total.toString(), remise: (sale.remise || 0).toString(), 
@@ -136,7 +141,7 @@ function SalesHistoryContent() {
       og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
       og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
       monture: sale.monture || "", verres: sale.verres || "", 
-      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
+      date: formattedDate
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
@@ -214,7 +219,7 @@ function SalesHistoryContent() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
                     <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                    {dateFrom ? format(dateFrom, "yyyy-MM-dd") : "Toutes dates"}
+                    {dateFrom ? format(dateFrom, "dd-MM-yyyy") : "Toutes dates"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
@@ -233,7 +238,7 @@ function SalesHistoryContent() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
                     <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                    {dateTo ? format(dateTo, "yyyy-MM-dd") : "Toutes dates"}
+                    {dateTo ? format(dateTo, "dd-MM-yyyy") : "Toutes dates"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
@@ -305,7 +310,7 @@ function SalesHistoryContent() {
                         )}
                         <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "yyyy-MM-dd", { locale: fr }) : "---"}</span></div>
+                            <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd-MM-yyyy", { locale: fr }) : "---"}</span></div>
                             <div className="flex items-center gap-2"><Clock className="h-3 w-3 text-primary/40" /><span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span></div>
                           </div>
                         </TableCell>

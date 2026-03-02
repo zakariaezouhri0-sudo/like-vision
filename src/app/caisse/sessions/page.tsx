@@ -23,7 +23,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, deleteDoc, doc } from "firebase/firestore";
-import { format, parseISO, isSunday } from "date-fns";
+import { format, parseISO, isSunday, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -60,23 +60,25 @@ export default function CashSessionsPage() {
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
     filtered.forEach(s => {
       if (!s.date) return;
-      const date = parseISO(s.date);
-      const monthLabel = format(date, "MMMM yyyy", { locale: fr });
-      const sessionFlux = roundAmount((s.totalSales || 0) - (s.totalExpenses || 0));
-      
-      const lastGroup = groups[groups.length - 1];
-      if (lastGroup && lastGroup.monthLabel === monthLabel) {
-        lastGroup.sessions.push(s);
-        lastGroup.totalFlux = roundAmount(lastGroup.totalFlux + sessionFlux);
-      } else {
-        groups.push({ monthLabel, sessions: [s], totalFlux: sessionFlux });
-      }
+      try {
+        const date = parseISO(s.date);
+        if (!isValid(date)) return;
+        const monthLabel = format(date, "MMMM yyyy", { locale: fr });
+        const sessionFlux = roundAmount((s.totalSales || 0) - (s.totalExpenses || 0));
+        
+        const lastGroup = groups[groups.length - 1];
+        if (lastGroup && lastGroup.monthLabel === monthLabel) {
+          lastGroup.sessions.push(s);
+          lastGroup.totalFlux = roundAmount(lastGroup.totalFlux + sessionFlux);
+        } else {
+          groups.push({ monthLabel, sessions: [s], totalFlux: sessionFlux });
+        }
+      } catch (e) {}
     });
     
     return groups;
   }, [rawSessions, isPrepaMode]);
 
-  // Expand the most recent month by default
   useEffect(() => {
     if (groupedSessions.length > 0 && expandedMonths.size === 0) {
       setExpandedMonths(new Set([groupedSessions[0].monthLabel]));
@@ -91,17 +93,20 @@ export default function CashSessionsPage() {
   };
 
   const formatSessionDate = (dateStr: string) => {
-    if (!dateStr) return "---";
+    if (!dateStr || dateStr === "undefined") return "---";
     try {
-      const d = parseISO(dateStr.substring(0, 10));
+      const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+      const d = parseISO(cleanDate);
+      if (!isValid(d)) return "---";
       return format(d, "dd MMMM yyyy", { locale: fr });
-    } catch (e) { return dateStr; }
+    } catch (e) { return "---"; }
   };
 
   const formatTime = (ts: any) => {
     if (!ts) return "--:--";
     try {
       const d = ts.toDate ? ts.toDate() : new Date(ts);
+      if (!isValid(d)) return "--:--";
       return format(d, "HH:mm");
     } catch (e) { return "--:--"; }
   };
@@ -123,8 +128,14 @@ export default function CashSessionsPage() {
       const flux = roundAmount(sales - expenses);
       const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
       
+      let formattedDate = s.date;
+      try {
+        const d = parseISO(s.date);
+        if (isValid(d)) formattedDate = format(d, "dd-MM-yyyy");
+      } catch (e) {}
+
       return {
-        "Date": s.date,
+        "Date": formattedDate,
         "Statut": s.status === "OPEN" ? "En cours" : "Clôturée",
         "Ouvert par": s.openedBy || "---",
         "Clôturé par": s.closedBy || "---",
@@ -186,7 +197,6 @@ export default function CashSessionsPage() {
               const isExpanded = expandedMonths.has(group.monthLabel);
               return (
                 <Card key={group.monthLabel} className="shadow-xl border-none overflow-hidden rounded-[32px] bg-white">
-                  {/* Month Header - Interactive */}
                   <div 
                     className={cn(
                       "flex items-center justify-between px-8 py-5 cursor-pointer transition-colors select-none",
@@ -204,7 +214,6 @@ export default function CashSessionsPage() {
                       </div>
                     </div>
 
-                    {/* Flux Net Total Mensuel au Centre - VISIBLE UNIQUEMENT POUR ADMIN/PREPA */}
                     {isAdminOrPrepa && (
                       <div className="hidden md:flex flex-col items-center">
                         <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
@@ -229,7 +238,6 @@ export default function CashSessionsPage() {
                     </Button>
                   </div>
 
-                  {/* Sessions Table - Collapsible Content */}
                   {isExpanded && (
                     <CardContent className="p-0 animate-in slide-in-from-top-2 duration-300">
                       <div className="overflow-x-auto">
@@ -256,7 +264,7 @@ export default function CashSessionsPage() {
                               const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
                               
                               const dateObj = s.date ? parseISO(s.date) : new Date();
-                              const isDaySunday = isSunday(dateObj);
+                              const isDaySunday = isValid(dateObj) ? isSunday(dateObj) : false;
 
                               return (
                                 <TableRow key={s.id} className={cn(

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -10,17 +9,35 @@ import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
 import { Suspense, useEffect } from "react";
 import { useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
+import { format, parseISO, isValid } from "date-fns";
 
 function ReceiptPrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const db = useFirestore();
 
+  const getParam = (key: string) => {
+    const val = searchParams.get(key);
+    return (val && val !== "undefined" && val !== "null") ? val : "---";
+  };
+
+  const receiptNo = params.id as string || "---";
+  const rawDate = getParam("date");
+  let dateDisplay = "---";
+  try {
+    const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+    const d = rawDate.includes('-') ? parseISO(cleanDate) : null;
+    if (d && isValid(d)) {
+      dateDisplay = format(d, "dd-MM-yyyy");
+    } else if (rawDate !== "---") {
+      dateDisplay = rawDate;
+    }
+  } catch (e) {}
+
   useEffect(() => {
-    const receiptNo = params.id as string || "RECU";
     document.title = `Like Vision - ${receiptNo}`;
     return () => { document.title = "Like Vision"; };
-  }, [params.id]);
+  }, [receiptNo]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -37,17 +54,9 @@ function ReceiptPrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const getParam = (key: string) => {
-    const val = searchParams.get(key);
-    return (val && val !== "undefined" && val !== "null") ? val : "---";
-  };
-
   const clientName = getParam("client") !== "---" ? getParam("client") : (saleData?.clientName || "---");
   const clientPhone = getParam("phone") !== "---" ? getParam("phone") : (saleData?.clientPhone || "---");
-  const rawDate = getParam("date") !== "---" ? getParam("date") : "---";
-  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
-  const receiptNo = params.id as string || "---";
   const total = roundAmount(Number(searchParams.get("total")) || saleData?.total || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || saleData?.remise || 0);
   const avance = roundAmount(Number(searchParams.get("avance")) || saleData?.avance || 0);
@@ -147,14 +156,19 @@ function ReceiptPrintContent() {
           </thead>
           <tbody>
             {saleData?.payments && saleData.payments.length > 0 ? (
-              saleData.payments.map((p: any, i: number) => (
-                <tr key={i} className="border-b border-slate-50">
-                  <td className="p-2 font-bold text-slate-600">
-                    {p.date ? (typeof p.date === 'string' ? (p.date.includes('T') ? p.date.split('T')[0] : p.date.split(' ')[0]) : p.date.toDate().toISOString().split('T')[0]) : dateDisplay}
-                  </td>
-                  <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
-                </tr>
-              ))
+              saleData.payments.map((p: any, i: number) => {
+                let pDate = dateDisplay;
+                try {
+                  const d = p.date ? (typeof p.date === 'string' ? parseISO(p.date.split('T')[0]) : p.date.toDate()) : null;
+                  if (d && isValid(d)) pDate = format(d, "dd-MM-yyyy");
+                } catch (e) {}
+                return (
+                  <tr key={i} className="border-b border-slate-50">
+                    <td className="p-2 font-bold text-slate-600">{pDate}</td>
+                    <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr className="border-b border-slate-50">
                 <td className="p-2 font-bold text-slate-600">{dateDisplay}</td>

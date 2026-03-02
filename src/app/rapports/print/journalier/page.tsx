@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -10,7 +9,7 @@ import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function DailyCashReportContent() {
@@ -25,7 +24,7 @@ function DailyCashReportContent() {
       if (d) {
         const [y, m, d_part] = d.split('-').map(Number);
         const date = new Date(y, m - 1, d_part);
-        if (!isNaN(date.getTime())) return date;
+        if (isValid(date)) return date;
       }
       return new Date();
     } catch (e) {
@@ -184,7 +183,7 @@ function DailyCashReportContent() {
             <div className="space-y-0">
               <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900">
                 <Calendar className="h-4 w-4 text-primary/40" />
-                <span>{format(selectedDate, "yyyy-MM-dd")}</span>
+                <span>{format(selectedDate, "dd-MM-yyyy")}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic">
                 <Clock className="h-2.5 w-2.5" />
