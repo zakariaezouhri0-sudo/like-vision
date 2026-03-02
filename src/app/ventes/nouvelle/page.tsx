@@ -48,8 +48,6 @@ function NewSaleForm() {
   
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
-  
-  // Nouvel état pour permettre la correction manuelle du numéro de facture (ADMIN uniquement)
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
 
   const [mutuelle, setMutuelle] = useState(() => {
@@ -85,15 +83,18 @@ function NewSaleForm() {
   const { data: sessionData } = useDoc(sessionRef);
   const isSessionClosed = sessionData?.status === "CLOSED";
 
+  // Autorisation spéciale pour l'Admin de modifier même si clôturé
+  const canBypassLock = isAdminOrPrepa && activeEditId;
+
   useEffect(() => {
-    if (isSessionClosed) {
+    if (isSessionClosed && !canBypassLock) {
       toast({
         variant: "destructive",
         title: "JOURNÉE VERROUILLÉE",
         description: `La caisse du ${format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()} est déjà clôturée.`,
       });
     }
-  }, [isSessionClosed, saleDate, toast]);
+  }, [isSessionClosed, saleDate, toast, canBypassLock]);
 
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
@@ -174,7 +175,6 @@ function NewSaleForm() {
 
   const handlePhoneChange = (val: string) => {
     const raw = val.replace(/\D/g, '');
-    
     if (raw === "") {
       setClientPhone("");
       setClientName("");
@@ -182,7 +182,6 @@ function NewSaleForm() {
       setCustomMutuelle("");
       return;
     }
-
     if (raw.length > 10) return;
     if (raw.length >= 1 && raw[0] !== '0') return;
     if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
@@ -199,7 +198,7 @@ function NewSaleForm() {
   };
 
   const handleSave = async (shouldPrint: boolean = false) => {
-    if (isSessionClosed) {
+    if (isSessionClosed && !canBypassLock) {
       toast({ 
         variant: "destructive", 
         title: "Action Bloquée", 
@@ -231,8 +230,7 @@ function NewSaleForm() {
         const isPaid = resteAPayerValue <= 0;
         const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
         
-        // Utilisation de l'ID éditable s'il est présent, sinon celui du paramètre, sinon calcul auto
-        let invoiceId = editableInvoiceId || searchParams.get("invoiceId") || "";
+        let invoiceId = editableInvoiceId || "";
 
         if (!activeEditId) {
           if (isPaid) { 
@@ -270,6 +268,11 @@ function NewSaleForm() {
           saleData.createdBy = currentUserName;
           saleData.payments = [];
           if (nAvance > 0) saleData.payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
+        } else {
+          // Permettre de changer la date en mode édition pour l'admin
+          if (isAdminOrPrepa) {
+            saleData.createdAt = Timestamp.fromDate(saleDate);
+          }
         }
 
         transaction.set(saleRef, saleData, { merge: true });
@@ -323,16 +326,23 @@ function NewSaleForm() {
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || isSessionClosed}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || isSessionClosed}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
+            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || (isSessionClosed && !canBypassLock)}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
+            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || (isSessionClosed && !canBypassLock)}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
           </div>
         </div>
 
-        {isSessionClosed && (
+        {isSessionClosed && !canBypassLock && (
           <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in slide-in-from-top-4 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 transition-transform group-hover:scale-110 duration-700"><Lock className="h-32 w-32 text-destructive" /></div>
             <div className="h-16 w-16 bg-red-100 rounded-2xl flex items-center justify-center shrink-0 shadow-inner"><Lock className="h-8 w-8 text-destructive animate-pulse" /></div>
             <div className="flex-1 relative z-10"><h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Accès Verrouillé</h3><p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">La caisse du <span className="text-destructive font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span> est clôturée.</p></div>
+          </div>
+        )}
+
+        {isSessionClosed && canBypassLock && (
+          <div className="bg-blue-600 text-white shadow-2xl p-4 rounded-[24px] flex items-center gap-4 animate-in slide-in-from-top-2">
+            <AlertCircle className="h-6 w-6 shrink-0" />
+            <p className="text-xs font-black uppercase tracking-widest">Mode Correction Admin : Vous modifiez une vente sur une session déjà clôturée.</p>
           </div>
         )}
 
@@ -350,17 +360,16 @@ function NewSaleForm() {
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><User className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle></CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed} /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed} /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || isSessionClosed} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || (isSessionClosed && !canBypassLock)} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label><Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}><SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")}><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label><Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed && !canBypassLock}><SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")}><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
                   
-                  {mutuelle === "Autre" && (<div className="space-y-2 animate-in fade-in slide-in-from-left-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isSessionClosed} /></div>)}
+                  {mutuelle === "Autre" && (<div className="space-y-2 animate-in fade-in slide-in-from-left-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div>)}
 
-                  {/* Champ de correction du numéro de document (ADMIN uniquement en mode édition) */}
                   {isAdminOrPrepa && activeEditId && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
                       <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
@@ -378,24 +387,24 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}><CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><FileText className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription Optique</CardTitle></CardHeader><CardContent className="p-8"><div className={cn(isSessionClosed && "pointer-events-none")}><PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => !isSessionClosed && setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} /></div></CardContent></Card>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && !canBypassLock && "opacity-80")}><CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><FileText className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription Optique</CardTitle></CardHeader><CardContent className="p-8"><div className={cn(isSessionClosed && !canBypassLock && "pointer-events-none")}><PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} /></div></CardContent></Card>
 
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}><CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><Glasses className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Équipement & Notes</CardTitle></CardHeader><CardContent className="p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isSessionClosed} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isSessionClosed && "opacity-50")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isSessionClosed} /></div></CardContent></Card>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && !canBypassLock && "opacity-80")}><CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><Glasses className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Équipement & Notes</CardTitle></CardHeader><CardContent className="p-8 space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></CardContent></Card>
           </div>
 
           <div className="space-y-6">
-            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && "grayscale brightness-75")}>
+            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && !canBypassLock && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-5">
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={total === "0" || total === "" ? "" : total} onChange={e => !isSessionClosed && setTotal(e.target.value)} readOnly={isSessionClosed} /></div>
+                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={total === "0" || total === "" ? "" : total} onChange={e => setTotal(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div>
                 
                 <div className="bg-white/10 p-4 rounded-2xl flex flex-col gap-3 group transition-all">
-                  <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/80">Remise</Label><div className="flex bg-slate-950/20 p-1 rounded-lg"><button onClick={() => !isSessionClosed && setDiscountType('fixed')} disabled={isSessionClosed} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>DH</button><button onClick={() => !isSessionClosed && setDiscountType('percent')} disabled={isSessionClosed} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>%</button></div></div>
-                  <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span><div className="relative"><input type="number" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="---" value={discountValue === "0" || discountValue === "" ? "" : discountValue} onChange={e => !isSessionClosed && setDiscountValue(e.target.value)} readOnly={isSessionClosed} />{discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}</div></div>
+                  <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/80">Remise</Label><div className="flex bg-slate-950/20 p-1 rounded-lg"><button onClick={() => setDiscountType('fixed')} disabled={isSessionClosed && !canBypassLock} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>DH</button><button onClick={() => setDiscountType('percent')} disabled={isSessionClosed && !canBypassLock} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>%</button></div></div>
+                  <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span><div className="relative"><input type="number" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="---" value={discountValue === "0" || discountValue === "" ? "" : discountValue} onChange={e => setDiscountValue(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />{discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}</div></div>
                   {discountType === 'percent' && calculatedRemise > 0 && (<div className="text-right"><span className="text-[9px] font-black text-accent uppercase">- {formatCurrency(calculatedRemise)}</span></div>)}
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={avance === "0" || avance === "" ? "" : avance} onChange={e => !isSessionClosed && setAvance(e.target.value)} readOnly={isSessionClosed} /></div>
+                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={avance === "0" || avance === "" ? "" : avance} onChange={e => setAvance(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div>
 
                 <div className="bg-slate-950/40 p-6 rounded-3xl text-center space-y-1 border border-white/5 shadow-2xl"><p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Net à payer</p><p className="text-3xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p></div>
               </CardContent>
