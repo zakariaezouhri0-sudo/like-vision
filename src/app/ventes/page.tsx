@@ -128,7 +128,7 @@ function SalesHistoryContent() {
   const handlePrint = (sale: any) => {
     const page = sale.reste <= 0 ? 'facture' : 'recu';
     const params = new URLSearchParams({ 
-      client: sale.clientName, phone: sale.clientPhone, mutuelle: sale.mutuelle, 
+      client: sale.clientName || "---", phone: sale.clientPhone || "---", mutuelle: sale.mutuelle || "---", 
       total: sale.total.toString(), remise: (sale.remise || 0).toString(), 
       remisePercent: sale.remisePercent || "0", avance: sale.avance.toString(), 
       od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
@@ -136,15 +136,15 @@ function SalesHistoryContent() {
       og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
       og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
       monture: sale.monture || "", verres: sale.verres || "", 
-      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy HH:mm") : format(new Date(), "dd/MM/yyyy HH:mm")
+      date: sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
 
   const handleEdit = (sale: any) => {
     const params = new URLSearchParams({ 
-      editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName, phone: sale.clientPhone, 
-      mutuelle: sale.mutuelle, total: sale.total.toString(), avance: (sale.avance || 0).toString(), 
+      editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName || "---", phone: sale.clientPhone || "---", 
+      mutuelle: sale.mutuelle || "---", total: sale.total.toString(), avance: (sale.avance || 0).toString(), 
       discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "percent", 
       purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(), 
       purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(), 
@@ -166,8 +166,8 @@ function SalesHistoryContent() {
     const labelSuffix = purchaseCosts.label || costDialogSale.invoiceId;
     try {
       await updateDoc(doc(db, "sales", costDialogSale.id), { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
-      if (frameCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT MONTURE - ${labelSuffix}`, clientName: costDialogSale.clientName, category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
-      if (lensesCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT VERRES - ${labelSuffix}`, clientName: costDialogSale.clientName, category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "Inconnu", isDraft: isPrepaMode, createdAt: serverTimestamp() });
+      if (frameCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT MONTURE - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
+      if (lensesCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT VERRES - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
       toast({ variant: "success", title: "Coûts mis à jour" });
       setCostDialogSale(null);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
@@ -214,7 +214,7 @@ function SalesHistoryContent() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
                     <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                    {dateFrom ? format(dateFrom, "dd/MM/yy") : "Toutes dates"}
+                    {dateFrom ? format(dateFrom, "yyyy-MM-dd") : "Toutes dates"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
@@ -233,7 +233,7 @@ function SalesHistoryContent() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
                     <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                    {dateTo ? format(dateTo, "dd/MM/yy") : "Toutes dates"}
+                    {dateTo ? format(dateTo, "yyyy-MM-dd") : "Toutes dates"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
@@ -263,21 +263,21 @@ function SalesHistoryContent() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-slate-800">
                 <TableRow>
                   {isAdminOrPrepa && (
                     <TableHead className="w-12 px-4 py-5 text-center">
-                      <Checkbox checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} aria-label="Sélectionner tout" />
+                      <Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} aria-label="Sélectionner tout" />
                     </TableHead>
                   )}
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Document</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Total Net</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Versé</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-destructive">Reste</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5">Statut</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5">Actions</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Document</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Client</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Total Net</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Versé</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Reste</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Statut</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -305,12 +305,12 @@ function SalesHistoryContent() {
                         )}
                         <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd MMM yyyy", { locale: fr }) : "---"}</span></div>
+                            <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "yyyy-MM-dd", { locale: fr }) : "---"}</span></div>
                             <div className="flex items-center gap-2"><Clock className="h-3 w-3 text-primary/40" /><span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span></div>
                           </div>
                         </TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary/20" /><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span></div></TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary/20" /><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId || "---"}</span></div></TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName || "---"}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
                           <div className="flex flex-col items-end">
@@ -333,7 +333,7 @@ function SalesHistoryContent() {
                             )} 
                             variant="outline"
                           >
-                            {sale.statut}
+                            {sale.statut || "---"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5">

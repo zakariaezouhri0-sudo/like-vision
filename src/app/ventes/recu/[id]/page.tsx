@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -36,12 +37,12 @@ function ReceiptPrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || saleData?.clientName || "Client";
+  const clientName = searchParams.get("client") || saleData?.clientName || "---";
   const clientPhone = searchParams.get("phone") || saleData?.clientPhone || "---";
-  const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
-  const dateDisplay = rawDate.includes("à") ? rawDate : rawDate.replace(" ", " à ");
+  const rawDate = searchParams.get("date") || "---";
+  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
-  const receiptNo = params.id as string;
+  const receiptNo = params.id as string || "---";
   const total = roundAmount(Number(searchParams.get("total")) || saleData?.total || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || saleData?.remise || 0);
   const avance = roundAmount(Number(searchParams.get("avance")) || saleData?.avance || 0);
@@ -78,6 +79,7 @@ function ReceiptPrintContent() {
           </div>
           <div className="text-left">
             <h2 className="text-sm font-black text-slate-900 uppercase leading-tight tracking-tighter">{shop.name}</h2>
+            <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">{shop.address}</p>
             <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">ICE: {shop.icePatent} • Tél: {shop.phone}</p>
           </div>
         </div>
@@ -108,12 +110,12 @@ function ReceiptPrintContent() {
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
           <thead>
-            <tr className="bg-slate-100 text-slate-600">
-              <th className="border border-slate-200 p-1.5 text-left w-[24%] uppercase tracking-widest text-[8px]">Oeil</th>
-              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Sph</th>
-              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Cyl</th>
-              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">Axe</th>
-              <th className="border border-slate-200 p-1.5 text-center w-[19%] uppercase text-[8px]">ADD</th>
+            <tr className="bg-slate-800 text-white">
+              <th className="border border-slate-700 p-1.5 text-left w-[24%] uppercase tracking-widest text-[8px]">Oeil</th>
+              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Sph</th>
+              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Cyl</th>
+              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">Axe</th>
+              <th className="border border-slate-700 p-1.5 text-center w-[19%] uppercase text-[8px]">ADD</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +141,7 @@ function ReceiptPrintContent() {
       <div className="mb-8 flex-1">
         <h3 className="text-[8px] font-black uppercase text-slate-400 mb-2 border-b border-slate-100 pb-1 tracking-widest">Historique Versements</h3>
         <table className="w-full text-[9px]">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-slate-800 text-white">
             <tr><th className="p-2 text-left uppercase tracking-widest">Date</th><th className="p-2 text-right uppercase tracking-widest">Montant</th></tr>
           </thead>
           <tbody>
@@ -147,7 +149,7 @@ function ReceiptPrintContent() {
               saleData.payments.map((p: any, i: number) => (
                 <tr key={i} className="border-b border-slate-50">
                   <td className="p-2 font-bold text-slate-600">
-                    {p.date ? (typeof p.date === 'string' ? p.date.includes("à") ? p.date : p.date.replace(" ", " à ") : p.date.toDate().toLocaleString("fr-FR", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ')) : dateDisplay}
+                    {p.date ? (typeof p.date === 'string' ? (p.date.includes('T') ? p.date.split('T')[0] : p.date.split(' ')[0]) : p.date.toDate().toISOString().split('T')[0]) : dateDisplay}
                   </td>
                   <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                 </tr>

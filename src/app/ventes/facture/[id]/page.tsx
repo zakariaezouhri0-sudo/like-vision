@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -33,13 +34,14 @@ function InvoicePrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || "Client";
+  const clientName = searchParams.get("client") || "---";
   const clientPhone = searchParams.get("phone") || "---";
-  const rawDate = searchParams.get("date") || new Date().toLocaleDateString("fr-FR");
-  const dateDisplay = rawDate.includes("à") ? rawDate : rawDate.replace(" ", " à ");
+  const rawDate = searchParams.get("date") || "---";
+  // Simplification de la date : on garde que la partie YYYY-MM-DD si c'est un format ISO
+  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
-  const invoiceNo = params.id as string || "OPT-2024-XXX";
-  const mutuelle = searchParams.get("mutuelle") || "Aucune";
+  const invoiceNo = params.id as string || "---";
+  const mutuelle = searchParams.get("mutuelle") || "---";
   const total = roundAmount(Number(searchParams.get("total")) || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || 0);
   const remisePercent = searchParams.get("remisePercent") || "0";
@@ -111,12 +113,12 @@ function InvoicePrintContent() {
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
           <thead>
-            <tr className="bg-slate-900 text-white">
-              <th className="border border-slate-800 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
-              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
-              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
-              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
-              <th className="border border-slate-800 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
+            <tr className="bg-slate-800 text-white">
+              <th className="border border-slate-700 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
             </tr>
           </thead>
           <tbody>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -94,7 +95,6 @@ function CaisseContent() {
       if (pastSessions.length > 0) {
         const lastClosing = pastSessions[0].closingBalanceReal;
         if (lastClosing !== undefined) {
-          // Correction : On arrondit systématiquement à 2 décimales avant de convertir en string
           setOpeningVal(roundAmount(lastClosing).toString());
           setIsAutoReport(true);
         }
@@ -162,7 +162,7 @@ function CaisseContent() {
         status: "OPEN", 
         openedAt, 
         date: dateStr, 
-        openedBy: user?.displayName || "Inconnu", 
+        openedBy: user?.displayName || "---", 
         isDraft: isPrepaMode 
       });
       toast({ variant: "success", title: "Caisse Ouverte" });
@@ -181,10 +181,10 @@ function CaisseContent() {
       await setDoc(transRef, { 
         type: newOp.type, 
         label: finalLabel, 
-        clientName: newOp.clientName || "",
+        clientName: newOp.clientName || "---",
         category: "Général", 
         montant: finalAmount, 
-        userName: user?.displayName || "Inconnu", 
+        userName: user?.displayName || "---", 
         isDraft: isPrepaMode, 
         createdAt: serverTimestamp() 
       });
@@ -216,7 +216,7 @@ function CaisseContent() {
       await updateDoc(doc(db, "transactions", selectedTrans.id), {
         type: editOp.type,
         label: finalLabel,
-        clientName: editOp.clientName || "",
+        clientName: editOp.clientName || "---",
         montant: finalAmount,
         updatedAt: serverTimestamp()
       });
@@ -235,7 +235,7 @@ function CaisseContent() {
         closingBalanceReal: soldeReel, 
         closingBalanceTheoretical: soldeTheorique, 
         discrepancy: ecart, 
-        closedBy: user?.displayName || "Inconnu", 
+        closedBy: user?.displayName || "---", 
         totalSales: stats.entrees, 
         totalExpenses: stats.depenses, 
         totalVersements: stats.versements, 
@@ -259,7 +259,7 @@ function CaisseContent() {
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
               <p className="text-xl font-black text-primary">
-                {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
+                {format(selectedDate, "yyyy-MM-dd", { locale: fr })}
               </p>
             </div>
             {isPrepaMode && (
@@ -307,7 +307,7 @@ function CaisseContent() {
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">{isClosed ? "Session Clôturée" : "Caisse Ouverte"}</h1>
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border mt-2">
               <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{format(selectedDate, "yyyy-MM-dd", { locale: fr })}</span>
             </div>
           </div>
         </div>
@@ -371,8 +371,8 @@ function CaisseContent() {
       <Card className="rounded-[32px] overflow-hidden bg-white shadow-sm border-none">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4">Opération & Détails</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4">Actions</TableHead></TableRow>
+            <TableHeader className="bg-slate-800">
+              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Actions</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {loadingTrans ? (
@@ -387,16 +387,14 @@ function CaisseContent() {
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                           <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                            {t.type} {t.label ? `| ${t.label}` : ''}
+                            {(t.type || "---")} {(t.label ? `| ${t.label}` : '')}
                           </span>
                         </div>
-                        {t.clientName && (
-                          <div className="ml-12">
-                            <span className="text-[9px] font-bold text-primary/60 uppercase tracking-tight leading-none opacity-80">
-                              {t.clientName}
-                            </span>
-                          </div>
-                        )}
+                        <div className="ml-12">
+                          <span className="text-[9px] font-bold text-primary/60 uppercase tracking-tight leading-none opacity-80">
+                            {t.clientName || "---"}
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>

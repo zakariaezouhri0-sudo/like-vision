@@ -267,13 +267,13 @@ export default function ClientsPage() {
                 </div>
               ) : (
                 <Table>
-                  <TableHeader className="bg-slate-50/80">
+                  <TableHeader className="bg-slate-800">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Client</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Téléphone</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Mutuelle</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 hidden md:table-cell whitespace-nowrap">Dernière Visite</TableHead>
-                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-slate-500 whitespace-nowrap">Actions</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Client</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Téléphone</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Mutuelle</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white hidden md:table-cell whitespace-nowrap">Dernière Visite</TableHead>
+                      <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -285,7 +285,7 @@ export default function ClientsPage() {
                               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner shrink-0">
                                 <User className="h-4 w-4 text-primary" />
                               </div>
-                              <span className="text-xs md:text-sm font-black text-slate-800 uppercase leading-none">{c.name}</span>
+                              <span className="text-xs md:text-sm font-black text-slate-800 uppercase leading-none">{c.name || "---"}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs md:text-sm font-black text-primary px-4 md:px-8 py-4 md:py-5 tracking-tighter whitespace-nowrap">
@@ -296,7 +296,7 @@ export default function ClientsPage() {
                               className="text-[8px] md:text-[9px] px-2 md:px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none bg-blue-100 text-blue-700 whitespace-nowrap"
                               variant="outline"
                             >
-                              {c.mutuelle}
+                              {c.mutuelle || "---"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-4 md:py-5 hidden md:table-cell whitespace-nowrap">

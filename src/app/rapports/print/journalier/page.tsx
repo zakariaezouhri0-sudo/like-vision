@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -179,7 +180,7 @@ function DailyCashReportContent() {
             <div className="space-y-0">
               <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900">
                 <Calendar className="h-4 w-4 text-primary/40" />
-                <span>{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+                <span>{format(selectedDate, "yyyy-MM-dd", { locale: fr })}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic">
                 <Clock className="h-2.5 w-2.5" />
@@ -223,12 +224,12 @@ function DailyCashReportContent() {
             </div>
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
-                <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
+                <thead className="bg-slate-800 text-white border-b border-slate-700">
                   <tr>
                     <th className="p-2 text-left text-[10px] font-black uppercase tracking-widest">Document / Client</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28">Total Net</th>
-                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-600">Versé</th>
-                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-destructive w-28">Reste</th>
+                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-28 text-green-400">Versé</th>
+                    <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-28">Reste</th>
                     <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-24">Statut</th>
                     <th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-36">Acompte Jour</th>
                   </tr>
@@ -241,22 +242,22 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            {s.label && <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label}</span>}
-                            {s.clientName && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName}</span>}
+                            {s.label && <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label || "---"}</span>}
+                            {s.clientName && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName || "---"}</span>}
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[11px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
                         <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[11px] align-middle">{sale ? formatCurrency(sale.avance || 0) : "---"}</td>
                         <td className="p-2 text-center font-bold text-destructive tabular-nums text-[11px] align-middle">{sale ? formatCurrency(sale.reste || 0) : "---"}</td>
                         <td className="p-2 text-center align-middle">
-                          {sale && (
+                          {sale ? (
                             <span className={cn(
                               "text-[9px] px-2 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
                               sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                             )}>
                               {sale.statut}
                             </span>
-                          )}
+                          ) : "---"}
                         </td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[13px] align-middle">+{formatCurrency(Math.abs(s.montant))}</td>
                       </tr>
@@ -280,7 +281,7 @@ function DailyCashReportContent() {
               </div>
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
-                  <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
+                  <thead className="bg-slate-800 text-white border-b border-slate-700">
                     <tr>
                       <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Désignation / Nature</th>
                       <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">LIBELLE</th>
@@ -300,7 +301,7 @@ function DailyCashReportContent() {
                         <tr key={e.id} className="hover:bg-slate-50">
                           <td className="p-1 align-middle text-left">
                             <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">
-                              {isAchat ? `${e.type} | ${cleanedLabel}` : e.label}
+                              {isAchat ? `${e.type} | ${cleanedLabel || "---"}` : (e.label || "---")}
                             </span>
                           </td>
                           <td className="p-1 text-left align-middle">
@@ -330,7 +331,7 @@ function DailyCashReportContent() {
                 </div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                   <table className="w-full border-collapse">
-                    <thead className="bg-slate-100 text-slate-900 border-b border-slate-200">
+                    <thead className="bg-slate-800 text-white border-b border-slate-700">
                       <tr>
                         <th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Désignation</th>
                         <th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th>
@@ -339,7 +340,7 @@ function DailyCashReportContent() {
                     <tbody className="divide-y divide-slate-100">
                       {reportData.versements.map((v: any) => (
                         <tr key={v.id} className="hover:bg-slate-50">
-                          <td className="p-1 text-[11px] font-bold text-slate-900 uppercase leading-tight align-middle">{v.label}</td>
+                          <td className="p-1 text-[11px] font-bold text-slate-900 uppercase leading-tight align-middle">{v.label || "---"}</td>
                           <td className="p-1 text-right font-black text-slate-950 tabular-nums text-[12px] align-middle">-{formatCurrency(Math.abs(v.montant))}</td>
                         </tr>
                       ))}

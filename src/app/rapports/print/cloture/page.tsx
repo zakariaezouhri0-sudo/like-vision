@@ -20,10 +20,12 @@ function CashClosurePrintContent() {
   const db = useFirestore();
 
   const rawDate = searchParams.get("date") || format(new Date(), "yyyy-MM-dd");
+  // Simplification de la date format ISO ou autre
+  const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   useEffect(() => {
-    const dateStr = rawDate.includes('-') ? format(parseISO(rawDate), "dd-MM-yyyy") : rawDate;
-    document.title = `Like Vision - ${dateStr}`;
+    const dateTitle = rawDate.includes('-') ? format(parseISO(rawDate), "dd-MM-yyyy") : rawDate;
+    document.title = `Like Vision - ${dateTitle}`;
     return () => { document.title = "Like Vision"; };
   }, [rawDate]);
 
@@ -105,7 +107,7 @@ function CashClosurePrintContent() {
             <div className="space-y-1">
               <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
                 <Calendar className="h-3 w-3 text-slate-400" />
-                <span>Date: {rawDate}</span>
+                <span>Date: {dateDisplay}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
                 <User className="h-3 w-3" />
@@ -139,7 +141,7 @@ function CashClosurePrintContent() {
               </div>
               <div className="pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Solde Théorique</span>
-                <span className="text-lg font-black text-slate-900 tracking-tight">{formatCurrency(theorique)}</span>
+                <span className="text-lg font-black text-slate-950 tracking-tight">{formatCurrency(theorique)}</span>
               </div>
             </div>
 
@@ -172,7 +174,7 @@ function CashClosurePrintContent() {
               )}
               <div className="flex flex-col items-end pt-6 border-t border-slate-200 mt-4">
                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Espèces Comptées</span>
-                <span className="text-xl font-black text-primary tracking-tighter">{formatCurrency(reel)}</span>
+                <span className="text-xl font-black text-slate-950 tracking-tighter">{formatCurrency(reel)}</span>
               </div>
             </div>
           </div>
