@@ -49,6 +49,9 @@ function NewSaleForm() {
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   
+  // Nouvel état pour permettre la correction manuelle du numéro de facture (ADMIN uniquement)
+  const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
+
   const [mutuelle, setMutuelle] = useState(() => {
     const m = searchParams.get("mutuelle");
     if (m && m !== "Aucun" && !MUTUELLES.filter(opt => opt !== "Autre").includes(m)) return "Autre";
@@ -172,7 +175,6 @@ function NewSaleForm() {
   const handlePhoneChange = (val: string) => {
     const raw = val.replace(/\D/g, '');
     
-    // NOUVEAU : Si on vide le numéro, on vide tout le reste des infos client
     if (raw === "") {
       setClientPhone("");
       setClientName("");
@@ -189,7 +191,6 @@ function NewSaleForm() {
 
   const handleNameChange = (val: string) => {
     setClientName(val);
-    // NOUVEAU : Si on vide le nom, on vide tout le reste des infos client
     if (val.trim() === "") {
       setClientPhone("");
       setMutuelle("Aucun");
@@ -229,7 +230,9 @@ function NewSaleForm() {
 
         const isPaid = resteAPayerValue <= 0;
         const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
-        let invoiceId = searchParams.get("invoiceId") || "";
+        
+        // Utilisation de l'ID éditable s'il est présent, sinon celui du paramètre, sinon calcul auto
+        let invoiceId = editableInvoiceId || searchParams.get("invoiceId") || "";
 
         if (!activeEditId) {
           if (isPaid) { 
@@ -351,9 +354,26 @@ function NewSaleForm() {
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed} /></div></div>
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || isSessionClosed} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label><Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}><SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")}><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
+                  
                   {mutuelle === "Autre" && (<div className="space-y-2 animate-in fade-in slide-in-from-left-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isSessionClosed} /></div>)}
+
+                  {/* Champ de correction du numéro de document (ADMIN uniquement en mode édition) */}
+                  {isAdminOrPrepa && activeEditId && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
+                      <div className="relative">
+                        <FileText className="absolute left-4 top-3.5 h-4 w-4 text-destructive/30" />
+                        <Input 
+                          className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" 
+                          value={editableInvoiceId} 
+                          onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} 
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
