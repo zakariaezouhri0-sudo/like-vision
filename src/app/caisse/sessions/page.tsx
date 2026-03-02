@@ -212,7 +212,7 @@ export default function CashSessionsPage() {
                           "text-lg font-black tabular-nums",
                           isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
                         )}>
-                          {formatCurrency(group.totalFlux)}
+                          {formatCurrency(group.totalFlux).replace('+', '')}
                         </span>
                       </div>
                     )}
@@ -240,7 +240,7 @@ export default function CashSessionsPage() {
                               <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Ouverture</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Initial</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-orange-400 whitespace-nowrap">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Versement</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Final</TableHead>
                               <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Clôture</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-white whitespace-nowrap">Actions</TableHead>
