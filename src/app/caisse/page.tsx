@@ -94,7 +94,8 @@ function CaisseContent() {
       if (pastSessions.length > 0) {
         const lastClosing = pastSessions[0].closingBalanceReal;
         if (lastClosing !== undefined) {
-          setOpeningVal(lastClosing.toString());
+          // Correction : On arrondit systématiquement à 2 décimales avant de convertir en string
+          setOpeningVal(roundAmount(lastClosing).toString());
           setIsAutoReport(true);
         }
       }
