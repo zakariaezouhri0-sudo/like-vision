@@ -90,35 +90,40 @@ export default function UnpaidSalesPage() {
         const isFullyPaid = newReste <= 0;
         
         let finalInvoiceId = currentData.invoiceId;
-        const counterDocPath = isPrepaMode ? "counters_draft" : "counters";
 
-        if (isFullyPaid && finalInvoiceId.includes("RC-2026-")) {
-          const counterRef = doc(db, "settings", counterDocPath);
-          const counterSnap = await transaction.get(counterRef);
-          let counters = { fc: 0, rc: 0 };
-          if (counterSnap.exists()) counters = counterSnap.data() as any;
-          counters.fc += 1;
-          
-          finalInvoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`;
-          transaction.set(counterRef, counters, { merge: true });
+        // RÈGLE : Conserver le même numéro mais changer RC par FC si soldé
+        if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
+          finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
+        // MISE À JOUR : Remonter la facture à la date de règlement
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
           reste: newReste, 
           statut: isFullyPaid ? "Payé" : "Partiel", 
-          payments: arrayUnion({ amount, date: new Date().toISOString(), userName: currentUserName }),
+          payments: arrayUnion({ 
+            amount, 
+            date: new Date().toISOString(), 
+            userName: currentUserName,
+            note: "Règlement Reste"
+          }),
+          createdAt: serverTimestamp(), // Remonte dans l'historique au jour du règlement
           updatedAt: serverTimestamp() 
         });
 
+        // TRANSACTION CAISSE : Libellé VENTE FC... uniquement
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
           label: `VENTE ${finalInvoiceId}`,
           clientName: currentData.clientName,
-          category: "Optique", montant: amount, relatedId: finalInvoiceId,
-          userName: currentUserName, isDraft: isPrepaMode, createdAt: serverTimestamp()
+          category: "Optique", 
+          montant: amount, 
+          relatedId: finalInvoiceId,
+          userName: currentUserName, 
+          isDraft: isPrepaMode, 
+          createdAt: serverTimestamp()
         });
       });
 
@@ -156,14 +161,14 @@ export default function UnpaidSalesPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table className="min-w-[900px]">
-                <TableHeader className="bg-slate-50/80">
+                <TableHeader className="bg-slate-800">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Date & Client</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5">Document</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5">Total Net</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-600">Versé</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-destructive">Reste</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5">Action</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 text-white">Date & Client</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 text-white">Document</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-white">Total Net</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-green-400">Versé</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-2 md:px-6 py-5 text-red-400">Reste</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-3 md:px-6 py-5 text-white">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
