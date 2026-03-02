@@ -181,9 +181,9 @@ function DailyCashReportContent() {
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] leading-none text-slate-900">Rapport de Caisse</h2>
             </div>
             <div className="space-y-0">
-              <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900">
+              <div className="flex items-center justify-end gap-2 text-[12px] font-black text-slate-900 uppercase">
                 <Calendar className="h-4 w-4 text-primary/40" />
-                <span>{format(selectedDate, "dd-MM-yyyy")}</span>
+                <span>{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[7px] font-bold text-slate-400 italic">
                 <Clock className="h-2.5 w-2.5" />

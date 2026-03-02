@@ -257,8 +257,8 @@ function CaisseContent() {
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-2xl border-2 border-primary/10 shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
-              <p className="text-xl font-black text-primary">
-                {format(selectedDate, "dd-MM-yyyy", { locale: fr })}
+              <p className="text-xl font-black text-primary uppercase">
+                {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
             {isPrepaMode && (
@@ -306,7 +306,7 @@ function CaisseContent() {
             <h1 className="text-2xl font-black text-primary uppercase tracking-tighter leading-none">{isClosed ? "Session Clôturée" : "Caisse Ouverte"}</h1>
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border mt-2">
               <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{format(selectedDate, "dd-MM-yyyy", { locale: fr })}</span>
+              <span className="text-[11px] text-slate-700 font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
             </div>
           </div>
         </div>

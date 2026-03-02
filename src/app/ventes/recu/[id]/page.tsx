@@ -10,6 +10,7 @@ import { Suspense, useEffect } from "react";
 import { useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import { format, parseISO, isValid } from "date-fns";
+import { fr } from "date-fns/locale";
 
 function ReceiptPrintContent() {
   const params = useParams();
@@ -18,7 +19,8 @@ function ReceiptPrintContent() {
 
   const getParam = (key: string) => {
     const val = searchParams.get(key);
-    return (val && val !== "undefined" && val !== "null") ? val : "---";
+    if (!val || val === "undefined" || val === "null" || val.trim() === "") return "---";
+    return val;
   };
 
   const receiptNo = params.id as string || "---";
@@ -28,7 +30,7 @@ function ReceiptPrintContent() {
     const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
     const d = rawDate.includes('-') ? parseISO(cleanDate) : null;
     if (d && isValid(d)) {
-      dateDisplay = format(d, "dd-MM-yyyy");
+      dateDisplay = format(d, "dd MMMM yyyy", { locale: fr });
     } else if (rawDate !== "---") {
       dateDisplay = rawDate;
     }
@@ -101,7 +103,7 @@ function ReceiptPrintContent() {
             <h1 className="text-[9px] font-black uppercase tracking-[0.2em]">Reçu</h1>
           </div>
           <p className="text-[10px] font-black text-slate-900 leading-none">N°: {receiptNo}</p>
-          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5">Date: {dateDisplay}</p>
+          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5 uppercase">Date: {dateDisplay}</p>
         </div>
       </div>
 
@@ -113,7 +115,7 @@ function ReceiptPrintContent() {
         <div className="h-6 w-px bg-slate-200"></div>
         <div className="text-center px-4">
           <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Téléphone</p>
-          <p className="text-[10px] font-black text-slate-900 tabular-nums">{formatPhoneNumber(clientPhone)}</p>
+          <p className="text-[10px] font-black text-slate-900 tabular-nums">{clientPhone === "---" ? "---" : formatPhoneNumber(clientPhone)}</p>
         </div>
       </div>
 
@@ -160,18 +162,18 @@ function ReceiptPrintContent() {
                 let pDate = dateDisplay;
                 try {
                   const d = p.date ? (typeof p.date === 'string' ? parseISO(p.date.split('T')[0]) : p.date.toDate()) : null;
-                  if (d && isValid(d)) pDate = format(d, "dd-MM-yyyy");
+                  if (d && isValid(d)) pDate = format(d, "dd MMMM yyyy", { locale: fr });
                 } catch (e) {}
                 return (
                   <tr key={i} className="border-b border-slate-50">
-                    <td className="p-2 font-bold text-slate-600">{pDate}</td>
+                    <td className="p-2 font-bold text-slate-600 uppercase">{pDate}</td>
                     <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(p.amount)}</td>
                   </tr>
                 );
               })
             ) : (
               <tr className="border-b border-slate-50">
-                <td className="p-2 font-bold text-slate-600">{dateDisplay}</td>
+                <td className="p-2 font-bold text-slate-600 uppercase">{dateDisplay}</td>
                 <td className="p-2 text-right font-black text-slate-900 tabular-nums">{formatCurrency(avance)}</td>
               </tr>
             )}

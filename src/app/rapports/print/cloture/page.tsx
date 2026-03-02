@@ -11,6 +11,7 @@ import { Suspense, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { format, parseISO, isValid } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -24,7 +25,7 @@ function CashClosurePrintContent() {
     const cleanDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
     const d = parseISO(cleanDate);
     if (isValid(d)) {
-      dateDisplay = format(d, "dd-MM-yyyy");
+      dateDisplay = format(d, "dd MMMM yyyy", { locale: fr });
     }
   } catch (e) {}
   
@@ -109,7 +110,7 @@ function CashClosurePrintContent() {
           <div className="text-right">
             <h2 className="text-base font-black uppercase tracking-widest text-center leading-none border-2 border-slate-900 px-4 py-2 rounded-lg mb-2">Clôture de Caisse</h2>
             <div className="space-y-1">
-              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600">
+              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600 uppercase">
                 <Calendar className="h-3 w-3 text-slate-400" />
                 <span>Date: {dateDisplay}</span>
               </div>
