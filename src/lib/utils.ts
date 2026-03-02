@@ -29,13 +29,14 @@ export function formatCurrency(amount: number): string {
 
 /**
  * Formate un numéro de téléphone sous la forme : 06 00 00 00 00
+ * Fonction flexible qui groupe par 2 chiffres au fur et à mesure.
  */
-export function formatPhoneNumber(phone: string): string {
+export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return "";
-  const cleaned = phone.replace(/\D/g, '');
-  const match = cleaned.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
-  if (match) {
-    return `${match[1]} ${match[2]} ${match[3]} ${match[4]} ${match[5]}`;
-  }
-  return phone;
+  // Nettoyer tous les caractères non numériques
+  const cleaned = phone.toString().replace(/\D/g, '');
+  // Grouper par 2 avec des espaces
+  const formatted = cleaned.replace(/(\d{2})(?=\d)/g, '$1 ');
+  // Limiter à 10 chiffres (5 groupes de 2)
+  return formatted.substring(0, 14);
 }

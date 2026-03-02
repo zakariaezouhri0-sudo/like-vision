@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -134,17 +133,17 @@ function SalesHistoryContent() {
 
     const params = new URLSearchParams({ 
       client: sale.clientName || "---", 
-      phone: sale.clientPhone || "---", 
+      phone: (sale.clientPhone || "").replace(/\s/g, ""), 
       mutuelle: sale.mutuelle || "---", 
       total: sale.total.toString(), 
       remise: (sale.remise || 0).toString(), 
       remisePercent: sale.discountType === 'percent' ? sale.discountValue?.toString() : "Fixe",
       avance: (sale.avance || 0).toString(), 
-      od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
-      od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
-      og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
-      og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
-      monture: sale.monture || "", verres: sale.verres || "", 
+      od_sph: sale.prescription?.od?.sph || "---", od_cyl: sale.prescription?.od?.cyl || "---", 
+      od_axe: sale.prescription?.od?.axe || "---", od_add: sale.prescription?.od?.add || "---",
+      og_sph: sale.prescription?.og?.sph || "---", og_cyl: sale.prescription?.og?.cyl || "---", 
+      og_axe: sale.prescription?.og?.axe || "---", og_add: sale.prescription?.og?.add || "---",
+      monture: sale.monture || "---", verres: sale.verres || "---", 
       date: formattedDate
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
@@ -152,7 +151,7 @@ function SalesHistoryContent() {
 
   const handleEdit = (sale: any) => {
     const params = new URLSearchParams({ 
-      editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName || "---", phone: sale.clientPhone || "---", 
+      editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName || "---", phone: sale.clientPhone || "", 
       mutuelle: sale.mutuelle || "---", total: (sale.total || 0).toString(), avance: (sale.avance || 0).toString(), 
       discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "fixed", 
       monture: sale.monture || "", verres: sale.verres || "", notes: sale.notes || "", 
@@ -278,7 +277,7 @@ function SalesHistoryContent() {
                           </div>
                         </TableCell>
                         <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId || "---"}</span></TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName || "---"}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName || "---"}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone) || "---"}</span></div></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
                           <div className="flex flex-col items-end">

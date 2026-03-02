@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -217,7 +216,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
-                  <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={newClient.phone} onChange={(e) => setNewClient({...newClient, phone: e.target.value})} />
+                  <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => setNewClient({...newClient, phone: e.target.value.replace(/\s/g, '')})} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
@@ -350,7 +349,7 @@ export default function ClientsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black">Téléphone</Label>
-                <Input className="font-bold" value={editingClient.phone} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
+                <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value.replace(/\s/g, '')})} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black">Mutuelle</Label>

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, cn, roundAmount } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, formatPhoneNumber } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
@@ -87,7 +87,7 @@ function NewSaleForm() {
       toast({
         variant: "destructive",
         title: "JOURNÉE VERROUILLÉE",
-        description: `La caisse du ${format(saleDate, "dd MMMM yyyy", { locale: fr })} est déjà clôturée.`,
+        description: `La caisse du ${format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()} est déjà clôturée.`,
       });
     }
   }, [isSessionClosed, saleDate, toast]);
@@ -259,7 +259,7 @@ function NewSaleForm() {
         const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
         const params = new URLSearchParams({ 
           client: clientName, 
-          phone: clientPhone, 
+          phone: clientPhone.replace(/\s/g, ""), 
           mutuelle: finalMutuelle || "---", 
           total: nTotal.toString(), 
           remise: calculatedRemise.toString(), 
@@ -301,7 +301,7 @@ function NewSaleForm() {
           <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in slide-in-from-top-4 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 transition-transform group-hover:scale-110 duration-700"><Lock className="h-32 w-32 text-destructive" /></div>
             <div className="h-16 w-16 bg-red-100 rounded-2xl flex items-center justify-center shrink-0 shadow-inner"><Lock className="h-8 w-8 text-destructive animate-pulse" /></div>
-            <div className="flex-1 relative z-10"><h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Accès Verrouillé</h3><p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">La caisse du <span className="text-destructive font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr })}</span> est clôturée.</p></div>
+            <div className="flex-1 relative z-10"><h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Accès Verrouillé</h3><p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">La caisse du <span className="text-destructive font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span> est clôturée.</p></div>
           </div>
         )}
 
@@ -319,9 +319,9 @@ function NewSaleForm() {
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><User className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle></CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06..." value={clientPhone} onChange={e => setClientPhone(e.target.value)} readOnly={isSessionClosed} /></div></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => setClientPhone(e.target.value.replace(/\s/g, ''))} readOnly={isSessionClosed} /></div></div>
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => setClientName(e.target.value)} readOnly={isSessionClosed} /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || isSessionClosed} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr })}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || isSessionClosed} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label><Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}><SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")}><SelectValue /></SelectTrigger><SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
