@@ -114,12 +114,12 @@ function InvoicePrintContent() {
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
           <thead>
-            <tr className="bg-slate-100 text-slate-900 border-b border-slate-300">
-              <th className="border border-slate-200 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
-              <th className="border border-slate-200 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
+            <tr className="bg-slate-800 text-white border-b border-slate-900">
+              <th className="border border-slate-700 p-2 text-left w-[24%] uppercase tracking-widest text-[9px]">Oeil</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Sph</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Cyl</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">Axe</th>
+              <th className="border border-slate-700 p-2 text-center w-[19%] uppercase text-[9px]">ADD</th>
             </tr>
           </thead>
           <tbody>
