@@ -179,9 +179,8 @@ function DailyCashReportContent() {
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
-                          <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap overflow-hidden">
-                            <span className="text-[11px] font-black text-slate-800 uppercase shrink-0">{s.label || "---"}</span>
-                            <span className="text-slate-300 shrink-0">|</span>
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">{s.label || "---"}</span>
                             <span className="text-[10px] font-bold text-slate-500 uppercase truncate">{s.clientName || "---"}</span>
                           </div>
                         </td>
