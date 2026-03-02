@@ -20,11 +20,10 @@ function CashClosurePrintContent() {
   const db = useFirestore();
 
   const rawDate = searchParams.get("date") || format(new Date(), "yyyy-MM-dd");
-  // Simplification de la date format ISO ou autre
   const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   useEffect(() => {
-    const dateTitle = rawDate.includes('-') ? format(parseISO(rawDate), "dd-MM-yyyy") : rawDate;
+    const dateTitle = rawDate.includes('-') ? format(parseISO(rawDate.substring(0, 10)), "dd-MM-yyyy") : rawDate;
     document.title = `Like Vision - ${dateTitle}`;
     return () => { document.title = "Like Vision"; };
   }, [rawDate]);
@@ -85,7 +84,7 @@ function CashClosurePrintContent() {
           <div className="flex items-center gap-6">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
               {shop.logoUrl ? (
-                <Image src={shop.logoUrl} alt="Logo" fill className="object-contain" />
+                <img src={shop.logoUrl} alt="Logo" className="object-contain" />
               ) : (
                 <div className="relative text-primary">
                   <Glasses className="h-12 w-12" />
@@ -94,11 +93,11 @@ function CashClosurePrintContent() {
               )}
             </div>
             <div className="space-y-1 text-left">
-              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
+              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
               <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] leading-none">Gestion Optique Professionnelle</p>
               <div className="mt-2.5 space-y-0.5">
-                <p className="text-[10px] text-slate-500 font-medium leading-tight">{shop.address}</p>
-                <p className="text-[10px] font-bold text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
+                <p className="text-[10px] text-slate-500 font-medium leading-tight">{shop.address || "---"}</p>
+                <p className="text-[10px] font-bold text-slate-700">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
               </div>
             </div>
           </div>
@@ -145,7 +144,7 @@ function CashClosurePrintContent() {
               </div>
             </div>
 
-            <div className={`p-6 rounded-2xl border-2 text-center ${ecart === 0 ? 'border-green-100 bg-green-50/50' : 'border-destructive/10 bg-destructive/5'}`}>
+            <div className={`p-6 rounded-2xl border-2 text-center ${Math.abs(ecart) < 0.01 ? 'border-green-100 bg-green-50/50' : 'border-destructive/10 bg-destructive/5'}`}>
               <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-[0.2em]">Écart Final</p>
               <p className={`text-2xl font-black tracking-tighter ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                 {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
@@ -200,7 +199,7 @@ function CashClosurePrintContent() {
 
         <div className="mt-16 text-center border-t border-slate-50 pt-6">
           <p className="text-[7px] text-slate-300 font-bold uppercase tracking-[0.4em] italic leading-none">
-            {shop.name} • Système Like Vision
+            {shop.name || "---"} • Système Like Vision
           </p>
         </div>
       </div>

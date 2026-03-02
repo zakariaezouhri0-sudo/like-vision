@@ -37,9 +37,14 @@ function ReceiptPrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || saleData?.clientName || "---";
-  const clientPhone = searchParams.get("phone") || saleData?.clientPhone || "---";
-  const rawDate = searchParams.get("date") || "---";
+  const getParam = (key: string) => {
+    const val = searchParams.get(key);
+    return (val && val !== "undefined" && val !== "null") ? val : null;
+  };
+
+  const clientName = getParam("client") || saleData?.clientName || "---";
+  const clientPhone = getParam("phone") || saleData?.clientPhone || "---";
+  const rawDate = getParam("date") || "---";
   const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   const receiptNo = params.id as string || "---";
@@ -50,21 +55,20 @@ function ReceiptPrintContent() {
   const reste = roundAmount(Math.max(0, totalNet - avance));
 
   const od = {
-    sph: searchParams.get("od_sph") || saleData?.prescription?.od?.sph || "---",
-    cyl: searchParams.get("od_cyl") || saleData?.prescription?.od?.cyl || "---",
-    axe: searchParams.get("od_axe") || saleData?.prescription?.od?.axe || "---",
-    add: searchParams.get("od_add") || saleData?.prescription?.od?.add || "---"
+    sph: getParam("od_sph") || saleData?.prescription?.od?.sph || "---",
+    cyl: getParam("od_cyl") || saleData?.prescription?.od?.cyl || "---",
+    axe: getParam("od_axe") || saleData?.prescription?.od?.axe || "---",
+    add: getParam("od_add") || saleData?.prescription?.od?.add || "---"
   };
   const og = {
-    sph: searchParams.get("og_sph") || saleData?.prescription?.og?.sph || "---",
-    cyl: searchParams.get("og_cyl") || saleData?.prescription?.og?.cyl || "---",
-    axe: searchParams.get("og_axe") || saleData?.prescription?.og?.axe || "---",
-    add: searchParams.get("og_add") || saleData?.prescription?.og?.add || "---"
+    sph: getParam("og_sph") || saleData?.prescription?.og?.sph || "---",
+    cyl: getParam("og_cyl") || saleData?.prescription?.og?.cyl || "---",
+    axe: getParam("og_axe") || saleData?.prescription?.og?.axe || "---",
+    add: getParam("og_add") || saleData?.prescription?.og?.add || "---"
   };
 
   const ReceiptCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[8mm] relative h-[210mm] max-h-[210mm] overflow-hidden">
-      {/* Header */}
       <div className="flex justify-between items-start mb-8 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-4">
           <div className="h-14 w-14 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white shadow-sm">
@@ -78,9 +82,9 @@ function ReceiptPrintContent() {
             )}
           </div>
           <div className="text-left">
-            <h2 className="text-sm font-black text-slate-900 uppercase leading-tight tracking-tighter">{shop.name}</h2>
-            <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">{shop.address}</p>
-            <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">ICE: {shop.icePatent} • Tél: {shop.phone}</p>
+            <h2 className="text-sm font-black text-slate-900 uppercase leading-tight tracking-tighter">{shop.name || "---"}</h2>
+            <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">{shop.address || "---"}</p>
+            <p className="text-[7px] font-black text-slate-500 leading-none mt-1 uppercase tracking-widest">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
           </div>
         </div>
         <div className="text-right">
@@ -92,7 +96,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Client Info - Centered */}
       <div className="mb-10 bg-slate-50 border border-slate-200 py-4 px-4 flex justify-around items-center rounded-2xl shadow-inner">
         <div className="text-center px-4">
           <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Client</p>
@@ -105,7 +108,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-10">
         <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 text-center border-b border-slate-100 pb-1.5">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-lg overflow-hidden border border-slate-200">
@@ -137,7 +139,6 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
-      {/* Historique Versements */}
       <div className="mb-8 flex-1">
         <h3 className="text-[8px] font-black uppercase text-slate-400 mb-2 border-b border-slate-100 pb-1 tracking-widest">Historique Versements</h3>
         <table className="w-full text-[9px]">
@@ -164,7 +165,6 @@ function ReceiptPrintContent() {
         </table>
       </div>
 
-      {/* Totals Area */}
       <div className="space-y-4">
         <div className="w-full space-y-2 border-t border-slate-200 pt-6">
           <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase tracking-widest px-2">
@@ -179,7 +179,6 @@ function ReceiptPrintContent() {
           </div>
         </div>
 
-        {/* Signature Area */}
         <div className="flex justify-between items-end mt-4">
           <div className="flex-1 pr-8">
             <div className="border-l-4 border-primary/20 pl-4 py-3 bg-slate-50/50 rounded-r-2xl">
@@ -192,7 +191,6 @@ function ReceiptPrintContent() {
         </div>
       </div>
 
-      {/* Footer Margin: 3cm empty space at the bottom */}
       <div className="h-[30mm] w-full shrink-0"></div>
     </div>
   );

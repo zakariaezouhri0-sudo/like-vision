@@ -34,35 +34,38 @@ function InvoicePrintContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const clientName = searchParams.get("client") || "---";
-  const clientPhone = searchParams.get("phone") || "---";
-  const rawDate = searchParams.get("date") || "---";
-  // Simplification de la date : on garde que la partie YYYY-MM-DD si c'est un format ISO
+  const getParam = (key: string) => {
+    const val = searchParams.get(key);
+    return (val && val !== "undefined" && val !== "null") ? val : null;
+  };
+
+  const clientName = getParam("client") || "---";
+  const clientPhone = getParam("phone") || "---";
+  const rawDate = getParam("date") || "---";
   const dateDisplay = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
   
   const invoiceNo = params.id as string || "---";
-  const mutuelle = searchParams.get("mutuelle") || "---";
+  const mutuelle = getParam("mutuelle") || "---";
   const total = roundAmount(Number(searchParams.get("total")) || 0);
   const remise = roundAmount(Number(searchParams.get("remise")) || 0);
-  const remisePercent = searchParams.get("remisePercent") || "0";
+  const remisePercent = getParam("remisePercent") || "0";
   const totalNet = roundAmount(Math.max(0, total - remise));
 
   const od = {
-    sph: searchParams.get("od_sph") || "---",
-    cyl: searchParams.get("od_cyl") || "---",
-    axe: searchParams.get("od_axe") || "---",
-    add: searchParams.get("od_add") || "---"
+    sph: getParam("od_sph") || "---",
+    cyl: getParam("od_cyl") || "---",
+    axe: getParam("od_axe") || "---",
+    add: getParam("od_add") || "---"
   };
   const og = {
-    sph: searchParams.get("og_sph") || "---",
-    cyl: searchParams.get("og_cyl") || "---",
-    axe: searchParams.get("og_axe") || "---",
-    add: searchParams.get("og_add") || "---"
+    sph: getParam("og_sph") || "---",
+    cyl: getParam("og_cyl") || "---",
+    axe: getParam("og_axe") || "---",
+    add: getParam("og_add") || "---"
   };
 
   const InvoiceCopy = () => (
     <div className="pdf-a5-portrait bg-white flex flex-col p-[8mm] relative h-[210mm] max-h-[210mm] overflow-hidden">
-      {/* Header */}
       <div className="flex justify-between items-start mb-10 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white shadow-sm">
@@ -76,9 +79,9 @@ function InvoicePrintContent() {
             )}
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-base font-black text-slate-900 leading-tight uppercase tracking-tighter">{shop.name}</h2>
-            <p className="text-[8px] text-slate-500 max-w-[200px] leading-tight font-bold">{shop.address}</p>
-            <p className="text-[8px] font-black text-slate-700">Tél: {shop.phone} • ICE: {shop.icePatent}</p>
+            <h2 className="text-base font-black text-slate-900 leading-tight uppercase tracking-tighter">{shop.name || "---"}</h2>
+            <p className="text-[8px] text-slate-500 max-w-[200px] leading-tight font-bold">{shop.address || "---"}</p>
+            <p className="text-[8px] font-black text-slate-700">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
           </div>
         </div>
         <div className="text-right">
@@ -90,7 +93,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Client Info - Centered */}
       <div className="mb-12 bg-slate-50 border border-slate-200 py-5 px-4 flex justify-around items-center rounded-[20px] shadow-inner">
         <div className="text-center px-4">
           <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Client</p>
@@ -108,7 +110,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Prescription Table - Centered & Enlarged */}
       <div className="mb-12 flex-1">
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 text-center border-b border-slate-100 pb-2">Prescription Optique</h3>
         <table className="w-full border-collapse table-fixed shadow-sm rounded-xl overflow-hidden border border-slate-300">
@@ -140,7 +141,6 @@ function InvoicePrintContent() {
         </table>
       </div>
 
-      {/* Totals Area */}
       <div className="space-y-4">
         <div className="w-full space-y-2 border-t border-slate-200 pt-6">
           <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase tracking-widest px-2">
@@ -158,7 +158,6 @@ function InvoicePrintContent() {
           </div>
         </div>
         
-        {/* Signature Area */}
         <div className="flex justify-between items-end mt-4">
           <div className="flex-1 pr-8">
             <div className="border-l-4 border-primary/20 pl-4 py-3 bg-slate-50/50 rounded-r-2xl">
@@ -171,7 +170,6 @@ function InvoicePrintContent() {
         </div>
       </div>
 
-      {/* Footer Margin: 3cm empty space at the bottom */}
       <div className="h-[30mm] w-full shrink-0"></div>
     </div>
   );

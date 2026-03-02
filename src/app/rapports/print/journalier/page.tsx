@@ -37,7 +37,6 @@ function DailyCashReportContent() {
     const now = new Date();
     setPrintTime(format(now, "HH:mm"));
     const dateStr = format(selectedDate, "dd-MM-yyyy");
-    // Format du nom pour l'impression/téléchargement PDF
     document.title = `Like Vision - ${dateStr}`;
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
@@ -152,7 +151,6 @@ function DailyCashReportContent() {
       </div>
 
       <div className="pdf-a4-portrait shadow-[0_0_60px_rgba(0,0,0,0.05)] bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm px-[6mm] pb-[6mm] pt-[3mm] print:pt-[3mm] flex flex-col min-h-[297mm]">
-        
         <div className="flex justify-between items-start border-b border-slate-200 pb-2 mb-3">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-xl bg-white shadow-sm">
@@ -166,10 +164,10 @@ function DailyCashReportContent() {
               )}
             </div>
             <div className="space-y-0">
-              <h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name}</h1>
-              <p className="text-[8px] text-slate-500 font-bold leading-tight max-w-[300px]">{shop.address}</p>
+              <h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
+              <p className="text-[8px] text-slate-500 font-bold leading-tight max-w-[300px]">{shop.address || "---"}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[8px] font-black text-slate-800 uppercase">Tél: {shop.phone} • ICE: {shop.icePatent}</span>
+                <span className="text-[8px] font-black text-slate-800 uppercase">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</span>
               </div>
             </div>
           </div>
@@ -242,8 +240,8 @@ function DailyCashReportContent() {
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
-                            {s.label && <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label || "---"}</span>}
-                            {s.clientName && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName || "---"}</span>}
+                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight whitespace-nowrap">{s.label || "---"}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.clientName || "---"}</span>
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[11px] align-middle">{sale ? formatCurrency(totalNet) : "---"}</td>
@@ -255,7 +253,7 @@ function DailyCashReportContent() {
                               "text-[9px] px-2 py-0.5 rounded font-black uppercase leading-none inline-flex items-center justify-center",
                               sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                             )}>
-                              {sale.statut}
+                              {sale.statut || "---"}
                             </span>
                           ) : "---"}
                         </td>
@@ -373,7 +371,7 @@ function DailyCashReportContent() {
 
         <div className="mt-auto text-center border-t border-slate-50 pt-1.5">
           <p className="text-[7px] text-slate-400 font-black uppercase tracking-[0.5em] italic opacity-40">
-            {shop.name} • SYSTÈME LIKE VISION
+            {shop.name || "---"} • SYSTÈME LIKE VISION
           </p>
         </div>
       </div>
