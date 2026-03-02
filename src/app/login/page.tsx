@@ -53,7 +53,7 @@ export default function LoginPage() {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
-          await updateProfile(userCredential.user, { displayName: "Préparation Historique" });
+          await updateProfile(userCredential.user, { displayName: "ZAKARIAE" });
           localStorage.setItem('user_role', 'PREPA');
         }
         toast({ variant: "success", title: "Mode Préparation Actif", description: "Vous travaillez sur un espace brouillon isolé." });

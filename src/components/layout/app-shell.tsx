@@ -37,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
   const userInitials = userName.substring(0, 2).toUpperCase();
   
   const isPrepa = role === "PREPA";
-  const displayRole = isPrepa ? "PRÉPARATION HISTORIQUE" : (role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE");
+  const displayRole = isPrepa ? "ZAKARIAE" : (role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE");
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
