@@ -117,11 +117,11 @@ function NewSaleForm() {
   }, [clientName, allSales, isPrepaMode]);
 
   const cleanVal = (val: string | number): number => {
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return roundAmount(val);
     if (!val) return 0;
     const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
     const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : parsed;
+    return isNaN(parsed) ? 0 : roundAmount(parsed);
   };
 
   const nTotal = cleanVal(total);

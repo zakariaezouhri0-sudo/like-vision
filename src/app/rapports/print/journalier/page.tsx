@@ -5,7 +5,7 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, TrendingUp, Landmark, FileText, UserCheck } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
@@ -98,7 +98,7 @@ function DailyCashReportContent() {
     
     const filteredTransactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     
-    const initialBalance = session?.openingBalance || 0;
+    const initialBalance = roundAmount(session?.openingBalance || 0);
     const salesList: any[] = [];
     const expensesList: any[] = [];
     const versementsList: any[] = [];
@@ -114,12 +114,12 @@ function DailyCashReportContent() {
       }
     });
 
-    const totalSales = salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
-    const totalExpenses = expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
-    const totalVersements = versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0);
+    const totalSales = roundAmount(salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
+    const totalExpenses = roundAmount(expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
+    const totalVersements = roundAmount(versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
     
-    const fluxOp = totalSales - totalExpenses;
-    const final = initialBalance + fluxOp - totalVersements;
+    const fluxOp = roundAmount(totalSales - totalExpenses);
+    const final = roundAmount(initialBalance + fluxOp - totalVersements);
 
     return { 
       sales: salesList, 
@@ -236,7 +236,7 @@ function DailyCashReportContent() {
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
                     const sale = s.saleDetails;
-                    const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : 0;
+                    const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     return (
                       <tr key={s.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">

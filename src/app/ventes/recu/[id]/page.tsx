@@ -5,8 +5,8 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, Loader2, ThumbsUp } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
-import { Suspense } from "react";
+import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
+import { Suspense, useEffect } from "react";
 import { useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 
@@ -14,6 +14,12 @@ function ReceiptPrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const db = useFirestore();
+
+  useEffect(() => {
+    const receiptNo = params.id as string || "RECU";
+    document.title = `Like Vision - ${receiptNo}`;
+    return () => { document.title = "Like Vision"; };
+  }, [params.id]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -36,11 +42,11 @@ function ReceiptPrintContent() {
   const dateDisplay = rawDate.includes("à") ? rawDate : rawDate.replace(" ", " à ");
   
   const receiptNo = params.id as string;
-  const total = Number(searchParams.get("total")) || saleData?.total || 0;
-  const remise = Number(searchParams.get("remise")) || saleData?.remise || 0;
-  const avance = Number(searchParams.get("avance")) || saleData?.avance || 0;
-  const totalNet = Math.max(0, total - remise);
-  const reste = Math.max(0, totalNet - avance);
+  const total = roundAmount(Number(searchParams.get("total")) || saleData?.total || 0);
+  const remise = roundAmount(Number(searchParams.get("remise")) || saleData?.remise || 0);
+  const avance = roundAmount(Number(searchParams.get("avance")) || saleData?.avance || 0);
+  const totalNet = roundAmount(Math.max(0, total - remise));
+  const reste = roundAmount(Math.max(0, totalNet - avance));
 
   const od = {
     sph: searchParams.get("od_sph") || saleData?.prescription?.od?.sph || "---",

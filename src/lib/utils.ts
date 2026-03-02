@@ -15,10 +15,9 @@ export function roundAmount(amount: number): number {
 
 /**
  * Formate un montant en DH selon les spécifications : 1 500,00 DH
- * Utilise des espaces insécables pour éviter le retour à la ligne entre le montant et DH.
  */
 export function formatCurrency(amount: number): string {
-  const rounded = roundAmount(amount);
+  const rounded = roundAmount(amount || 0);
   const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

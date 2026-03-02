@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, ThumbsUp, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
-import { Suspense } from "react";
+import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
+import { Suspense, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
@@ -15,6 +15,12 @@ function InvoicePrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const db = useFirestore();
+
+  useEffect(() => {
+    const invoiceNo = params.id as string || "FACT";
+    document.title = `Like Vision - ${invoiceNo}`;
+    return () => { document.title = "Like Vision"; };
+  }, [params.id]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -34,10 +40,10 @@ function InvoicePrintContent() {
   
   const invoiceNo = params.id as string || "OPT-2024-XXX";
   const mutuelle = searchParams.get("mutuelle") || "Aucune";
-  const total = Number(searchParams.get("total")) || 0;
-  const remise = Number(searchParams.get("remise")) || 0;
+  const total = roundAmount(Number(searchParams.get("total")) || 0);
+  const remise = roundAmount(Number(searchParams.get("remise")) || 0);
   const remisePercent = searchParams.get("remisePercent") || "0";
-  const totalNet = Math.max(0, total - remise);
+  const totalNet = roundAmount(Math.max(0, total - remise));
 
   const od = {
     sph: searchParams.get("od_sph") || "---",

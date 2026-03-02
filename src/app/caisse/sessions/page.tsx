@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -21,7 +20,7 @@ import {
   Download
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, deleteDoc, doc } from "firebase/firestore";
 import { format, parseISO, isSunday } from "date-fns";
@@ -115,12 +114,12 @@ export default function CashSessionsPage() {
 
   const handleExportMonth = (sessions: any[], monthLabel: string) => {
     const data = sessions.map(s => {
-      const initial = s.openingBalance || 0;
-      const sales = s.totalSales || 0;
-      const expenses = s.totalExpenses || 0;
-      const versements = s.totalVersements || 0;
-      const flux = sales - expenses;
-      const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements);
+      const initial = roundAmount(s.openingBalance || 0);
+      const sales = roundAmount(s.totalSales || 0);
+      const expenses = roundAmount(s.totalExpenses || 0);
+      const versements = roundAmount(s.totalVersements || 0);
+      const flux = roundAmount(sales - expenses);
+      const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
       
       return {
         "Date": s.date,
@@ -133,7 +132,7 @@ export default function CashSessionsPage() {
         "Total Versements": versements,
         "Flux Net": flux,
         "Solde Final": reel,
-        "Écart": s.discrepancy || 0
+        "Écart": roundAmount(s.discrepancy || 0)
       };
     });
 
@@ -233,12 +232,12 @@ export default function CashSessionsPage() {
                           </TableHeader>
                           <TableBody>
                             {group.sessions.map((s: any) => {
-                              const initial = s.openingBalance || 0;
-                              const sales = s.totalSales || 0;
-                              const expenses = s.totalExpenses || 0;
-                              const versements = s.totalVersements || 0;
-                              const flux = sales - expenses;
-                              const reel = s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements);
+                              const initial = roundAmount(s.openingBalance || 0);
+                              const sales = roundAmount(s.totalSales || 0);
+                              const expenses = roundAmount(s.totalExpenses || 0);
+                              const versements = roundAmount(s.totalVersements || 0);
+                              const flux = roundAmount(sales - expenses);
+                              const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
                               
                               const dateObj = s.date ? parseISO(s.date) : new Date();
                               const isDaySunday = isSunday(dateObj);
