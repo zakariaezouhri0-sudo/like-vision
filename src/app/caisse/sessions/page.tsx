@@ -209,10 +209,10 @@ export default function CashSessionsPage() {
                       <div className="hidden md:flex flex-col items-center">
                         <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
                         <span className={cn(
-                          "text-sm font-black tabular-nums",
+                          "text-lg font-black tabular-nums",
                           isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
                         )}>
-                          {group.totalFlux > 0 ? "+" : ""}{formatCurrency(group.totalFlux)}
+                          {formatCurrency(group.totalFlux)}
                         </span>
                       </div>
                     )}
@@ -300,7 +300,7 @@ export default function CashSessionsPage() {
                                       "font-black text-xs tabular-nums",
                                       flux > 0 ? "text-emerald-600" : flux < 0 ? "text-red-500" : "text-slate-400"
                                     )}>
-                                      {flux > 0 ? "+" : ""}{formatCurrency(flux)}
+                                      {formatCurrency(flux)}
                                     </span>
                                   </TableCell>
 
