@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -83,6 +84,17 @@ function NewSaleForm() {
   const { data: sessionData } = useDoc(sessionRef);
   const isSessionClosed = sessionData?.status === "CLOSED";
 
+  // Alerte notification Toast si la caisse est fermée
+  useEffect(() => {
+    if (isSessionClosed) {
+      toast({
+        variant: "destructive",
+        title: "JOURNÉE VERROUILLÉE",
+        description: `La caisse du ${format(saleDate, "dd/MM/yyyy")} est déjà clôturée. Aucune vente possible.`,
+      });
+    }
+  }, [isSessionClosed, saleDate, toast]);
+
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
 
@@ -149,8 +161,8 @@ function NewSaleForm() {
     if (isSessionClosed) {
       toast({ 
         variant: "destructive", 
-        title: "Action Impossible", 
-        description: "La caisse de cette journée est clôturée. Aucune modification possible." 
+        title: "Action Bloquée", 
+        description: "Impossible d'enregistrer une vente pour une journée clôturée." 
       });
       return;
     }
@@ -287,17 +299,17 @@ function NewSaleForm() {
         </div>
 
         {isSessionClosed && (
-          <div className="bg-white border-l-[12px] border-l-orange-500 shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in slide-in-from-top-4 duration-500 relative overflow-hidden group">
+          <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in slide-in-from-top-4 duration-500 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 transition-transform group-hover:scale-110 duration-700">
-              <Lock className="h-32 w-32 text-orange-500" />
+              <Lock className="h-32 w-32 text-destructive" />
             </div>
-            <div className="h-16 w-16 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
-              <Lock className="h-8 w-8 text-orange-600" />
+            <div className="h-16 w-16 bg-red-100 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+              <Lock className="h-8 w-8 text-destructive animate-pulse" />
             </div>
             <div className="flex-1 relative z-10">
-              <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-1">Caisse clôturée</h3>
+              <h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Attention : Accès Verrouillé</h3>
               <p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">
-                La caisse du <span className="text-orange-600 font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr })}</span> est déjà clôturée. Toute modification est verrouillée.
+                La caisse du <span className="text-destructive font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr })}</span> est clôturée. Il est strictement interdit d'ajouter ou de modifier une vente pour cette date.
               </p>
             </div>
           </div>
@@ -334,7 +346,7 @@ function NewSaleForm() {
                     <div className="relative">
                       <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className="h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50 cursor-not-allowed")} 
                         placeholder="06..." 
                         value={clientPhone} 
                         onChange={e => setClientPhone(e.target.value)} 
@@ -347,7 +359,7 @@ function NewSaleForm() {
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className="h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50 cursor-not-allowed")} 
                         placeholder="M. Mohamed..." 
                         value={clientName} 
                         onChange={e => setClientName(e.target.value)} 
@@ -378,7 +390,7 @@ function NewSaleForm() {
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}>
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")}><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-xl">
                         {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
                       </SelectContent>
@@ -388,7 +400,7 @@ function NewSaleForm() {
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
                       <Input 
-                        className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" 
+                        className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} 
                         placeholder="Précisez la mutuelle..." 
                         value={customMutuelle} 
                         onChange={e => setCustomMutuelle(e.target.value)} 
@@ -400,33 +412,35 @@ function NewSaleForm() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <FileText className="h-4 w-4 text-primary/40" />
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription Optique</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => !isSessionClosed && setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
+                <div className={cn(isSessionClosed && "pointer-events-none")}>
+                  <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => !isSessionClosed && setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2">
                 <Glasses className="h-4 w-4 text-primary/40" />
                 <CardTitle className="text-[10px] uppercase font-black text-primary/60">Équipement & Notes</CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="Marque, Modèle..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed} /></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="Type, Traitement..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isSessionClosed} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Marque, Modèle..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Type, Traitement..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isSessionClosed} /></div>
                 </div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires / Observations</Label><Textarea className="min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium" placeholder="Informations complémentaires..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isSessionClosed} /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires / Observations</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isSessionClosed && "opacity-50")} placeholder="Informations complémentaires..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isSessionClosed} /></div>
               </CardContent>
             </Card>
           </div>
 
           <div className="space-y-6">
-            <Card className="bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24">
+            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2">
                 <ShieldCheck className="h-4 w-4" />
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle>
