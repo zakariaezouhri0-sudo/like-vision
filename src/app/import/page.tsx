@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -16,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { setHours, format, addDays, parse, isValid, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
+import { roundAmount } from "@/lib/utils";
 
 type Mapping = Record<string, string>;
 
@@ -101,7 +101,7 @@ export default function ImportPage() {
     if (val === undefined || val === null || val === "") return 0;
     const s = val.toString().replace(/\s/g, '').replace(',', '.');
     const p = parseFloat(s);
-    return isNaN(p) ? 0 : p;
+    return isNaN(p) ? 0 : roundAmount(p);
   };
 
   const ensureClient = async (name: string, isDraft: boolean) => {
@@ -177,13 +177,13 @@ export default function ImportPage() {
           const isAnteriorAllowed = row._parsedDate && row._parsedDate >= startPeriod && row._parsedDate <= endPeriod;
           
           if (isAnteriorAllowed && avanceAnte > 0) {
-            salesGroups[ref].anteAmt += avanceAnte;
+            salesGroups[ref].anteAmt = roundAmount(salesGroups[ref].anteAmt + avanceAnte);
           }
 
           if (avancePaye > 0 && row._parsedDate) {
-            salesGroups[ref].totalPaidFromAvances += avancePaye;
+            salesGroups[ref].totalPaidFromAvances = roundAmount(salesGroups[ref].totalPaidFromAvances + avancePaye);
             salesGroups[ref].payments.push({
-              amount: avancePaye,
+              amount: roundAmount(avancePaye),
               date: row._parsedDate,
               userName: "Import",
               note: "Versement"
@@ -204,7 +204,7 @@ export default function ImportPage() {
 
       for (const ref of sortedRefs) {
         const s = salesGroups[ref];
-        const totalPaidEffective = s.totalPaidFromAvances + s.anteAmt;
+        const totalPaidEffective = roundAmount(s.totalPaidFromAvances + s.anteAmt);
         const isFullyPaid = totalPaidEffective >= s.totalBrut;
         
         await ensureClient(s.clientName, currentIsDraft);
@@ -216,7 +216,7 @@ export default function ImportPage() {
         const allPayments = [...s.payments];
         if (s.anteAmt > 0) {
           allPayments.unshift({
-            amount: s.anteAmt,
+            amount: roundAmount(s.anteAmt),
             date: new Date(2025, 11, 31).toISOString(),
             userName: "Historique",
             note: "Avance antérieure"
@@ -226,14 +226,14 @@ export default function ImportPage() {
         await setDoc(doc(collection(db, "sales")), {
           invoiceId, 
           clientName: s.clientName, 
-          total: s.totalBrut, 
-          avance: totalPaidEffective, 
-          reste: Math.max(0, s.totalBrut - totalPaidEffective),
+          total: roundAmount(s.totalBrut), 
+          avance: roundAmount(totalPaidEffective), 
+          reste: roundAmount(Math.max(0, s.totalBrut - totalPaidEffective)),
           statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), 
           isDraft: currentIsDraft, 
           createdAt: Timestamp.fromDate(setHours(s.earliestDate || new Date(2026, 0, 1), 12)), 
           createdBy: userName,
-          payments: allPayments.map((p: any) => ({ ...p, date: typeof p.date === 'string' ? p.date : p.date.toISOString() }))
+          payments: allPayments.map((p: any) => ({ ...p, amount: roundAmount(p.amount), date: typeof p.date === 'string' ? p.date : p.date.toISOString() }))
         });
       }
 
@@ -253,7 +253,7 @@ export default function ImportPage() {
         let daySales = 0;
         let dayExpenses = 0;
         let dayVersements = 0;
-        const initialBalanceForDay = runningBalance;
+        const initialBalanceForDay = roundAmount(runningBalance);
 
         const dayRows = allRows.filter(row => row._parsedDate && format(row._parsedDate, "yyyy-MM-dd") === dateStr);
 
@@ -268,62 +268,62 @@ export default function ImportPage() {
               type: "VENTE", 
               label: `VENTE ${invoiceId}`, 
               clientName: (row[mapping.client_1] || "").toString().trim(), 
-              montant: currentAvance, 
+              montant: roundAmount(currentAvance), 
               isDraft: currentIsDraft, 
               createdAt: rowTimestamp, 
               userName, 
               relatedId: invoiceId
             });
-            daySales += currentAvance;
+            daySales = roundAmount(daySales + currentAvance);
           }
 
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT VERRES", label: (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim(), clientName: (row[mapping.nom_client_v] || "").toString().trim(),
-              montant: -Math.abs(vAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              montant: -Math.abs(roundAmount(vAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
-            dayExpenses += vAmt;
+            dayExpenses = roundAmount(dayExpenses + vAmt);
           }
 
           const mAmt = cleanNum(row[mapping.montant_m]);
           if (mAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
               type: "ACHAT MONTURE", label: (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim(), clientName: (row[mapping.nom_client_m] || "").toString().trim(),
-              montant: -Math.abs(mAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              montant: -Math.abs(roundAmount(mAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
-            dayExpenses += mAmt;
+            dayExpenses = roundAmount(dayExpenses + mAmt);
           }
 
           const dAmt = cleanNum(row[mapping.montant_dep]);
           if (dAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
               type: "DEPENSE", label: (row[mapping.libelle_dep] || "CHARGE").toString().trim(),
-              montant: -Math.abs(dAmt), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+              montant: -Math.abs(roundAmount(dAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
-            dayExpenses += dAmt;
+            dayExpenses = roundAmount(dayExpenses + dAmt);
           }
 
           const verAmt = cleanNum(row[mapping.versement_mt]);
           if (verAmt > 0) {
             await setDoc(doc(collection(db, "transactions")), {
-              type: "VERSEMENT", label: "BANQUE", montant: -Math.abs(verAmt),
+              type: "VERSEMENT", label: "BANQUE", montant: -Math.abs(roundAmount(verAmt)),
               isDraft: currentIsDraft, createdAt: rowTimestamp, userName
             });
-            dayVersements += verAmt;
+            dayVersements = roundAmount(dayVersements + verAmt);
           }
         }
 
-        runningBalance = initialBalanceForDay + daySales - dayExpenses - dayVersements;
+        runningBalance = roundAmount(initialBalanceForDay + daySales - dayExpenses - dayVersements);
         await setDoc(sessionRef, {
           date: dateStr, isDraft: currentIsDraft, status: "CLOSED",
           openedAt: Timestamp.fromDate(setHours(currentDate, 9)),
           closedAt: Timestamp.fromDate(setHours(currentDate, 20)),
           openedBy: userName, closedBy: userName,
-          openingBalance: initialBalanceForDay,
-          closingBalanceReal: runningBalance,
-          closingBalanceTheoretical: runningBalance,
-          totalSales: daySales, totalExpenses: dayExpenses, totalVersements: dayVersements,
+          openingBalance: roundAmount(initialBalanceForDay),
+          closingBalanceReal: roundAmount(runningBalance),
+          closingBalanceTheoretical: roundAmount(runningBalance),
+          totalSales: roundAmount(daySales), totalExpenses: roundAmount(dayExpenses), totalVersements: roundAmount(dayVersements),
           discrepancy: 0
         });
       }

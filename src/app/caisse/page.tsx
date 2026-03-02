@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -23,7 +22,7 @@ import {
   Edit2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from "@/firebase";
 import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -131,28 +130,34 @@ function CaisseContent() {
   const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
   
-  const soldeReel = useMemo(() => Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0), [denoms]);
+  const soldeReel = useMemo(() => roundAmount(Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0)), [denoms]);
 
   const stats = useMemo(() => {
-    return transactions.reduce((acc: any, t: any) => {
+    const results = transactions.reduce((acc: any, t: any) => {
       const amt = Math.abs(Number(t.montant) || 0);
       if (t.type === "VENTE") acc.entrees += amt;
       else if (t.type === "VERSEMENT") acc.versements += amt;
       else acc.depenses += amt;
       return acc;
     }, { entrees: 0, depenses: 0, versements: 0 });
+    
+    return {
+      entrees: roundAmount(results.entrees),
+      depenses: roundAmount(results.depenses),
+      versements: roundAmount(results.versements)
+    };
   }, [transactions]);
 
-  const initialBalance = session?.openingBalance || 0;
-  const soldeTheorique = initialBalance + stats.entrees - stats.depenses - stats.versements;
-  const ecart = soldeReel - soldeTheorique;
+  const initialBalance = roundAmount(session?.openingBalance || 0);
+  const soldeTheorique = roundAmount(initialBalance + stats.entrees - stats.depenses - stats.versements);
+  const ecart = roundAmount(soldeReel - soldeTheorique);
 
   const handleOpenSession = async () => {
     try {
       setOpLoading(true);
       const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
       await setDoc(sessionRef, { 
-        openingBalance: parseFloat(openingVal) || 0, 
+        openingBalance: roundAmount(parseFloat(openingVal)) || 0, 
         status: "OPEN", 
         openedAt, 
         date: dateStr, 
@@ -166,7 +171,7 @@ function CaisseContent() {
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
     setOpLoading(true);
-    const amt = parseFloat(newOp.montant);
+    const amt = roundAmount(parseFloat(newOp.montant));
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
     
@@ -202,7 +207,7 @@ function CaisseContent() {
   const handleUpdateOperation = async () => {
     if (!selectedTrans || !editOp.montant) return;
     setOpLoading(true);
-    const amt = parseFloat(editOp.montant);
+    const amt = roundAmount(parseFloat(editOp.montant));
     const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = editOp.label || (editOp.type === "VERSEMENT" ? "BANQUE" : editOp.type);
     

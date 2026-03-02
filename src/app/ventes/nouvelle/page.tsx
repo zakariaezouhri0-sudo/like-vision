@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
@@ -66,7 +65,6 @@ function NewSaleForm() {
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   const [total, setTotal] = useState<string>(searchParams.get("total") || "");
   
-  // Nouveau : Type de remise et Valeur
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>(
     (searchParams.get("discountType") as 'fixed' | 'percent') || 'fixed'
   );
@@ -115,7 +113,7 @@ function NewSaleForm() {
       const matchMode = isPrepaMode ? s.isDraft === true : !s.isDraft;
       return matchMode && s.clientName?.toLowerCase().trim() === clientName.toLowerCase().trim();
     });
-    return filteredSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
+    return roundAmount(filteredSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0));
   }, [clientName, allSales, isPrepaMode]);
 
   const cleanVal = (val: string | number): number => {
@@ -130,16 +128,15 @@ function NewSaleForm() {
   const nDiscountVal = cleanVal(discountValue);
   const nAvance = cleanVal(avance);
   
-  // Calcul de la remise réelle
   const calculatedRemise = useMemo(() => {
     if (discountType === 'percent') {
-      return (nTotal * nDiscountVal) / 100;
+      return roundAmount((nTotal * nDiscountVal) / 100);
     }
-    return nDiscountVal;
+    return roundAmount(nDiscountVal);
   }, [nTotal, nDiscountVal, discountType]);
 
-  const totalNetValue = Math.max(0, nTotal - calculatedRemise);
-  const resteAPayerValue = Math.max(0, totalNetValue - nAvance);
+  const totalNetValue = roundAmount(Math.max(0, nTotal - calculatedRemise));
+  const resteAPayerValue = roundAmount(Math.max(0, totalNetValue - nAvance));
 
   const handleSave = async (shouldPrint: boolean = false) => {
     if (!clientName) {

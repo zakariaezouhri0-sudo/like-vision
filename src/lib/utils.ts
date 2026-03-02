@@ -6,14 +6,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Arrondit un nombre à 2 décimales pour la précision financière.
+ */
+export function roundAmount(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
+/**
  * Formate un montant en DH selon les spécifications : 1 500,00 DH
  * Utilise des espaces insécables pour éviter le retour à la ligne entre le montant et DH.
  */
 export function formatCurrency(amount: number): string {
+  const rounded = roundAmount(amount);
   const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(rounded);
   
   // Utilisation de \u00A0 (espace insécable)
   return formatted.replace(/\s/g, '\u00A0') + '\u00A0DH';
