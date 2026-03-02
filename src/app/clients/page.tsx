@@ -81,6 +81,14 @@ export default function ClientsPage() {
       });
   }, [allClients, searchTerm, isPrepaMode, role]);
 
+  const validatePhone = (val: string) => {
+    const raw = val.replace(/\D/g, '');
+    if (raw.length > 10) return false;
+    if (raw.length >= 1 && raw[0] !== '0') return false;
+    if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return false;
+    return true;
+  };
+
   const handleCreateClient = () => {
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) return;
@@ -216,7 +224,12 @@ export default function ClientsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
-                  <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => setNewClient({...newClient, phone: e.target.value.replace(/\s/g, '')})} />
+                  <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    if (validatePhone(raw)) {
+                      setNewClient({...newClient, phone: raw});
+                    }
+                  }} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
@@ -349,7 +362,12 @@ export default function ClientsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black">Téléphone</Label>
-                <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value.replace(/\s/g, '')})} />
+                <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => {
+                  const raw = e.target.value.replace(/\D/g, '');
+                  if (validatePhone(raw)) {
+                    setEditingClient({...editingClient, phone: raw});
+                  }
+                }} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black">Mutuelle</Label>

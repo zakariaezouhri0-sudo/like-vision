@@ -169,6 +169,14 @@ function NewSaleForm() {
   const totalNetValue = roundAmount(Math.max(0, nTotal - calculatedRemise));
   const resteAPayerValue = roundAmount(Math.max(0, totalNetValue - nAvance));
 
+  const handlePhoneChange = (val: string) => {
+    const raw = val.replace(/\D/g, '');
+    if (raw.length > 10) return;
+    if (raw.length >= 1 && raw[0] !== '0') return;
+    if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
+    setClientPhone(raw);
+  };
+
   const handleSave = async (shouldPrint: boolean = false) => {
     if (isSessionClosed) {
       toast({ 
@@ -319,7 +327,7 @@ function NewSaleForm() {
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><User className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle></CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => setClientPhone(e.target.value.replace(/\s/g, ''))} readOnly={isSessionClosed} /></div></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed} /></div></div>
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => setClientName(e.target.value)} readOnly={isSessionClosed} /></div></div>
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || isSessionClosed} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
                 </div>
