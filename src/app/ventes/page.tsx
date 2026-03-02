@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,14 +112,14 @@ function SalesHistoryContent() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Attention : Voulez-vous vraiment supprimer définitivement les ${selectedIds.size} ventes sélectionnées ?`)) return;
+    if (!confirm(`Voulez-vous vraiment supprimer les ${selectedIds.size} ventes sélectionnées ?`)) return;
 
     setIsDeletingBulk(true);
     try {
       const batch = writeBatch(db);
       selectedIds.forEach(id => { batch.delete(doc(db, "sales", id)); });
       await batch.commit();
-      toast({ variant: "success", title: "Suppression groupée réussie" });
+      toast({ variant: "success", title: "Suppression réussie" });
       setSelectedIds(new Set());
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsDeletingBulk(false); }
   };
@@ -133,9 +133,13 @@ function SalesHistoryContent() {
     } catch (e) {}
 
     const params = new URLSearchParams({ 
-      client: sale.clientName || "---", phone: sale.clientPhone || "---", mutuelle: sale.mutuelle || "---", 
-      total: sale.total.toString(), remise: (sale.remise || 0).toString(), 
-      remisePercent: sale.remisePercent || "0", avance: sale.avance.toString(), 
+      client: sale.clientName || "---", 
+      phone: sale.clientPhone || "---", 
+      mutuelle: sale.mutuelle || "---", 
+      total: sale.total.toString(), 
+      remise: (sale.remise || 0).toString(), 
+      remisePercent: sale.discountType === 'percent' ? sale.discountValue?.toString() : "Fixe",
+      avance: (sale.avance || 0).toString(), 
       od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
       od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
       og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
@@ -149,10 +153,8 @@ function SalesHistoryContent() {
   const handleEdit = (sale: any) => {
     const params = new URLSearchParams({ 
       editId: sale.id, invoiceId: sale.invoiceId, client: sale.clientName || "---", phone: sale.clientPhone || "---", 
-      mutuelle: sale.mutuelle || "---", total: sale.total.toString(), avance: (sale.avance || 0).toString(), 
-      discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "percent", 
-      purchasePriceFrame: (sale.purchasePriceFrame || 0).toString(), 
-      purchasePriceLenses: (sale.purchasePriceLenses || 0).toString(), 
+      mutuelle: sale.mutuelle || "---", total: (sale.total || 0).toString(), avance: (sale.avance || 0).toString(), 
+      discountValue: sale.discountValue?.toString() || "0", discountType: sale.discountType || "fixed", 
       monture: sale.monture || "", verres: sale.verres || "", notes: sale.notes || "", 
       od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
       od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
@@ -173,7 +175,7 @@ function SalesHistoryContent() {
       await updateDoc(doc(db, "sales", costDialogSale.id), { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
       if (frameCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT MONTURE - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
       if (lensesCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT VERRES - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
-      toast({ variant: "success", title: "Coûts mis à jour" });
+      toast({ variant: "success", title: "Coûts enregistrés" });
       setCostDialogSale(null);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
@@ -187,9 +189,9 @@ function SalesHistoryContent() {
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {selectedIds.size > 0 && isAdminOrPrepa && (
-            <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeletingBulk} className="h-14 font-black rounded-2xl px-6 shadow-xl animate-in fade-in zoom-in duration-200">
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeletingBulk} className="h-14 font-black rounded-2xl px-6 shadow-xl">
               {isDeletingBulk ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Trash2 className="h-5 w-5 mr-2" />}
-              SUPPRIMER LA SÉLECTION ({selectedIds.size})
+              SUPPRIMER ({selectedIds.size})
             </Button>
           )}
           <Button asChild className="flex-1 sm:flex-none h-14 font-black rounded-2xl px-8 shadow-lg">
@@ -205,12 +207,7 @@ function SalesHistoryContent() {
               <Label className="text-[10px] font-black uppercase text-muted-foreground">Client ou N° Document</Label>
               <div className="relative">
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
-                <input 
-                  placeholder="Rechercher..." 
-                  className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none" 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
+                <input placeholder="Chercher..." className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
             </div>
             <div className="w-full lg:w-44 space-y-1.5">
@@ -222,32 +219,8 @@ function SalesHistoryContent() {
                     {dateFrom ? format(dateFrom, "dd-MM-yyyy") : "Toutes dates"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
                   <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus />
-                  {dateFrom && (
-                    <div className="p-2 border-t bg-slate-50">
-                      <Button variant="ghost" className="w-full h-8 text-[10px] font-black uppercase" onClick={() => setDateFrom(undefined)}>Réinitialiser</Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="w-full lg:w-44 space-y-1.5">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground">Au</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-sm bg-white border-none shadow-inner justify-start px-4">
-                    <CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />
-                    {dateTo ? format(dateTo, "dd-MM-yyyy") : "Toutes dates"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus />
-                  {dateTo && (
-                    <div className="p-2 border-t bg-slate-50">
-                      <Button variant="ghost" className="w-full h-8 text-[10px] font-black uppercase" onClick={() => setDateTo(undefined)}>Réinitialiser</Button>
-                    </div>
-                  )}
                 </PopoverContent>
               </Popover>
             </div>
@@ -272,7 +245,7 @@ function SalesHistoryContent() {
                 <TableRow>
                   {isAdminOrPrepa && (
                     <TableHead className="w-12 px-4 py-5 text-center">
-                      <Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} aria-label="Sélectionner tout" />
+                      <Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} />
                     </TableHead>
                   )}
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>
@@ -287,64 +260,40 @@ function SalesHistoryContent() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="py-24 text-center">
-                      <Loader2 className="h-12 w-12 animate-spin mx-auto opacity-20" />
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={9} className="py-24 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                 ) : filteredSales.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={isAdminOrPrepa ? 9 : 8} className="text-center py-20 text-[10px] font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">
-                      {searchTerm || dateFrom ? "Aucun résultat pour vos filtres." : "Aucune vente enregistrée."}
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-20 text-[10px] font-black uppercase text-muted-foreground opacity-30">Aucune vente trouvée.</TableCell></TableRow>
                 ) : (
                   filteredSales.map((sale: any) => {
-                    const historicalPayments = sale.payments?.filter((p: any) => p.userName === "Historique" || p.note?.includes("Anterieure") || p.note?.includes("antérieure")) || [];
-                    const historicalAmount = historicalPayments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
-
+                    const histAmt = (sale.payments || []).filter((p: any) => p.userName === "Historique" || p.userName === "Import").reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
                     return (
                       <TableRow key={sale.id} className={cn("hover:bg-primary/5 transition-all", selectedIds.has(sale.id) && "bg-primary/5")}>
                         {isAdminOrPrepa && (
-                          <TableCell className="w-12 px-4 py-5 text-center"><Checkbox checked={selectedIds.has(sale.id)} onCheckedChange={() => toggleSelectOne(sale.id)} aria-label={`Sélectionner vente ${sale.invoiceId}`} /></TableCell>
+                          <TableCell className="w-12 px-4 py-5 text-center"><Checkbox checked={selectedIds.has(sale.id)} onCheckedChange={() => toggleSelectOne(sale.id)} /></TableCell>
                         )}
                         <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2"><CalendarIcon className="h-3 w-3 text-primary/40" /><span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd-MM-yyyy", { locale: fr }) : "---"}</span></div>
-                            <div className="flex items-center gap-2"><Clock className="h-3 w-3 text-primary/40" /><span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span></div>
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd-MM-yyyy") : "---"}</span>
+                            <span className="text-[10px] font-black text-primary/60">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary/20" /><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId || "---"}</span></div></TableCell>
+                        <TableCell className="px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs text-primary tabular-nums tracking-tighter">{sale.invoiceId || "---"}</span></TableCell>
                         <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName || "---"}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone)}</span></div></TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
                           <div className="flex flex-col items-end">
                             <span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>
-                            {historicalAmount > 0 && (
-                              <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                <HistoryIcon className="h-2 w-2" /> {formatCurrency(historicalAmount)} (Hist)
-                              </span>
-                            )}
+                            {histAmt > 0 && <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1"><HistoryIcon className="h-2 w-2" /> {formatCurrency(histAmt)} (Hist)</span>}
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span></TableCell>
                         <TableCell className="text-center px-4 md:px-8 py-5">
-                          <Badge 
-                            className={cn(
-                              "text-[8px] px-2 py-1 font-black rounded-lg uppercase border-none shadow-sm", 
-                              sale.statut === "Payé" ? "bg-green-100 text-green-700" : 
-                              sale.statut === "En attente" ? "bg-red-100 text-red-700" : 
-                              "bg-blue-100 text-blue-700"
-                            )} 
-                            variant="outline"
-                          >
-                            {sale.statut || "---"}
-                          </Badge>
+                          <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut || "---"}</Badge>
                         </TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5">
                           <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl min-w-[180px]">
+                            <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: (sale.purchasePriceFrame || 0).toString(), lenses: (sale.purchasePriceLenses || 0).toString(), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
                               {isAdminOrPrepa && (
@@ -366,7 +315,7 @@ function SalesHistoryContent() {
 
       <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
         <DialogContent className="max-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase flex items-center gap-3">Coûts d'Achat</DialogTitle></DialogHeader>
+          <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase">Coûts d'Achat</DialogTitle></DialogHeader>
           <div className="p-6 space-y-6 bg-white">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame === "0" ? "" : purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>

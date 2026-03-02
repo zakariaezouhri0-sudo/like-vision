@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, getDoc } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 
@@ -28,6 +26,7 @@ export default function SettingsPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCleaningClients, setIsCleaningClients] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -70,11 +69,66 @@ export default function SettingsPage() {
     }
   };
 
+  const handleHarmonizeData = async () => {
+    setIsMigrating(true);
+    try {
+      const collections = ["sales", "transactions", "cash_sessions"];
+      let count = 0;
+
+      for (const collName of collections) {
+        const q = query(collection(db, collName));
+        const snap = await getDocs(q);
+        
+        const batch = writeBatch(db);
+        let batchCount = 0;
+
+        snap.docs.forEach(d => {
+          const data = d.data();
+          let needsUpdate = false;
+          const updates: any = {};
+
+          // 1. Correction des noms d'utilisateurs
+          const fieldsToClean = ["openedBy", "closedBy", "userName", "createdBy"];
+          fieldsToClean.forEach(f => {
+            if (data[f] === "Préparation Historique" || data[f] === "PRÉPARATION HISTORIQUE") {
+              updates[f] = "ZAKARIAE";
+              needsUpdate = true;
+            }
+          });
+
+          // 2. Nettoyage des undefined/null pour l'affichage
+          if (collName === "sales") {
+            if (data.clientPhone === undefined || data.clientPhone === null) { updates.clientPhone = ""; needsUpdate = true; }
+            if (data.mutuelle === undefined || data.mutuelle === null) { updates.mutuelle = "Aucun"; needsUpdate = true; }
+          }
+
+          if (needsUpdate) {
+            batch.update(d.ref, updates);
+            batchCount++;
+            count++;
+          }
+        });
+
+        if (batchCount > 0) {
+          await batch.commit();
+        }
+      }
+
+      toast({ 
+        variant: "success", 
+        title: "Harmonisation réussie", 
+        description: `${count} documents ont été mis à jour (ZAKARIAE, Nettoyage undefined).` 
+      });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur de migration" });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const handleSyncToReal = async () => {
     setIsSyncing(true);
     try {
-      // 1. Synchronisation des documents (Ventes, Transactions, Clients)
-      // On passe simplement le flag isDraft à false sans toucher aux IDs ni aux numéros
       const collectionsToSync = ["sales", "transactions", "clients"];
       for (const collName of collectionsToSync) {
         const q = query(collection(db, collName), where("isDraft", "==", true));
@@ -93,20 +147,18 @@ export default function SettingsPage() {
         }
       }
 
-      // 2. Sessions de caisse
       const qSessions = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
       const snapSessions = await getDocs(qSessions);
       for (const d of snapSessions.docs) {
         const data = d.data();
         const realId = data.date; 
         if (realId) {
-          // On recrée la session sans le préfixe DRAFT- et on supprime l'ancienne
           await setDoc(doc(db, "cash_sessions", realId), { ...data, isDraft: false });
           await deleteDoc(d.ref);
         }
       }
 
-      toast({ variant: "success", title: "Synchronisation terminée", description: "Les données sont maintenant en mode réel (Numérotation préservée)." });
+      toast({ variant: "success", title: "Synchronisation terminée", description: "Données passées en mode réel." });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur de synchronisation" });
     } finally {
@@ -138,42 +190,11 @@ export default function SettingsPage() {
       await setDoc(doc(db, "settings", "counters"), { fc: 0, rc: 0 });
       await setDoc(doc(db, "settings", "counters_draft"), { fc: 0, rc: 0 });
 
-      toast({ variant: "success", title: "Réinitialisation réussie", description: "Toutes les données ont été supprimées." });
+      toast({ variant: "success", title: "Réinitialisation réussie" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setIsResetting(false);
-    }
-  };
-
-  const handleCleanRealClients = async () => {
-    setIsCleaningClients(true);
-    try {
-      const q = query(collection(db, "clients"));
-      const snap = await getDocs(q);
-      const realClients = snap.docs.filter(d => d.data().isDraft !== true);
-
-      if (realClients.length === 0) {
-        toast({ title: "Info", description: "Aucun client réel trouvé à supprimer." });
-        return;
-      }
-
-      const chunks = [];
-      for (let i = 0; i < realClients.length; i += 500) {
-        chunks.push(realClients.slice(i, i + 500));
-      }
-
-      for (const chunk of chunks) {
-        const batch = writeBatch(db);
-        chunk.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-      }
-
-      toast({ variant: "success", title: "Nettoyage réussi", description: `${realClients.length} clients supprimés du mode réel.` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer les clients." });
-    } finally {
-      setIsCleaningClients(false);
     }
   };
 
@@ -212,116 +233,72 @@ export default function SettingsPage() {
             <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-blue-50 border-blue-100">
               <CardHeader className="bg-blue-100/50 border-b p-6">
                 <CardTitle className="text-[11px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
-                  <RefreshCcw className="h-4 w-4" /> Synchronisation
+                  <RefreshCcw className="h-4 w-4" /> Maintenance
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
-                <p className="text-[9px] font-black text-blue-600 uppercase leading-relaxed tracking-wider">
-                  Publier les données préparées
-                </p>
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Mise à jour des anciennes données</p>
+                  <Button 
+                    onClick={handleHarmonizeData}
+                    disabled={isMigrating}
+                    variant="outline"
+                    className="w-full h-12 rounded-xl border-blue-200 text-blue-700 font-black text-[10px] uppercase hover:bg-blue-100"
+                  >
+                    {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />}
+                    Harmoniser les données
+                  </Button>
+                </div>
+
+                <Separator className="bg-blue-100" />
+
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Publier vers le Réel</p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button disabled={isSyncing} className="w-full h-12 rounded-xl bg-blue-600 font-black text-[10px] uppercase shadow-lg shadow-blue-100">
+                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+                        Synchroniser
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-[32px]">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-black uppercase">Confirmer la publication ?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs font-bold uppercase">Toutes les données du compte ZAKARIAE vont être transférées définitivement.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-red-50 border-red-100">
+              <CardHeader className="bg-red-100/50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-red-700 flex items-center gap-2"><Database className="h-4 w-4" /> Zone de Danger</CardTitle></CardHeader>
+              <CardContent className="p-6 space-y-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      disabled={isSyncing}
-                      className="w-full h-14 rounded-xl bg-blue-600 font-black text-[10px] uppercase shadow-lg shadow-blue-100"
-                    >
-                      {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
-                      Synchroniser vers le Réel
+                    <Button variant="destructive" disabled={isResetting} className="w-full h-12 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100">
+                      {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                      Réinitialiser tout
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-[32px] p-8">
+                  <AlertDialogContent className="rounded-[32px]">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="text-xl font-black text-primary uppercase">Confirmer la publication ?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                        Toutes vos saisies effectuées en compte `prepa` vont être transférées définitivement dans le compte `réel`. Les numéros de factures et reçus seront conservés tels quels.
-                      </AlertDialogDescription>
+                      <AlertDialogTitle className="text-xl font-black uppercase text-primary">Action Irréversible</AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs font-bold uppercase">Cette opération va effacer TOUT l'historique des ventes, clients et caisses.</AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="pt-6">
+                    <AlertDialogFooter>
                       <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer la synchro</AlertDialogAction>
+                      <AlertDialogAction onClick={handleResetAllData} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </CardContent>
             </Card>
-
-            {(role === 'ADMIN' || role === 'PREPA') && (
-              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-red-50 border-red-100">
-                <CardHeader className="bg-red-100/50 border-b p-6">
-                  <CardTitle className="text-[11px] font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
-                    <Database className="h-4 w-4" /> Zone de Danger
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="space-y-3">
-                    <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
-                      Nettoyage du fichier Optique
-                    </p>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="outline"
-                          disabled={isCleaningClients}
-                          className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-red-200 text-red-600 hover:bg-red-100"
-                        >
-                          {isCleaningClients ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
-                          Supprimer Clients (Mode Réel)
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="rounded-[32px] p-8">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-xl font-black text-primary uppercase">Supprimer les clients réels ?</AlertDialogTitle>
-                          <AlertDialogDescription className="text-xs font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                            Cette action va effacer TOUS les clients qui ne sont pas marqués comme "Brouillon". Vos données importées dans le compte `prepa` resteront intactes.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="pt-6">
-                          <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleCleanRealClients} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-
-                  <Separator className="bg-red-100" />
-
-                  <div className="space-y-3">
-                    <p className="text-[9px] font-black text-red-600 uppercase leading-relaxed tracking-wider">
-                      Nettoyage Complet
-                    </p>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="destructive"
-                          disabled={isResetting}
-                          className="w-full h-12 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100"
-                        >
-                          {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                          Réinitialiser tout
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="rounded-[32px] p-8">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-2xl font-black text-primary uppercase tracking-tighter">Action Irréversible</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sm font-bold text-slate-500 uppercase leading-relaxed pt-2">
-                            Attention ! Cette opération va effacer définitivement tout l'historique des ventes, les fiches clients et les rapports de caisse des deux comptes.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="pt-6">
-                          <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={handleResetAllData}
-                            className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]"
-                          >
-                            Confirmer la suppression
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           <div className="md:col-span-2 space-y-6">

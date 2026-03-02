@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -98,7 +99,7 @@ export default function CashSessionsPage() {
       const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
       const d = parseISO(cleanDate);
       if (!isValid(d)) return "---";
-      return format(d, "dd MMMM yyyy", { locale: fr });
+      return format(d, "dd MMMM yyyy", { locale: fr }).toUpperCase();
     } catch (e) { return "---"; }
   };
 
@@ -154,10 +155,10 @@ export default function CashSessionsPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Journal de Caisse");
     XLSX.writeFile(workbook, `Like Vision - Sessions ${monthLabel}.xlsx`);
     
-    toast({ variant: "success", title: "Export réussi", description: `Le rapport de ${monthLabel} a été généré.` });
+    toast({ variant: "success", title: "Export réussi" });
   };
 
-  if (loadingRole) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  if (loadingRole) return null;
 
   return (
     <AppShell>
@@ -174,15 +175,10 @@ export default function CashSessionsPage() {
                   "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
                   isPrepaMode ? "bg-orange-50 text-orange-600 border-orange-100" : "bg-blue-50 text-blue-600 border-blue-100"
                 )}>
-                  Mode {isPrepaMode ? "Historique" : "Réel"}
+                  Mode {isPrepaMode ? "ZAKARIAE" : "Réel"}
                 </span>
-                <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-40">Traçabilité consolidée</span>
               </div>
             </div>
-          </div>
-          <div className="bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 hidden lg:block">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sessions Total</p>
-            <p className="text-sm font-black text-primary">{rawSessions?.filter(s => isPrepaMode ? s.isDraft === true : !s.isDraft).length || 0}</p>
           </div>
         </div>
 
@@ -190,7 +186,6 @@ export default function CashSessionsPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em]">Lecture des données...</span>
             </div>
           ) : groupedSessions.length > 0 ? (
             groupedSessions.map((group) => {
@@ -206,21 +201,13 @@ export default function CashSessionsPage() {
                   >
                     <div className="flex items-center gap-4">
                       {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-base font-black uppercase tracking-[0.2em]">{group.monthLabel}</span>
-                        <span className={cn("text-[10px] font-bold uppercase opacity-60", isExpanded ? "text-white" : "text-slate-400")}>
-                          ({group.sessions.length} sessions)
-                        </span>
-                      </div>
+                      <span className="text-base font-black uppercase tracking-[0.2em]">{group.monthLabel}</span>
                     </div>
 
                     {isAdminOrPrepa && (
                       <div className="hidden md:flex flex-col items-center">
-                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
-                        <span className={cn(
-                          "text-lg font-black tabular-nums",
-                          isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
-                        )}>
+                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET TOTAL</span>
+                        <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
                           {formatCurrency(group.totalFlux).replace('+', '')}
                         </span>
                       </div>
@@ -230,7 +217,7 @@ export default function CashSessionsPage() {
                       size="sm" 
                       onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
                       className={cn(
-                        "h-9 px-4 rounded-xl font-black text-[9px] uppercase shadow-lg transition-all active:scale-95",
+                        "h-9 px-4 rounded-xl font-black text-[9px] uppercase shadow-lg transition-all",
                         isExpanded ? "bg-white text-primary hover:bg-slate-100" : "bg-primary text-white"
                       )}
                     >
@@ -239,19 +226,19 @@ export default function CashSessionsPage() {
                   </div>
 
                   {isExpanded && (
-                    <CardContent className="p-0 animate-in slide-in-from-top-2 duration-300">
+                    <CardContent className="p-0">
                       <div className="overflow-x-auto">
                         <Table className="min-w-[1200px]">
                           <TableHeader className="bg-slate-800">
                             <TableRow>
-                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-white whitespace-nowrap">Date & Statut</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Ouverture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Initial</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Versement</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Fonds Final</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 tracking-[0.2em] text-white whitespace-nowrap">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 tracking-[0.2em] text-white whitespace-nowrap">Actions</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white">Date & Statut</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Ouverture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Final</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Clôture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -263,101 +250,47 @@ export default function CashSessionsPage() {
                               const flux = roundAmount(sales - expenses);
                               const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
                               
-                              const dateObj = s.date ? parseISO(s.date) : new Date();
-                              const isDaySunday = isValid(dateObj) ? isSunday(dateObj) : false;
-
                               return (
-                                <TableRow key={s.id} className={cn(
-                                  "hover:bg-slate-50/80 border-b last:border-0 transition-all group",
-                                  isDaySunday && "bg-red-50/60 hover:bg-red-100/60"
-                                )}>
+                                <TableRow key={s.id} className="hover:bg-slate-50/80 border-b">
                                   <TableCell className="px-8 py-5">
-                                    <div className="flex items-center gap-4">
-                                      <div className="h-10 w-10 rounded-xl bg-white border border-slate-100 text-primary/40 flex items-center justify-center shrink-0 shadow-sm">
-                                        <CalendarIcon className="h-5 w-5" />
-                                      </div>
-                                      <div className="flex flex-col justify-center">
-                                        <span className="font-black text-sm tracking-tight block uppercase text-slate-800 leading-none whitespace-nowrap">
-                                          {formatSessionDate(s.date)}
-                                        </span>
-                                        <div className="flex items-center gap-1.5 mt-1.5 leading-none">
-                                          <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.status === "OPEN" ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                                          <span className={cn("text-[8px] font-black uppercase tracking-widest whitespace-nowrap", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
-                                            {s.status === "OPEN" ? "En cours" : "Clôturée"}
-                                          </span>
-                                        </div>
-                                      </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s.date)}</span>
+                                      <span className={cn("text-[8px] font-black uppercase mt-1", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
+                                        {s.status === "OPEN" ? "En cours" : "Clôturée"}
+                                      </span>
                                     </div>
                                   </TableCell>
-
                                   <TableCell className="px-6 py-5">
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-green-600 tabular-nums flex items-center gap-1">
-                                        <Clock className="h-3 w-3" /> {formatTime(s.openedAt)}
-                                      </span>
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase truncate max-w-[120px]">{s.openedBy || "---"}</span>
+                                      <span className="text-[11px] font-black text-green-600 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s.openedAt)}</span>
+                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{s.openedBy || "---"}</span>
                                     </div>
                                   </TableCell>
-                                  
-                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums text-slate-900">
-                                    {formatCurrency(initial)}
-                                  </TableCell>
-
+                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
                                   <TableCell className="text-right px-6 py-5">
-                                    <span className={cn(
-                                      "font-black text-xs tabular-nums",
-                                      flux > 0 ? "text-emerald-600" : flux < 0 ? "text-red-500" : "text-slate-400"
-                                    )}>
+                                    <span className={cn("font-black text-xs tabular-nums", flux >= 0 ? "text-emerald-600" : "text-red-500")}>
                                       {formatCurrency(flux)}
                                     </span>
                                   </TableCell>
-
-                                  <TableCell className="text-right px-6 py-5">
-                                    <span className="font-black text-xs tabular-nums text-orange-600">
-                                      {formatCurrency(Math.abs(versements))}
-                                    </span>
-                                  </TableCell>
-
-                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums text-slate-900">
-                                    {formatCurrency(reel)}
-                                  </TableCell>
-
+                                  <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(Math.abs(versements))}</span></TableCell>
+                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
                                   <TableCell className="px-6 py-5">
                                     {s.status === "CLOSED" ? (
                                       <div className="flex flex-col">
-                                        <span className="text-[11px] font-black text-red-500 tabular-nums flex items-center gap-1">
-                                          <Clock className="h-3 w-3" /> {formatTime(s.closedAt)}
-                                        </span>
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase truncate max-w-[120px]">{s.closedBy || "---"}</span>
+                                        <span className="text-[11px] font-black text-red-500 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s.closedAt)}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase">{s.closedBy || "---"}</span>
                                       </div>
-                                    ) : (
-                                      <span className="text-[9px] font-black uppercase text-slate-300 italic tracking-widest">En cours...</span>
-                                    )}
+                                    ) : <span className="text-[9px] font-black uppercase text-slate-300 italic">En cours...</span>}
                                   </TableCell>
-
                                   <TableCell className="text-right px-8 py-5">
-                                    <div className="flex items-center justify-end">
-                                      <DropdownMenu modal={false}>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
-                                            <MoreVertical className="h-4 w-4 text-slate-400" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px] shadow-2xl border-primary/5">
-                                          <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase rounded-xl cursor-pointer">
-                                            <ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase rounded-xl cursor-pointer">
-                                            <FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport
-                                          </DropdownMenuItem>
-                                          {isAdminOrPrepa && (
-                                            <DropdownMenuItem onClick={() => handleDeleteSession(s.id)} className="text-red-500 py-3 font-black text-[10px] uppercase rounded-xl cursor-pointer">
-                                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                                            </DropdownMenuItem>
-                                          )}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
+                                    <DropdownMenu modal={false}>
+                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
+                                        <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
+                                        {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s.id)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </TableCell>
                                 </TableRow>
                               );
@@ -371,11 +304,9 @@ export default function CashSessionsPage() {
               );
             })
           ) : (
-            <div className="text-center py-48 bg-white rounded-[40px] border shadow-sm">
-              <div className="flex flex-col items-center opacity-20">
-                <TrendingUp className="h-16 w-16 mb-4" />
-                <span className="text-xs font-black uppercase tracking-[0.5em]">Aucune session enregistrée</span>
-              </div>
+            <div className="text-center py-48 bg-white rounded-[40px] border opacity-20">
+              <TrendingUp className="h-16 w-16 mx-auto mb-4" />
+              <span className="text-xs font-black uppercase tracking-[0.5em]">Aucune session enregistrée</span>
             </div>
           )}
         </div>
