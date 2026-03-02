@@ -57,17 +57,19 @@ export default function CashSessionsPage() {
       .filter(s => isPrepaMode ? s.isDraft === true : (s.isDraft !== true))
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-    const groups: { monthLabel: string; sessions: any[] }[] = [];
+    const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
     filtered.forEach(s => {
       if (!s.date) return;
       const date = parseISO(s.date);
       const monthLabel = format(date, "MMMM yyyy", { locale: fr });
+      const sessionFlux = roundAmount((s.totalSales || 0) - (s.totalExpenses || 0));
       
       const lastGroup = groups[groups.length - 1];
       if (lastGroup && lastGroup.monthLabel === monthLabel) {
         lastGroup.sessions.push(s);
+        lastGroup.totalFlux = roundAmount(lastGroup.totalFlux + sessionFlux);
       } else {
-        groups.push({ monthLabel, sessions: [s] });
+        groups.push({ monthLabel, sessions: [s], totalFlux: sessionFlux });
       }
     });
     
@@ -201,6 +203,18 @@ export default function CashSessionsPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Flux Net Total Mensuel au Centre */}
+                    <div className="hidden md:flex flex-col items-center">
+                      <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>Flux Net Total</span>
+                      <span className={cn(
+                        "text-sm font-black tabular-nums",
+                        isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : group.totalFlux < 0 ? "text-red-500" : "text-slate-400")
+                      )}>
+                        {group.totalFlux > 0 ? "+" : ""}{formatCurrency(group.totalFlux)}
+                      </span>
+                    </div>
+
                     <Button 
                       size="sm" 
                       onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
