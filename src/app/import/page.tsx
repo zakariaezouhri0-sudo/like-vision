@@ -72,39 +72,47 @@ export default function ImportPage() {
   const [importMode, setImportMode] = useState<'FULL' | 'SINGLE'>('SINGLE');
   const [targetDate, setTargetDate] = useState<Date>(new Date());
 
-  // Récupération automatique du solde précédent
+  // Récupération automatique du solde précédent sans erreur d'index
   useEffect(() => {
     const fetchPreviousBalance = async () => {
+      if (!role) return;
       setIsLoadingBalance(true);
       try {
         const currentIsDraft = role === 'PREPA';
         const dateStr = format(targetDate, "yyyy-MM-dd");
         
+        // Simplification de la requête pour éviter les index composites
         const q = query(
           collection(db, "cash_sessions"),
           where("isDraft", "==", currentIsDraft),
-          where("status", "==", "CLOSED"),
-          where("date", "<", dateStr),
-          orderBy("date", "desc"),
-          limit(1)
+          where("status", "==", "CLOSED")
         );
         
         const snap = await getDocs(q);
         if (!snap.empty) {
-          const lastSession = snap.docs[0].data();
-          setStartingBalance((lastSession.closingBalanceReal || 0).toString());
+          // Filtrage et tri en mémoire pour éviter le besoin d'index complexe
+          const closedSessions = snap.docs
+            .map(d => d.data())
+            .filter(s => s.date < dateStr)
+            .sort((a, b) => b.date.localeCompare(a.date));
+
+          if (closedSessions.length > 0) {
+            setStartingBalance((closedSessions[0].closingBalanceReal || 0).toString());
+          } else {
+            setStartingBalance("0");
+          }
         } else {
-          // Fallback si aucune session trouvée
           setStartingBalance("0");
         }
       } catch (e) {
-        console.error(e);
+        console.error("Erreur solde:", e);
+        setStartingBalance("0");
       } finally {
         setIsLoadingBalance(false);
       }
     };
 
-    if (role) fetchPreviousBalance();
+    fetchPreviousBalance();
   }, [targetDate, role, db]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,7 +321,6 @@ export default function ImportPage() {
 
         runningBalance = roundAmount(initialBalanceForDay + daySales - dayExpenses - dayVersements);
         
-        // Logique de clôture intelligente
         const sessionData: any = {
           date: dateStr, isDraft: currentIsDraft,
           openedAt: Timestamp.fromDate(setHours(currentDate, 9)),

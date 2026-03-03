@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -129,7 +130,26 @@ function CaisseContent() {
   }, [rawTransactions, isPrepaMode]);
 
   const salesTransactions = useMemo(() => transactions.filter(t => t.type === "VENTE"), [transactions]);
-  const expenseTransactions = useMemo(() => transactions.filter(t => t.type !== "VENTE"), [transactions]);
+  
+  const expenseTransactions = useMemo(() => {
+    const data = transactions.filter(t => t.type !== "VENTE");
+    const priority: Record<string, number> = {
+      "ACHAT VERRES": 1,
+      "ACHAT MONTURE": 2,
+      "VERSEMENT": 3,
+      "DEPENSE": 4
+    };
+    
+    return [...data].sort((a, b) => {
+      const pA = priority[a.type as string] || 99;
+      const pB = priority[b.type as string] || 99;
+      if (pA !== pB) return pA - pB;
+      // Si même type, trier par date décroissante
+      const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return db - da;
+    });
+  }, [transactions]);
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
@@ -306,50 +326,57 @@ function CaisseContent() {
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={3} className="text-center py-12 text-[10px] font-black opacity-20 uppercase tracking-widest">Aucune opération.</TableCell></TableRow>
             ) : (
-              data.map((t: any) => (
-                <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
-                  <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                          {t.type === "VENTE" && t.relatedId ? `VENTE ${t.relatedId}` : (t.label || t.type || "---")}
-                        </span>
-                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">
-                          {t.clientName || "---"}
-                        </span>
+              data.map((t: any) => {
+                // Formatage TYPE | DETAIL pour les charges
+                const displayLabel = t.type === "VENTE" 
+                  ? (t.relatedId ? `VENTE ${t.relatedId}` : (t.label || "VENTE"))
+                  : `${t.type} | ${t.label || "---"}`;
+
+                return (
+                  <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
+                            {displayLabel}
+                          </span>
+                          <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">
+                            {t.clientName || "---"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
-                    {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
-                  </TableCell>
-                  <TableCell className="text-right px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      {!isClosed && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleOpenEdit(t)} 
-                            className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
-                            className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
+                      {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
+                    </TableCell>
+                    <TableCell className="text-right px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {!isClosed && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              onClick={() => handleOpenEdit(t)} 
+                              className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
+                              className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

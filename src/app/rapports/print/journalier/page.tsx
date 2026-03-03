@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -70,8 +71,6 @@ function DailyCashReportContent() {
   
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
-  // RÉCUPÉRATION DES DÉTAILS DE VENTE
-  // On récupère par saleId (lien permanent) ou par relatedId (fallback historique)
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
@@ -85,7 +84,6 @@ function DailyCashReportContent() {
 
       for (const t of transactions) {
         if (t.type === "VENTE") {
-          // 1. Essayer par saleId (lien robuste)
           if (t.saleId) {
             const snap = await getDocs(query(collection(db, "sales"), where("__name__", "==", t.saleId)));
             if (!snap.empty) {
@@ -93,7 +91,6 @@ function DailyCashReportContent() {
               continue;
             }
           }
-          // 2. Fallback par relatedId (ancien système)
           if (t.relatedId) {
             const snap = await getDocs(query(collection(db, "sales"), where("invoiceId", "==", t.relatedId)));
             if (!snap.empty) {
@@ -136,11 +133,12 @@ function DailyCashReportContent() {
       }
     });
 
+    // Tri prioritaire des charges : ACHAT VERRES > ACHAT MONTURE > VERSEMENT > DEPENSE
     expensesList.sort((a, b) => {
-      const order: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "DEPENSE": 3 };
-      const priorityA = order[a.type as string] || 4;
-      const priorityB = order[b.type as string] || 4;
-      if (priorityA !== priorityB) return priorityA - priorityB;
+      const priority: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "VERSEMENT": 3, "DEPENSE": 4 };
+      const pA = priority[a.type as string] || 99;
+      const pB = priority[b.type as string] || 99;
+      if (pA !== pB) return pA - pB;
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
@@ -226,12 +224,24 @@ function DailyCashReportContent() {
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
-                    <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature</th><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
+                    <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
-                      <tr key={e.id} className="hover:bg-slate-50"><td className="p-1"><span className="text-[11px] font-black text-slate-800 uppercase">{e.type}</span></td><td className="p-1"><span className="text-[11px] font-bold text-slate-500 uppercase">{e.label || "---"} | {e.clientName || "---"}</span></td><td className="p-1 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant))}</td></tr>
-                    )) : (<tr><td colSpan={3} className="p-3 text-center text-slate-300 font-bold italic text-[11px]">Aucune dépense.</td></tr>)}
+                      <tr key={e.id} className="hover:bg-slate-50">
+                        <td className="p-1.5">
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
+                              {e.type} | {e.label || "---"}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">
+                              {e.clientName || "---"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant))}</td>
+                      </tr>
+                    )) : (<tr><td colSpan={2} className="p-3 text-center text-slate-300 font-bold italic text-[11px]">Aucune dépense.</td></tr>)}
                   </tbody>
                 </table>
               </div>
@@ -241,7 +251,18 @@ function DailyCashReportContent() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements))}</span></div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
-                  <table className="w-full border-collapse"><tbody className="divide-y divide-slate-100">{reportData.versements.map((v: any) => (<tr key={v.id} className="hover:bg-slate-50"><td className="p-1 text-[11px] font-bold text-slate-900 uppercase">{v.label || "---"}</td><td className="p-1 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant))}</td></tr>))}</tbody></table>
+                  <table className="w-full border-collapse">
+                    <tbody className="divide-y divide-slate-100">
+                      {reportData.versements.map((v: any) => (
+                        <tr key={v.id} className="hover:bg-slate-50">
+                          <td className="p-1.5 text-[11px] font-bold text-slate-900 uppercase">
+                            VERSEMENT | {v.label || "BANQUE"}
+                          </td>
+                          <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
