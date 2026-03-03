@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isCleaningClients, setIsCleaningClients] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
@@ -69,6 +68,36 @@ export default function SettingsPage() {
     }
   };
 
+  const handleFixSpecificSale = async () => {
+    setIsMigrating(true);
+    try {
+      const q = query(collection(db, "sales"), where("invoiceId", "==", "RC-2026-2417"));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "Document non trouvé", description: "RC-2026-2417 n'existe pas ou est déjà corrigé." });
+        return;
+      }
+      
+      const saleDoc = snap.docs[0];
+      const data = saleDoc.data();
+      
+      await updateDoc(saleDoc.ref, {
+        invoiceId: "FC-2026-2417",
+        statut: "Payé",
+        reste: 0,
+        avance: data.total || 1200,
+        updatedAt: serverTimestamp()
+      });
+
+      toast({ variant: "success", title: "Correctif Appliqué", description: "La vente HOUIBA a été soldée et renommée en FC." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur" });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const handleHarmonizeData = async () => {
     setIsMigrating(true);
     try {
@@ -87,7 +116,6 @@ export default function SettingsPage() {
           let needsUpdate = false;
           const updates: any = {};
 
-          // 1. Correction des noms d'utilisateurs
           const fieldsToClean = ["openedBy", "closedBy", "userName", "createdBy"];
           fieldsToClean.forEach(f => {
             if (data[f] === "Préparation Historique" || data[f] === "PRÉPARATION HISTORIQUE") {
@@ -96,7 +124,6 @@ export default function SettingsPage() {
             }
           });
 
-          // 2. Nettoyage des undefined/null pour l'affichage
           if (collName === "sales") {
             if (data.clientPhone === undefined || data.clientPhone === null) { updates.clientPhone = ""; needsUpdate = true; }
             if (data.mutuelle === undefined || data.mutuelle === null) { updates.mutuelle = "Aucun"; needsUpdate = true; }
@@ -117,7 +144,7 @@ export default function SettingsPage() {
       toast({ 
         variant: "success", 
         title: "Harmonisation réussie", 
-        description: `${count} documents ont été mis à jour (ZAKARIAE, Nettoyage undefined).` 
+        description: `${count} documents mis à jour.` 
       });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur de migration" });
@@ -158,9 +185,9 @@ export default function SettingsPage() {
         }
       }
 
-      toast({ variant: "success", title: "Synchronisation terminée", description: "Données passées en mode réel." });
+      toast({ variant: "success", title: "Synchronisation terminée" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur de synchronisation" });
+      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setIsSyncing(false);
     }
@@ -230,6 +257,26 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-orange-50 border-orange-100">
+              <CardHeader className="bg-orange-100/50 border-b p-6">
+                <CardTitle className="text-[11px] font-black uppercase tracking-widest text-orange-700 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Correctif Spécial
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-3">
+                <p className="text-[9px] font-black text-orange-600 uppercase tracking-wider">Solder RC-2026-2417 (Houiba Aziza)</p>
+                <Button 
+                  onClick={handleFixSpecificSale}
+                  disabled={isMigrating}
+                  variant="outline"
+                  className="w-full h-12 rounded-xl border-orange-200 text-orange-700 font-black text-[10px] uppercase hover:bg-orange-100"
+                >
+                  {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />}
+                  Appliquer le correctif
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-blue-50 border-blue-100">
               <CardHeader className="bg-blue-100/50 border-b p-6">
                 <CardTitle className="text-[11px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
@@ -238,7 +285,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-3">
-                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Mise à jour des anciennes données</p>
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Harmonisation</p>
                   <Button 
                     onClick={handleHarmonizeData}
                     disabled={isMigrating}
