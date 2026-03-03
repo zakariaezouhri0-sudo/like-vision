@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -7,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useFirestore, useUser } from "@/firebase";
-import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc, orderBy, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, parse, isValid, isSameDay } from "date-fns";
+import { setHours, format, addDays, parse, isValid, isSameDay, isBefore, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { roundAmount, cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,11 +66,46 @@ export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentDayLabel, setCurrentDayLabel] = useState("");
-  const [startingBalance, setStartingBalance] = useState<string>("9265.6");
+  const [startingBalance, setStartingBalance] = useState<string>("");
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
-  // NOUVEAU : Mode importation ciblée
-  const [importMode, setImportMode] = useState<'FULL' | 'SINGLE'>('FULL');
-  const [targetDate, setTargetDate] = useState<Date>(new Date(2026, 1, 16)); // Par défaut 16 Fév
+  const [importMode, setImportMode] = useState<'FULL' | 'SINGLE'>('SINGLE');
+  const [targetDate, setTargetDate] = useState<Date>(new Date());
+
+  // Récupération automatique du solde précédent
+  useEffect(() => {
+    const fetchPreviousBalance = async () => {
+      setIsLoadingBalance(true);
+      try {
+        const currentIsDraft = role === 'PREPA';
+        const dateStr = format(targetDate, "yyyy-MM-dd");
+        
+        const q = query(
+          collection(db, "cash_sessions"),
+          where("isDraft", "==", currentIsDraft),
+          where("status", "==", "CLOSED"),
+          where("date", "<", dateStr),
+          orderBy("date", "desc"),
+          limit(1)
+        );
+        
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const lastSession = snap.docs[0].data();
+          setStartingBalance((lastSession.closingBalanceReal || 0).toString());
+        } else {
+          // Fallback si aucune session trouvée
+          setStartingBalance("0");
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    if (role) fetchPreviousBalance();
+  }, [targetDate, role, db]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -154,13 +190,11 @@ export default function ImportPage() {
         return { ...row, _parsedDate: d };
       });
 
-      // Si mode Single, on filtre tout de suite
       if (importMode === 'SINGLE') {
         allRows = allRows.filter(r => r._parsedDate && isSameDay(r._parsedDate, targetDate));
       }
 
       const salesGroups: Record<string, any> = {};
-      
       allRows.forEach(row => {
         const ref = (row[mapping.ref_vente] || "").toString().trim();
         const clientName = (row[mapping.client_1] || "").toString().trim();
@@ -170,91 +204,48 @@ export default function ImportPage() {
         
         if (ref && clientName) {
           if (!salesGroups[ref]) {
-            salesGroups[ref] = {
-              ref,
-              clientName,
-              totalBrut: totalBrut,
-              totalPaidFromAvances: 0,
-              payments: [],
-              anteAmt: 0,
-              earliestDate: null
-            };
+            salesGroups[ref] = { ref, clientName, totalBrut, totalPaidFromAvances: 0, payments: [], anteAmt: 0, earliestDate: null };
           }
-          
           if (totalBrut > 0) salesGroups[ref].totalBrut = totalBrut;
-          
-          const startPeriod = new Date(2026, 0, 1);
-          const endPeriod = new Date(2026, 0, 10, 23, 59, 59);
-          const isAnteriorAllowed = row._parsedDate && row._parsedDate >= startPeriod && row._parsedDate <= endPeriod;
-          
-          if (isAnteriorAllowed && avanceAnte > 0) {
-            salesGroups[ref].anteAmt = roundAmount(salesGroups[ref].anteAmt + avanceAnte);
-          }
-
+          if (avanceAnte > 0) salesGroups[ref].anteAmt = roundAmount(salesGroups[ref].anteAmt + avanceAnte);
           if (avancePaye > 0 && row._parsedDate) {
             salesGroups[ref].totalPaidFromAvances = roundAmount(salesGroups[ref].totalPaidFromAvances + avancePaye);
-            salesGroups[ref].payments.push({
-              amount: roundAmount(avancePaye),
-              date: row._parsedDate,
-              userName: "Import",
-              note: "Versement"
-            });
-            if (!salesGroups[ref].earliestDate || row._parsedDate < salesGroups[ref].earliestDate) {
-              salesGroups[ref].earliestDate = row._parsedDate;
-            }
+            salesGroups[ref].payments.push({ amount: roundAmount(avancePaye), date: row._parsedDate, userName: "Import", note: "Versement" });
+            if (!salesGroups[ref].earliestDate || row._parsedDate < salesGroups[ref].earliestDate) salesGroups[ref].earliestDate = row._parsedDate;
           }
         }
       });
 
       const finalSalesMap: Record<string, string> = {}; 
-      const sortedRefs = Object.keys(salesGroups).sort((a, b) => {
-        const da = salesGroups[a].earliestDate?.getTime() || 0;
-        const db = salesGroups[b].earliestDate?.getTime() || 0;
-        return da - db;
-      });
-
-      for (const ref of sortedRefs) {
+      for (const ref in salesGroups) {
         const s = salesGroups[ref];
         const totalPaidEffective = roundAmount(s.totalPaidFromAvances + s.anteAmt);
         const isFullyPaid = totalPaidEffective >= s.totalBrut;
-        
         await ensureClient(s.clientName, currentIsDraft);
-        
         const docType = isFullyPaid ? "FC" : "RC";
         const invoiceId = `${docType}-2026-${s.ref}`;
         finalSalesMap[ref] = invoiceId;
 
         const allPayments = [...s.payments];
         if (s.anteAmt > 0) {
-          allPayments.unshift({
-            amount: roundAmount(s.anteAmt),
-            date: new Date(2025, 11, 31).toISOString(),
-            userName: "Historique",
-            note: "Avance antérieure"
-          });
+          allPayments.unshift({ amount: roundAmount(s.anteAmt), date: new Date(2025, 11, 31).toISOString(), userName: "Historique", note: "Avance antérieure" });
         }
 
         await setDoc(doc(collection(db, "sales")), {
-          invoiceId, 
-          clientName: s.clientName, 
-          total: roundAmount(s.totalBrut), 
-          avance: roundAmount(totalPaidEffective), 
-          reste: roundAmount(Math.max(0, s.totalBrut - totalPaidEffective)),
-          statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), 
-          isDraft: currentIsDraft, 
-          createdAt: Timestamp.fromDate(setHours(s.earliestDate || new Date(2026, 0, 1), 12)), 
-          createdBy: userName,
+          invoiceId, clientName: s.clientName, total: roundAmount(s.totalBrut), avance: roundAmount(totalPaidEffective), reste: roundAmount(Math.max(0, s.totalBrut - totalPaidEffective)),
+          statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), isDraft: currentIsDraft, 
+          createdAt: Timestamp.fromDate(setHours(s.earliestDate || targetDate, 12)), createdBy: userName,
           payments: allPayments.map((p: any) => ({ ...p, amount: roundAmount(p.amount), date: typeof p.date === 'string' ? p.date : p.date.toISOString() }))
         });
       }
 
-      // Boucle de sessions de caisse
       const totalDays = importMode === 'SINGLE' ? 1 : 60; 
       const startDate = importMode === 'SINGLE' ? targetDate : new Date(2026, 0, 1);
 
       for (let i = 0; i < totalDays; i++) {
         const currentDate = addDays(startDate, i);
         const dateStr = format(currentDate, "yyyy-MM-dd");
+        const isToday = isSameDay(currentDate, new Date());
         
         setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: fr }));
         setProgress(Math.round(((i + 1) / totalDays) * 100));
@@ -277,14 +268,8 @@ export default function ImportPage() {
           if (ref && currentAvance > 0) {
             const invoiceId = finalSalesMap[ref];
             await setDoc(doc(collection(db, "transactions")), {
-              type: "VENTE", 
-              label: `VENTE ${invoiceId}`, 
-              clientName: (row[mapping.client_1] || "").toString().trim(), 
-              montant: roundAmount(currentAvance), 
-              isDraft: currentIsDraft, 
-              createdAt: rowTimestamp, 
-              userName, 
-              relatedId: invoiceId
+              type: "VENTE", label: `VENTE ${invoiceId}`, clientName: (row[mapping.client_1] || "").toString().trim(), 
+              montant: roundAmount(currentAvance), isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
             });
             daySales = roundAmount(daySales + currentAvance);
           }
@@ -327,21 +312,34 @@ export default function ImportPage() {
         }
 
         runningBalance = roundAmount(initialBalanceForDay + daySales - dayExpenses - dayVersements);
-        await setDoc(sessionRef, {
-          date: dateStr, isDraft: currentIsDraft, status: "CLOSED",
+        
+        // Logique de clôture intelligente
+        const sessionData: any = {
+          date: dateStr, isDraft: currentIsDraft,
           openedAt: Timestamp.fromDate(setHours(currentDate, 9)),
-          closedAt: Timestamp.fromDate(setHours(currentDate, 20)),
-          openedBy: userName, closedBy: userName,
+          openedBy: userName,
           openingBalance: roundAmount(initialBalanceForDay),
-          closingBalanceReal: roundAmount(runningBalance),
-          closingBalanceTheoretical: roundAmount(runningBalance),
-          totalSales: roundAmount(daySales), totalExpenses: roundAmount(dayExpenses), totalVersements: roundAmount(dayVersements),
-          discrepancy: 0
-        });
+          totalSales: roundAmount(daySales), 
+          totalExpenses: roundAmount(dayExpenses), 
+          totalVersements: roundAmount(dayVersements)
+        };
+
+        if (isToday) {
+          sessionData.status = "OPEN";
+        } else {
+          sessionData.status = "CLOSED";
+          sessionData.closedAt = Timestamp.fromDate(setHours(currentDate, 20));
+          sessionData.closedBy = userName;
+          sessionData.closingBalanceReal = roundAmount(runningBalance);
+          sessionData.closingBalanceTheoretical = roundAmount(runningBalance);
+          sessionData.discrepancy = 0;
+        }
+
+        await setDoc(sessionRef, sessionData);
       }
 
-      toast({ variant: "success", title: importMode === 'SINGLE' ? "Journée mise à jour" : "Importation terminée" });
-      router.push("/caisse/sessions");
+      toast({ variant: "success", title: isSameDay(targetDate, new Date()) ? "Saisie du jour effectuée (Caisse Ouverte)" : "Correction terminée (Caisse Fermée)" });
+      router.push(isSameDay(targetDate, new Date()) ? "/caisse" : "/caisse/sessions");
     } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'importation" }); } finally { setIsProcessing(false); }
   };
 
@@ -378,7 +376,7 @@ export default function ImportPage() {
               
               {importMode === 'SINGLE' && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Date à corriger</Label>
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Date ciblée</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4">
@@ -399,11 +397,19 @@ export default function ImportPage() {
             <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
               <Target className="h-4 w-4 text-primary/40" />
               <CardTitle className="text-[11px] font-black uppercase text-primary/60">
-                {importMode === 'SINGLE' ? `Solde au ${format(targetDate, "dd/MM")}` : "2. Solde au 01/01"}
+                Solde Initial Auto
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none tabular-nums" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+            <CardContent className="p-6 relative">
+              <Input 
+                type="number" 
+                className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none tabular-nums" 
+                placeholder="DH" 
+                value={startingBalance} 
+                onChange={e => setStartingBalance(e.target.value)} 
+              />
+              {isLoadingBalance && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[32px]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+              <p className="text-[8px] font-black text-center text-muted-foreground uppercase mt-3 tracking-widest">Récupéré de la veille</p>
             </CardContent>
           </Card>
 
@@ -433,11 +439,20 @@ export default function ImportPage() {
         </div>
 
         {importMode === 'SINGLE' && (
-          <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4 text-orange-700 animate-in fade-in zoom-in-95">
-            <AlertTriangle className="h-6 w-6 shrink-0" />
+          <div className={cn(
+            "border p-4 rounded-2xl flex items-center gap-4 animate-in fade-in zoom-in-95",
+            isSameDay(targetDate, new Date()) ? "bg-blue-50 border-blue-100 text-blue-700" : "bg-orange-50 border-orange-100 text-orange-700"
+          )}>
+            {isSameDay(targetDate, new Date()) ? <RefreshCw className="h-6 w-6 shrink-0" /> : <AlertTriangle className="h-6 w-6 shrink-0" />}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Attention Correction</p>
-              <p className="text-xs font-bold">L'importation va supprimer et remplacer la session du <span className="underline">{format(targetDate, "dd MMMM yyyy", { locale: fr })}</span>.</p>
+              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">
+                {isSameDay(targetDate, new Date()) ? "Mode Saisie du Jour" : "Mode Correction"}
+              </p>
+              <p className="text-xs font-bold">
+                {isSameDay(targetDate, new Date()) 
+                  ? "La caisse restera OUVERTE pour vous permettre de finir la journée et clôturer manuellement." 
+                  : `La caisse du ${format(targetDate, "dd MMMM", { locale: fr })} sera écrasée et FERMÉE automatiquement.`}
+              </p>
             </div>
           </div>
         )}
@@ -471,8 +486,8 @@ export default function ImportPage() {
               </div>
               <Button 
                 onClick={handleImportGlobal} 
-                disabled={isProcessing || !file || !startingBalance} 
-                className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl", importMode === 'SINGLE' ? "bg-orange-500 hover:bg-orange-600" : "bg-primary")}
+                disabled={isProcessing || !file || startingBalance === ""} 
+                className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl", isSameDay(targetDate, new Date()) ? "bg-blue-600 hover:bg-blue-700" : "bg-orange-500 hover:bg-orange-600")}
               >
                 {isProcessing ? (
                   <div className="flex items-center gap-3">
@@ -480,7 +495,7 @@ export default function ImportPage() {
                     <span>TRAITEMENT EN COURS...</span>
                   </div>
                 ) : (
-                  importMode === 'SINGLE' ? `CORRIGER LA JOURNÉE DU ${format(targetDate, "dd/MM")}` : "LANCER L'IMPORTATION COMPLÈTE"
+                  isSameDay(targetDate, new Date()) ? "LANCER LA SAISIE DU JOUR" : `CORRIGER LA JOURNÉE DU ${format(targetDate, "dd/MM")}`
                 )}
               </Button>
             </CardContent>
