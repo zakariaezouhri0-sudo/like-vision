@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Search, HandCoins, Loader2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -91,12 +91,11 @@ export default function UnpaidSalesPage() {
         
         let finalInvoiceId = currentData.invoiceId;
 
-        // RÈGLE : Conserver le même numéro mais changer RC par FC si soldé
         if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
-        // MISE À JOUR : Remonter la facture à la date de règlement
+        // MISE À JOUR : La facture remonte à la date de règlement final
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -106,13 +105,12 @@ export default function UnpaidSalesPage() {
             amount, 
             date: new Date().toISOString(), 
             userName: currentUserName,
-            note: "Règlement Reste"
+            note: "Règlement"
           }),
-          createdAt: serverTimestamp(), // Remonte dans l'historique au jour du règlement
+          createdAt: serverTimestamp(), 
           updatedAt: serverTimestamp() 
         });
 
-        // TRANSACTION CAISSE : Libellé VENTE FC... uniquement
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
@@ -121,6 +119,7 @@ export default function UnpaidSalesPage() {
           category: "Optique", 
           montant: amount, 
           relatedId: finalInvoiceId,
+          saleId: selectedSale.id, // Lien permanent pour retrouver le client même après modif ID
           userName: currentUserName, 
           isDraft: isPrepaMode, 
           createdAt: serverTimestamp()

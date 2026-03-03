@@ -8,7 +8,7 @@ import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
+import { doc, collection, query, orderBy, where, Timestamp, getDocs } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -70,19 +70,43 @@ function DailyCashReportContent() {
   
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
-  const relatedInvoiceIds = useMemo(() => {
-    if (!rawTransactions) return [];
-    return Array.from(new Set(rawTransactions
-      .filter((t: any) => t.type === "VENTE" && t.relatedId)
-      .map((t: any) => t.relatedId)
-    ));
-  }, [rawTransactions]);
+  // RÉCUPÉRATION DES DÉTAILS DE VENTE
+  // On récupère par saleId (lien permanent) ou par relatedId (fallback historique)
+  const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
+  const [loadingSales, setLoadingSales] = useState(false);
 
-  const salesDetailsQuery = useMemoFirebase(() => {
-    if (relatedInvoiceIds.length === 0) return null;
-    return query(collection(db, "sales"), where("invoiceId", "in", relatedInvoiceIds.slice(0, 30)));
-  }, [db, relatedInvoiceIds]);
-  const { data: salesDocs } = useCollection(salesDetailsQuery);
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!rawTransactions || rawTransactions.length === 0) return;
+      setLoadingSales(true);
+      
+      const transactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+      const details: Record<string, any> = {};
+
+      for (const t of transactions) {
+        if (t.type === "VENTE") {
+          // 1. Essayer par saleId (lien robuste)
+          if (t.saleId) {
+            const snap = await getDocs(query(collection(db, "sales"), where("__name__", "==", t.saleId)));
+            if (!snap.empty) {
+              details[t.id] = snap.docs[0].data();
+              continue;
+            }
+          }
+          // 2. Fallback par relatedId (ancien système)
+          if (t.relatedId) {
+            const snap = await getDocs(query(collection(db, "sales"), where("invoiceId", "==", t.relatedId)));
+            if (!snap.empty) {
+              details[t.id] = snap.docs[0].data();
+            }
+          }
+        }
+      }
+      setSalesDetails(details);
+      setLoadingSales(false);
+    };
+    fetchDetails();
+  }, [rawTransactions, db, isPrepaMode]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -104,8 +128,7 @@ function DailyCashReportContent() {
     
     filteredTransactions.forEach((t: any) => {
       if (t.type === "VENTE") {
-        const saleInfo = salesDocs?.find((s: any) => s.invoiceId === t.relatedId);
-        salesList.push({ ...t, saleDetails: saleInfo });
+        salesList.push(t);
       } else if (t.type === "VERSEMENT") {
         versementsList.push(t);
       } else {
@@ -114,11 +137,7 @@ function DailyCashReportContent() {
     });
 
     expensesList.sort((a, b) => {
-      const order: Record<string, number> = {
-        "ACHAT VERRES": 1,
-        "ACHAT MONTURE": 2,
-        "DEPENSE": 3
-      };
+      const order: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "DEPENSE": 3 };
       const priorityA = order[a.type as string] || 4;
       const priorityB = order[b.type as string] || 4;
       if (priorityA !== priorityB) return priorityA - priorityB;
@@ -135,9 +154,9 @@ function DailyCashReportContent() {
     const final = roundAmount(initialBalance + fluxOp - totalVersements);
 
     return { sales: salesList, expenses: expensesList, versements: versementsList, initial: initialBalance, fluxOp, totalVersements, final };
-  }, [rawTransactions, session, isPrepaMode, salesDocs]);
+  }, [rawTransactions, session, isPrepaMode]);
 
-  if (settingsLoading || transLoading || sessionLoading) {
+  if (settingsLoading || transLoading || sessionLoading || loadingSales) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 
@@ -173,24 +192,26 @@ function DailyCashReportContent() {
                   <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {reportData.sales.length > 0 ? reportData.sales.map((s: any) => {
-                    const sale = s.saleDetails;
+                  {reportData.sales.length > 0 ? reportData.sales.map((t: any) => {
+                    const sale = salesDetails[t.id];
                     const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     return (
-                      <tr key={s.id} className="hover:bg-slate-50">
+                      <tr key={t.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
-                              {s.type === "VENTE" && s.relatedId ? `VENTE ${s.relatedId}` : (s.label || "---")}
+                              {t.label || `VENTE ${t.relatedId || "---"}`}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase truncate">{s.clientName || "---"}</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase truncate">
+                              {sale?.clientName || t.clientName || "---"}
+                            </span>
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet).replace('DH', '') : "---"}</td>
                         <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0).replace('DH', '') : "---"}</td>
                         <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0).replace('DH', '') : "---"}</td>
                         <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(s.montant))}</td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant))}</td>
                       </tr>
                     );
                   }) : (<tr><td colSpan={6} className="p-4 text-center text-slate-300 font-bold italic text-[11px]">Aucune vente.</td></tr>)}

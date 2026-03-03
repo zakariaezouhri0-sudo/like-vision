@@ -83,7 +83,6 @@ function NewSaleForm() {
   const { data: sessionData } = useDoc(sessionRef);
   const isSessionClosed = sessionData?.status === "CLOSED";
 
-  // Autorisation spéciale pour l'Admin de modifier même si clôturé
   const canBypassLock = isAdminOrPrepa && activeEditId;
 
   useEffect(() => {
@@ -269,7 +268,6 @@ function NewSaleForm() {
           saleData.payments = [];
           if (nAvance > 0) saleData.payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
         } else {
-          // Permettre de changer la date en mode édition pour l'admin
           if (isAdminOrPrepa) {
             saleData.createdAt = Timestamp.fromDate(saleDate);
           }
@@ -281,8 +279,15 @@ function NewSaleForm() {
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
-            type: "VENTE", label: `VENTE ${invoiceId}`, clientName, montant: nAvance, relatedId: invoiceId,
-            userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
+            type: "VENTE", 
+            label: `VENTE ${invoiceId}`, 
+            clientName, 
+            montant: nAvance, 
+            relatedId: invoiceId,
+            saleId: saleRef.id, // Lien permanent pour les rapports
+            userName: currentUserName, 
+            isDraft: currentIsDraft, 
+            createdAt: serverTimestamp()
           }, { merge: true });
         }
       });
