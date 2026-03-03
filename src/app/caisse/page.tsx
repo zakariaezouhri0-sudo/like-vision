@@ -19,7 +19,9 @@ import {
   Calendar as CalendarIcon, 
   CalendarDays,
   CalendarCheck,
-  Edit2
+  Edit2,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount } from "@/lib/utils";
@@ -126,6 +128,9 @@ function CaisseContent() {
       });
   }, [rawTransactions, isPrepaMode]);
 
+  const salesTransactions = useMemo(() => transactions.filter(t => t.type === "VENTE"), [transactions]);
+  const expenseTransactions = useMemo(() => transactions.filter(t => t.type !== "VENTE"), [transactions]);
+
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
@@ -224,26 +229,6 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
-  const handleFinalizeClosure = async () => {
-    try {
-      setOpLoading(true);
-      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
-      await updateDoc(sessionRef, { 
-        status: "CLOSED", 
-        closedAt, 
-        closingBalanceReal: soldeReel, 
-        closingBalanceTheoretical: soldeTheorique, 
-        discrepancy: ecart, 
-        closedBy: user?.displayName || "---", 
-        totalSales: stats.entrees, 
-        totalExpenses: stats.depenses, 
-        totalVersements: stats.versements, 
-        isDraft: isPrepaMode 
-      });
-      router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
-  };
-
   if (!isClientReady || sessionLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   if (!session) {
@@ -294,6 +279,103 @@ function CaisseContent() {
   }
 
   const isClosed = session?.status === "CLOSED";
+
+  const renderTransactionTable = (title: string, data: any[], icon: any, colorClass: string) => (
+    <Card className="rounded-[32px] overflow-hidden bg-white shadow-sm border-none mb-8">
+      <CardHeader className="py-4 px-8 border-b bg-slate-50/50 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <CardTitle className="text-[10px] uppercase font-black text-primary/60">{title}</CardTitle>
+        </div>
+        <Badge className={cn("text-[9px] font-black uppercase", colorClass)}>
+          Total: {formatCurrency(data.reduce((acc, t) => acc + Math.abs(t.montant), 0))}
+        </Badge>
+      </CardHeader>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-slate-800">
+            <TableRow>
+              <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails</TableHead>
+              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead>
+              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white w-24">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loadingTrans ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+            ) : data.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-12 text-[10px] font-black opacity-20 uppercase tracking-widest">Aucune opération.</TableCell></TableRow>
+            ) : (
+              data.map((t: any) => (
+                <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
+                  <TableCell className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
+                          {t.type === "VENTE" && t.relatedId ? `VENTE ${t.relatedId}` : (t.label || t.type || "---")}
+                        </span>
+                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">
+                          {t.clientName || "---"}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
+                    {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
+                  </TableCell>
+                  <TableCell className="text-right px-6 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      {!isClosed && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleOpenEdit(t)} 
+                            className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
+                            className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
+  );
+
+  const handleFinalizeClosure = async () => {
+    try {
+      setOpLoading(true);
+      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
+      await updateDoc(sessionRef, { 
+        status: "CLOSED", 
+        closedAt, 
+        closingBalanceReal: soldeReel, 
+        closingBalanceTheoretical: soldeTheorique, 
+        discrepancy: ecart, 
+        closedBy: user?.displayName || "---", 
+        totalSales: stats.entrees, 
+        totalExpenses: stats.depenses, 
+        totalVersements: stats.versements, 
+        isDraft: isPrepaMode 
+      });
+      router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -367,61 +449,19 @@ function CaisseContent() {
         <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Clôt." : "Théorique"}</p><p className="text-xl font-black">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
-      <Card className="rounded-[32px] overflow-hidden bg-white shadow-sm border-none">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-800">
-              <TableRow><TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Actions</TableHead></TableRow>
-            </TableHeader>
-            <TableBody>
-              {loadingTrans ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
-              ) : transactions.length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-20 text-[10px] font-black opacity-20">Aucune opération enregistrée.</TableCell></TableRow>
-              ) : (
-                transactions.map((t: any) => (
-                  <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
-                    <TableCell className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                            {t.type === "VENTE" && t.relatedId ? `VENTE ${t.relatedId}` : (t.label || t.type || "---")}
-                          </span>
-                          <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none opacity-80 truncate">
-                            {t.clientName || "---"}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell>
-                    <TableCell className="text-right px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={() => handleOpenEdit(t)} 
-                          className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
-                          className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+      {renderTransactionTable(
+        "Encaissements (Ventes)", 
+        salesTransactions, 
+        <TrendingUp className="h-4 w-4 text-green-500" />, 
+        "bg-green-100 text-green-700"
+      )}
+
+      {renderTransactionTable(
+        "Sorties (Charges & Versements)", 
+        expenseTransactions, 
+        <TrendingDown className="h-4 w-4 text-red-500" />, 
+        "bg-red-100 text-red-700"
+      )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md rounded-3xl">
