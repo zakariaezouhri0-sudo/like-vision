@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Download } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, parse, isValid, isWithinInterval } from "date-fns";
+import { setHours, format, addDays, parse, isValid, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { roundAmount } from "@/lib/utils";
+import { roundAmount, cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 type Mapping = Record<string, string>;
 
@@ -64,6 +66,10 @@ export default function ImportPage() {
   const [progress, setProgress] = useState(0);
   const [currentDayLabel, setCurrentDayLabel] = useState("");
   const [startingBalance, setStartingBalance] = useState<string>("9265.6");
+  
+  // NOUVEAU : Mode importation ciblée
+  const [importMode, setImportMode] = useState<'FULL' | 'SINGLE'>('FULL');
+  const [targetDate, setTargetDate] = useState<Date>(new Date(2026, 1, 16)); // Par défaut 16 Fév
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -147,6 +153,11 @@ export default function ImportPage() {
         if (d && d.getFullYear() < 2000) d.setFullYear(2026);
         return { ...row, _parsedDate: d };
       });
+
+      // Si mode Single, on filtre tout de suite
+      if (importMode === 'SINGLE') {
+        allRows = allRows.filter(r => r._parsedDate && isSameDay(r._parsedDate, targetDate));
+      }
 
       const salesGroups: Record<string, any> = {};
       
@@ -237,8 +248,9 @@ export default function ImportPage() {
         });
       }
 
-      const totalDays = 60; 
-      const startDate = new Date(2026, 0, 1);
+      // Boucle de sessions de caisse
+      const totalDays = importMode === 'SINGLE' ? 1 : 60; 
+      const startDate = importMode === 'SINGLE' ? targetDate : new Date(2026, 0, 1);
 
       for (let i = 0; i < totalDays; i++) {
         const currentDate = addDays(startDate, i);
@@ -328,7 +340,7 @@ export default function ImportPage() {
         });
       }
 
-      toast({ variant: "success", title: "Importation terminée" });
+      toast({ variant: "success", title: importMode === 'SINGLE' ? "Journée mise à jour" : "Importation terminée" });
       router.push("/caisse/sessions");
     } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'importation" }); } finally { setIsProcessing(false); }
   };
@@ -339,15 +351,140 @@ export default function ImportPage() {
     <AppShell>
       <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div><h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie</h1></div>
+          <div>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Correction et importation massive.</p>
+          </div>
           <Button variant="outline" onClick={() => XLSX.writeFile(XLSX.utils.book_new(), "Modele.xlsx")} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm"><Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL</Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="rounded-[32px] bg-white shadow-lg border-none"><CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Solde Initial au 01/01</CardTitle></CardHeader><CardContent className="p-6"><Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} /></CardContent></Card>
-          <Card className="rounded-[32px] bg-white shadow-lg border-none" onClick={() => fileInputRef.current?.click()}><CardHeader className="bg-slate-50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase text-primary/60">2. Fichier Excel</CardTitle></CardHeader><CardContent className="p-6 flex flex-col items-center justify-center cursor-pointer"><input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} /><FileSpreadsheet className="h-10 w-10 text-primary mb-2" /><span className="text-xs font-black uppercase">{file ? file.name : "Choisir le fichier"}</span></CardContent></Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="rounded-[32px] bg-white shadow-lg border-none overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
+              <Layers className="h-4 w-4 text-primary/40" />
+              <CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Mode Import</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-2xl">
+                <button 
+                  onClick={() => setImportMode('FULL')} 
+                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'FULL' ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:bg-slate-100")}
+                >TOUT LE FICHIER</button>
+                <button 
+                  onClick={() => setImportMode('SINGLE')} 
+                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'SINGLE' ? "bg-orange-500 text-white shadow-lg" : "text-slate-400 hover:bg-slate-100")}
+                >JOURNÉE SEULE</button>
+              </div>
+              
+              {importMode === 'SINGLE' && (
+                <div className="space-y-2 animate-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Date à corriger</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
+                        {format(targetDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                      <Calendar mode="single" selected={targetDate} onSelect={(d) => d && setTargetDate(d)} locale={fr} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[32px] bg-white shadow-lg border-none overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
+              <Target className="h-4 w-4 text-primary/40" />
+              <CardTitle className="text-[11px] font-black uppercase text-primary/60">
+                {importMode === 'SINGLE' ? `Solde au ${format(targetDate, "dd/MM")}` : "2. Solde au 01/01"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <Input type="number" className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none tabular-nums" placeholder="DH" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} />
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={cn("rounded-[32px] bg-white shadow-lg border-none overflow-hidden cursor-pointer transition-all hover:scale-[1.02]", file ? "border-2 border-green-500" : "")} 
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4 text-primary/40" />
+              <CardTitle className="text-[11px] font-black uppercase text-primary/60">3. Fichier Excel</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 flex flex-col items-center justify-center min-h-[80px]">
+              <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
+              {file ? (
+                <div className="flex flex-col items-center text-center gap-1">
+                  <CheckCircle2 className="h-8 w-8 text-green-500 mb-1" />
+                  <span className="text-[10px] font-black uppercase text-slate-800 truncate max-w-[150px]">{file.name}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-slate-300 gap-1">
+                  <FileSpreadsheet className="h-8 w-8" />
+                  <span className="text-[10px] font-black uppercase">Sélectionner</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {importMode === 'SINGLE' && (
+          <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4 text-orange-700 animate-in fade-in zoom-in-95">
+            <AlertTriangle className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Attention Correction</p>
+              <p className="text-xs font-bold">L'importation va supprimer et remplacer la session du <span className="underline">{format(targetDate, "dd MMMM yyyy", { locale: fr })}</span>.</p>
+            </div>
+          </div>
+        )}
+
         {workbook && (
-          <Card className="rounded-[32px] bg-white shadow-2xl border-none overflow-hidden"><CardHeader className="bg-primary text-white p-8"><div className="flex justify-between items-center"><CardTitle className="text-xl font-black uppercase">Configuration</CardTitle>{isProcessing && <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase">{currentDayLabel} : {progress}%</div>}</div></CardHeader><CardContent className="p-8"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">{GLOBAL_FIELDS.map(f => (<div key={f.key} className="space-y-1.5"><Label className="text-[10px] font-black uppercase ml-1">{f.label}</Label><Select value={mapping[f.key] || ""} onValueChange={v => setMapping({...mapping, [f.key]: v})}><SelectTrigger className="h-11 rounded-xl font-bold bg-slate-50 border-none"><SelectValue placeholder="Choisir..." /></SelectTrigger><SelectContent className="rounded-xl">{headers.map(h => <SelectItem key={h} value={h} className="font-bold text-xs">{h}</SelectItem>)}</SelectContent></Select></div>))}</div><Button onClick={handleImportGlobal} disabled={isProcessing || !file || !startingBalance} className="w-full h-16 rounded-2xl font-black text-lg shadow-xl bg-primary">{isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "LANCER L'IMPORTATION COMPLÈTE"}</Button></CardContent></Card>
+          <Card className="rounded-[32px] bg-white shadow-2xl border-none overflow-hidden">
+            <CardHeader className="bg-primary text-white p-8">
+              <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-black uppercase">Configuration des Champs</CardTitle>
+                  <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Reliez les colonnes de votre Excel au système.</p>
+                </div>
+                {isProcessing && <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase animate-pulse">{currentDayLabel} : {progress}%</div>}
+              </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {GLOBAL_FIELDS.map(f => (
+                  <div key={f.key} className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase ml-1 text-slate-400">{f.label}</Label>
+                    <Select value={mapping[f.key] || ""} onValueChange={v => setMapping({...mapping, [f.key]: v})}>
+                      <SelectTrigger className="h-11 rounded-xl font-bold bg-slate-50 border-none shadow-inner">
+                        <SelectValue placeholder="Choisir..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {headers.map(h => <SelectItem key={h} value={h} className="font-bold text-xs">{h}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+              <Button 
+                onClick={handleImportGlobal} 
+                disabled={isProcessing || !file || !startingBalance} 
+                className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl", importMode === 'SINGLE' ? "bg-orange-500 hover:bg-orange-600" : "bg-primary")}
+              >
+                {isProcessing ? (
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>TRAITEMENT EN COURS...</span>
+                  </div>
+                ) : (
+                  importMode === 'SINGLE' ? `CORRIGER LA JOURNÉE DU ${format(targetDate, "dd/MM")}` : "LANCER L'IMPORTATION COMPLÈTE"
+                )}
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </AppShell>
