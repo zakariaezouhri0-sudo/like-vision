@@ -23,8 +23,8 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, deleteDoc, doc } from "firebase/firestore";
-import { format, parseISO, isSunday, isValid } from "date-fns";
+import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp } from "firebase/firestore";
+import { format, parseISO, isSunday, isValid, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -112,12 +112,37 @@ export default function CashSessionsPage() {
     } catch (e) { return "--:--"; }
   };
 
-  const handleDeleteSession = async (id: string) => {
-    if (!confirm("Supprimer cette session ?")) return;
+  const handleDeleteSession = async (session: any) => {
+    if (!confirm(`Attention : Supprimer la session du ${session.date} effacera également TOUTES les opérations de caisse liées à cette journée. Confirmer ?`)) return;
+    
     try {
-      await deleteDoc(doc(db, "cash_sessions", id));
-      toast({ variant: "success", title: "Session supprimée" });
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); }
+      const batch = writeBatch(db);
+      
+      // 1. Rechercher et marquer les transactions pour suppression
+      const dateStart = startOfDay(parseISO(session.date));
+      const dateEnd = endOfDay(parseISO(session.date));
+      
+      const q = query(
+        collection(db, "transactions"),
+        where("isDraft", "==", session.isDraft === true),
+        where("createdAt", ">=", Timestamp.fromDate(dateStart)),
+        where("createdAt", "<=", Timestamp.fromDate(dateEnd))
+      );
+      
+      const transSnap = await getDocs(q);
+      transSnap.docs.forEach(tDoc => {
+        batch.delete(tDoc.ref);
+      });
+      
+      // 2. Supprimer la session elle-même
+      batch.delete(doc(db, "cash_sessions", session.id));
+      
+      await batch.commit();
+      toast({ variant: "success", title: "Session et transactions supprimées" });
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" }); 
+    }
   };
 
   const handleExportMonth = (sessions: any[], monthLabel: string) => {
@@ -288,7 +313,7 @@ export default function CashSessionsPage() {
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                                         <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
-                                        {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s.id)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
+                                        {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </TableCell>
