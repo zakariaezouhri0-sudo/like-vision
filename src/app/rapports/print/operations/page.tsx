@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -124,7 +123,6 @@ function OperationsReportContent() {
       const isVente = t.type === "VENTE";
       const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
       const movement = Math.abs(t.montant);
-      const reste = sale ? sale.reste : null;
 
       const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
       const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
@@ -136,7 +134,6 @@ function OperationsReportContent() {
         "Nom client": t.clientName || "---",
         "Montant Total": isVente && totalNet !== null ? totalNet : "",
         "Avance (Ce jour)": isVente ? movement : "",
-        "Reste à payer": isVente && reste !== null ? reste : "",
         "SORTIE": !isVente ? movement : ""
       };
     });
@@ -213,7 +210,7 @@ function OperationsReportContent() {
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Libellé</th>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Nom client</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-36">Montant Total</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-48">Mouvement (Avance/Reste)</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-48">Mouvement (Avance)</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-36">SORTIE</th>
               </tr>
             </thead>
@@ -228,7 +225,6 @@ function OperationsReportContent() {
                 const isVente = t.type === "VENTE";
                 const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
                 const movement = Math.abs(t.montant);
-                const reste = sale ? sale.reste : null;
 
                 const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
                 const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
@@ -254,9 +250,6 @@ function OperationsReportContent() {
                       {isVente ? (
                         <div className="flex flex-col items-end">
                           <span className="text-green-600">+{formatCurrency(movement).replace('DH', '')}</span>
-                          {reste !== null && reste > 0 && (
-                            <span className="text-[9px] text-red-500 font-bold">Reste: {formatCurrency(reste)}</span>
-                          )}
                         </div>
                       ) : ""}
                     </td>

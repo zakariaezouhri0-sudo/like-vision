@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -198,7 +197,7 @@ export default function CashSessionsPage() {
         .map(d => ({ ...d.data(), id: d.id }))
         .filter((t: any) => {
           const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-          return d && d >= dateStart && d <= dateEnd;
+          return d && d >= dateStart && d <= endOfDay(d);
         });
 
       // Fetch sales for matching data (Réf, Notes, Total Net, Reste)
@@ -211,6 +210,10 @@ export default function CashSessionsPage() {
       });
 
       const excelData = trans
+        .filter((t: any) => {
+          const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
+          return d && d >= dateStart && d <= dateEnd;
+        })
         .sort((a: any, b: any) => {
           // ORDRE : VENTE EN PREMIER
           const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
@@ -229,7 +232,6 @@ export default function CashSessionsPage() {
           const isVente = t.type === "VENTE";
           const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
           const movement = Math.abs(t.montant);
-          const reste = sale ? sale.reste : null;
 
           return {
             "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
@@ -238,7 +240,6 @@ export default function CashSessionsPage() {
             "Nom client": t.clientName || "---",
             "Montant Total": isVente && totalNet !== null ? totalNet : "",
             "Avance (Ce jour)": isVente ? movement : "",
-            "Reste à payer": isVente && reste !== null ? reste : "",
             "SORTIE": !isVente ? movement : ""
           };
         });
