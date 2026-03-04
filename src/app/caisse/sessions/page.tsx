@@ -122,11 +122,9 @@ export default function CashSessionsPage() {
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
       
-      // Fetch all transactions for this mode first
       const q = query(collection(db, "transactions"), where("isDraft", "==", session.isDraft === true));
       const transSnap = await getDocs(q);
       
-      // Filter by date in memory to avoid index requirement
       transSnap.docs.forEach(tDoc => {
         const data = tDoc.data();
         const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : null;
@@ -190,7 +188,6 @@ export default function CashSessionsPage() {
       const dateEnd = endOfDay(parseISO(session.date));
       const isPrepa = session.isDraft === true;
       
-      // Fetch transactions for the mode and filter by date in memory to avoid index error
       const qTrans = query(collection(db, "transactions"), where("isDraft", "==", isPrepa));
       const snapTrans = await getDocs(qTrans);
       const trans = snapTrans.docs
@@ -200,7 +197,6 @@ export default function CashSessionsPage() {
           return d && d >= dateStart && d <= endOfDay(d);
         });
 
-      // Fetch sales for matching data (Réf, Notes, Total Net, Reste)
       const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepa));
       const snapSales = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
@@ -215,7 +211,6 @@ export default function CashSessionsPage() {
           return d && d >= dateStart && d <= dateEnd;
         })
         .sort((a: any, b: any) => {
-          // ORDRE : VENTE EN PREMIER
           const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
           const pA = priority[a.type as string] || 99;
           const pB = priority[b.type as string] || 99;
@@ -233,13 +228,22 @@ export default function CashSessionsPage() {
           const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
           const movement = Math.abs(t.montant);
 
+          let displayLabel = "";
+          if (isVente) {
+            displayLabel = sale?.notes || "";
+          } else if (t.type === "VERSEMENT") {
+            displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
+          } else {
+            displayLabel = t.label || "---";
+          }
+
           return {
             "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
             "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-            "Libellé": isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`,
+            "Libellé": displayLabel,
             "Nom client": t.clientName || "---",
             "Montant Total": isVente && totalNet !== null ? totalNet : "",
-            "Avance (Ce jour)": isVente ? movement : "",
+            "Mouvement (Avance)": isVente ? movement : "",
             "SORTIE": !isVente ? movement : ""
           };
         });

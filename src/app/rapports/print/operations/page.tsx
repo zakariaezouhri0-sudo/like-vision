@@ -51,7 +51,6 @@ function OperationsReportContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // Use simplified query to avoid composite index requirements
   const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), where("isDraft", "==", isPrepaMode)), [db, isPrepaMode]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
@@ -100,7 +99,6 @@ function OperationsReportContent() {
       return d && d >= start && d <= end;
     });
     
-    // ORDRE : VENTE LWLIN
     return [...filtered].sort((a, b) => {
       const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
       const pA = priority[a.type as string] || 99;
@@ -125,7 +123,15 @@ function OperationsReportContent() {
       const movement = Math.abs(t.montant);
 
       const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-      const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
+      
+      let displayLabel = "";
+      if (isVente) {
+        displayLabel = sale?.notes || "";
+      } else if (t.type === "VERSEMENT") {
+        displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
+      } else {
+        displayLabel = t.label || "---";
+      }
 
       return {
         "Réf": refDisplay,
@@ -133,7 +139,7 @@ function OperationsReportContent() {
         "Libellé": displayLabel,
         "Nom client": t.clientName || "---",
         "Montant Total": isVente && totalNet !== null ? totalNet : "",
-        "Avance (Ce jour)": isVente ? movement : "",
+        "Mouvement (Avance)": isVente ? movement : "",
         "SORTIE": !isVente ? movement : ""
       };
     });
@@ -160,7 +166,7 @@ function OperationsReportContent() {
           </Button>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-2.5 rounded-full border shadow-sm">Format Paysage A4</span>
           <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-11 px-10 rounded-xl font-black text-sm text-white">
-            <Printer className="mr-2 h-5 w-5" /> IMPRIMER LA LISTE
+            <Printer className="mr-2 h-4 w-4" /> IMPRIMER LA LISTE
           </Button>
         </div>
       </div>
@@ -201,20 +207,20 @@ function OperationsReportContent() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden border border-slate-300 rounded-xl bg-white shadow-sm">
+        <div className="flex-1 overflow-hidden border-2 border-slate-900 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-slate-200 text-slate-900 border-b-2 border-slate-400">
+            <thead className="bg-slate-200 text-slate-900 border-b-2 border-slate-900">
               <tr>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-32">Réf</th>
-                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-24">Heure</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Libellé</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Nom client</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-36">Montant Total</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-48">Mouvement (Avance)</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-36">SORTIE</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-24">Réf</th>
+                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-24">Heure</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900">Libellé</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900">Nom client</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-32">Montant Total</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-44">Mouvement</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-32">SORTIE</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y-2 divide-slate-900">
               {transactions.length > 0 ? transactions.map((t: any) => {
                 let invoiceId = t.relatedId || "";
                 if (!invoiceId && t.label?.includes('VENTE')) {
@@ -227,30 +233,36 @@ function OperationsReportContent() {
                 const movement = Math.abs(t.montant);
 
                 const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-                const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
+                
+                let displayLabel = "";
+                if (isVente) {
+                  displayLabel = sale?.notes || "";
+                } else if (t.type === "VERSEMENT") {
+                  displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
+                } else {
+                  displayLabel = t.label || "---";
+                }
 
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 text-[11px] font-black text-primary border-r border-slate-200 tabular-nums">
+                    <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-900 tabular-nums">
                       {refDisplay}
                     </td>
-                    <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r border-slate-200 tabular-nums">
+                    <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-900 tabular-nums">
                       {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
                     </td>
-                    <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r border-slate-200">
+                    <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-900">
                       {displayLabel}
                     </td>
-                    <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r border-slate-200 truncate">
+                    <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-900 truncate">
                       {t.clientName || "---"}
                     </td>
-                    <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r border-slate-200 tabular-nums">
+                    <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-900 tabular-nums">
                       {isVente && totalNet !== null ? formatCurrency(totalNet).replace('DH', '') : ""}
                     </td>
-                    <td className="p-3 text-right text-[11px] font-black border-r border-slate-200 tabular-nums">
+                    <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-900 tabular-nums">
                       {isVente ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-green-600">+{formatCurrency(movement).replace('DH', '')}</span>
-                        </div>
+                        <span className="text-green-600">+{formatCurrency(movement).replace('DH', '')}</span>
                       ) : ""}
                     </td>
                     <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">
