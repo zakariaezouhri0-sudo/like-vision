@@ -77,7 +77,6 @@ function OperationsReportContent() {
       
       try {
         // On récupère toutes les ventes du mode sélectionné pour le matching
-        // Dans une app de prod on filtrerait par les IDs spécifiques trouvés dans les transactions
         const qSales = query(
           collection(db, "sales"),
           where("isDraft", "==", isPrepaMode)
@@ -114,14 +113,14 @@ function OperationsReportContent() {
     if (!rawTransactions) return [];
     const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     
-    // Appliquer le tri : ACHAT VERRES > ACHAT MONTURE > VERSEMENT > DEPENSE > VENTE
+    // NOUVEL ORDRE : VENTE LWLIN
     return [...filtered].sort((a, b) => {
       const priority: Record<string, number> = {
-        "ACHAT VERRES": 1,
-        "ACHAT MONTURE": 2,
-        "VERSEMENT": 3,
-        "DEPENSE": 4,
-        "VENTE": 5
+        "VENTE": 1,
+        "ACHAT VERRES": 2,
+        "ACHAT MONTURE": 3,
+        "VERSEMENT": 4,
+        "DEPENSE": 5
       };
       const pA = priority[a.type as string] || 99;
       const pB = priority[b.type as string] || 99;
@@ -145,10 +144,15 @@ function OperationsReportContent() {
       const movement = Math.abs(t.montant);
       const reste = sale ? sale.reste : null;
 
+      // REF : GHI 4 CHIFFRES
+      const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+      // LIBELLE VENTE : COMMENTAIRES
+      const libelleDisplay = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
+
       return {
-        "Réf": isVente ? (invoiceId || "---") : "---",
+        "Réf": refDisplay,
         "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-        "Libellé": t.label,
+        "Libellé": libelleDisplay,
         "Nom client": t.clientName || "---",
         "Montant Total": isVente && totalNet !== null ? totalNet : "",
         "Avance (Ce jour)": isVente ? movement : "",
@@ -246,13 +250,15 @@ function OperationsReportContent() {
                 const movement = Math.abs(t.montant);
                 const reste = sale ? sale.reste : null;
 
-                // Affichage Libellé TYPE | DETAIL
-                const displayLabel = isVente ? t.label : `${t.type} | ${t.label || "---"}`;
+                // REF : GHI 4 CHIFFRES
+                const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+                // LIBELLE VENTE : COMMENTAIRES
+                const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
 
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-3 text-[11px] font-black text-primary border-r border-slate-200 tabular-nums">
-                      {isVente ? (invoiceId || "---") : "---"}
+                      {refDisplay}
                     </td>
                     <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r border-slate-200 tabular-nums">
                       {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
