@@ -69,27 +69,23 @@ function OperationsReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
-  // Optimisation : Charger toutes les ventes de la journée en une fois pour le matching
+  // Optimisation : Charger les ventes pour le matching sans filtre de date pour éviter l'erreur d'index composite
   useEffect(() => {
-    const fetchAllSalesOfDay = async () => {
+    const fetchSalesForMatching = async () => {
       if (!rawTransactions || rawTransactions.length === 0) return;
       setLoadingSales(true);
       
       try {
-        const start = startOfDay(selectedDate);
-        const end = endOfDay(selectedDate);
-        
+        // On récupère toutes les ventes du mode sélectionné pour le matching
+        // Dans une app de prod on filtrerait par les IDs spécifiques trouvés dans les transactions
         const qSales = query(
           collection(db, "sales"),
-          where("isDraft", "==", isPrepaMode),
-          where("createdAt", ">=", Timestamp.fromDate(start)),
-          where("createdAt", "<=", Timestamp.fromDate(end))
+          where("isDraft", "==", isPrepaMode)
         );
         
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
         
-        // Indexer par invoiceId pour un matching rapide
         snap.docs.forEach(doc => {
           const data = doc.data();
           if (data.invoiceId) details[data.invoiceId] = data;
@@ -103,8 +99,8 @@ function OperationsReportContent() {
       }
     };
     
-    fetchAllSalesOfDay();
-  }, [rawTransactions, db, isPrepaMode, selectedDate]);
+    fetchSalesForMatching();
+  }, [rawTransactions, db, isPrepaMode]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -116,12 +112,28 @@ function OperationsReportContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    
+    // Appliquer le tri : ACHAT VERRES > ACHAT MONTURE > VERSEMENT > DEPENSE > VENTE
+    return [...filtered].sort((a, b) => {
+      const priority: Record<string, number> = {
+        "ACHAT VERRES": 1,
+        "ACHAT MONTURE": 2,
+        "VERSEMENT": 3,
+        "DEPENSE": 4,
+        "VENTE": 5
+      };
+      const pA = priority[a.type as string] || 99;
+      const pB = priority[b.type as string] || 99;
+      if (pA !== pB) return pA - pB;
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return timeA - timeB;
+    });
   }, [rawTransactions, isPrepaMode]);
 
   const handleExportExcel = () => {
     const data = transactions.map((t: any) => {
-      // Matching via invoiceId (extracted from label or relatedId)
       let invoiceId = t.relatedId || "";
       if (!invoiceId && t.label?.includes('VENTE')) {
         invoiceId = t.label.replace('VENTE ', '').trim();
@@ -213,7 +225,7 @@ function OperationsReportContent() {
             <thead className="bg-slate-200 text-slate-900 border-b-2 border-slate-400">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-32">Réf</th>
-                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-24">Date</th>
+                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-24">Heure</th>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Libellé</th>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r border-slate-300">Nom client</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r border-slate-300 w-36">Montant Total</th>
@@ -223,7 +235,6 @@ function OperationsReportContent() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {transactions.length > 0 ? transactions.map((t: any) => {
-                // Matching via invoiceId (extracted from label or relatedId)
                 let invoiceId = t.relatedId || "";
                 if (!invoiceId && t.label?.includes('VENTE')) {
                   invoiceId = t.label.replace('VENTE ', '').trim();
@@ -235,6 +246,9 @@ function OperationsReportContent() {
                 const movement = Math.abs(t.montant);
                 const reste = sale ? sale.reste : null;
 
+                // Affichage Libellé TYPE | DETAIL
+                const displayLabel = isVente ? t.label : `${t.type} | ${t.label || "---"}`;
+
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-3 text-[11px] font-black text-primary border-r border-slate-200 tabular-nums">
@@ -244,7 +258,7 @@ function OperationsReportContent() {
                       {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
                     </td>
                     <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r border-slate-200">
-                      {t.label}
+                      {displayLabel}
                     </td>
                     <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r border-slate-200 truncate">
                       {t.clientName || "---"}
