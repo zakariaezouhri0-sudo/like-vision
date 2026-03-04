@@ -3,12 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ListOrdered, Download } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection, query, orderBy, where, Timestamp, getDocs } from "firebase/firestore";
+import { doc, collection, query, where, getDocs } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
@@ -138,9 +138,9 @@ function OperationsReportContent() {
         "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
         "Libellé": displayLabel,
         "Nom client": t.clientName || "---",
-        "Montant Total": isVente && totalNet !== null ? totalNet : "",
-        "Mouvement (Avance)": isVente ? movement : "",
-        "SORTIE": !isVente ? movement : ""
+        "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
+        "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
+        "SORTIE": !isVente ? formatCurrency(movement, false) : ""
       };
     });
 
@@ -207,20 +207,20 @@ function OperationsReportContent() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden border-2 border-slate-900 rounded-xl bg-white shadow-sm">
+        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-slate-200 text-slate-900 border-b-2 border-slate-900">
+            <thead className="bg-slate-200 text-slate-950 border-b-2 border-slate-950">
               <tr>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-24">Réf</th>
-                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-24">Heure</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900">Libellé</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900">Nom client</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-32">Montant Total</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-900 w-44">Mouvement</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
+                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Heure</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Libellé</th>
+                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Nom client</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-32">Montant Total</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-44">Mouvement</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-32">SORTIE</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-slate-900">
+            <tbody className="divide-y-2 divide-slate-950">
               {transactions.length > 0 ? transactions.map((t: any) => {
                 let invoiceId = t.relatedId || "";
                 if (!invoiceId && t.label?.includes('VENTE')) {
@@ -245,28 +245,28 @@ function OperationsReportContent() {
 
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-900 tabular-nums">
+                    <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">
                       {refDisplay}
                     </td>
-                    <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-900 tabular-nums">
+                    <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">
                       {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
                     </td>
-                    <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-900">
+                    <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
                       {displayLabel}
                     </td>
-                    <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-900 truncate">
+                    <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">
                       {t.clientName || "---"}
                     </td>
-                    <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-900 tabular-nums">
-                      {isVente && totalNet !== null ? formatCurrency(totalNet).replace('DH', '') : ""}
+                    <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">
+                      {isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}
                     </td>
-                    <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-900 tabular-nums">
+                    <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">
                       {isVente ? (
-                        <span className="text-green-600">+{formatCurrency(movement).replace('DH', '')}</span>
+                        <span className="text-green-600">+{formatCurrency(movement, false)}</span>
                       ) : ""}
                     </td>
                     <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">
-                      {!isVente ? `-${formatCurrency(movement).replace('DH', '')}` : ""}
+                      {!isVente ? `-${formatCurrency(movement, false)}` : ""}
                     </td>
                   </tr>
                 );
@@ -281,11 +281,11 @@ function OperationsReportContent() {
           <div className="flex gap-10">
             <div className="space-y-1">
               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Visa Responsable</p>
-              <div className="w-40 border-b border-slate-300 pt-10"></div>
+              <div className="w-40 border-b-2 border-slate-950 pt-10"></div>
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Cachet Magasin</p>
-              <div className="w-40 h-20 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50/50">
+              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-xl flex items-center justify-center bg-slate-50/50">
                 <span className="text-[8px] text-slate-200 font-black rotate-[-12deg] uppercase opacity-40">Authentification</span>
               </div>
             </div>

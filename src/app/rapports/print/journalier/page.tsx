@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -133,7 +132,6 @@ function DailyCashReportContent() {
       }
     });
 
-    // Tri prioritaire des charges : ACHAT VERRES > ACHAT MONTURE > VERSEMENT > DEPENSE
     expensesList.sort((a, b) => {
       const priority: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "VERSEMENT": 3, "DEPENSE": 4 };
       const pA = priority[a.type as string] || 99;
@@ -175,15 +173,15 @@ function DailyCashReportContent() {
         </div>
 
         <div className="grid grid-cols-4 gap-2.5 mb-4">
-          <div className="p-2.5 rounded-lg border border-slate-300 bg-slate-50/30 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p><p className="text-lg font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial)}</p></div>
-          <div className="p-2.5 rounded-lg border border-green-300 bg-green-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-green-600 mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-green-700" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp)}</p></div>
-          <div className="p-2.5 rounded-lg border border-orange-300 bg-orange-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Versements</p><p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements)}</p></div>
-          <div className="p-2.5 rounded-lg border-2 border-slate-900 bg-white text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Solde Clôture</p><p className="text-lg font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final)}</p></div>
+          <div className="p-2.5 rounded-lg border border-slate-300 bg-slate-50/30 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p><p className="text-lg font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial, false)}</p></div>
+          <div className="p-2.5 rounded-lg border border-green-300 bg-green-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-green-600 mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-green-700" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp, false)}</p></div>
+          <div className="p-2.5 rounded-lg border border-orange-300 bg-orange-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Versements</p><p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements, false)}</p></div>
+          <div className="p-2.5 rounded-lg border-2 border-slate-900 bg-white text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Solde Clôture</p><p className="text-lg font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final, false)}</p></div>
         </div>
 
         <div className="space-y-4 flex-1">
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-green-600" />Encaissements</h3><span className="text-[10px] font-black text-green-700 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0))}</span></div>
+            <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-green-600" />Encaissements</h3><span className="text-[10px] font-black text-green-700 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
                 <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
@@ -205,11 +203,11 @@ function DailyCashReportContent() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet).replace('DH', '') : "---"}</td>
-                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0).replace('DH', '') : "---"}</td>
-                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0).replace('DH', '') : "---"}</td>
+                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet, false) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-green-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
                         <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
-                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant))}</td>
+                        <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant), false)}</td>
                       </tr>
                     );
                   }) : (<tr><td colSpan={6} className="p-4 text-center text-slate-300 font-bold italic text-[11px]">Aucune vente.</td></tr>)}
@@ -220,7 +218,7 @@ function DailyCashReportContent() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)))}</span></div>
+              <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)), false)}</span></div>
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
@@ -239,7 +237,7 @@ function DailyCashReportContent() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant))}</td>
+                        <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant), false)}</td>
                       </tr>
                     )) : (<tr><td colSpan={2} className="p-3 text-center text-slate-300 font-bold italic text-[11px]">Aucune dépense.</td></tr>)}
                   </tbody>
@@ -249,7 +247,7 @@ function DailyCashReportContent() {
 
             {reportData.versements.length > 0 && (
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements))}</span></div>
+                <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements), false)}</span></div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                   <table className="w-full border-collapse">
                     <tbody className="divide-y divide-slate-100">
@@ -258,7 +256,7 @@ function DailyCashReportContent() {
                           <td className="p-1.5 text-[11px] font-bold text-slate-900 uppercase">
                             VERSEMENT | {v.label || "BANQUE"}
                           </td>
-                          <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant))}</td>
+                          <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant), false)}</td>
                         </tr>
                       ))}
                     </tbody>
