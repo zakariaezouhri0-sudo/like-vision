@@ -118,7 +118,6 @@ export default function CashSessionsPage() {
     try {
       const batch = writeBatch(db);
       
-      // 1. Rechercher et marquer les transactions pour suppression
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
       
@@ -134,7 +133,6 @@ export default function CashSessionsPage() {
         batch.delete(tDoc.ref);
       });
       
-      // 2. Supprimer la session elle-même
       batch.delete(doc(db, "cash_sessions", session.id));
       
       await batch.commit();
@@ -275,8 +273,16 @@ export default function CashSessionsPage() {
                               const flux = roundAmount(sales - expenses);
                               const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
                               
+                              const isSun = s.date ? isSunday(parseISO(s.date)) : false;
+
                               return (
-                                <TableRow key={s.id} className="hover:bg-slate-50/80 border-b">
+                                <TableRow 
+                                  key={s.id} 
+                                  className={cn(
+                                    "hover:bg-slate-50/80 border-b",
+                                    isSun && "bg-red-50/80 hover:bg-red-100/80"
+                                  )}
+                                >
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
                                       <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s.date)}</span>
