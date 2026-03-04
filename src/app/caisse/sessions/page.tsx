@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
-  ListOrdered
+  ListOrdered,
+  FileSpreadsheet
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -182,6 +183,39 @@ export default function CashSessionsPage() {
     toast({ variant: "success", title: "Export réussi" });
   };
 
+  const handleExportDayTransactions = async (session: any) => {
+    toast({ title: "Génération de l'Excel...", description: "Veuillez patienter." });
+    try {
+      const dateStart = startOfDay(parseISO(session.date));
+      const dateEnd = endOfDay(parseISO(session.date));
+      
+      const q = query(
+        collection(db, "transactions"),
+        where("isDraft", "==", session.isDraft === true),
+        where("createdAt", ">=", Timestamp.fromDate(dateStart)),
+        where("createdAt", "<=", Timestamp.fromDate(dateEnd))
+      );
+      
+      const snap = await getDocs(q);
+      const trans = snap.docs.map(d => d.data());
+
+      const data = trans.map((t: any) => ({
+        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "---",
+        "Type": t.type,
+        "Libellé": t.label,
+        "Client": t.clientName || "---",
+        "Montant": t.montant
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
+      XLSX.writeFile(workbook, `Opérations - ${session.date}.xlsx`);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+    }
+  };
+
   if (loadingRole) return null;
 
   return (
@@ -320,7 +354,8 @@ export default function CashSessionsPage() {
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                                         <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/operations?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ListOrdered className="mr-3 h-4 w-4 text-primary" /> Opérations</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/operations?date=${s.date}&draft=${s.isDraft === true}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ListOrdered className="mr-3 h-4 w-4 text-primary" /> Opérations</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel Opérations</DropdownMenuItem>
                                         {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
                                       </DropdownMenuContent>
                                     </DropdownMenu>

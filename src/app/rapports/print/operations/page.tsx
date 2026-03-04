@@ -4,7 +4,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ListOrdered } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, ListOrdered, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -12,6 +12,7 @@ import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase
 import { doc, collection, query, orderBy, where, Timestamp, getDocs } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
+import * as XLSX from "xlsx";
 
 function OperationsReportContent() {
   const searchParams = useSearchParams();
@@ -23,9 +24,12 @@ function OperationsReportContent() {
     const d = searchParams.get("date");
     try {
       if (d) {
-        const [y, m, d_part] = d.split('-').map(Number);
-        const date = new Date(y, m - 1, d_part);
-        if (isValid(date)) return date;
+        const parts = d.split('-');
+        if (parts.length === 3) {
+          const [y, m, d_part] = parts.map(Number);
+          const date = new Date(y, m - 1, d_part);
+          if (isValid(date)) return date;
+        }
       }
       return new Date();
     } catch (e) {
@@ -42,7 +46,9 @@ function OperationsReportContent() {
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
 
-  const isPrepaMode = role === "PREPA";
+  // Détection du mode via URL ou localStorage
+  const urlDraft = searchParams.get("draft");
+  const isPrepaMode = urlDraft !== null ? urlDraft === "true" : role === "PREPA";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -63,34 +69,42 @@ function OperationsReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
+  // Optimisation : Charger toutes les ventes de la journée en une fois pour le matching
   useEffect(() => {
-    const fetchDetails = async () => {
+    const fetchAllSalesOfDay = async () => {
       if (!rawTransactions || rawTransactions.length === 0) return;
       setLoadingSales(true);
       
-      const transactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
-      const details: Record<string, any> = {};
-
-      for (const t of transactions) {
-        if (t.type === "VENTE") {
-          // Rechercher par invoiceId ou saleId
-          let saleData = null;
-          if (t.saleId) {
-            const saleSnap = await getDocs(query(collection(db, "sales"), where("__name__", "==", t.saleId)));
-            if (!saleSnap.empty) saleData = saleSnap.docs[0].data();
-          }
-          if (!saleData && t.relatedId) {
-            const saleSnap = await getDocs(query(collection(db, "sales"), where("invoiceId", "==", t.relatedId)));
-            if (!saleSnap.empty) saleData = saleSnap.docs[0].data();
-          }
-          if (saleData) details[t.id] = saleData;
-        }
+      try {
+        const start = startOfDay(selectedDate);
+        const end = endOfDay(selectedDate);
+        
+        const qSales = query(
+          collection(db, "sales"),
+          where("isDraft", "==", isPrepaMode),
+          where("createdAt", ">=", Timestamp.fromDate(start)),
+          where("createdAt", "<=", Timestamp.fromDate(end))
+        );
+        
+        const snap = await getDocs(qSales);
+        const details: Record<string, any> = {};
+        
+        // Indexer par invoiceId pour un matching rapide
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.invoiceId) details[data.invoiceId] = data;
+        });
+        
+        setSalesDetails(details);
+      } catch (e) {
+        console.error("Erreur chargement ventes:", e);
+      } finally {
+        setLoadingSales(false);
       }
-      setSalesDetails(details);
-      setLoadingSales(false);
     };
-    fetchDetails();
-  }, [rawTransactions, db, isPrepaMode]);
+    
+    fetchAllSalesOfDay();
+  }, [rawTransactions, db, isPrepaMode, selectedDate]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -105,7 +119,39 @@ function OperationsReportContent() {
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
   }, [rawTransactions, isPrepaMode]);
 
-  if (settingsLoading || transLoading || loadingSales) {
+  const handleExportExcel = () => {
+    const data = transactions.map((t: any) => {
+      // Matching via invoiceId (extracted from label or relatedId)
+      let invoiceId = t.relatedId || "";
+      if (!invoiceId && t.label?.includes('VENTE')) {
+        invoiceId = t.label.replace('VENTE ', '').trim();
+      }
+      
+      const sale = salesDetails[invoiceId];
+      const isVente = t.type === "VENTE";
+      const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+      const movement = Math.abs(t.montant);
+      const reste = sale ? sale.reste : null;
+
+      return {
+        "Réf": isVente ? (invoiceId || "---") : "---",
+        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+        "Libellé": t.label,
+        "Nom client": t.clientName || "---",
+        "Montant Total": isVente && totalNet !== null ? totalNet : "",
+        "Avance (Ce jour)": isVente ? movement : "",
+        "Reste à payer": isVente && reste !== null ? reste : "",
+        "SORTIE": !isVente ? movement : ""
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
+    XLSX.writeFile(workbook, `Like Vision - Opérations ${format(selectedDate, "dd-MM-yyyy")}.xlsx`);
+  };
+
+  if (settingsLoading || transLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 
@@ -116,6 +162,9 @@ function OperationsReportContent() {
           <Link href="/caisse/sessions"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR SESSIONS</Link>
         </Button>
         <div className="flex items-center gap-3">
+          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-green-200 text-green-600 h-11 px-6 rounded-xl shadow-sm font-black text-xs hover:bg-green-50">
+            <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER EXCEL
+          </Button>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-2.5 rounded-full border shadow-sm">Format Paysage A4</span>
           <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-11 px-10 rounded-xl font-black text-sm text-white">
             <Printer className="mr-2 h-5 w-5" /> IMPRIMER LA LISTE
@@ -174,7 +223,13 @@ function OperationsReportContent() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {transactions.length > 0 ? transactions.map((t: any) => {
-                const sale = salesDetails[t.id];
+                // Matching via invoiceId (extracted from label or relatedId)
+                let invoiceId = t.relatedId || "";
+                if (!invoiceId && t.label?.includes('VENTE')) {
+                  invoiceId = t.label.replace('VENTE ', '').trim();
+                }
+                
+                const sale = salesDetails[invoiceId];
                 const isVente = t.type === "VENTE";
                 const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
                 const movement = Math.abs(t.montant);
@@ -183,7 +238,7 @@ function OperationsReportContent() {
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-3 text-[11px] font-black text-primary border-r border-slate-200 tabular-nums">
-                      {isVente ? (t.relatedId || "---") : "---"}
+                      {isVente ? (invoiceId || "---") : "---"}
                     </td>
                     <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r border-slate-200 tabular-nums">
                       {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
