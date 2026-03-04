@@ -144,7 +144,6 @@ function CaisseContent() {
       const pA = priority[a.type as string] || 99;
       const pB = priority[b.type as string] || 99;
       if (pA !== pB) return pA - pB;
-      // Si même type, trier par date décroissante
       const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return db - da;
@@ -213,8 +212,13 @@ function CaisseContent() {
         createdAt: serverTimestamp() 
       });
       toast({ variant: "success", title: "Opération enregistrée" });
-      setIsOpDialogOpen(false);
-      setNewOp({ type: "DEPENSE", label: "", clientName: "", montant: "" });
+      // On garde le dialogue ouvert et on préserve le TYPE (ex: ACHAT VERRES)
+      setNewOp(prev => ({
+        ...prev,
+        label: "",
+        clientName: "",
+        montant: ""
+      }));
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
@@ -327,7 +331,6 @@ function CaisseContent() {
               <TableRow><TableCell colSpan={3} className="text-center py-12 text-[10px] font-black opacity-20 uppercase tracking-widest">Aucune opération.</TableCell></TableRow>
             ) : (
               data.map((t: any) => {
-                // Formatage TYPE | DETAIL pour les charges
                 const displayLabel = t.type === "VENTE" 
                   ? (t.relatedId ? `VENTE ${t.relatedId}` : (t.label || "VENTE"))
                   : `${t.type} | ${t.label || "---"}`;
