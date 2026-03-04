@@ -34,7 +34,7 @@ import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
+const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1, 0.5, 0.2, 0.1];
 
 function CaisseContent() {
   const { toast } = useToast();
@@ -152,7 +152,7 @@ function CaisseContent() {
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0, 0.5: 0, 0.2: 0, 0.1: 0 });
   
   const soldeReel = useMemo(() => roundAmount(Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0)), [denoms]);
 
@@ -212,7 +212,6 @@ function CaisseContent() {
         createdAt: serverTimestamp() 
       });
       toast({ variant: "success", title: "Opération enregistrée" });
-      // On garde le dialogue ouvert et on préserve le TYPE (ex: ACHAT VERRES)
       setNewOp(prev => ({
         ...prev,
         label: "",
@@ -287,6 +286,7 @@ function CaisseContent() {
             <div className="relative">
               <input 
                 type="number" 
+                step="any"
                 className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
                 value={openingVal === "0" || openingVal === "" ? "" : openingVal} 
                 placeholder="---"
@@ -433,7 +433,7 @@ function CaisseContent() {
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
               </DialogContent>
@@ -450,7 +450,7 @@ function CaisseContent() {
                     {DENOMINATIONS.map(val => (
                       <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                         <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
-                        <Input type="number" className="h-9 w-20 text-center font-bold" placeholder="---" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseInt(e.target.value) || 0})} />
+                        <Input type="number" step="any" className="h-9 w-20 text-center font-bold" placeholder="---" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseFloat(e.target.value) || 0})} />
                         <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
@@ -500,7 +500,7 @@ function CaisseContent() {
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
           </div>
           <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
         </DialogContent>
