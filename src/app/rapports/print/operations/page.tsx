@@ -46,50 +46,32 @@ function OperationsReportContent() {
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
 
-  // Détection du mode via URL ou localStorage
   const urlDraft = searchParams.get("draft");
   const isPrepaMode = urlDraft !== null ? urlDraft === "true" : role === "PREPA";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  const transQuery = useMemoFirebase(() => {
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
-    return query(
-      collection(db, "transactions"), 
-      where("createdAt", ">=", Timestamp.fromDate(start)), 
-      where("createdAt", "<=", Timestamp.fromDate(end)),
-      orderBy("createdAt", "asc")
-    );
-  }, [db, selectedDate]);
-  
+  // Use simplified query to avoid composite index requirements
+  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), where("isDraft", "==", isPrepaMode)), [db, isPrepaMode]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
-  // Optimisation : Charger les ventes pour le matching sans filtre de date pour éviter l'erreur d'index composite
   useEffect(() => {
     const fetchSalesForMatching = async () => {
       if (!rawTransactions || rawTransactions.length === 0) return;
       setLoadingSales(true);
       
       try {
-        // On récupère toutes les ventes du mode sélectionné pour le matching
-        const qSales = query(
-          collection(db, "sales"),
-          where("isDraft", "==", isPrepaMode)
-        );
-        
+        const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
-        
         snap.docs.forEach(doc => {
           const data = doc.data();
           if (data.invoiceId) details[data.invoiceId] = data;
         });
-        
         setSalesDetails(details);
       } catch (e) {
         console.error("Erreur chargement ventes:", e);
@@ -97,7 +79,6 @@ function OperationsReportContent() {
         setLoadingSales(false);
       }
     };
-    
     fetchSalesForMatching();
   }, [rawTransactions, db, isPrepaMode]);
 
@@ -111,17 +92,18 @@ function OperationsReportContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     
-    // NOUVEL ORDRE : VENTE LWLIN
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+
+    const filtered = rawTransactions.filter((t: any) => {
+      const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
+      return d && d >= start && d <= end;
+    });
+    
+    // ORDRE : VENTE LWLIN
     return [...filtered].sort((a, b) => {
-      const priority: Record<string, number> = {
-        "VENTE": 1,
-        "ACHAT VERRES": 2,
-        "ACHAT MONTURE": 3,
-        "VERSEMENT": 4,
-        "DEPENSE": 5
-      };
+      const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
       const pA = priority[a.type as string] || 99;
       const pB = priority[b.type as string] || 99;
       if (pA !== pB) return pA - pB;
@@ -129,7 +111,7 @@ function OperationsReportContent() {
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
     });
-  }, [rawTransactions, isPrepaMode]);
+  }, [rawTransactions, selectedDate]);
 
   const handleExportExcel = () => {
     const data = transactions.map((t: any) => {
@@ -144,15 +126,13 @@ function OperationsReportContent() {
       const movement = Math.abs(t.montant);
       const reste = sale ? sale.reste : null;
 
-      // REF : GHI 4 CHIFFRES
       const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-      // LIBELLE VENTE : COMMENTAIRES
-      const libelleDisplay = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
+      const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
 
       return {
         "Réf": refDisplay,
         "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-        "Libellé": libelleDisplay,
+        "Libellé": displayLabel,
         "Nom client": t.clientName || "---",
         "Montant Total": isVente && totalNet !== null ? totalNet : "",
         "Avance (Ce jour)": isVente ? movement : "",
@@ -167,7 +147,7 @@ function OperationsReportContent() {
     XLSX.writeFile(workbook, `Like Vision - Opérations ${format(selectedDate, "dd-MM-yyyy")}.xlsx`);
   };
 
-  if (settingsLoading || transLoading) {
+  if (settingsLoading || transLoading || loadingSales) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 
@@ -250,9 +230,7 @@ function OperationsReportContent() {
                 const movement = Math.abs(t.montant);
                 const reste = sale ? sale.reste : null;
 
-                // REF : GHI 4 CHIFFRES
                 const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-                // LIBELLE VENTE : COMMENTAIRES
                 const displayLabel = isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`;
 
                 return (
