@@ -188,30 +188,69 @@ export default function CashSessionsPage() {
     try {
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
+      const isPrepa = session.isDraft === true;
       
+      // Fetch transactions for the day
       const q = query(
         collection(db, "transactions"),
-        where("isDraft", "==", session.isDraft === true),
+        where("isDraft", "==", isPrepa),
         where("createdAt", ">=", Timestamp.fromDate(dateStart)),
         where("createdAt", "<=", Timestamp.fromDate(dateEnd))
       );
       
       const snap = await getDocs(q);
-      const trans = snap.docs.map(d => d.data());
+      const trans = snap.docs.map(d => ({ ...d.data(), id: d.id }));
 
-      const data = trans.map((t: any) => ({
-        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "---",
-        "Type": t.type,
-        "Libellé": t.label,
-        "Client": t.clientName || "---",
-        "Montant": t.montant
-      }));
+      // Fetch sales for matching data (Réf, Notes, Total Net, Reste)
+      // On récupère toutes les ventes du mode pour éviter les erreurs d'index composite sur date/isDraft
+      const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepa));
+      const snapSales = await getDocs(qSales);
+      const salesMap: Record<string, any> = {};
+      snapSales.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.invoiceId) salesMap[data.invoiceId] = data;
+      });
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      const excelData = trans
+        .sort((a: any, b: any) => {
+          const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
+          const pA = priority[a.type as string] || 99;
+          const pB = priority[b.type as string] || 99;
+          if (pA !== pB) return pA - pB;
+          return (a.createdAt?.toDate?.().getTime() || 0) - (b.createdAt?.toDate?.().getTime() || 0);
+        })
+        .map((t: any) => {
+          let invoiceId = t.relatedId || "";
+          if (!invoiceId && t.label?.includes('VENTE')) {
+            invoiceId = t.label.replace('VENTE ', '').trim();
+          }
+          
+          const sale = salesMap[invoiceId];
+          const isVente = t.type === "VENTE";
+          const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+          const movement = Math.abs(t.montant);
+          const reste = sale ? sale.reste : null;
+
+          return {
+            "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
+            "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+            "Libellé": isVente ? (sale?.notes || "") : `${t.type} | ${t.label || "---"}`,
+            "Nom client": t.clientName || "---",
+            "Montant Total": isVente ? totalNet : "",
+            "Avance (Ce jour)": isVente ? movement : "",
+            "Reste à payer": isVente ? reste : "",
+            "SORTIE": !isVente ? movement : ""
+          };
+        });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
-      XLSX.writeFile(workbook, `Opérations - ${session.date}.xlsx`);
+      XLSX.writeFile(workbook, `Like Vision - Opérations ${session.date}.xlsx`);
+      
+      toast({ variant: "success", title: "Export Excel réussi" });
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Erreur lors de l'export" });
     }
   };
@@ -354,7 +393,6 @@ export default function CashSessionsPage() {
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                                         <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/operations?date=${s.date}&draft=${s.isDraft === true}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ListOrdered className="mr-3 h-4 w-4 text-primary" /> Opérations</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel Opérations</DropdownMenuItem>
                                         {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
                                       </DropdownMenuContent>
