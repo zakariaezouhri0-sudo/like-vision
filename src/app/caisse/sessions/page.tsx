@@ -297,7 +297,7 @@ export default function CashSessionsPage() {
                                       {formatCurrency(flux)}
                                     </span>
                                   </TableCell>
-                                  <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-slate-900">{formatCurrency(Math.abs(versements))}</span></TableCell>
+                                  <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
                                   <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
                                   <TableCell className="px-6 py-5">
                                     {s.status === "CLOSED" ? (

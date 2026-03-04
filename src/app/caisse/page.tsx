@@ -347,7 +347,7 @@ function CaisseContent() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : "text-red-500")}>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : (t.type === "VERSEMENT" ? "text-orange-600" : "text-red-500"))}>
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
