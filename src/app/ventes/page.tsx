@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -169,7 +170,8 @@ function SalesHistoryContent() {
     router.push(`/ventes/nouvelle?${params.toString()}`);
   };
 
-  const handleUpdateCosts = async () => {
+  const handleUpdateCosts = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!costDialogSale) return;
     setIsSavingCosts(true);
     const frameCost = parseFloat(purchaseCosts.frame) || 0;
@@ -184,7 +186,8 @@ function SalesHistoryContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
 
-  const handleValidatePayment = async () => {
+  const handleValidatePayment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -220,7 +223,7 @@ function SalesHistoryContent() {
             userName: currentUserName,
             note: "Règlement Historique"
           }),
-          createdAt: serverTimestamp(), // Remonte dans les rapports à la date de paiement
+          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp() 
         });
 
@@ -389,44 +392,48 @@ function SalesHistoryContent() {
 
       <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
         <DialogContent className="max-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase">Coûts d'Achat</DialogTitle></DialogHeader>
-          <div className="p-6 space-y-6 bg-white">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame === "0" ? "" : purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.lenses === "0" ? "" : purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} /></div>
+          <form onSubmit={handleUpdateCosts}>
+            <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase">Coûts d'Achat</DialogTitle></DialogHeader>
+            <div className="p-6 space-y-6 bg-white">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame === "0" ? "" : purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.lenses === "0" ? "" : purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} /></div>
+              </div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé d'achat</Label><Input placeholder="Ex: Verres Nikon..." className="h-14 rounded-2xl bg-slate-50 border-none" value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé d'achat</Label><Input placeholder="Ex: Verres Nikon..." className="h-14 rounded-2xl bg-slate-50 border-none" value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
-          </div>
-          <DialogFooter className="p-6 pt-0 bg-white flex gap-3"><Button variant="ghost" className="w-full font-black text-[10px]" onClick={() => setCostDialogSale(null)}>Annuler</Button><Button className="w-full font-black text-[10px] text-white" onClick={handleUpdateCosts} disabled={isSavingCosts}>{isSavingCosts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} VALIDER</Button></DialogFooter>
+            <DialogFooter className="p-6 pt-0 bg-white flex gap-3"><Button variant="ghost" className="w-full font-black text-[10px]" onClick={() => setCostDialogSale(null)}>Annuler</Button><Button type="submit" className="w-full font-black text-[10px] text-white" disabled={isSavingCosts}>{isSavingCosts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} VALIDER</Button></DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!paymentSale} onOpenChange={(o) => !o && setPaymentSale(null)}>
         <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-primary text-white">
-            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-7 w-7" /> Règlement Vente</DialogTitle>
-            <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{paymentSale?.clientName} | {paymentSale?.invoiceId}</p>
-          </DialogHeader>
-          <div className="p-8 space-y-6 bg-white">
-            <div className="bg-slate-50 p-6 rounded-2xl border space-y-3">
-              <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
+          <form onSubmit={handleValidatePayment}>
+            <DialogHeader className="p-8 bg-primary text-white">
+              <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-7 w-7" /> Règlement Vente</DialogTitle>
+              <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{paymentSale?.clientName} | {paymentSale?.invoiceId}</p>
+            </DialogHeader>
+            <div className="p-8 space-y-6 bg-white">
+              <div className="bg-slate-50 p-6 rounded-2xl border space-y-3">
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
+                <input 
+                  type="number" 
+                  className="w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
+                  value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
+                  placeholder="0"
+                  onChange={(e) => setPaymentAmount(e.target.value)} 
+                  autoFocus 
+                />
+              </div>
             </div>
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
-              <input 
-                type="number" 
-                className="w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
-                placeholder="0"
-                onChange={(e) => setPaymentAmount(e.target.value)} 
-                autoFocus 
-              />
-            </div>
-          </div>
-          <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
-            <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button>
-            <Button className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleValidatePayment} disabled={isProcessingPayment}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
-          </DialogFooter>
+            <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
+              <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button>
+              <Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

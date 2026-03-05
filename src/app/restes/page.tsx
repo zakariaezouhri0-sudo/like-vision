@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -69,7 +70,8 @@ export default function UnpaidSalesPage() {
     setPaymentAmount(sale.reste.toString());
   };
 
-  const handleValidatePayment = async () => {
+  const handleValidatePayment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedSale || !paymentAmount) return;
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -119,7 +121,7 @@ export default function UnpaidSalesPage() {
           category: "Optique", 
           montant: amount, 
           relatedId: finalInvoiceId,
-          saleId: selectedSale.id, // Lien permanent pour retrouver le client même après modif ID
+          saleId: selectedSale.id, 
           userName: currentUserName, 
           isDraft: isPrepaMode, 
           createdAt: serverTimestamp()
@@ -205,31 +207,33 @@ export default function UnpaidSalesPage() {
 
         <Dialog open={!!selectedSale} onOpenChange={(open) => !open && setSelectedSale(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-            <DialogHeader className="p-6 md:p-8 bg-primary text-white">
-              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
-              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
-            </DialogHeader>
-            <div className="p-6 md:p-8 space-y-6">
-              <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span></div>
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span></div>
+            <form onSubmit={handleValidatePayment}>
+              <DialogHeader className="p-6 md:p-8 bg-primary text-white">
+                <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
+                <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
+              </DialogHeader>
+              <div className="p-6 md:p-8 space-y-6">
+                <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
+                  <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span></div>
+                  <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span></div>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
+                  <input 
+                    type="number" 
+                    className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
+                    value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
+                    placeholder="0"
+                    onChange={(e) => setPaymentAmount(e.target.value)} 
+                    autoFocus 
+                  />
+                </div>
               </div>
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
-                <input 
-                  type="number" 
-                  className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                  value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
-                  placeholder="0"
-                  onChange={(e) => setPaymentAmount(e.target.value)} 
-                  autoFocus 
-                />
-              </div>
-            </div>
-            <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
-              <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-              <Button className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleValidatePayment} disabled={isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
-            </DialogFooter>
+              <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
+                <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
+                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

@@ -176,7 +176,8 @@ function CaisseContent() {
   const soldeTheorique = roundAmount(initialBalance + stats.entrees - stats.depenses - stats.versements);
   const ecart = roundAmount(soldeReel - soldeTheorique);
 
-  const handleOpenSession = async () => {
+  const handleOpenSession = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     try {
       setOpLoading(true);
       const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
@@ -216,7 +217,8 @@ function CaisseContent() {
     return false;
   };
 
-  const handleAddOperation = async () => {
+  const handleAddOperation = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newOp.montant) return;
     setOpLoading(true);
     const amt = roundAmount(parseFloat(newOp.montant));
@@ -264,7 +266,8 @@ function CaisseContent() {
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateOperation = async () => {
+  const handleUpdateOperation = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedTrans || !editOp.montant) return;
     setOpLoading(true);
     const amt = roundAmount(parseFloat(editOp.montant));
@@ -313,25 +316,28 @@ function CaisseContent() {
           </div>
         </div>
         <Card className="w-full bg-white p-8 rounded-[40px] space-y-6 shadow-2xl border-none">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center px-1">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial (DH)</Label>
-              {isAutoReport && <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100">Report auto</Badge>}
+          <form onSubmit={handleOpenSession} className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center px-1">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial (DH)</Label>
+                {isAutoReport && <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100">Report auto</Badge>}
+              </div>
+              <div className="relative">
+                <input 
+                  type="number" 
+                  step="any"
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
+                  value={openingVal === "0" || openingVal === "" ? "" : openingVal} 
+                  placeholder="---"
+                  onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
+                  readOnly={isAutoReport}
+                  autoFocus
+                />
+                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
+              </div>
             </div>
-            <div className="relative">
-              <input 
-                type="number" 
-                step="any"
-                className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
-                value={openingVal === "0" || openingVal === "" ? "" : openingVal} 
-                placeholder="---"
-                onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
-                readOnly={isAutoReport}
-              />
-              <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
-            </div>
-          </div>
-          <Button onClick={handleOpenSession} disabled={opLoading} className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase", isPrepaMode ? "bg-orange-500" : "bg-primary")}>VALIDER L'OUVERTURE</Button>
+            <Button type="submit" disabled={opLoading} className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase", isPrepaMode ? "bg-orange-500" : "bg-primary")}>VALIDER L'OUVERTURE</Button>
+          </form>
         </Card>
       </div>
     );
@@ -368,7 +374,7 @@ function CaisseContent() {
               data.map((t: any) => {
                 const displayLabel = t.type === "VENTE" 
                   ? (t.relatedId ? `VENTE ${t.relatedId}` : (t.label || "VENTE"))
-                  : `${t.type} | ${t.label || "---"}`;
+                  : `${t.label || "---"}`;
 
                 return (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
@@ -463,14 +469,16 @@ function CaisseContent() {
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl">
-                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC (ex: BC : 2472)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
-                </div>
-                <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
+                <form onSubmit={handleAddOperation}>
+                  <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
+                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC (ex: BC : 2472)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
+                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                  </div>
+                  <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           )}
@@ -530,14 +538,16 @@ function CaisseContent() {
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Opération</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+          <form onSubmit={handleUpdateOperation}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Opération</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
+            </div>
+            <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

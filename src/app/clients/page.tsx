@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -89,7 +90,8 @@ export default function ClientsPage() {
     return true;
   };
 
-  const handleCreateClient = () => {
+  const handleCreateClient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const currentRole = localStorage.getItem('user_role')?.toUpperCase();
     if (!currentRole) return;
     
@@ -139,7 +141,8 @@ export default function ClientsPage() {
     setEditCustomMutuelle(isStandard ? "" : (client.mutuelle === "Aucun" ? "" : client.mutuelle));
   };
 
-  const handleUpdateClient = () => {
+  const handleUpdateClient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!editingClient || !role) return;
     const clientRef = doc(db, "clients", editingClient.id);
     const finalMutuelle = editingClient.mutuelle === "Autre" ? editCustomMutuelle : editingClient.mutuelle;
@@ -214,42 +217,44 @@ export default function ClientsPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[24px]">
-              <DialogHeader>
-                <DialogTitle className="font-black uppercase text-primary text-xl">Nouveau Dossier {isPrepaMode ? "Brouillon" : ""}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Nom Complet</Label>
-                  <Input placeholder="M. Mohamed Alami" className="h-11 rounded-xl font-bold" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
-                  <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    if (validatePhone(raw)) {
-                      setNewClient({...newClient, phone: raw});
-                    }
-                  }} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
-                  <Select value={newClient.mutuelle} onValueChange={(v) => setNewClient({...newClient, mutuelle: v})}>
-                    <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {newClient.mutuelle === "Autre" && (
-                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Libellé Mutuelle</Label>
-                    <Input placeholder="Précisez la mutuelle..." className="h-11 rounded-xl font-bold" value={newCustomMutuelle} onChange={(e) => setNewCustomMutuelle(e.target.value)} />
+              <form onSubmit={handleCreateClient}>
+                <DialogHeader>
+                  <DialogTitle className="font-black uppercase text-primary text-xl">Nouveau Dossier {isPrepaMode ? "Brouillon" : ""}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Nom Complet</Label>
+                    <Input placeholder="M. Mohamed Alami" className="h-11 rounded-xl font-bold" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} autoFocus />
                   </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateClient} className="w-full h-12 text-base font-black rounded-xl shadow-xl">ENREGISTRER</Button>
-              </DialogFooter>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
+                    <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      if (validatePhone(raw)) {
+                        setNewClient({...newClient, phone: raw});
+                      }
+                    }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
+                    <Select value={newClient.mutuelle} onValueChange={(v) => setNewClient({...newClient, mutuelle: v})}>
+                      <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newClient.mutuelle === "Autre" && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                      <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Libellé Mutuelle</Label>
+                      <Input placeholder="Précisez la mutuelle..." className="h-11 rounded-xl font-bold" value={newCustomMutuelle} onChange={(e) => setNewCustomMutuelle(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button type="submit" className="w-full h-12 text-base font-black rounded-xl shadow-xl">ENREGISTRER</Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -353,40 +358,42 @@ export default function ClientsPage() {
 
       <Dialog open={!!editingClient} onOpenChange={(o) => !o && setEditingClient(null)}>
         <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Dossier</DialogTitle></DialogHeader>
-          {editingClient && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
-                <Input className="font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black">Téléphone</Label>
-                <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => {
-                  const raw = e.target.value.replace(/\D/g, '');
-                  if (validatePhone(raw)) {
-                    setEditingClient({...editingClient, phone: raw});
-                  }
-                }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
-                <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
-                  <SelectTrigger className="font-bold"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {editingClient.mutuelle === "Autre" && (
-                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                  <Label className="text-[10px] uppercase font-black">Libellé Mutuelle</Label>
-                  <Input placeholder="Précisez la mutuelle..." className="font-bold" value={editCustomMutuelle} onChange={(e) => setEditCustomMutuelle(e.target.value)} />
+          <form onSubmit={handleUpdateClient}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Dossier</DialogTitle></DialogHeader>
+            {editingClient && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
+                  <Input className="font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
                 </div>
-              )}
-            </div>
-          )}
-          <DialogFooter><Button onClick={handleUpdateClient} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Téléphone</Label>
+                  <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    if (validatePhone(raw)) {
+                      setEditingClient({...editingClient, phone: raw});
+                    }
+                  }} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
+                  <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
+                    <SelectTrigger className="font-bold"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editingClient.mutuelle === "Autre" && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                    <Label className="text-[10px] uppercase font-black">Libellé Mutuelle</Label>
+                    <Input placeholder="Précisez la mutuelle..." className="font-bold" value={editCustomMutuelle} onChange={(e) => setEditCustomMutuelle(e.target.value)} />
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter><Button type="submit" className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </AppShell>

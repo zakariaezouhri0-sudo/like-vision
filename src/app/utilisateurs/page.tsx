@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -49,7 +50,8 @@ export default function UsersPage() {
     password: ""
   });
 
-  const handleCreateUser = () => {
+  const handleCreateUser = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newUser.name || !newUser.username || !newUser.password) {
       toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs." });
       return;
@@ -76,7 +78,8 @@ export default function UsersPage() {
       });
   };
 
-  const handleUpdateUser = () => {
+  const handleUpdateUser = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!editingUser) return;
     const userRef = doc(db, "users", editingUser.id);
     const updateData = { name: editingUser.name, role: editingUser.role, password: editingUser.password };
@@ -112,25 +115,27 @@ export default function UsersPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md rounded-2xl">
-              <DialogHeader><DialogTitle className="font-black uppercase text-primary">Nouveau Membre</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Nom complet</Label><Input value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Login</Label><Input value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
-                    <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v})}>
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ADMIN">Administrateur</SelectItem>
-                        <SelectItem value="OPTICIENNE">Opticienne</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <form onSubmit={handleCreateUser}>
+                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Nouveau Membre</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Nom complet</Label><Input value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} autoFocus /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Login</Label><Input value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
+                      <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v})}>
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ADMIN">Administrateur</SelectItem>
+                          <SelectItem value="OPTICIENNE">Opticienne</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Mot de passe</Label><Input value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} /></div>
                   </div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Mot de passe</Label><Input value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} /></div>
                 </div>
-              </div>
-              <DialogFooter><Button onClick={handleCreateUser} className="w-full h-12 text-base font-black shadow-xl">CRÉER LE COMPTE</Button></DialogFooter>
+                <DialogFooter><Button type="submit" className="w-full h-12 text-base font-black shadow-xl">CRÉER LE COMPTE</Button></DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -168,6 +173,30 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!editingUser} onOpenChange={(o) => !o && setEditingUser(null)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <form onSubmit={handleUpdateUser}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Compte</DialogTitle></DialogHeader>
+            {editingUser && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Nom complet</Label><Input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-muted-foreground">Rôle</Label>
+                    <Select value={editingUser.role} onValueChange={(v) => setEditingUser({...editingUser, role: v})}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="ADMIN">Administrateur</SelectItem><SelectItem value="OPTICIENNE">Opticienne</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black text-muted-foreground">Nouveau mot de passe</Label><Input value={editingUser.password} onChange={(e) => setEditingUser({...editingUser, password: e.target.value})} /></div>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="submit" className="w-full h-12 text-base font-black shadow-xl">ENREGISTRER</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
