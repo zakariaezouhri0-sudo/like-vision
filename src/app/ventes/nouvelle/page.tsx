@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -8,15 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, Calendar as CalendarIcon, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock, ClipboardList, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
@@ -41,13 +41,15 @@ function NewSaleForm() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
-  const [saleDate, setSaleDate] = useState<Date>(() => {
+  const [saleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
     return d ? new Date(d) : new Date();
   });
   
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
+  const [bonNumber, setBonNumber] = useState(searchParams.get("bonNumber") || "");
+  const [fromDoctor, setFromDoctor] = useState(searchParams.get("fromDoctor") === "true");
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
 
   const [mutuelle, setMutuelle] = useState(() => {
@@ -210,6 +212,11 @@ function NewSaleForm() {
       toast({ variant: "destructive", title: "Erreur", description: "Nom client obligatoire." });
       return;
     }
+
+    if (!bonNumber && !activeEditId) {
+      toast({ variant: "destructive", title: "Erreur", description: "N° BON obligatoire pour la numérotation." });
+      return;
+    }
     
     setLoading(true);
     const currentIsDraft = role === "PREPA";
@@ -219,31 +226,23 @@ function NewSaleForm() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        const counterRef = doc(db, "settings", currentIsDraft ? "counters_draft" : "counters");
-        const counterSnap = await transaction.get(counterRef);
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
         
-        let counters = { fc: 0, rc: 0 };
-        if (counterSnap.exists()) counters = counterSnap.data() as any;
-
         const isPaid = resteAPayerValue <= 0;
         const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
         
         let invoiceId = editableInvoiceId || "";
 
         if (!activeEditId) {
-          if (isPaid) { 
-            counters.fc += 1; 
-            invoiceId = `FC-2026-${counters.fc.toString().padStart(4, '0')}`; 
-          } else { 
-            counters.rc += 1; 
-            invoiceId = `RC-2026-${counters.rc.toString().padStart(4, '0')}`; 
-          }
-          transaction.set(counterRef, counters, { merge: true });
+          // Utilisation du N° BON pour générer l'identifiant
+          const prefix = isPaid ? "FC" : "RC";
+          invoiceId = `${prefix}-2026-${bonNumber}`;
         }
 
         const saleData: any = {
           invoiceId,
+          bonNumber,
+          fromDoctor,
           clientName, 
           clientPhone: clientPhone.replace(/\s/g, ""),
           mutuelle: finalMutuelle || "Aucun",
@@ -267,10 +266,6 @@ function NewSaleForm() {
           saleData.createdBy = currentUserName;
           saleData.payments = [];
           if (nAvance > 0) saleData.payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
-        } else {
-          if (isAdminOrPrepa) {
-            saleData.createdAt = Timestamp.fromDate(saleDate);
-          }
         }
 
         transaction.set(saleRef, saleData, { merge: true });
@@ -284,7 +279,7 @@ function NewSaleForm() {
             clientName, 
             montant: nAvance, 
             relatedId: invoiceId,
-            saleId: saleRef.id, // Lien permanent pour les rapports
+            saleId: saleRef.id, 
             userName: currentUserName, 
             isDraft: currentIsDraft, 
             createdAt: serverTimestamp()
@@ -344,30 +339,53 @@ function NewSaleForm() {
           </div>
         )}
 
-        {isSessionClosed && canBypassLock && (
-          <div className="bg-blue-600 text-white shadow-2xl p-4 rounded-[24px] flex items-center gap-4 animate-in slide-in-from-top-2">
-            <AlertCircle className="h-6 w-6 shrink-0" />
-            <p className="text-xs font-black uppercase tracking-widest">Mode Correction Admin : Vous modifiez une vente sur une session déjà clôturée.</p>
-          </div>
-        )}
-
-        {clientDebt > 0 && (
-          <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 animate-in zoom-in-95 relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 transition-transform group-hover:scale-110 duration-700"><AlertCircle className="h-32 w-32 text-destructive" /></div>
-            <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner"><AlertCircle className="h-8 w-8 text-destructive animate-pulse" /></div>
-            <div className="flex-1 relative z-10"><h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Attention : Client débiteur</h3><p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">Ce client a un impayé total de <span className="text-destructive font-black text-2xl tabular-nums">{formatCurrency(clientDebt)}</span>.</p></div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
               <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><User className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle></CardHeader>
               <CardContent className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label><div className="relative"><Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label><div className="relative"><User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" /><Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Date de la vente</Label><Popover><PopoverTrigger asChild><Button variant="outline" disabled={!isAdminOrPrepa || (isSessionClosed && !canBypassLock)} className="w-full h-12 rounded-xl bg-slate-50 border-none justify-start font-bold shadow-inner text-slate-700 disabled:opacity-80"><CalendarIcon className="mr-2 h-4 w-4 text-primary/40" />{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</Button></PopoverTrigger><PopoverContent className="w-auto p-0 border-none shadow-2xl rounded-2xl" align="start"><Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus /></PopoverContent></Popover></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">N° BON</Label>
+                    <div className="relative">
+                      <ClipboardList className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
+                      <Input 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", isSessionClosed && !canBypassLock && "opacity-50")} 
+                        placeholder="Ex: 2472" 
+                        value={bonNumber} 
+                        onChange={e => setBonNumber(e.target.value)} 
+                        readOnly={isSessionClosed && !canBypassLock} 
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2 mt-2 px-1">
+                      <Checkbox 
+                        id="fromDoctor" 
+                        checked={fromDoctor} 
+                        onCheckedChange={(v) => setFromDoctor(!!v)} 
+                        disabled={isSessionClosed && !canBypassLock}
+                      />
+                      <label 
+                        htmlFor="fromDoctor" 
+                        className="text-[10px] font-black uppercase cursor-pointer flex items-center gap-1.5 text-slate-500"
+                      >
+                        <Stethoscope className="h-3 w-3" /> MÉDECIN
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
