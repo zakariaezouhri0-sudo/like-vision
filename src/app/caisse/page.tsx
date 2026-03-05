@@ -27,7 +27,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -192,6 +192,30 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
+  const handleAutoAffectBC = async (clientName: string, type: string, amount: number) => {
+    const bcMatch = (clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+    if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
+      const bcId = bcMatch[1].padStart(4, '0');
+      try {
+        const q = query(
+          collection(db, "sales"), 
+          where("isDraft", "==", isPrepaMode),
+          where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const saleDoc = snap.docs[0];
+          const updateField = type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
+          await updateDoc(saleDoc.ref, { [updateField]: amount });
+          return true;
+        }
+      } catch (e) {
+        console.error("Erreur affectation BC:", e);
+      }
+    }
+    return false;
+  };
+
   const handleAddOperation = async () => {
     if (!newOp.montant) return;
     setOpLoading(true);
@@ -211,7 +235,15 @@ function CaisseContent() {
         isDraft: isPrepaMode, 
         createdAt: serverTimestamp() 
       });
-      toast({ variant: "success", title: "Opération enregistrée" });
+
+      const affected = await handleAutoAffectBC(newOp.clientName, newOp.type, amt);
+      
+      toast({ 
+        variant: "success", 
+        title: "Opération enregistrée", 
+        description: affected ? `Coût affecté au BC ${newOp.clientName.match(/(\d+)/)?.[0]}` : undefined 
+      });
+
       setNewOp(prev => ({
         ...prev,
         label: "",
@@ -247,6 +279,9 @@ function CaisseContent() {
         montant: finalAmount,
         updatedAt: serverTimestamp()
       });
+
+      await handleAutoAffectBC(editOp.clientName, editOp.type, amt);
+
       toast({ variant: "success", title: "Opération mise à jour" });
       setIsEditDialogOpen(false);
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
@@ -432,7 +467,7 @@ function CaisseContent() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
+                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC (ex: BC : 2472)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
                   <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
                 </div>
                 <DialogFooter><Button onClick={handleAddOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
@@ -499,7 +534,7 @@ function CaisseContent() {
           <div className="space-y-4 py-4">
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
-            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client (Optionnel)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
+            <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
             <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
           </div>
           <DialogFooter><Button onClick={handleUpdateOperation} disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
