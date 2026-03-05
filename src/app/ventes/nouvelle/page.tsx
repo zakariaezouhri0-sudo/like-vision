@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock, ClipboardList, Stethoscope } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock, ClipboardList, Stethoscope, Wallet, HandCoins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -143,26 +143,17 @@ function NewSaleForm() {
     return () => clearTimeout(timeout);
   }, [clientPhone, clientName, allClients, isPrepaMode, activeEditId]);
 
-  const clientDebt = useMemo(() => {
-    if (!clientName || !allSales) return 0;
-    const filteredSales = allSales.filter(s => {
-      const matchMode = isPrepaMode ? s.isDraft === true : !s.isDraft;
-      return matchMode && s.clientName?.toLowerCase().trim() === clientName.toLowerCase().trim();
-    });
-    return roundAmount(filteredSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0));
-  }, [clientName, allSales, isPrepaMode]);
-
   const cleanVal = (val: string | number): number => {
     if (typeof val === 'number') return roundAmount(val);
-    if (!val) return 0;
+    if (!val || val === "") return 0;
     const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
     const parsed = parseFloat(cleaned);
     return isNaN(parsed) ? 0 : roundAmount(parsed);
   };
 
-  const nTotal = cleanVal(total);
-  const nDiscountVal = cleanVal(discountValue);
-  const nAvance = cleanVal(avance);
+  const nTotal = useMemo(() => cleanVal(total), [total]);
+  const nDiscountVal = useMemo(() => cleanVal(discountValue), [discountValue]);
+  const nAvance = useMemo(() => cleanVal(avance), [avance]);
   
   const calculatedRemise = useMemo(() => {
     if (discountType === 'percent') {
@@ -171,8 +162,8 @@ function NewSaleForm() {
     return roundAmount(nDiscountVal);
   }, [nTotal, nDiscountVal, discountType]);
 
-  const totalNetValue = roundAmount(Math.max(0, nTotal - calculatedRemise));
-  const resteAPayerValue = roundAmount(Math.max(0, totalNetValue - nAvance));
+  const totalNetValue = useMemo(() => roundAmount(Math.max(0, nTotal - calculatedRemise)), [nTotal, calculatedRemise]);
+  const resteAPayerValue = useMemo(() => roundAmount(Math.max(0, totalNetValue - nAvance)), [totalNetValue, nAvance]);
 
   const handlePhoneChange = (val: string) => {
     const raw = val.replace(/\D/g, '');
@@ -234,7 +225,6 @@ function NewSaleForm() {
         let invoiceId = editableInvoiceId || "";
 
         if (!activeEditId) {
-          // Utilisation du N° BON pour générer l'identifiant
           const prefix = isPaid ? "FC" : "RC";
           invoiceId = `${prefix}-2026-${bonNumber}`;
         }
@@ -419,17 +409,70 @@ function NewSaleForm() {
             <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && !canBypassLock && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-5">
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={total === "0" || total === "" ? "" : total} onChange={e => setTotal(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div>
+                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
+                  <Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" 
+                    placeholder="0.00" 
+                    value={total} 
+                    onChange={e => setTotal(e.target.value)} 
+                    readOnly={isSessionClosed && !canBypassLock} 
+                  />
+                </div>
                 
                 <div className="bg-white/10 p-4 rounded-2xl flex flex-col gap-3 group transition-all">
                   <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/80">Remise</Label><div className="flex bg-slate-950/20 p-1 rounded-lg"><button onClick={() => setDiscountType('fixed')} disabled={isSessionClosed && !canBypassLock} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>DH</button><button onClick={() => setDiscountType('percent')} disabled={isSessionClosed && !canBypassLock} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>%</button></div></div>
-                  <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span><div className="relative"><input type="number" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="---" value={discountValue === "0" || discountValue === "" ? "" : discountValue} onChange={e => setDiscountValue(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />{discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}</div></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        step="any"
+                        className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" 
+                        placeholder="0.00" 
+                        value={discountValue} 
+                        onChange={e => setDiscountValue(e.target.value)} 
+                        readOnly={isSessionClosed && !canBypassLock} 
+                      />
+                      {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
+                    </div>
+                  </div>
                   {discountType === 'percent' && calculatedRemise > 0 && (<div className="text-right"><span className="text-[9px] font-black text-accent uppercase">- {formatCurrency(calculatedRemise)}</span></div>)}
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent"><Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label><input type="number" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="---" value={avance === "0" || avance === "" ? "" : avance} onChange={e => setAvance(e.target.value)} readOnly={isSessionClosed && !canBypassLock} /></div>
+                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
+                  <Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" 
+                    placeholder="0.00" 
+                    value={avance} 
+                    onChange={e => setAvance(e.target.value)} 
+                    readOnly={isSessionClosed && !canBypassLock} 
+                  />
+                </div>
 
-                <div className="bg-slate-950/40 p-6 rounded-3xl text-center space-y-1 border border-white/5 shadow-2xl"><p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Net à payer</p><p className="text-3xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p></div>
+                <div className="space-y-3">
+                  <div className="bg-slate-950/40 p-5 rounded-3xl text-center space-y-1 border border-white/5">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center justify-center gap-2">
+                      <Wallet className="h-3 w-3" /> Total Net
+                    </p>
+                    <p className="text-2xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p>
+                  </div>
+
+                  <div className={cn(
+                    "p-5 rounded-3xl text-center space-y-1 border shadow-2xl transition-all",
+                    resteAPayerValue <= 0 ? "bg-emerald-500/20 border-emerald-500/20" : "bg-orange-500/20 border-orange-500/20"
+                  )}>
+                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest flex items-center justify-center gap-2">
+                      <HandCoins className="h-3 w-3" /> Reste à régler
+                    </p>
+                    <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
