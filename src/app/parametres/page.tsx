@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
-import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
+import { DEFAULT_SHOP_SETTINGS, MUTUELLES } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { roundAmount } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -65,6 +66,77 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecalculateBCPrices = async () => {
+    setIsMigrating(true);
+    try {
+      const currentIsDraft = role === 'PREPA';
+      
+      // 1. Récupération de toutes les ventes du mode actuel
+      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", currentIsDraft));
+      const salesSnap = await getDocs(salesQuery);
+      
+      // Réinitialisation des coûts d'achat à 0
+      const resetBatch = writeBatch(db);
+      salesSnap.docs.forEach(d => {
+        resetBatch.update(d.ref, { purchasePriceFrame: 0, purchasePriceLenses: 0 });
+      });
+      await resetBatch.commit();
+
+      // 2. Récupération de toutes les transactions du mode actuel
+      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", currentIsDraft));
+      const transSnap = await getDocs(transQuery);
+      
+      let updateCount = 0;
+      // Map pour stocker les nouveaux montants cumulés
+      const pendingUpdates: Record<string, { frame: number, lenses: number }> = {};
+
+      transSnap.docs.forEach(tDoc => {
+        const t = tDoc.data();
+        if (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE") {
+          // Extraction du numéro BC
+          const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+          if (bcMatch) {
+            const bcId = bcMatch[1].padStart(4, '0');
+            const targetIds = [`FC-2026-${bcId}`, `RC-2026-${bcId}`];
+            
+            // Trouver la vente correspondante
+            const saleDoc = salesSnap.docs.find(sd => targetIds.includes(sd.data().invoiceId));
+            if (saleDoc) {
+              const saleId = saleDoc.id;
+              if (!pendingUpdates[saleId]) pendingUpdates[saleId] = { frame: 0, lenses: 0 };
+              
+              const amount = Math.abs(Number(t.montant) || 0);
+              if (t.type === "ACHAT MONTURE") pendingUpdates[saleId].frame = roundAmount(pendingUpdates[saleId].frame + amount);
+              else pendingUpdates[saleId].lenses = roundAmount(pendingUpdates[saleId].lenses + amount);
+              
+              updateCount++;
+            }
+          }
+        }
+      });
+
+      // 3. Application des mises à jour accumulées
+      for (const [saleId, costs] of Object.entries(pendingUpdates)) {
+        await updateDoc(doc(db, "sales", saleId), {
+          purchasePriceFrame: costs.frame,
+          purchasePriceLenses: costs.lenses,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      toast({ 
+        variant: "success", 
+        title: "Recalcul Terminé", 
+        description: `${updateCount} opérations ont été réaffectées aux factures correspondantes.` 
+      });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Erreur de recalcul" });
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -254,6 +326,27 @@ export default function SettingsPage() {
                   }
                 }} />
                 <Button variant="outline" className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white" onClick={() => fileInputRef.current?.click()}>IMPORTER</Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-emerald-50 border-emerald-100">
+              <CardHeader className="bg-emerald-100/50 border-b p-6">
+                <CardTitle className="text-[11px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
+                  <Calculator className="h-4 w-4" /> Analyse des Coûts
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-3">
+                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Synchronisation Automatique BC</p>
+                <p className="text-[8px] font-bold text-slate-500 leading-tight">Remet à zéro et réaffecte les coûts d'achat à partir de toutes vos opérations de caisse (Mode {role}).</p>
+                <Button 
+                  onClick={handleRecalculateBCPrices}
+                  disabled={isMigrating}
+                  variant="outline"
+                  className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100"
+                >
+                  {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
+                  Recalculer les coûts BC
+                </Button>
               </CardContent>
             </Card>
 
