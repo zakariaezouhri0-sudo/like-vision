@@ -8,15 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { format, isWithinInterval, startOfDay, endOfDay, isValid } from "date-fns";
@@ -41,6 +41,10 @@ function SalesHistoryContent() {
   const [costDialogSale, setCostDialogSale] = useState<any>(null);
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
+
+  const [paymentSale, setPaymentSale] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
@@ -180,6 +184,70 @@ function SalesHistoryContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
 
+  const handleValidatePayment = async () => {
+    if (!paymentSale || !paymentAmount) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setIsProcessingPayment(true);
+    const currentUserName = user?.displayName || "Inconnu";
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const saleRef = doc(db, "sales", paymentSale.id);
+        const saleSnap = await transaction.get(saleRef);
+        if (!saleSnap.exists()) throw new Error("Vente inexistante.");
+
+        const currentData = saleSnap.data();
+        const totalNet = currentData.total - (currentData.remise || 0);
+        const newAvance = (currentData.avance || 0) + amount;
+        const newReste = Math.max(0, totalNet - newAvance);
+        const isFullyPaid = newReste <= 0;
+        
+        let finalInvoiceId = currentData.invoiceId;
+        if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
+          finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
+        }
+
+        transaction.update(saleRef, { 
+          invoiceId: finalInvoiceId,
+          avance: newAvance, 
+          reste: newReste, 
+          statut: isFullyPaid ? "Payé" : "Partiel", 
+          payments: arrayUnion({ 
+            amount, 
+            date: new Date().toISOString(), 
+            userName: currentUserName,
+            note: "Règlement Historique"
+          }),
+          createdAt: serverTimestamp(), // Remonte dans les rapports à la date de paiement
+          updatedAt: serverTimestamp() 
+        });
+
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, {
+          type: "VENTE",
+          label: `VENTE ${finalInvoiceId}`,
+          clientName: currentData.clientName,
+          category: "Optique", 
+          montant: amount, 
+          relatedId: finalInvoiceId,
+          saleId: paymentSale.id,
+          userName: currentUserName, 
+          isDraft: isPrepaMode, 
+          createdAt: serverTimestamp()
+        });
+      });
+
+      toast({ variant: "success", title: "Paiement enregistré" });
+      setPaymentSale(null);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erreur règlement" });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -295,7 +363,13 @@ function SalesHistoryContent() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
+                              
+                              {sale.reste > 0 && (
+                                <DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(sale.reste.toString()); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>
+                              )}
+
                               <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: (sale.purchasePriceFrame || 0).toString(), lenses: (sale.purchasePriceLenses || 0).toString(), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
+                              
                               {isAdminOrPrepa && (
                                 <><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
                                 <DropdownMenuItem onClick={async () => { if(confirm("Supprimer ?")) await deleteDoc(doc(db, "sales", sale.id)) }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem></>
@@ -324,6 +398,35 @@ function SalesHistoryContent() {
             <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé d'achat</Label><Input placeholder="Ex: Verres Nikon..." className="h-14 rounded-2xl bg-slate-50 border-none" value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
           </div>
           <DialogFooter className="p-6 pt-0 bg-white flex gap-3"><Button variant="ghost" className="w-full font-black text-[10px]" onClick={() => setCostDialogSale(null)}>Annuler</Button><Button className="w-full font-black text-[10px] text-white" onClick={handleUpdateCosts} disabled={isSavingCosts}>{isSavingCosts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} VALIDER</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!paymentSale} onOpenChange={(o) => !o && setPaymentSale(null)}>
+        <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-8 bg-primary text-white">
+            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-7 w-7" /> Règlement Vente</DialogTitle>
+            <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{paymentSale?.clientName} | {paymentSale?.invoiceId}</p>
+          </DialogHeader>
+          <div className="p-8 space-y-6 bg-white">
+            <div className="bg-slate-50 p-6 rounded-2xl border space-y-3">
+              <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
+            </div>
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
+              <input 
+                type="number" 
+                className="w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
+                value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
+                placeholder="0"
+                onChange={(e) => setPaymentAmount(e.target.value)} 
+                autoFocus 
+              />
+            </div>
+          </div>
+          <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
+            <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button>
+            <Button className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" onClick={handleValidatePayment} disabled={isProcessingPayment}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

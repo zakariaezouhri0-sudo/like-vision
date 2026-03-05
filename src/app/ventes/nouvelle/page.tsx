@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -456,13 +455,6 @@ function NewSaleForm() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="bg-slate-950/40 p-5 rounded-3xl text-center space-y-1 border border-white/5">
-                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center justify-center gap-2">
-                      <Wallet className="h-3 w-3" /> Total Net
-                    </p>
-                    <p className="text-2xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p>
-                  </div>
-
                   <div className={cn(
                     "p-5 rounded-3xl text-center space-y-1 border shadow-2xl transition-all",
                     resteAPayerValue <= 0 ? "bg-emerald-500/20 border-emerald-500/20" : "bg-orange-500/20 border-orange-500/20"
