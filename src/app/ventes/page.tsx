@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -15,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, formatPhoneNumber, cn, roundAmount } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -163,8 +162,6 @@ function SalesHistoryContent() {
       monture: sale.monture || "", verres: sale.verres || "", notes: sale.notes || "", 
       od_sph: sale.prescription?.od?.sph || "", od_cyl: sale.prescription?.od?.cyl || "", 
       od_axe: sale.prescription?.od?.axe || "", od_add: sale.prescription?.od?.add || "",
-      og_sph: sale.prescription?.og?.sph || "", og_cyl: sale.prescription?.og?.cyl || "", 
-      og_axe: sale.prescription?.og?.axe || "", og_add: sale.prescription?.og?.add || "",
       date_raw: sale.createdAt?.toDate ? sale.createdAt.toDate().toISOString() : "" 
     });
     router.push(`/ventes/nouvelle?${params.toString()}`);
@@ -174,8 +171,8 @@ function SalesHistoryContent() {
     if (e) e.preventDefault();
     if (!costDialogSale) return;
     setIsSavingCosts(true);
-    const frameCost = parseFloat(purchaseCosts.frame) || 0;
-    const lensesCost = parseFloat(purchaseCosts.lenses) || 0;
+    const frameCost = parseAmount(purchaseCosts.frame);
+    const lensesCost = parseAmount(purchaseCosts.lenses);
     const labelSuffix = purchaseCosts.label || costDialogSale.invoiceId;
     try {
       await updateDoc(doc(db, "sales", costDialogSale.id), { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
@@ -189,8 +186,8 @@ function SalesHistoryContent() {
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    const amount = parseAmount(paymentAmount);
+    if (amount <= 0) return;
 
     setIsProcessingPayment(true);
     const currentUserName = user?.displayName || "Inconnu";
@@ -368,10 +365,10 @@ function SalesHistoryContent() {
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
                               
                               {sale.reste > 0 && (
-                                <DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(sale.reste.toString()); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>
                               )}
 
-                              <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: (sale.purchasePriceFrame || 0).toString(), lenses: (sale.purchasePriceLenses || 0).toString(), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
                               
                               {isAdminOrPrepa && (
                                 <><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
@@ -396,8 +393,26 @@ function SalesHistoryContent() {
             <DialogHeader className="p-6 bg-primary text-white"><DialogTitle className="text-xl font-black uppercase">Coûts d'Achat</DialogTitle></DialogHeader>
             <div className="p-6 space-y-6 bg-white">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.frame === "0" ? "" : purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label><Input type="number" className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center" value={purchaseCosts.lenses === "0" ? "" : purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} /></div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase ml-1">Coût Monture (DH)</Label>
+                  <Input 
+                    type="text" 
+                    className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center tabular-nums" 
+                    value={purchaseCosts.frame} 
+                    onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} 
+                    onBlur={() => setPurchaseCosts({...purchaseCosts, frame: formatCurrency(parseAmount(purchaseCosts.frame))})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase ml-1">Coût Verres (DH)</Label>
+                  <Input 
+                    type="text" 
+                    className="h-14 font-black rounded-2xl bg-slate-50 border-none text-center tabular-nums" 
+                    value={purchaseCosts.lenses} 
+                    onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} 
+                    onBlur={() => setPurchaseCosts({...purchaseCosts, lenses: formatCurrency(parseAmount(purchaseCosts.lenses))})}
+                  />
+                </div>
               </div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Libellé d'achat</Label><Input placeholder="Ex: Verres Nikon..." className="h-14 rounded-2xl bg-slate-50 border-none" value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
             </div>
@@ -420,11 +435,12 @@ function SalesHistoryContent() {
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
                 <input 
-                  type="number" 
+                  type="text" 
                   className="w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                  value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
-                  placeholder="0"
+                  value={paymentAmount} 
+                  placeholder="0,00"
                   onChange={(e) => setPaymentAmount(e.target.value)} 
+                  onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                   autoFocus 
                 />
               </div>

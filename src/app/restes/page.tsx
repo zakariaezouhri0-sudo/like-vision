@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -12,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Search, HandCoins, Loader2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, formatPhoneNumber, cn, roundAmount } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -67,14 +66,14 @@ export default function UnpaidSalesPage() {
 
   const handleOpenPayment = (sale: any) => {
     setSelectedSale(sale);
-    setPaymentAmount(sale.reste.toString());
+    setPaymentAmount(formatCurrency(sale.reste));
   };
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedSale || !paymentAmount) return;
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    const amount = parseAmount(paymentAmount);
+    if (amount <= 0) return;
 
     setIsProcessing(true);
     const currentUserName = user?.displayName || "Inconnu";
@@ -220,11 +219,12 @@ export default function UnpaidSalesPage() {
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                   <input 
-                    type="number" 
+                    type="text" 
                     className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
-                    value={paymentAmount === "0" || paymentAmount === "" ? "" : paymentAmount} 
-                    placeholder="0"
+                    value={paymentAmount} 
+                    placeholder="0,00"
                     onChange={(e) => setPaymentAmount(e.target.value)} 
+                    onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                     autoFocus 
                   />
                 </div>

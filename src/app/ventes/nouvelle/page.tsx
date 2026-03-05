@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, AlertCircle, Printer, Percent, Lock, ClipboardList, Stethoscope, Wallet, HandCoins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, cn, roundAmount, formatPhoneNumber } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
@@ -65,13 +65,13 @@ function NewSaleForm() {
   const [monture, setMonture] = useState(searchParams.get("monture") || "");
   const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
-  const [total, setTotal] = useState<string>(searchParams.get("total") || "");
+  const [total, setTotal] = useState<string>(searchParams.get("total") ? formatCurrency(searchParams.get("total")!) : "");
   
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>(
     (searchParams.get("discountType") as 'fixed' | 'percent') || 'fixed'
   );
-  const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") || "");
-  const [avance, setAvance] = useState<string>(searchParams.get("avance") || "");
+  const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") ? formatCurrency(searchParams.get("discountValue")!) : "");
+  const [avance, setAvance] = useState<string>(searchParams.get("avance") ? formatCurrency(searchParams.get("avance")!) : "");
 
   const [prescription, setPrescription] = useState({
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
@@ -139,17 +139,9 @@ function NewSaleForm() {
     return () => clearTimeout(timeout);
   }, [clientPhone, clientName, allClients, isPrepaMode, activeEditId]);
 
-  const cleanVal = (val: string | number): number => {
-    if (typeof val === 'number') return roundAmount(val);
-    if (!val || val === "") return 0;
-    const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : roundAmount(parsed);
-  };
-
-  const nTotal = useMemo(() => cleanVal(total), [total]);
-  const nDiscountVal = useMemo(() => cleanVal(discountValue), [discountValue]);
-  const nAvance = useMemo(() => cleanVal(avance), [avance]);
+  const nTotal = useMemo(() => parseAmount(total), [total]);
+  const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
+  const nAvance = useMemo(() => parseAmount(avance), [avance]);
   
   const calculatedRemise = useMemo(() => {
     if (discountType === 'percent') {
@@ -384,7 +376,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="M. Mohamed..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && !canBypassLock && "opacity-50")} placeholder="M. Mohamed Alami..." value={clientName} onChange={e => handleNameChange(e.target.value)} readOnly={isSessionClosed && !canBypassLock} />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -450,12 +442,12 @@ function NewSaleForm() {
                 <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
                   <Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label>
                   <input 
-                    type="number" 
-                    step="any"
+                    type="text" 
                     className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" 
-                    placeholder="0.00" 
+                    placeholder="0,00" 
                     value={total} 
                     onChange={e => setTotal(e.target.value)} 
+                    onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))}
                     readOnly={isSessionClosed && !canBypassLock} 
                   />
                 </div>
@@ -466,12 +458,12 @@ function NewSaleForm() {
                     <span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span>
                     <div className="relative">
                       <input 
-                        type="number" 
-                        step="any"
+                        type="text" 
                         className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" 
-                        placeholder="0.00" 
+                        placeholder="0,00" 
                         value={discountValue} 
                         onChange={e => setDiscountValue(e.target.value)} 
+                        onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))}
                         readOnly={isSessionClosed && !canBypassLock} 
                       />
                       {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
@@ -483,12 +475,12 @@ function NewSaleForm() {
                 <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
                   <Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label>
                   <input 
-                    type="number" 
-                    step="any"
+                    type="text" 
                     className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" 
-                    placeholder="0.00" 
+                    placeholder="0,00" 
                     value={avance} 
                     onChange={e => setAvance(e.target.value)} 
+                    onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))}
                     readOnly={isSessionClosed && !canBypassLock} 
                   />
                 </div>

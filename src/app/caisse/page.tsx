@@ -24,7 +24,7 @@ import {
   TrendingDown
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { cn, formatCurrency, roundAmount } from "@/lib/utils";
+import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -181,7 +181,7 @@ function CaisseContent() {
       setOpLoading(true);
       const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
       await setDoc(sessionRef, { 
-        openingBalance: roundAmount(parseFloat(openingVal)) || 0, 
+        openingBalance: parseAmount(openingVal) || 0, 
         status: "OPEN", 
         openedAt, 
         date: dateStr, 
@@ -220,7 +220,7 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!newOp.montant) return;
     setOpLoading(true);
-    const amt = roundAmount(parseFloat(newOp.montant));
+    const amt = parseAmount(newOp.montant);
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
     
@@ -260,7 +260,7 @@ function CaisseContent() {
       type: t.type,
       label: t.label || "",
       clientName: t.clientName || "",
-      montant: Math.abs(t.montant).toString()
+      montant: formatCurrency(Math.abs(t.montant))
     });
     setIsEditDialogOpen(true);
   };
@@ -269,7 +269,7 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!selectedTrans || !editOp.montant) return;
     setOpLoading(true);
-    const amt = roundAmount(parseFloat(editOp.montant));
+    const amt = parseAmount(editOp.montant);
     const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = editOp.label || (editOp.type === "VERSEMENT" ? "BANQUE" : editOp.type);
     
@@ -323,16 +323,15 @@ function CaisseContent() {
               </div>
               <div className="relative">
                 <input 
-                  type="number" 
-                  step="any"
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
-                  value={openingVal === "0" || openingVal === "" ? "" : openingVal} 
-                  placeholder="---"
+                  type="text" 
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-3xl border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
+                  value={isAutoReport ? formatCurrency(openingVal) : openingVal} 
+                  placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
+                  onBlur={() => !isAutoReport && openingVal && setOpeningVal(formatCurrency(parseAmount(openingVal)))}
                   readOnly={isAutoReport}
                   autoFocus
                 />
-                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">DH</span>
               </div>
             </div>
             <Button type="submit" disabled={opLoading} className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl uppercase", isPrepaMode ? "bg-orange-500" : "bg-primary")}>VALIDER L'OUVERTURE</Button>
@@ -390,7 +389,7 @@ function CaisseContent() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs", t.montant >= 0 ? "text-green-600" : (t.type === "VERSEMENT" ? "text-orange-600" : "text-red-500"))}>
+                    <TableCell className={cn("text-right px-6 py-4 font-black text-xs tabular-nums", t.montant >= 0 ? "text-green-600" : (t.type === "VERSEMENT" ? "text-orange-600" : "text-red-500"))}>
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
@@ -474,7 +473,17 @@ function CaisseContent() {
                     <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
                     <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
                     <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC (ex: BC : 2472)</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
-                    <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} /></div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase font-black">Montant (DH)</Label>
+                      <Input 
+                        type="text" 
+                        className="h-11 rounded-xl font-bold tabular-nums" 
+                        placeholder="0,00" 
+                        value={newOp.montant} 
+                        onChange={e => setNewOp({...newOp, montant: e.target.value})} 
+                        onBlur={() => newOp.montant && setNewOp({...newOp, montant: formatCurrency(parseAmount(newOp.montant))})}
+                      />
+                    </div>
                   </div>
                   <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-12 font-black rounded-xl">VALIDER</Button></DialogFooter>
                 </form>
@@ -493,17 +502,17 @@ function CaisseContent() {
                       <div key={val} className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border">
                         <span className="w-16 text-right font-black text-xs text-slate-400">{val} DH</span>
                         <Input type="number" step="any" className="h-9 w-20 text-center font-bold" placeholder="---" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseFloat(e.target.value) || 0})} />
-                        <span className="flex-1 text-right font-black text-primary text-xs">{formatCurrency(val * (denoms[val] || 0))}</span>
+                        <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
                   </div>
                   <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
-                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span>{formatCurrency(initialBalance)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span>{formatCurrency(stats.entrees)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span>{formatCurrency(stats.depenses)}</span></div>
-                    <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span>{formatCurrency(stats.versements)}</span></div>
-                    <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Compté</span><span className="text-2xl font-black text-primary">{formatCurrency(soldeReel)}</span></div>
-                    <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart</p><p className="text-xl font-black">{formatCurrency(ecart)}</p></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-green-600"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
+                    <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
+                    <div className="pt-4 border-t flex justify-between items-center"><span className="text-xs font-black uppercase">Compté</span><span className="text-2xl font-black text-primary tabular-nums">{formatCurrency(soldeReel)}</span></div>
+                    <div className={cn("p-4 rounded-xl text-center", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}><p className="text-[8px] font-black uppercase mb-1">Écart</p><p className="text-xl font-black tabular-nums">{formatCurrency(ecart)}</p></div>
                     <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-12 rounded-xl font-black">VALIDER LA CLÔTURE</Button>
                   </div>
                 </div>
@@ -514,11 +523,11 @@ function CaisseContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Ouv.</p><p className="text-xl font-black text-blue-600">{formatCurrency(initialBalance)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes</p><p className="text-xl font-black text-green-600">+{formatCurrency(stats.entrees)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses</p><p className="text-xl font-black text-red-500">-{formatCurrency(stats.depenses)}</p></Card>
-        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements</p><p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p></Card>
-        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Clôt." : "Théorique"}</p><p className="text-xl font-black">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-blue-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Solde Ouv.</p><p className="text-xl font-black text-blue-600 tabular-nums">{formatCurrency(initialBalance)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-green-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Ventes</p><p className="text-xl font-black text-green-600 tabular-nums">+{formatCurrency(stats.entrees)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-red-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Dépenses</p><p className="text-xl font-black text-red-500 tabular-nums">-{formatCurrency(stats.depenses)}</p></Card>
+        <Card className="p-5 rounded-[24px] border-l-4 border-l-orange-500"><p className="text-[9px] uppercase font-black text-muted-foreground mb-2">Versements</p><p className="text-xl font-black text-orange-600 tabular-nums">-{formatCurrency(stats.versements)}</p></Card>
+        <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Clôt." : "Théorique"}</p><p className="text-xl font-black tabular-nums">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
       {renderTransactionTable(
@@ -543,7 +552,17 @@ function CaisseContent() {
               <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Type</Label><select className="w-full h-11 rounded-xl font-bold bg-white border px-3 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
               <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Libellé</Label><Input className="h-11 rounded-xl font-bold" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
               <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Client / BC</Label><Input className="h-11 rounded-xl font-bold" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
-              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Montant (DH)</Label><Input type="number" step="any" className="h-11 rounded-xl font-bold" placeholder="---" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} /></div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black">Montant (DH)</Label>
+                <Input 
+                  type="text" 
+                  className="h-11 rounded-xl font-bold tabular-nums" 
+                  placeholder="0,00" 
+                  value={editOp.montant} 
+                  onChange={e => setEditOp({...editOp, montant: e.target.value})} 
+                  onBlur={() => editOp.montant && setEditOp({...editOp, montant: formatCurrency(parseAmount(editOp.montant))})}
+                />
+              </div>
             </div>
             <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-12 font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
           </form>

@@ -14,11 +14,23 @@ export function roundAmount(amount: number): number {
 }
 
 /**
+ * Convertit une chaîne de caractères en nombre propre (gère virgules et espaces).
+ */
+export function parseAmount(val: string | number): number {
+  if (typeof val === 'number') return roundAmount(val);
+  if (!val || val === "") return 0;
+  const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? 0 : roundAmount(parsed);
+}
+
+/**
  * Formate un montant en format monétaire strict : 000,00
  * Par défaut, n'affiche plus "DH" pour épurer l'interface selon la demande utilisateur.
  */
-export function formatCurrency(amount: number, includeSymbol: boolean = false): string {
-  const rounded = roundAmount(amount || 0);
+export function formatCurrency(amount: number | string, includeSymbol: boolean = false): string {
+  const num = typeof amount === 'string' ? parseAmount(amount) : (amount || 0);
+  const rounded = roundAmount(num);
   const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
