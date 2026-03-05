@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -468,7 +467,7 @@ function CaisseContent() {
           {!isClosed && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
-              <DialogContent className="max-w-md rounded-3xl">
+              <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
                 <form onSubmit={handleAddOperation}>
                   <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
@@ -486,7 +485,7 @@ function CaisseContent() {
           {!isClosed && (
             <Dialog>
               <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-50 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
-              <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl">
+              <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleFinalizeClosure()}>
                 <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
                   <div className="space-y-2">
@@ -537,7 +536,7 @@ function CaisseContent() {
       )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md rounded-3xl">
+        <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleUpdateOperation(e)}>
           <form onSubmit={handleUpdateOperation}>
             <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Opération</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">

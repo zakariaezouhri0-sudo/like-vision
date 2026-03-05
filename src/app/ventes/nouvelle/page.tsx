@@ -99,9 +99,6 @@ function NewSaleForm() {
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
 
-  const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
-  const { data: allSales } = useCollection(salesQuery);
-
   useEffect(() => {
     if (activeEditId || !allClients) return;
 
@@ -212,6 +209,7 @@ function NewSaleForm() {
     const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
+    const cleanedPhone = clientPhone.replace(/\s/g, "");
     let finalInvoiceId = "";
 
     try {
@@ -233,7 +231,7 @@ function NewSaleForm() {
           bonNumber,
           fromDoctor,
           clientName, 
-          clientPhone: clientPhone.replace(/\s/g, ""),
+          clientPhone: cleanedPhone,
           mutuelle: finalMutuelle || "Aucun",
           monture,
           verres,
@@ -260,6 +258,37 @@ function NewSaleForm() {
         transaction.set(saleRef, saleData, { merge: true });
         finalInvoiceId = invoiceId;
 
+        // ENREGISTREMENT AUTOMATIQUE DU CLIENT
+        const matchMode = isPrepaMode ? (c: any) => c.isDraft === true : (c: any) => !c.isDraft;
+        const existingClient = allClients?.find(c => 
+          matchMode(c) && (
+            (cleanedPhone && (c.phone || "").replace(/\s/g, "") === cleanedPhone) || 
+            (c.name?.toLowerCase().trim() === clientName.toLowerCase().trim())
+          )
+        );
+
+        if (existingClient) {
+          const clientRef = doc(db, "clients", existingClient.id);
+          transaction.update(clientRef, {
+            phone: cleanedPhone,
+            mutuelle: finalMutuelle || "Aucun",
+            lastVisit: format(new Date(), "dd/MM/yyyy"),
+            ordersCount: (existingClient.ordersCount || 0) + 1,
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          const newClientRef = doc(collection(db, "clients"));
+          transaction.set(newClientRef, {
+            name: clientName,
+            phone: cleanedPhone,
+            mutuelle: finalMutuelle || "Aucun",
+            lastVisit: format(new Date(), "dd/MM/yyyy"),
+            ordersCount: 1,
+            isDraft: currentIsDraft,
+            createdAt: serverTimestamp()
+          });
+        }
+
         if (nAvance > 0 && !activeEditId) {
           const transRef = doc(collection(db, "transactions"));
           transaction.set(transRef, {
@@ -282,7 +311,7 @@ function NewSaleForm() {
         const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
         const params = new URLSearchParams({ 
           client: clientName, 
-          phone: clientPhone.replace(/\s/g, ""), 
+          phone: cleanedPhone, 
           mutuelle: finalMutuelle || "---", 
           total: nTotal.toString(), 
           remise: calculatedRemise.toString(), 
@@ -304,11 +333,21 @@ function NewSaleForm() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !loading && !isSessionClosed) {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        handleSave(false);
+      }
+    }
+  };
+
   if (!role) return null;
 
   return (
     <AppShell>
-      <div className="space-y-4 max-w-6xl mx-auto pb-24">
+      <div className="space-y-4 max-w-6xl mx-auto pb-24" onKeyDown={handleKeyDown}>
         <div className="flex justify-between items-center bg-white p-6 rounded-[32px] border shadow-sm">
           <div className="flex items-center gap-4">
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", isPrepaMode ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}><ShoppingBag className="h-6 w-6" /></div>
