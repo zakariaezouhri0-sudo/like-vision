@@ -14,9 +14,10 @@ export function roundAmount(amount: number): number {
 }
 
 /**
- * Formate un montant en format monétaire : 1 500,00 (avec ou sans DH)
+ * Formate un montant en format monétaire strict : 000,00
+ * Par défaut, n'affiche plus "DH" pour épurer l'interface selon la demande utilisateur.
  */
-export function formatCurrency(amount: number, includeSymbol: boolean = true): string {
+export function formatCurrency(amount: number, includeSymbol: boolean = false): string {
   const rounded = roundAmount(amount || 0);
   const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 2,

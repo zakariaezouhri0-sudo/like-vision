@@ -104,9 +104,9 @@ function InvoicePrintContent() {
 
       <div className="space-y-4">
         <div className="w-full space-y-2 border-t border-slate-200 pt-6">
-          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase tracking-widest px-2"><span>Total Brut :</span><span className="tabular-nums font-black">{formatCurrency(total)}</span></div>
-          {remise > 0 && (<div className="flex justify-between text-[9px] text-destructive font-black uppercase tracking-widest px-2"><span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span><span className="tabular-nums">-{formatCurrency(remise)}</span></div>)}
-          <div className="flex justify-between items-center pt-4 border border-slate-300 bg-slate-50 text-slate-950 p-4 rounded-2xl mt-2"><span className="text-[10px] font-black uppercase tracking-[0.4em]">Total payé (Soldé)</span><span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(totalNet)}</span></div>
+          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase tracking-widest px-2"><span>Total Brut :</span><span className="tabular-nums font-black">{formatCurrency(total, true)}</span></div>
+          {remise > 0 && (<div className="flex justify-between text-[9px] text-destructive font-black uppercase tracking-widest px-2"><span>Remise {remisePercent === "Fixe" ? "" : `(${remisePercent}%)`} :</span><span className="tabular-nums">-{formatCurrency(remise, true)}</span></div>)}
+          <div className="flex justify-between items-center pt-4 border border-slate-300 bg-slate-50 text-slate-950 p-4 rounded-2xl mt-2"><span className="text-[10px] font-black uppercase tracking-[0.4em]">Total payé (Soldé)</span><span className="text-xl font-black tracking-tighter tabular-nums">{formatCurrency(totalNet, true)}</span></div>
         </div>
         <div className="flex justify-between items-end mt-4"><div className="flex-1 pr-8"><div className="border-l-4 border-primary/20 pl-4 py-3 bg-slate-50/50 rounded-r-2xl"><p className="text-[11px] font-black text-primary/80 italic leading-tight">Merci de votre confiance.<br/>Votre vue est notre priorité !</p></div></div><div className="w-48 h-24 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center relative bg-white overflow-hidden shrink-0 shadow-sm"><span className="text-[8px] uppercase text-slate-300 font-black rotate-[-15deg] text-center px-4 leading-none select-none opacity-40">CACHET & SIGNATURE</span></div></div>
       </div>
