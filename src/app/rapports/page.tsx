@@ -79,7 +79,7 @@ export default function ReportsPage() {
     const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0), 0);
     
-    const expenses = filteredTrans.filter(t => t.type === "DEPENSE" || t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+    const expenses = filteredTrans.filter(t => t.type === "DEPENSE" || t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     return {
@@ -242,7 +242,7 @@ export default function ReportsPage() {
                         <TableCell className="px-6 py-5">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{t.label}</span>
-                            <Badge variant="outline" className={cn("text-[8px] font-black w-fit mt-1 border-none", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : (t.type === 'DEPENSE' || t.type === 'ACHAT VERRES') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
+                            <Badge variant="outline" className={cn("text-[8px] font-black w-fit mt-1 border-none", t.type === 'VENTE' ? 'bg-green-100 text-green-700' : (t.type === 'DEPENSE' || t.type === 'ACHAT VERRES' || t.type === 'ACHAT MONTURE') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
                               {t.type}
                             </Badge>
                           </div>
@@ -263,13 +263,19 @@ export default function ReportsPage() {
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest">Vente</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Prix Vente</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Achat Monture</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Achat Verre</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-accent">Marge</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stats.filteredSales.length > 0 ? stats.filteredSales.map((s: any) => {
                     const net = roundAmount((Number(s.total) || 0) - (Number(s.remise) || 0));
-                    const cost = roundAmount((Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0));
+                    const frameCost = roundAmount(Number(s.purchasePriceFrame) || 0);
+                    const lensesCost = roundAmount(Number(s.purchasePriceLenses) || 0);
+                    const totalCost = frameCost + lensesCost;
+                    const margin = roundAmount(net - totalCost);
+                    
                     return (
                       <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
                         <TableCell className="px-6 py-5">
@@ -278,11 +284,21 @@ export default function ReportsPage() {
                             <span className="text-[9px] font-bold text-primary/40 mt-0.5 tracking-wider">{s.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6 py-5 font-black text-sm text-slate-900 tabular-nums">{formatCurrency(net)}</TableCell>
-                        <TableCell className="text-right px-6 py-5 font-black text-accent text-sm tabular-nums">{formatCurrency(net - cost)}</TableCell>
+                        <TableCell className="text-right px-6 py-5 font-black text-sm text-slate-900 tabular-nums">
+                          {formatCurrency(net)}
+                        </TableCell>
+                        <TableCell className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
+                          {formatCurrency(frameCost)}
+                        </TableCell>
+                        <TableCell className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
+                          {formatCurrency(lensesCost)}
+                        </TableCell>
+                        <TableCell className="text-right px-6 py-5 font-black text-accent text-sm tabular-nums">
+                          {formatCurrency(margin)}
+                        </TableCell>
                       </TableRow>
                     );
-                  }) : <TableRow><TableCell colSpan={3} className="text-center py-24 text-[10px] font-black uppercase opacity-30 tracking-[0.4em]">Aucune donnée de marge disponible.</TableCell></TableRow>}
+                  }) : <TableRow><TableCell colSpan={5} className="text-center py-24 text-[10px] font-black uppercase opacity-30 tracking-[0.4em]">Aucune donnée de marge disponible.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </Card>
