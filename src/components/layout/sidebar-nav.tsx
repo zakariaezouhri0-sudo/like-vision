@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -31,6 +32,12 @@ const NAV_ITEMS = [
 
 export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Utilisation de useEffect pour marquer le composant comme monté sur le client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Normalisation : PREPA a les mêmes droits de visibilité que ADMIN
   const currentRole = (role || "OPTICIENNE").toUpperCase();
@@ -41,15 +48,18 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
+        // Calcul de l'état actif, sécurisé contre les valeurs nulles du serveur
         const isExact = pathname === item.href;
-        const isSubPath = pathname.startsWith(item.href + "/");
-        const hasBetterMatch = NAV_ITEMS.some(other => 
+        const isSubPath = pathname ? pathname.startsWith(item.href + "/") : false;
+        const hasBetterMatch = pathname ? NAV_ITEMS.some(other => 
           other.href !== item.href && 
           other.href.length > item.href.length && 
           pathname.startsWith(other.href)
-        );
+        ) : false;
 
-        const isActive = isExact || (isSubPath && !hasBetterMatch);
+        // CRITIQUE : isActive n'est vrai que si mounted est vrai.
+        // Cela garantit que le rendu initial (hydratation) correspond au rendu serveur (où mounted est faux).
+        const isActive = mounted && (isExact || (isSubPath && !hasBetterMatch));
 
         return (
           <Link
