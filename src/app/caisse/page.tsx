@@ -366,7 +366,7 @@ function CaisseContent() {
         <Table>
           <TableHeader className="bg-slate-800">
             <TableRow>
-              <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails</TableHead>
+              <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails ({data.length})</TableHead>
               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead>
               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white w-24">Actions</TableHead>
             </TableRow>
@@ -380,7 +380,7 @@ function CaisseContent() {
               data.map((t: any) => {
                 const displayLabel = t.type === "VENTE" 
                   ? (t.relatedId ? `VENTE ${t.relatedId}` : (t.label || "VENTE"))
-                  : `${t.label || "---"}`;
+                  : `${t.type} | ${t.label || "---"}`;
 
                 return (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
