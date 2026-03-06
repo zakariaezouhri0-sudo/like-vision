@@ -21,7 +21,8 @@ import {
   CalendarCheck,
   Edit2,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Coins
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -33,7 +34,7 @@ import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1, 0.5, 0.2, 0.1];
+const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
 function CaisseContent() {
   const { toast } = useToast();
@@ -151,9 +152,14 @@ function CaisseContent() {
 
   const [newOp, setNewOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
   const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
-  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0, 0.5: 0, 0.2: 0, 0.1: 0 });
+  const [denoms, setDenoms] = useState<Record<number, number>>({ 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 1: 0 });
+  const [manualCents, setManualCents] = useState("");
   
-  const soldeReel = useMemo(() => roundAmount(Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0)), [denoms]);
+  const soldeReel = useMemo(() => {
+    const sumBills = Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0);
+    const sumCents = parseAmount(manualCents);
+    return roundAmount(sumBills + sumCents);
+  }, [denoms, manualCents]);
 
   const stats = useMemo(() => {
     const results = transactions.reduce((acc: any, t: any) => {
@@ -505,6 +511,18 @@ function CaisseContent() {
                         <span className="flex-1 text-right font-black text-primary text-xs tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
+                    <div className="flex items-center gap-3 bg-primary/5 p-2 rounded-xl border border-primary/20 mt-4">
+                      <span className="w-16 text-right font-black text-[10px] text-primary uppercase">Centimes</span>
+                      <Input 
+                        type="text" 
+                        className="h-9 w-20 text-center font-black bg-white" 
+                        placeholder="0,00" 
+                        value={manualCents} 
+                        onChange={(e) => setManualCents(e.target.value)}
+                        onBlur={() => manualCents && setManualCents(formatCurrency(parseAmount(manualCents)))}
+                      />
+                      <span className="flex-1 text-right font-black text-primary text-xs tabular-nums flex items-center justify-end gap-1"><Coins className="h-3 w-3" /> DH</span>
+                    </div>
                   </div>
                   <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border">
                     <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
