@@ -157,7 +157,6 @@ function CaisseContent() {
   
   const soldeReel = useMemo(() => {
     const sumBills = Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0);
-    // On divise par 100 pour transformer "60" en 0.60 DH
     const centsVal = parseFloat(manualCents) || 0;
     const sumCents = centsVal / 100;
     return roundAmount(sumBills + sumCents);
@@ -378,9 +377,22 @@ function CaisseContent() {
               <TableRow><TableCell colSpan={3} className="text-center py-12 text-[10px] font-black opacity-20 uppercase tracking-widest">Aucune opération.</TableCell></TableRow>
             ) : (
               data.map((t: any) => {
+                const labelPart = t.label || "";
+                const typeStr = t.type || "";
+                
+                // Nettoyage des libellés redondants pour l'affichage uniquement
+                const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
+                let cleanedLabel = labelPart;
+                redundantPrefixes.forEach(p => {
+                  const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
+                  cleanedLabel = cleanedLabel.replace(reg, '');
+                });
+                // Nettoyage final des quotes et espaces
+                cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
+
                 const displayLabel = t.type === "VENTE" 
-                  ? (t.relatedId ? `VENTE ${t.relatedId}` : (t.label || "VENTE"))
-                  : `${t.type} | ${t.label || "---"}`;
+                  ? (t.relatedId ? `VENTE ${t.relatedId}` : (labelPart || "VENTE"))
+                  : `${t.type} | ${cleanedLabel || "---"}`;
 
                 return (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
