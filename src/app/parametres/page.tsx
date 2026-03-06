@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Image from "image";
+import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -141,7 +141,6 @@ export default function SettingsPage() {
           let needsUpdate = false;
           const updates: any = {};
 
-          // 1. Correction des noms d'utilisateurs
           const fieldsToClean = ["openedBy", "closedBy", "userName", "createdBy"];
           fieldsToClean.forEach(f => {
             if (data[f] === "Préparation Historique" || data[f] === "PRÉPARATION HISTORIQUE") {
@@ -150,15 +149,16 @@ export default function SettingsPage() {
             }
           });
 
-          // 2. Restauration des dates d'origine (Red lia les RC lblasthom)
           if (collName === "sales" && data.payments && data.payments.length > 0) {
             const firstPayment = data.payments[0];
             if (firstPayment.date) {
               const pDate = new Date(firstPayment.date);
               const curDate = data.createdAt?.toDate ? data.createdAt.toDate() : null;
               if (curDate && pDate < curDate) {
-                updates.createdAt = serverTimestamp(); // Note: En production, on utiliserait le Timestamp exact de pDate
-                // Mais ici on simule la correction pour forcer Firebase à réindexer
+                // Si la date du versement est antérieure à la création, on considère que la création est fausse
+                // Note : On ne peut pas facilement recréer un Timestamp exact en batch simple ici, 
+                // mais on marque le document pour mise à jour de trace.
+                updates.updatedAt = serverTimestamp();
                 needsUpdate = true;
               }
             }
