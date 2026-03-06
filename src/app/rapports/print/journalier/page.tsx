@@ -225,21 +225,34 @@ function DailyCashReportContent() {
                     <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => (
-                      <tr key={e.id} className="hover:bg-slate-50">
-                        <td className="p-1.5">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
-                              {e.type} | {e.label || "---"}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">
-                              {e.clientName || "---"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant), false)}</td>
-                      </tr>
-                    )) : (<tr><td colSpan={2} className="p-3 text-center text-slate-300 font-bold italic text-[11px]">Aucune dépense.</td></tr>)}
+                    {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => {
+                      const labelPart = e.label || "";
+                      const typeStr = e.type || "";
+                      const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
+                      let cleanedLabel = labelPart;
+                      redundantPrefixes.forEach(p => {
+                        const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
+                        cleanedLabel = cleanedLabel.replace(reg, '');
+                      });
+                      cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
+                      const displayLabel = `${typeStr} | ${cleanedLabel || "---"}`;
+
+                      return (
+                        <tr key={e.id} className="hover:bg-slate-50">
+                          <td className="p-1.5">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
+                                {displayLabel}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                {e.clientName || "---"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(e.montant), false)}</td>
+                        </tr>
+                      );
+                    }) : (<tr><td colSpan={2} className="p-3 text-center text-slate-300 font-bold italic text-[11px]">Aucune dépense.</td></tr>)}
                   </tbody>
                 </table>
               </div>

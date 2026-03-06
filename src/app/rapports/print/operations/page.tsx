@@ -176,7 +176,21 @@ function OperationsReportContent() {
           const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
           const movement = Math.abs(t.montant);
           const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-          let displayLabel = isVente ? (sale?.notes || "") : (t.type === "VERSEMENT" ? `VERSEMENT | ${t.label || "BANQUE"}` : (t.label || "---"));
+          
+          let cleanedLabel = t.label || "";
+          if (!isVente) {
+            const typeStr = t.type || "";
+            const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
+            redundantPrefixes.forEach(p => {
+              const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
+              cleanedLabel = cleanedLabel.replace(reg, '');
+            });
+            cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
+          }
+
+          let displayLabel = isVente 
+            ? (sale?.notes || "") 
+            : (t.type === "VERSEMENT" ? `VERSEMENT | ${cleanedLabel || "BANQUE"}` : `${t.type} | ${cleanedLabel || "---"}`);
 
           return (
             <tr key={t.id} className="hover:bg-slate-50 transition-colors">
