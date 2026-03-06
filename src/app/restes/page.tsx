@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, HandCoins, Loader2, Calendar } from "lucide-react";
+import { Search, HandCoins, Loader2, Calendar, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, isValid } from "date-fns";
@@ -27,19 +27,29 @@ export default function UnpaidSalesPage() {
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string>("");
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    setRole(savedRole.toUpperCase());
+    setIsReady(true);
   }, []);
 
   const isPrepaMode = role === "PREPA";
+
+  // Vérification de la session d'aujourd'hui
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
+  const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
+  const { data: sessionData } = useDoc(sessionRef);
+  const isTodayClosed = sessionData?.status === "CLOSED";
 
   const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
   const filteredSales = useMemo(() => {
-    if (!sales) return [];
+    if (!sales || !isReady) return [];
     
     return sales
       .filter((sale: any) => {
@@ -62,7 +72,7 @@ export default function UnpaidSalesPage() {
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return dateB - dateA;
       });
-  }, [sales, searchTerm, isPrepaMode]);
+  }, [sales, searchTerm, isPrepaMode, isReady]);
 
   const handleOpenPayment = (sale: any) => {
     setSelectedSale(sale);
@@ -72,6 +82,12 @@ export default function UnpaidSalesPage() {
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedSale || !paymentAmount) return;
+
+    if (isTodayClosed) {
+      toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
+      return;
+    }
+
     const amount = parseAmount(paymentAmount);
     if (amount <= 0) return;
 
@@ -96,7 +112,6 @@ export default function UnpaidSalesPage() {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
-        // MISE À JOUR : La facture remonte à la date de règlement final
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -123,7 +138,7 @@ export default function UnpaidSalesPage() {
           saleId: selectedSale.id, 
           userName: currentUserName, 
           isDraft: isPrepaMode, 
-          isBalancePayment: true, // MARQUEUR POUR L'EXCEL
+          isBalancePayment: true,
           createdAt: serverTimestamp()
         });
       });
@@ -206,12 +221,20 @@ export default function UnpaidSalesPage() {
         </Card>
 
         <Dialog open={!!selectedSale} onOpenChange={(open) => !open && setSelectedSale(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
             <form onSubmit={handleValidatePayment}>
               <DialogHeader className="p-6 md:p-8 bg-primary text-white">
                 <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
                 <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
               </DialogHeader>
+
+              {isTodayClosed && (
+                <div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3">
+                  <Lock className="h-5 w-5 text-red-600" />
+                  <p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p>
+                </div>
+              )}
+
               <div className="p-6 md:p-8 space-y-6">
                 <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span></div>
@@ -221,18 +244,19 @@ export default function UnpaidSalesPage() {
                   <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                   <input 
                     type="text" 
-                    className="w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
+                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isTodayClosed && "opacity-50 cursor-not-allowed")} 
                     value={paymentAmount} 
                     placeholder="0,00"
-                    onChange={(e) => setPaymentAmount(e.target.value)} 
-                    onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                    onChange={(e) => !isTodayClosed && setPaymentAmount(e.target.value)} 
+                    onBlur={() => !isTodayClosed && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                     autoFocus 
+                    readOnly={isTodayClosed}
                   />
                 </div>
               </div>
               <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
                 <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isTodayClosed}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

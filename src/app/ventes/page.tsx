@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins, Lock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,8 @@ function SalesHistoryContent() {
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState("TOUS");
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string>("");
+  const [isReady, setIsReady] = useState(false);
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -50,17 +51,26 @@ function SalesHistoryContent() {
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
   useEffect(() => {
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    setRole(savedRole.toUpperCase());
+    setIsReady(true);
   }, []);
 
-  const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
+  const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
+
+  // Vérification de la session d'aujourd'hui pour bloquer les règlements si clôturé
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
+  const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
+  const { data: sessionData } = useDoc(sessionRef);
+  const isTodayClosed = sessionData?.status === "CLOSED";
 
   const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
   const filteredSales = useMemo(() => {
-    if (!rawSales) return [];
+    if (!rawSales || !isReady) return [];
     
     return rawSales
       .filter((sale: any) => {
@@ -97,7 +107,7 @@ function SalesHistoryContent() {
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return dateB - dateA;
       });
-  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode]);
+  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredSales.length && filteredSales.length > 0) {
@@ -186,6 +196,12 @@ function SalesHistoryContent() {
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
+    
+    if (isTodayClosed) {
+      toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
+      return;
+    }
+
     const amount = parseAmount(paymentAmount);
     if (amount <= 0) return;
 
@@ -235,7 +251,7 @@ function SalesHistoryContent() {
           saleId: paymentSale.id,
           userName: currentUserName, 
           isDraft: isPrepaMode, 
-          isBalancePayment: true, // MARQUEUR POUR L'EXCEL
+          isBalancePayment: true,
           createdAt: serverTimestamp()
         });
       });
@@ -355,7 +371,21 @@ function SalesHistoryContent() {
                             {histAmt > 0 && <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1"><HistoryIcon className="h-2 w-2" /> {formatCurrency(histAmt)} (Hist)</span>}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span></TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>
+                            {sale.reste > 0 && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }}
+                                className="h-6 px-2 text-[8px] font-black uppercase border-red-100 text-red-600 hover:bg-red-50 rounded-md"
+                              >
+                                <HandCoins className="h-2 w-2 mr-1" /> Régler
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center px-4 md:px-8 py-5">
                           <Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut || "---"}</Badge>
                         </TableCell>
@@ -423,12 +453,20 @@ function SalesHistoryContent() {
       </Dialog>
 
       <Dialog open={!!paymentSale} onOpenChange={(o) => !o && setPaymentSale(null)}>
-        <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
           <form onSubmit={handleValidatePayment}>
             <DialogHeader className="p-8 bg-primary text-white">
               <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-7 w-7" /> Règlement Vente</DialogTitle>
               <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{paymentSale?.clientName} | {paymentSale?.invoiceId}</p>
             </DialogHeader>
+            
+            {isTodayClosed && (
+              <div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3">
+                <Lock className="h-5 w-5 text-red-600" />
+                <p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p>
+              </div>
+            )}
+
             <div className="p-8 space-y-6 bg-white">
               <div className="bg-slate-50 p-6 rounded-2xl border space-y-3">
                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
@@ -437,18 +475,19 @@ function SalesHistoryContent() {
                 <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
                 <input 
                   type="text" 
-                  className="w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums" 
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isTodayClosed && "opacity-50 cursor-not-allowed")} 
                   value={paymentAmount} 
                   placeholder="0,00"
-                  onChange={(e) => setPaymentAmount(e.target.value)} 
-                  onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                  onChange={(e) => !isTodayClosed && setPaymentAmount(e.target.value)} 
+                  onBlur={() => !isTodayClosed && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                   autoFocus 
+                  readOnly={isTodayClosed}
                 />
               </div>
             </div>
             <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
               <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button>
-              <Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+              <Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || isTodayClosed}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
