@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -29,16 +28,15 @@ export default function SettingsPage() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
-  const [isPrepaMode, setIsPrepaMode] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
-    const savedMode = localStorage.getItem('work_mode');
     setRole(savedRole);
-    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setLoadingRole(false);
   }, [router]);
   
+  const isPrepaMode = role === 'PREPA';
+
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: fetchLoading } = useDoc(settingsRef);
 
@@ -252,7 +250,7 @@ export default function SettingsPage() {
               <CardHeader className="bg-slate-50/50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Logo</CardTitle></CardHeader>
               <CardContent className="flex flex-col items-center gap-6 p-8">
                 <div className="relative h-48 w-48 border-2 border-dashed border-primary/10 rounded-[32px] overflow-hidden bg-slate-50 flex items-center justify-center">
-                  {settings.logoUrl ? <Image src={settings.logoUrl} alt="Logo" fill className="object-contain p-4" /> : <ImageIcon className="h-12 w-12 text-primary/10" />}
+                  {settings.logoUrl ? <Image src={settings.logoUrl} alt="Logo" width={192} height={192} className="object-contain p-4" /> : <ImageIcon className="h-12 w-12 text-primary/10" />}
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
                   const file = e.target.files?.[0];
