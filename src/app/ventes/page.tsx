@@ -225,6 +225,7 @@ function SalesHistoryContent() {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
+        // CRITIQUE : On ne met pas à jour createdAt pour garder la trace originale
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -236,7 +237,6 @@ function SalesHistoryContent() {
             userName: currentUserName,
             note: "Règlement Historique"
           }),
-          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp() 
         });
 

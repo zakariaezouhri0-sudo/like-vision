@@ -112,6 +112,7 @@ export default function UnpaidSalesPage() {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
+        // CRITIQUE : On ne met pas à jour createdAt pour garder la trace originale
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -123,7 +124,6 @@ export default function UnpaidSalesPage() {
             userName: currentUserName,
             note: "Règlement"
           }),
-          createdAt: serverTimestamp(), 
           updatedAt: serverTimestamp() 
         });
 
