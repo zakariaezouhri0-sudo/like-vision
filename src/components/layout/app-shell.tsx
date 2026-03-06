@@ -5,13 +5,14 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2 } from "lucide-react";
+import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2, Zap, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -20,15 +21,32 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [workMode, setWorkMode] = useState<'REAL' | 'DRAFT'>('REAL');
   const { user } = useUser();
   const db = useFirestore();
+  const router = useRouter();
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role');
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase();
     if (savedRole) {
-      setRole(savedRole.toUpperCase());
+      setRole(savedRole);
+      // Si c'est le compte PREPA, on force le mode DRAFT
+      if (savedRole === 'PREPA') {
+        setWorkMode('DRAFT');
+      } else {
+        // Pour les autres (Admin), on récupère le mode choisi ou REAL par défaut
+        const savedMode = localStorage.getItem('work_mode') as 'REAL' | 'DRAFT';
+        setWorkMode(savedMode === 'DRAFT' ? 'DRAFT' : 'REAL');
+      }
     }
   }, []);
+
+  const toggleWorkMode = (mode: 'REAL' | 'DRAFT') => {
+    if (role === 'PREPA') return; // Le compte PREPA ne peut pas changer
+    setWorkMode(mode);
+    localStorage.setItem('work_mode', mode);
+    window.location.reload(); // Recharger pour rafraîchir tous les filtres
+  };
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -36,11 +54,12 @@ export function AppShell({ children }: AppShellProps) {
   const userName = user?.displayName || "Personnel";
   const userInitials = userName.substring(0, 2).toUpperCase();
   
-  const isPrepa = role === "PREPA";
-  const displayRole = isPrepa ? "ZAKARIAE" : (role === "ADMIN" ? "ADMINISTRATEUR" : "OPTICIENNE");
+  const isPrepa = workMode === "DRAFT";
+  const isAdmin = role === "ADMIN";
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
+    localStorage.removeItem('work_mode');
   };
 
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
@@ -98,15 +117,26 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex-1 py-6 overflow-y-auto px-2">
           <SidebarNav role={role} />
         </div>
-        <div className="p-4 border-t bg-slate-50/50">
+        <div className="p-4 border-t bg-slate-50/50 space-y-3">
+          {/* Mode Indicator in Sidebar */}
+          <div className={cn(
+            "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm",
+            isPrepa ? "bg-orange-50 border-orange-100 text-orange-700" : "bg-blue-50 border-blue-100 text-blue-700"
+          )}>
+            <div className={cn("h-2 w-2 rounded-full", isPrepa ? "bg-orange-500 animate-pulse" : "bg-blue-500")} />
+            <span className="text-[9px] font-black uppercase tracking-widest">
+              {isPrepa ? "Mode Préparation" : "Mode Réel"}
+            </span>
+          </div>
+
           <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
             <Avatar className="h-10 w-10 border-2 border-primary/10 shadow-inner">
               <AvatarFallback className="bg-primary text-white text-xs font-black">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate capitalize text-slate-900">{userName}</span>
-              <span className={cn("text-[9px] font-black uppercase tracking-widest", isPrepa ? "text-orange-600" : "text-primary/60")}>
-                {displayRole}
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">
+                {role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")}
               </span>
             </div>
           </div>
@@ -116,9 +146,9 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen">
         {isPrepa && (
-          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0">
+          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0 animate-in slide-in-from-top-full duration-500">
             <AlertTriangle className="h-4 w-4" />
-            Attention : Vous êtes en Mode Préparation. Les données saisies sont des brouillons.
+            Espace de Travail Isolé : Les données saisies sont des Brouillons (ZAKARIAE).
           </div>
         )}
         
@@ -148,12 +178,38 @@ export function AppShell({ children }: AppShellProps) {
             </Link>
 
             <div className="hidden md:block">
-              <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Tableau de Bord</h2>
-              <p className="text-xl font-black text-slate-800 tracking-tighter">Gestion Magasin</p>
+              <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
+              <p className="text-xl font-black text-slate-800 tracking-tighter">Gestion Optique</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Mode Switcher for Admins */}
+            {isAdmin && (
+              <div className="hidden lg:flex bg-slate-100 p-1 rounded-2xl border shadow-inner">
+                <button 
+                  onClick={() => toggleWorkMode('REAL')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all",
+                    !isPrepa ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  <ShieldCheck className={cn("h-3.5 w-3.5", !isPrepa ? "text-blue-500" : "text-slate-300")} />
+                  RÉEL
+                </button>
+                <button 
+                  onClick={() => toggleWorkMode('DRAFT')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all",
+                    isPrepa ? "bg-orange-500 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  <Zap className={cn("h-3.5 w-3.5", isPrepa ? "text-white" : "text-slate-300")} />
+                  BROUILLON
+                </button>
+              </div>
+            )}
+
             <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-3" />

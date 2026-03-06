@@ -29,15 +29,14 @@ export default function SettingsPage() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role');
-    if (!savedRole || (savedRole !== 'ADMIN' && savedRole !== 'PREPA')) {
-      router.push('/dashboard');
-    } else {
-      setRole(savedRole.toUpperCase());
-      setLoadingRole(false);
-    }
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
+    setRole(savedRole);
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
+    setLoadingRole(false);
   }, [router]);
   
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
@@ -72,8 +71,7 @@ export default function SettingsPage() {
   const handleRecalculateBCPrices = async () => {
     setIsMigrating(true);
     try {
-      const currentIsDraft = role === 'PREPA';
-      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", currentIsDraft));
+      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
       const salesSnap = await getDocs(salesQuery);
       
       const resetBatch = writeBatch(db);
@@ -82,7 +80,7 @@ export default function SettingsPage() {
       });
       await resetBatch.commit();
 
-      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", currentIsDraft));
+      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", isPrepaMode));
       const transSnap = await getDocs(transQuery);
       
       let updateCount = 0;
@@ -155,9 +153,6 @@ export default function SettingsPage() {
               const pDate = new Date(firstPayment.date);
               const curDate = data.createdAt?.toDate ? data.createdAt.toDate() : null;
               if (curDate && pDate < curDate) {
-                // Si la date du versement est antérieure à la création, on considère que la création est fausse
-                // Note : On ne peut pas facilement recréer un Timestamp exact en batch simple ici, 
-                // mais on marque le document pour mise à jour de trace.
                 updates.updatedAt = serverTimestamp();
                 needsUpdate = true;
               }
@@ -279,7 +274,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="p-6 space-y-3">
                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Synchronisation Automatique BC</p>
-                <p className="text-[8px] font-bold text-slate-500 leading-tight">Remet à zéro et réaffecte les coûts d'achat à partir de toutes vos opérations de caisse (Mode {role}).</p>
+                <p className="text-[8px] font-bold text-slate-500 leading-tight">Remet à zéro et réaffecte les coûts d'achat à partir de toutes vos opérations de caisse (Mode {isPrepaMode ? "BROUILLON" : "RÉEL"}).</p>
                 <Button onClick={handleRecalculateBCPrices} disabled={isMigrating} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
                   {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />} Recalculer les coûts BC
                 </Button>
@@ -309,7 +304,7 @@ export default function SettingsPage() {
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="rounded-[32px]">
-                      <AlertDialogHeader><AlertDialogTitle className="font-black uppercase">Confirmer la publication ?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Toutes les données du compte ZAKARIAE vont être transférées définitivement.</AlertDialogDescription></AlertDialogHeader>
+                      <AlertDialogHeader><AlertDialogTitle className="font-black uppercase">Confirmer la publication ?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Toutes les données du MODE PRÉPARATION vont être transférées définitivement vers le MODE RÉEL.</AlertDialogDescription></AlertDialogHeader>
                       <AlertDialogFooter><AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel><AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer</AlertDialogAction></AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -327,7 +322,7 @@ export default function SettingsPage() {
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-[32px]">
-                    <AlertDialogHeader><AlertDialogTitle className="text-xl font-black uppercase text-primary">Action Irréversible</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Cette opération va effacer TOUT l'historique des ventes, clients et caisses.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogHeader><AlertDialogTitle className="text-xl font-black uppercase text-primary">Action Irréversible</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Cette opération va effacer TOUT l'historique des ventes, clients et caisses (Mode {isPrepaMode ? "Brouillon" : "Réel"}).</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel><AlertDialogAction onClick={handleResetAllData} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

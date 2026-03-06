@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -45,16 +46,19 @@ function CaisseContent() {
   
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [openingVal, setOpeningVal] = useState("");
   const [isAutoReport, setIsAutoReport] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
+    
     setRole(savedRole);
+    // Isolation stricte : compte PREPA ou mode DRAFT choisi par l'admin
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsHydrated(true);
   }, []);
-
-  const isPrepaMode = role === "PREPA";
 
   const selectedDate = useMemo(() => {
     const dateParam = searchParams.get("date");
@@ -80,6 +84,7 @@ function CaisseContent() {
 
   const session = useMemo(() => {
     if (!rawSession) return null;
+    // Vérification de sécurité sur le flag isDraft du document
     if (isPrepaMode !== (rawSession.isDraft === true)) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
@@ -120,6 +125,7 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
+    // Isolation stricte dans la vue
     return rawTransactions
       .filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true)
       .sort((a, b) => {
@@ -301,7 +307,7 @@ function CaisseContent() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
-        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-orange-50" : "bg-primary")}>
+        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-orange-500" : "bg-primary")}>
           <CalendarCheck className="h-12 w-12" />
         </div>
         <div className="space-y-4">
