@@ -194,7 +194,8 @@ export default function CashSessionsPage() {
         .map(d => ({ ...d.data(), id: d.id }))
         .filter((t: any) => {
           const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-          return d && d >= dateStart && d <= endOfDay(d);
+          // CRITICAL FIX: Ensure transaction belongs STRICTLY to the selected day
+          return d && d >= dateStart && d <= dateEnd;
         });
 
       const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepa));
@@ -234,9 +235,9 @@ export default function CashSessionsPage() {
 
       const excelRows = [
         ...nouvellesVentes.map(mapToExcelRow),
-        {}, // Ligne vide
+        {}, // Ligne vide de séparation
         ...sorties.map(mapToExcelRow),
-        {}, // Ligne vide
+        {}, // Ligne vide de séparation
         ...reglements.map(mapToExcelRow)
       ];
 
