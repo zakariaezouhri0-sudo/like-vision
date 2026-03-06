@@ -205,50 +205,42 @@ export default function CashSessionsPage() {
         if (data.invoiceId) salesMap[data.invoiceId] = data;
       });
 
-      const excelData = trans
-        .filter((t: any) => {
-          const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-          return d && d >= dateStart && d <= dateEnd;
-        })
-        .sort((a: any, b: any) => {
-          const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
-          const pA = priority[a.type as string] || 99;
-          const pB = priority[b.type as string] || 99;
-          if (pA !== pB) return pA - pB;
-          return (a.createdAt?.toDate?.().getTime() || 0) - (b.createdAt?.toDate?.().getTime() || 0);
-        })
-        .map((t: any) => {
-          let invoiceId = t.relatedId || "";
-          if (!invoiceId && t.label?.includes('VENTE')) {
-            invoiceId = t.label.replace('VENTE ', '').trim();
-          }
-          
-          const sale = salesMap[invoiceId];
-          const isVente = t.type === "VENTE";
-          const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-          const movement = Math.abs(t.montant);
+      // GROUPEMENT POUR L'EXCEL
+      const nouvellesVentes = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+      const sorties = trans.filter((t: any) => t.type !== "VENTE");
+      const reglements = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
-          let displayLabel = "";
-          if (isVente) {
-            displayLabel = sale?.notes || "";
-          } else if (t.type === "VERSEMENT") {
-            displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
-          } else {
-            displayLabel = t.label || "---";
-          }
+      const mapToExcelRow = (t: any) => {
+        let invoiceId = t.relatedId || "";
+        if (!invoiceId && t.label?.includes('VENTE')) {
+          invoiceId = t.label.replace('VENTE ', '').trim();
+        }
+        const sale = salesMap[invoiceId];
+        const isVente = t.type === "VENTE";
+        const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+        const movement = Math.abs(t.montant);
+        let displayLabel = isVente ? (sale?.notes || "") : (t.type === "VERSEMENT" ? `VERSEMENT | ${t.label || "BANQUE"}` : (t.label || "---"));
 
-          return {
-            "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
-            "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-            "Libellé": displayLabel,
-            "Nom client": t.clientName || "---",
-            "Montant Total": isVente && totalNet !== null ? totalNet : "",
-            "Mouvement (Avance)": isVente ? movement : "",
-            "SORTIE": !isVente ? movement : ""
-          };
-        });
+        return {
+          "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
+          "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+          "Libellé": displayLabel,
+          "Nom client": t.clientName || "---",
+          "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
+          "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
+          "SORTIE": !isVente ? formatCurrency(movement, false) : ""
+        };
+      };
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const excelRows = [
+        ...nouvellesVentes.map(mapToExcelRow),
+        {}, // Ligne vide
+        ...sorties.map(mapToExcelRow),
+        {}, // Ligne vide
+        ...reglements.map(mapToExcelRow)
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
       XLSX.writeFile(workbook, `Like Vision - Opérations ${session.date}.xlsx`);

@@ -235,6 +235,7 @@ function SalesHistoryContent() {
           saleId: paymentSale.id,
           userName: currentUserName, 
           isDraft: isPrepaMode, 
+          isBalancePayment: true, // MARQUEUR POUR L'EXCEL
           createdAt: serverTimestamp()
         });
       });

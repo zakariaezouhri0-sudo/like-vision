@@ -28,13 +28,18 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
-    if (savedRole) setRole(savedRole.toUpperCase());
-    else router.push('/login');
+    if (savedRole) {
+      setRole(savedRole.toUpperCase());
+      setIsClientReady(true);
+    } else {
+      router.push('/login');
+    }
   }, [router]);
 
   const isPrepaMode = role === "PREPA";
@@ -78,29 +83,34 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  const dateStr = format(saleDate, "yyyy-MM-dd");
-  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
-  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  // Calcul du session ID seulement si role est prêt
+  const sessionDocId = useMemo(() => {
+    if (!isClientReady) return null;
+    const ds = format(saleDate, "yyyy-MM-dd");
+    return isPrepaMode ? `DRAFT-${ds}` : ds;
+  }, [isClientReady, saleDate, isPrepaMode]);
+
+  const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData } = useDoc(sessionRef);
   const isSessionClosed = sessionData?.status === "CLOSED";
 
   const canBypassLock = isAdminOrPrepa && activeEditId;
 
   useEffect(() => {
-    if (isSessionClosed && !canBypassLock) {
+    if (isClientReady && isSessionClosed && !canBypassLock) {
       toast({
         variant: "destructive",
         title: "JOURNÉE VERROUILLÉE",
         description: `La caisse du ${format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()} est déjà clôturée.`,
       });
     }
-  }, [isSessionClosed, saleDate, toast, canBypassLock]);
+  }, [isClientReady, isSessionClosed, saleDate, toast, canBypassLock]);
 
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
 
   useEffect(() => {
-    if (activeEditId || !allClients) return;
+    if (activeEditId || !allClients || !isClientReady) return;
 
     const findAndPopulate = () => {
       const matchMode = isPrepaMode ? (c: any) => c.isDraft === true : (c: any) => !c.isDraft;
@@ -137,7 +147,7 @@ function NewSaleForm() {
 
     const timeout = setTimeout(findAndPopulate, 500);
     return () => clearTimeout(timeout);
-  }, [clientPhone, clientName, allClients, isPrepaMode, activeEditId]);
+  }, [clientPhone, clientName, allClients, isPrepaMode, activeEditId, isClientReady]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -335,7 +345,7 @@ function NewSaleForm() {
     }
   };
 
-  if (!role) return null;
+  if (!isClientReady) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <AppShell>

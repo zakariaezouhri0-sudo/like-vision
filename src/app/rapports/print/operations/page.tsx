@@ -88,8 +88,8 @@ function OperationsReportContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
-  const transactions = useMemo(() => {
-    if (!rawTransactions) return [];
+  const groupedTransactions = useMemo(() => {
+    if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
     
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
@@ -99,55 +99,99 @@ function OperationsReportContent() {
       return d && d >= start && d <= end;
     });
     
-    return [...filtered].sort((a, b) => {
-      const priority: Record<string, number> = { "VENTE": 1, "ACHAT VERRES": 2, "ACHAT MONTURE": 3, "VERSEMENT": 4, "DEPENSE": 5 };
-      const pA = priority[a.type as string] || 99;
-      const pB = priority[b.type as string] || 99;
-      if (pA !== pB) return pA - pB;
+    const sorted = [...filtered].sort((a, b) => {
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
     });
+
+    return {
+      nouvellesVentes: sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true),
+      sorties: sorted.filter((t: any) => t.type !== "VENTE"),
+      reglements: sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true)
+    };
   }, [rawTransactions, selectedDate]);
 
+  const mapToExcelRow = (t: any) => {
+    if (!t.id) return {}; // Ligne vide pour Excel
+
+    let invoiceId = t.relatedId || "";
+    if (!invoiceId && t.label?.includes('VENTE')) {
+      invoiceId = t.label.replace('VENTE ', '').trim();
+    }
+    
+    const sale = salesDetails[invoiceId];
+    const isVente = t.type === "VENTE";
+    const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+    const movement = Math.abs(t.montant);
+    const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+    
+    let displayLabel = "";
+    if (isVente) {
+      displayLabel = sale?.notes || "";
+    } else if (t.type === "VERSEMENT") {
+      displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
+    } else {
+      displayLabel = t.label || "---";
+    }
+
+    return {
+      "Réf": refDisplay,
+      "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+      "Libellé": displayLabel,
+      "Nom client": t.clientName || "---",
+      "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
+      "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
+      "SORTIE": !isVente ? formatCurrency(movement, false) : ""
+    };
+  };
+
   const handleExportExcel = () => {
-    const data = transactions.map((t: any) => {
-      let invoiceId = t.relatedId || "";
-      if (!invoiceId && t.label?.includes('VENTE')) {
-        invoiceId = t.label.replace('VENTE ', '').trim();
-      }
-      
-      const sale = salesDetails[invoiceId];
-      const isVente = t.type === "VENTE";
-      const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-      const movement = Math.abs(t.montant);
+    const excelRows = [
+      ...groupedTransactions.nouvellesVentes.map(mapToExcelRow),
+      {}, // Ligne vide
+      ...groupedTransactions.sorties.map(mapToExcelRow),
+      {}, // Ligne vide
+      ...groupedTransactions.reglements.map(mapToExcelRow)
+    ];
 
-      const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-      
-      let displayLabel = "";
-      if (isVente) {
-        displayLabel = sale?.notes || "";
-      } else if (t.type === "VERSEMENT") {
-        displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
-      } else {
-        displayLabel = t.label || "---";
-      }
-
-      return {
-        "Réf": refDisplay,
-        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-        "Libellé": displayLabel,
-        "Nom client": t.clientName || "---",
-        "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
-        "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
-        "SORTIE": !isVente ? formatCurrency(movement, false) : ""
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const worksheet = XLSX.utils.json_to_sheet(excelRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
     XLSX.writeFile(workbook, `Like Vision - Opérations ${format(selectedDate, "dd-MM-yyyy")}.xlsx`);
+  };
+
+  const renderTableRows = (title: string, data: any[]) => {
+    if (data.length === 0) return null;
+    return (
+      <>
+        <tr className="bg-slate-50"><td colSpan={7} className="p-2 text-center text-[10px] font-black uppercase text-primary border-y-2 border-slate-950">{title}</td></tr>
+        {data.map((t: any) => {
+          let invoiceId = t.relatedId || "";
+          if (!invoiceId && t.label?.includes('VENTE')) {
+            invoiceId = t.label.replace('VENTE ', '').trim();
+          }
+          const sale = salesDetails[invoiceId];
+          const isVente = t.type === "VENTE";
+          const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+          const movement = Math.abs(t.montant);
+          const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+          let displayLabel = isVente ? (sale?.notes || "") : (t.type === "VERSEMENT" ? `VERSEMENT | ${t.label || "BANQUE"}` : (t.label || "---"));
+
+          return (
+            <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+              <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
+              <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</td>
+              <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">{displayLabel}</td>
+              <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
+              <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">{isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}</td>
+              <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">{isVente ? (<span className="text-green-600">+{formatCurrency(movement, false)}</span>) : ""}</td>
+              <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">{!isVente ? `-${formatCurrency(movement, false)}` : ""}</td>
+            </tr>
+          );
+        })}
+      </>
+    );
   };
 
   if (settingsLoading || transLoading || loadingSales) {
@@ -175,14 +219,7 @@ function OperationsReportContent() {
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
           <div className="flex items-center gap-6">
             <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
-              {shop.logoUrl ? (
-                <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />
-              ) : (
-                <div className="relative text-primary">
-                  <Glasses className="h-10 w-10" />
-                  <ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" />
-                </div>
-              )}
+              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-primary"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" /></div>)}
             </div>
             <div>
               <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
@@ -221,56 +258,10 @@ function OperationsReportContent() {
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-slate-950">
-              {transactions.length > 0 ? transactions.map((t: any) => {
-                let invoiceId = t.relatedId || "";
-                if (!invoiceId && t.label?.includes('VENTE')) {
-                  invoiceId = t.label.replace('VENTE ', '').trim();
-                }
-                
-                const sale = salesDetails[invoiceId];
-                const isVente = t.type === "VENTE";
-                const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-                const movement = Math.abs(t.montant);
-
-                const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-                
-                let displayLabel = "";
-                if (isVente) {
-                  displayLabel = sale?.notes || "";
-                } else if (t.type === "VERSEMENT") {
-                  displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
-                } else {
-                  displayLabel = t.label || "---";
-                }
-
-                return (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">
-                      {refDisplay}
-                    </td>
-                    <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">
-                      {t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}
-                    </td>
-                    <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
-                      {displayLabel}
-                    </td>
-                    <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">
-                      {t.clientName || "---"}
-                    </td>
-                    <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">
-                      {isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}
-                    </td>
-                    <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">
-                      {isVente ? (
-                        <span className="text-green-600">+{formatCurrency(movement, false)}</span>
-                      ) : ""}
-                    </td>
-                    <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">
-                      {!isVente ? `-${formatCurrency(movement, false)}` : ""}
-                    </td>
-                  </tr>
-                );
-              }) : (
+              {renderTableRows("NOUVELLES VENTES", groupedTransactions.nouvellesVentes)}
+              {renderTableRows("SORTIES (ACHATS & CHARGES)", groupedTransactions.sorties)}
+              {renderTableRows("RÈGLEMENTS DES RESTES", groupedTransactions.reglements)}
+              {(groupedTransactions.nouvellesVentes.length === 0 && groupedTransactions.sorties.length === 0 && groupedTransactions.reglements.length === 0) && (
                 <tr><td colSpan={7} className="p-10 text-center text-slate-300 font-black italic uppercase tracking-widest">Aucune opération enregistrée pour ce jour.</td></tr>
               )}
             </tbody>
@@ -291,9 +282,7 @@ function OperationsReportContent() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.5em] italic">
-              SYSTÈME LIKE VISION • RAPPORT DÉTAILLÉ
-            </p>
+            <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.5em] italic">SYSTÈME LIKE VISION • RAPPORT DÉTAILLÉ</p>
           </div>
         </div>
       </div>

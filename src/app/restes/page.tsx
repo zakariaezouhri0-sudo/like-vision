@@ -123,6 +123,7 @@ export default function UnpaidSalesPage() {
           saleId: selectedSale.id, 
           userName: currentUserName, 
           isDraft: isPrepaMode, 
+          isBalancePayment: true, // MARQUEUR POUR L'EXCEL
           createdAt: serverTimestamp()
         });
       });
