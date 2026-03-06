@@ -60,6 +60,8 @@ function CaisseContent() {
     setIsHydrated(true);
   }, []);
 
+  const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
+
   const selectedDate = useMemo(() => {
     const dateParam = searchParams.get("date");
     if (dateParam) {
@@ -420,26 +422,24 @@ function CaisseContent() {
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        {!isClosed && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onClick={() => handleOpenEdit(t)} 
-                              className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
-                              className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                        {(!isClosed || isAdminOrPrepa) && (
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleOpenEdit(t)} 
+                            className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
                         )}
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
+                          className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -489,7 +489,7 @@ function CaisseContent() {
         </div>
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {!isClosed && (
+          {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
