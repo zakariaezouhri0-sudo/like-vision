@@ -157,7 +157,9 @@ function CaisseContent() {
   
   const soldeReel = useMemo(() => {
     const sumBills = Object.entries(denoms).reduce((acc, [val, qty]) => acc + (Number(val) * qty), 0);
-    const sumCents = parseAmount(manualCents);
+    // On divise par 100 pour transformer "60" en 0.60 DH
+    const centsVal = parseFloat(manualCents) || 0;
+    const sumCents = centsVal / 100;
     return roundAmount(sumBills + sumCents);
   }, [denoms, manualCents]);
 
@@ -514,12 +516,11 @@ function CaisseContent() {
                     <div className="flex items-center gap-3 bg-primary/5 p-2 rounded-xl border border-primary/20 mt-4">
                       <span className="w-16 text-right font-black text-[10px] text-primary uppercase">Centimes</span>
                       <Input 
-                        type="text" 
+                        type="number" 
                         className="h-9 w-20 text-center font-black bg-white" 
-                        placeholder="0,00" 
+                        placeholder="60" 
                         value={manualCents} 
                         onChange={(e) => setManualCents(e.target.value)}
-                        onBlur={() => manualCents && setManualCents(formatCurrency(parseAmount(manualCents)))}
                       />
                       <span className="flex-1 text-right font-black text-primary text-xs tabular-nums flex items-center justify-end gap-1"><Coins className="h-3 w-3" /> DH</span>
                     </div>
