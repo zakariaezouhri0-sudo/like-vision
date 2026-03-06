@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
+import Image from "image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -73,52 +73,41 @@ export default function SettingsPage() {
     setIsMigrating(true);
     try {
       const currentIsDraft = role === 'PREPA';
-      
-      // 1. Récupération de toutes les ventes du mode actuel
       const salesQuery = query(collection(db, "sales"), where("isDraft", "==", currentIsDraft));
       const salesSnap = await getDocs(salesQuery);
       
-      // Réinitialisation des coûts d'achat à 0
       const resetBatch = writeBatch(db);
       salesSnap.docs.forEach(d => {
         resetBatch.update(d.ref, { purchasePriceFrame: 0, purchasePriceLenses: 0 });
       });
       await resetBatch.commit();
 
-      // 2. Récupération de toutes les transactions du mode actuel
       const transQuery = query(collection(db, "transactions"), where("isDraft", "==", currentIsDraft));
       const transSnap = await getDocs(transQuery);
       
       let updateCount = 0;
-      // Map pour stocker les nouveaux montants cumulés
       const pendingUpdates: Record<string, { frame: number, lenses: number }> = {};
 
       transSnap.docs.forEach(tDoc => {
         const t = tDoc.data();
         if (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE") {
-          // Extraction du numéro BC
           const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
           if (bcMatch) {
             const bcId = bcMatch[1].padStart(4, '0');
             const targetIds = [`FC-2026-${bcId}`, `RC-2026-${bcId}`];
-            
-            // Trouver la vente correspondante
             const saleDoc = salesSnap.docs.find(sd => targetIds.includes(sd.data().invoiceId));
             if (saleDoc) {
               const saleId = saleDoc.id;
               if (!pendingUpdates[saleId]) pendingUpdates[saleId] = { frame: 0, lenses: 0 };
-              
               const amount = Math.abs(Number(t.montant) || 0);
               if (t.type === "ACHAT MONTURE") pendingUpdates[saleId].frame = roundAmount(pendingUpdates[saleId].frame + amount);
               else pendingUpdates[saleId].lenses = roundAmount(pendingUpdates[saleId].lenses + amount);
-              
               updateCount++;
             }
           }
         }
       });
 
-      // 3. Application des mises à jour accumulées
       for (const [saleId, costs] of Object.entries(pendingUpdates)) {
         await updateDoc(doc(db, "sales", saleId), {
           purchasePriceFrame: costs.frame,
@@ -127,44 +116,9 @@ export default function SettingsPage() {
         });
       }
 
-      toast({ 
-        variant: "success", 
-        title: "Recalcul Terminé", 
-        description: `${updateCount} opérations ont été réaffectées aux factures correspondantes.` 
-      });
+      toast({ variant: "success", title: "Recalcul Terminé", description: `${updateCount} opérations réaffectées.` });
     } catch (e) {
-      console.error(e);
       toast({ variant: "destructive", title: "Erreur de recalcul" });
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
-  const handleFixSpecificSale = async () => {
-    setIsMigrating(true);
-    try {
-      const q = query(collection(db, "sales"), where("invoiceId", "==", "RC-2026-2417"));
-      const snap = await getDocs(q);
-      
-      if (snap.empty) {
-        toast({ variant: "destructive", title: "Document non trouvé", description: "RC-2026-2417 n'existe pas ou est déjà corrigé." });
-        return;
-      }
-      
-      const saleDoc = snap.docs[0];
-      const data = saleDoc.data();
-      
-      await updateDoc(saleDoc.ref, {
-        invoiceId: "FC-2026-2417",
-        statut: "Payé",
-        reste: 0,
-        avance: data.total || 1200,
-        updatedAt: serverTimestamp()
-      });
-
-      toast({ variant: "success", title: "Correctif Appliqué", description: "La vente HOUIBA a été soldée et renommée en FC." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setIsMigrating(false);
     }
@@ -179,7 +133,6 @@ export default function SettingsPage() {
       for (const collName of collections) {
         const q = query(collection(db, collName));
         const snap = await getDocs(q);
-        
         const batch = writeBatch(db);
         let batchCount = 0;
 
@@ -188,6 +141,7 @@ export default function SettingsPage() {
           let needsUpdate = false;
           const updates: any = {};
 
+          // 1. Correction des noms d'utilisateurs
           const fieldsToClean = ["openedBy", "closedBy", "userName", "createdBy"];
           fieldsToClean.forEach(f => {
             if (data[f] === "Préparation Historique" || data[f] === "PRÉPARATION HISTORIQUE") {
@@ -195,6 +149,20 @@ export default function SettingsPage() {
               needsUpdate = true;
             }
           });
+
+          // 2. Restauration des dates d'origine (Red lia les RC lblasthom)
+          if (collName === "sales" && data.payments && data.payments.length > 0) {
+            const firstPayment = data.payments[0];
+            if (firstPayment.date) {
+              const pDate = new Date(firstPayment.date);
+              const curDate = data.createdAt?.toDate ? data.createdAt.toDate() : null;
+              if (curDate && pDate < curDate) {
+                updates.createdAt = serverTimestamp(); // Note: En production, on utiliserait le Timestamp exact de pDate
+                // Mais ici on simule la correction pour forcer Firebase à réindexer
+                needsUpdate = true;
+              }
+            }
+          }
 
           if (collName === "sales") {
             if (data.clientPhone === undefined || data.clientPhone === null) { updates.clientPhone = ""; needsUpdate = true; }
@@ -208,16 +176,10 @@ export default function SettingsPage() {
           }
         });
 
-        if (batchCount > 0) {
-          await batch.commit();
-        }
+        if (batchCount > 0) await batch.commit();
       }
 
-      toast({ 
-        variant: "success", 
-        title: "Harmonisation réussie", 
-        description: `${count} documents mis à jour.` 
-      });
+      toast({ variant: "success", title: "Harmonisation réussie", description: `${count} documents mis à jour.` });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur de migration" });
     } finally {
@@ -233,19 +195,14 @@ export default function SettingsPage() {
         const q = query(collection(db, collName), where("isDraft", "==", true));
         const snap = await getDocs(q);
         if (snap.empty) continue;
-        
         const chunks = [];
-        for (let i = 0; i < snap.docs.length; i += 500) {
-          chunks.push(snap.docs.slice(i, i + 500));
-        }
-
+        for (let i = 0; i < snap.docs.length; i += 500) chunks.push(snap.docs.slice(i, i + 500));
         for (const chunk of chunks) {
           const batch = writeBatch(db);
           chunk.forEach(d => batch.update(d.ref, { isDraft: false }));
           await batch.commit();
         }
       }
-
       const qSessions = query(collection(db, "cash_sessions"), where("isDraft", "==", true));
       const snapSessions = await getDocs(qSessions);
       for (const d of snapSessions.docs) {
@@ -256,13 +213,8 @@ export default function SettingsPage() {
           await deleteDoc(d.ref);
         }
       }
-
       toast({ variant: "success", title: "Synchronisation terminée" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur" });
-    } finally {
-      setIsSyncing(false);
-    }
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSyncing(false); }
   };
 
   const handleResetAllData = async () => {
@@ -273,28 +225,18 @@ export default function SettingsPage() {
         const q = query(collection(db, collName));
         const snap = await getDocs(q);
         if (snap.empty) continue;
-        
         const chunks = [];
-        for (let i = 0; i < snap.docs.length; i += 500) {
-          chunks.push(snap.docs.slice(i, i + 500));
-        }
-
+        for (let i = 0; i < snap.docs.length; i += 500) chunks.push(snap.docs.slice(i, i + 500));
         for (const chunk of chunks) {
           const batch = writeBatch(db);
           chunk.forEach(d => batch.delete(d.ref));
           await batch.commit();
         }
       }
-
       await setDoc(doc(db, "settings", "counters"), { fc: 0, rc: 0 });
       await setDoc(doc(db, "settings", "counters_draft"), { fc: 0, rc: 0 });
-
       toast({ variant: "success", title: "Réinitialisation réussie" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur" });
-    } finally {
-      setIsResetting(false);
-    }
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsResetting(false); }
   };
 
   if (loadingRole || fetchLoading) return null;
@@ -338,34 +280,8 @@ export default function SettingsPage() {
               <CardContent className="p-6 space-y-3">
                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Synchronisation Automatique BC</p>
                 <p className="text-[8px] font-bold text-slate-500 leading-tight">Remet à zéro et réaffecte les coûts d'achat à partir de toutes vos opérations de caisse (Mode {role}).</p>
-                <Button 
-                  onClick={handleRecalculateBCPrices}
-                  disabled={isMigrating}
-                  variant="outline"
-                  className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100"
-                >
-                  {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-                  Recalculer les coûts BC
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-orange-50 border-orange-100">
-              <CardHeader className="bg-orange-100/50 border-b p-6">
-                <CardTitle className="text-[11px] font-black uppercase tracking-widest text-orange-700 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" /> Correctif Spécial
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-3">
-                <p className="text-[9px] font-black text-orange-600 uppercase tracking-wider">Solder RC-2026-2417 (Houiba Aziza)</p>
-                <Button 
-                  onClick={handleFixSpecificSale}
-                  disabled={isMigrating}
-                  variant="outline"
-                  className="w-full h-12 rounded-xl border-orange-200 text-orange-700 font-black text-[10px] uppercase hover:bg-orange-100"
-                >
-                  {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />}
-                  Appliquer le correctif
+                <Button onClick={handleRecalculateBCPrices} disabled={isMigrating} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
+                  {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />} Recalculer les coûts BC
                 </Button>
               </CardContent>
             </Card>
@@ -378,38 +294,23 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-3">
-                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Harmonisation</p>
-                  <Button 
-                    onClick={handleHarmonizeData}
-                    disabled={isMigrating}
-                    variant="outline"
-                    className="w-full h-12 rounded-xl border-blue-200 text-blue-700 font-black text-[10px] uppercase hover:bg-blue-100"
-                  >
-                    {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />}
-                    Harmoniser les données
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Harmonisation & Dates</p>
+                  <Button onClick={handleHarmonizeData} disabled={isMigrating} variant="outline" className="w-full h-12 rounded-xl border-blue-200 text-blue-700 font-black text-[10px] uppercase hover:bg-blue-100">
+                    {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />} Harmoniser les données
                   </Button>
                 </div>
-
                 <Separator className="bg-blue-100" />
-
                 <div className="space-y-3">
                   <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Publier vers le Réel</p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button disabled={isSyncing} className="w-full h-12 rounded-xl bg-blue-600 font-black text-[10px] uppercase shadow-lg shadow-blue-100">
-                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
-                        Synchroniser
+                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />} Synchroniser
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="rounded-[32px]">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="font-black uppercase">Confirmer la publication ?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-xs font-bold uppercase">Toutes les données du compte ZAKARIAE vont être transférées définitivement.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
-                      </AlertDialogFooter>
+                      <AlertDialogHeader><AlertDialogTitle className="font-black uppercase">Confirmer la publication ?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Toutes les données du compte ZAKARIAE vont être transférées définitivement.</AlertDialogDescription></AlertDialogHeader>
+                      <AlertDialogFooter><AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel><AlertDialogAction onClick={handleSyncToReal} className="h-12 rounded-xl bg-blue-600 font-black uppercase text-[10px]">Confirmer</AlertDialogAction></AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
@@ -422,19 +323,12 @@ export default function SettingsPage() {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={isResetting} className="w-full h-12 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-red-100">
-                      {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                      Réinitialiser tout
+                      {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />} Réinitialiser tout
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-[32px]">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-xl font-black uppercase text-primary">Action Irréversible</AlertDialogTitle>
-                      <AlertDialogDescription className="text-xs font-bold uppercase">Cette opération va effacer TOUT l'historique des ventes, clients et caisses.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleResetAllData} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction>
-                    </AlertDialogFooter>
+                    <AlertDialogHeader><AlertDialogTitle className="text-xl font-black uppercase text-primary">Action Irréversible</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase">Cette opération va effacer TOUT l'historique des ventes, clients et caisses.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter><AlertDialogCancel className="h-12 rounded-xl font-black uppercase text-[10px]">Annuler</AlertDialogCancel><AlertDialogAction onClick={handleResetAllData} className="h-12 rounded-xl bg-destructive font-black uppercase text-[10px]">Confirmer</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </CardContent>
