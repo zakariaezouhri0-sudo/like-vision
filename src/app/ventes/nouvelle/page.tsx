@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
@@ -91,8 +91,8 @@ function NewSaleForm() {
   }, [isClientReady, saleDate, isPrepaMode]);
 
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
-  const { data: sessionData } = useDoc(sessionRef);
-  const isSessionClosed = sessionData?.status === "CLOSED";
+  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
   const canBypassLock = isAdminOrPrepa && activeEditId;
 
@@ -163,6 +163,7 @@ function NewSaleForm() {
   };
 
   const handleSave = async (shouldPrint: boolean = false) => {
+    if (sessionLoading) return;
     if (isSessionClosed && !canBypassLock) {
       toast({ variant: "destructive", title: "Action Bloquée", description: "Impossible d'enregistrer sur une journée clôturée." });
       return;
@@ -179,6 +180,14 @@ function NewSaleForm() {
 
     try {
       await runTransaction(db, async (transaction) => {
+        // SÉCURITÉ ATOMIQUE : Vérifier l'état de la session à l'intérieur de la transaction
+        if (sessionRef) {
+          const sessionSnap = await transaction.get(sessionRef);
+          if (sessionSnap.exists() && sessionSnap.data().status === "CLOSED" && !canBypassLock) {
+            throw new Error("SESSION_CLOSED");
+          }
+        }
+
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
         const isPaid = resteAPayerValue <= 0;
         const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
@@ -188,7 +197,6 @@ function NewSaleForm() {
           const prefix = isPaid ? "FC" : "RC";
           invoiceId = `${prefix}-2026-${bonNumber}`;
         } else if (isPaid && invoiceId.startsWith("RC-")) {
-          // Correction Auto RC -> FC lors de l'édition si soldé
           invoiceId = invoiceId.replace("RC-", "FC-");
         }
 
@@ -224,10 +232,24 @@ function NewSaleForm() {
         const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
         router.push(`/ventes/${page}/${finalInvoiceId}?client=${clientName}&phone=${cleanedPhone}&mutuelle=${finalMutuelle || "---"}&total=${nTotal}&remise=${calculatedRemise}&remisePercent=${discountType === 'percent' ? nDiscountVal : "Fixe"}&avance=${nAvance}&od_sph=${prescription.od.sph || "---"}&od_cyl=${prescription.od.cyl || "---"}&od_axe=${prescription.od.axe || "---"}&od_add=${prescription.od.add || "---"}&og_sph=${prescription.og.sph || "---"}&og_cyl=${prescription.og.cyl || "---"}&og_axe=${prescription.og.axe || "---"}&og_add=${prescription.og.add || "---"}&monture=${monture || "---"}&verres=${verres || "---"}&date=${format(saleDate, "dd-MM-yyyy")}`);
       } else { router.push("/ventes"); }
-    } catch (err) { toast({ variant: "destructive", title: "Erreur" }); } finally { setLoading(false); }
+    } catch (err: any) { 
+      if (err.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Action Bloquée", description: "La caisse a été clôturée entre temps." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur" });
+      }
+    } finally { setLoading(false); }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !loading && !isSessionClosed) { const target = e.target as HTMLElement; if (target.tagName !== 'TEXTAREA') { e.preventDefault(); handleSave(false); } } };
+  const handleKeyDown = (e: React.KeyboardEvent) => { 
+    if (e.key === 'Enter' && !loading && !sessionLoading && !isSessionClosed) { 
+      const target = e.target as HTMLElement; 
+      if (target.tagName !== 'TEXTAREA') { 
+        e.preventDefault(); 
+        handleSave(false); 
+      } 
+    } 
+  };
 
   if (!isClientReady) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
@@ -240,8 +262,8 @@ function NewSaleForm() {
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || (isSessionClosed && !canBypassLock)}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || (isSessionClosed && !canBypassLock)}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
+            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || sessionLoading || (isSessionClosed && !canBypassLock)}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
+            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || sessionLoading || (isSessionClosed && !canBypassLock)}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
           </div>
         </div>
 

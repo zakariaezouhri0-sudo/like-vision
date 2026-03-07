@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -59,12 +60,11 @@ function SalesHistoryContent() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  // Vérification de la session d'aujourd'hui pour bloquer les règlements si clôturé
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
-  const { data: sessionData } = useDoc(sessionRef);
-  const isTodayClosed = sessionData?.status === "CLOSED";
+  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
   const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
@@ -197,6 +197,7 @@ function SalesHistoryContent() {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
     
+    if (sessionLoading) return;
     if (isTodayClosed) {
       toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
       return;
@@ -210,6 +211,14 @@ function SalesHistoryContent() {
 
     try {
       await runTransaction(db, async (transaction) => {
+        // SÉCURITÉ ATOMIQUE : Vérifier l'état de la session d'aujourd'hui
+        if (sessionRef) {
+          const sSnap = await transaction.get(sessionRef);
+          if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+            throw new Error("SESSION_CLOSED");
+          }
+        }
+
         const saleRef = doc(db, "sales", paymentSale.id);
         const saleSnap = await transaction.get(saleRef);
         if (!saleSnap.exists()) throw new Error("Vente inexistante.");
@@ -225,7 +234,6 @@ function SalesHistoryContent() {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
-        // CRITIQUE : On ne met pas à jour createdAt pour garder la trace originale
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -258,8 +266,12 @@ function SalesHistoryContent() {
 
       toast({ variant: "success", title: "Paiement enregistré" });
       setPaymentSale(null);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Erreur règlement" });
+    } catch (err: any) {
+      if (err.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée pendant l'opération." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur règlement" });
+      }
     } finally {
       setIsProcessingPayment(false);
     }
@@ -378,6 +390,7 @@ function SalesHistoryContent() {
                               <Button 
                                 size="sm" 
                                 variant="outline" 
+                                disabled={sessionLoading || isTodayClosed}
                                 onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }}
                                 className="h-6 px-2 text-[8px] font-black uppercase border-red-100 text-red-600 hover:bg-red-50 rounded-md"
                               >
@@ -395,7 +408,7 @@ function SalesHistoryContent() {
                             <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
                               
-                              {sale.reste > 0 && (
+                              {sale.reste > 0 && !isTodayClosed && (
                                 <DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>
                               )}
 
@@ -475,19 +488,19 @@ function SalesHistoryContent() {
                 <Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label>
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isTodayClosed && "opacity-50 cursor-not-allowed")} 
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed || sessionLoading) && "opacity-50 cursor-not-allowed")} 
                   value={paymentAmount} 
                   placeholder="0,00"
-                  onChange={(e) => !isTodayClosed && setPaymentAmount(e.target.value)} 
-                  onBlur={() => !isTodayClosed && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                  onChange={(e) => !isTodayClosed && !sessionLoading && setPaymentAmount(e.target.value)} 
+                  onBlur={() => !isTodayClosed && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                   autoFocus 
-                  readOnly={isTodayClosed}
+                  readOnly={isTodayClosed || sessionLoading}
                 />
               </div>
             </div>
             <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3">
               <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button>
-              <Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || isTodayClosed}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+              <Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || isTodayClosed || sessionLoading}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

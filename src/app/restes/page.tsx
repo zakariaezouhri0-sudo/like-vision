@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -38,12 +39,11 @@ export default function UnpaidSalesPage() {
 
   const isPrepaMode = role === "PREPA";
 
-  // Vérification de la session d'aujourd'hui
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
-  const { data: sessionData } = useDoc(sessionRef);
-  const isTodayClosed = sessionData?.status === "CLOSED";
+  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
   const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
@@ -83,6 +83,7 @@ export default function UnpaidSalesPage() {
     if (e) e.preventDefault();
     if (!selectedSale || !paymentAmount) return;
 
+    if (sessionLoading) return;
     if (isTodayClosed) {
       toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
       return;
@@ -96,6 +97,14 @@ export default function UnpaidSalesPage() {
 
     try {
       await runTransaction(db, async (transaction) => {
+        // SÉCURITÉ ATOMIQUE : Vérifier l'état de la session d'aujourd'hui
+        if (sessionRef) {
+          const sSnap = await transaction.get(sessionRef);
+          if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+            throw new Error("SESSION_CLOSED");
+          }
+        }
+
         const saleRef = doc(db, "sales", selectedSale.id);
         const saleSnap = await transaction.get(saleRef);
         if (!saleSnap.exists()) throw new Error("Vente inexistante.");
@@ -112,7 +121,6 @@ export default function UnpaidSalesPage() {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
-        // CRITIQUE : On ne met pas à jour createdAt pour garder la trace originale
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -145,8 +153,12 @@ export default function UnpaidSalesPage() {
 
       toast({ variant: "success", title: "Paiement validé" });
       setSelectedSale(null);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Erreur lors du paiement" });
+    } catch (err: any) {
+      if (err.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée entre temps." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur lors du paiement" });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -207,7 +219,14 @@ export default function UnpaidSalesPage() {
                         <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span></TableCell>
                         <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span></TableCell>
                         <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
-                          <Button onClick={() => handleOpenPayment(sale)} size="sm" className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"><HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler</Button>
+                          <Button 
+                            onClick={() => handleOpenPayment(sale)} 
+                            size="sm" 
+                            disabled={sessionLoading || isTodayClosed}
+                            className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
+                          >
+                            <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -244,19 +263,19 @@ export default function UnpaidSalesPage() {
                   <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                   <input 
                     type="text" 
-                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isTodayClosed && "opacity-50 cursor-not-allowed")} 
+                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed || sessionLoading) && "opacity-50 cursor-not-allowed")} 
                     value={paymentAmount} 
                     placeholder="0,00"
-                    onChange={(e) => !isTodayClosed && setPaymentAmount(e.target.value)} 
-                    onBlur={() => !isTodayClosed && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                    onChange={(e) => !isTodayClosed && !sessionLoading && setPaymentAmount(e.target.value)} 
+                    onBlur={() => !isTodayClosed && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                     autoFocus 
-                    readOnly={isTodayClosed}
+                    readOnly={isTodayClosed || sessionLoading}
                   />
                 </div>
               </div>
               <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
                 <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isTodayClosed}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isTodayClosed || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
