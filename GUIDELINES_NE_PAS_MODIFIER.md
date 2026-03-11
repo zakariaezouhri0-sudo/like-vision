@@ -1,3 +1,4 @@
+
 # 🛡️ Directives de Développement VisionGere (STABLE)
 
 Ce fichier répertorie les fonctionnalités et règles de design définitives. Elles ne doivent être modifiées sous aucun prétexte, sauf demande explicite de l'utilisateur.
@@ -25,7 +26,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 5. Synchronisation & Données
 - **Champ Mutuelle** : L'option "Autre" doit toujours afficher un champ de saisie libre.
 - **Précision Financière** : TOUS les montants doivent être arrondis à 2 chiffres après la virgule (utilisation de `roundAmount`).
-- **Maintenance** : L'outil "Harmoniser les données" dans les paramètres permet de restaurer les dates de création des factures en se basant sur leur premier versement.
+- **Maintenance** : 
+    - L'outil "Harmoniser les données" permet de restaurer les dates de création des factures.
+    - L'outil "Réparer les sessions" permet de recalculer les soldes théoriques en fonction des transactions.
 
 ## 6. Isolation des Comptes
 - **Compte PREPA** : Est automatiquement et exclusivement en mode "Brouillon". Toutes ses opérations sont isolées dans l'espace de test.

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -6,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, Calculator } from "lucide-react";
+import { Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, Calculator, HeartPulse } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS, MUTUELLES } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { roundAmount } from "@/lib/utils";
+import { startOfDay, endOfDay } from "date-fns";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -63,6 +65,69 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRepairSessions = async () => {
+    setIsMigrating(true);
+    try {
+      const sessionsSnap = await getDocs(collection(db, "cash_sessions"));
+      let updatedCount = 0;
+
+      for (const sDoc of sessionsSnap.docs) {
+        const session = sDoc.data();
+        const dateStr = session.date;
+        const isDraft = session.isDraft === true;
+        
+        if (!dateStr) continue;
+
+        const d = new Date(dateStr);
+        const start = startOfDay(d);
+        const end = endOfDay(d);
+
+        // Récupérer toutes les transactions de cette journée pour ce mode
+        const transQuery = query(
+          collection(db, "transactions"),
+          where("isDraft", "==", isDraft)
+        );
+        
+        const tSnap = await getDocs(transQuery);
+        
+        // Filtrage manuel en mémoire car la date peut être complexe
+        const dayTrans = tSnap.docs.filter(tDoc => {
+          const t = tDoc.data();
+          const createdAt = t.createdAt?.toDate ? t.createdAt.toDate() : null;
+          return createdAt && createdAt >= start && createdAt <= end;
+        });
+
+        const stats = dayTrans.reduce((acc, tDoc) => {
+          const t = tDoc.data();
+          const amt = Math.abs(Number(t.montant) || 0);
+          if (t.type === "VENTE") acc.sales += amt;
+          else if (t.type === "VERSEMENT") acc.versements += amt;
+          else acc.expenses += amt;
+          return acc;
+        }, { sales: 0, expenses: 0, versements: 0 });
+
+        const initial = roundAmount(session.openingBalance || 0);
+        const theoretical = roundAmount(initial + stats.sales - stats.expenses - stats.versements);
+
+        await updateDoc(sDoc.ref, {
+          totalSales: roundAmount(stats.sales),
+          totalExpenses: roundAmount(stats.expenses),
+          totalVersements: roundAmount(stats.versements),
+          closingBalanceTheoretical: theoretical,
+          updatedAt: serverTimestamp()
+        });
+        updatedCount++;
+      }
+
+      toast({ variant: "success", title: "Réparation terminée", description: `${updatedCount} sessions synchronisées avec leurs transactions.` });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Erreur de réparation" });
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -292,7 +357,18 @@ export default function SettingsPage() {
                     {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wrench className="h-4 w-4 mr-2" />} Harmoniser les données
                   </Button>
                 </div>
+                
                 <Separator className="bg-blue-100" />
+                
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Réparation Caisse</p>
+                  <Button onClick={handleRepairSessions} disabled={isMigrating} variant="outline" className="w-full h-12 rounded-xl border-blue-200 text-blue-700 font-black text-[10px] uppercase hover:bg-blue-100">
+                    {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <HeartPulse className="h-4 w-4 mr-2" />} Réparer les sessions
+                  </Button>
+                </div>
+
+                <Separator className="bg-blue-100" />
+
                 <div className="space-y-3">
                   <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Publier vers le Réel</p>
                   <AlertDialog>
