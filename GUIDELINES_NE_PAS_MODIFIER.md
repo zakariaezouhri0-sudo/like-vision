@@ -21,6 +21,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 4. Journal de Caisse
 - **Groupement** : Les sessions de caisse sont groupées par mois.
 - **Affichage** : Les mois passés sont repliés par défaut. Seul le mois actuel est ouvert.
+- **Calcul Flux Net** : Le "Flux Net Total" mensuel inclut une déduction automatique des charges fixes : **15 000 DH** pour Janvier (Mois 01) et **20 000 DH** pour tous les mois suivants.
 - **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle. Le filtrage des dates pour l'export "Opérations" doit être strictement limité aux 24h du jour sélectionné.
 
 ## 5. Synchronisation & Données

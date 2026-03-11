@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -62,6 +61,8 @@ export default function CashSessionsPage() {
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
+    
+    // Grouping and basic sum
     filtered.forEach(s => {
       if (!s.date) return;
       try {
@@ -80,7 +81,29 @@ export default function CashSessionsPage() {
       } catch (e) {}
     });
     
-    return groups;
+    // Apply monthly fixed charges deduction: Jan = 15k, Other = 20k
+    return groups.map(group => {
+      if (group.sessions.length === 0) return group;
+      
+      try {
+        const d = parseISO(group.sessions[0].date);
+        const monthNum = d.getMonth() + 1; // 1-indexed
+        
+        let deduction = 0;
+        if (monthNum === 1) {
+          deduction = 15000;
+        } else {
+          deduction = 20000;
+        }
+        
+        return {
+          ...group,
+          totalFlux: roundAmount(group.totalFlux - deduction)
+        };
+      } catch (e) {
+        return group;
+      }
+    });
   }, [rawSessions, isPrepaMode]);
 
   useEffect(() => {
@@ -213,7 +236,6 @@ export default function CashSessionsPage() {
         .map(d => ({ ...d.data(), id: d.id }))
         .filter((t: any) => {
           const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-          // CRITICAL FIX: Ensure transaction belongs STRICTLY to the selected day
           return d && d >= dateStart && d <= dateEnd;
         });
 
@@ -225,7 +247,6 @@ export default function CashSessionsPage() {
         if (data.invoiceId) salesMap[data.invoiceId] = data;
       });
 
-      // GROUPEMENT POUR L'EXCEL
       const nouvellesVentes = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
       const sorties = trans.filter((t: any) => t.type !== "VENTE");
       const reglements = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
@@ -254,9 +275,9 @@ export default function CashSessionsPage() {
 
       const excelRows = [
         ...nouvellesVentes.map(mapToExcelRow),
-        {}, // Ligne vide de séparation
+        {},
         ...sorties.map(mapToExcelRow),
-        {}, // Ligne vide de séparation
+        {},
         ...reglements.map(mapToExcelRow)
       ];
 
@@ -320,7 +341,7 @@ export default function CashSessionsPage() {
 
                     {isAdminOrPrepa && (
                       <div className="hidden md:flex flex-col items-center">
-                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET TOTAL</span>
+                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
                         <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
                           {formatCurrency(group.totalFlux).replace('+', '')}
                         </span>
