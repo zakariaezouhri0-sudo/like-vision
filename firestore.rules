@@ -2,8 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
-    // Permet la lecture et l'écriture à tous les utilisateurs connectés ou non
-    // ID de résolution : FULL_ACCESS_V2
+    // Permet la lecture et l'écriture à tous les utilisateurs
     match /{document=**} {
       allow read, write: if true;
     }
