@@ -31,5 +31,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Compte PREPA** : Est automatiquement et exclusivement en mode "Brouillon". Toutes ses opérations sont isolées dans l'espace de test.
 - **Autres Comptes (ADMIN / OPTICIENNE)** : Sont fixés exclusivement en mode "Réel". Le sélecteur de mode manuel a été supprimé.
 
+## 7. Stabilité & Intégrité (CRITIQUE)
+- **Aucune Modification Non Sollicitée** : L'IA ne doit JAMAIS modifier, "optimiser" ou supprimer une fonctionnalité, une logique ou un élément de design déjà mis en place sans une demande explicite et détaillée de l'utilisateur. 
+- **Respect du Code Existant** : Tout ce qui a été configuré et validé doit rester intact lors de l'ajout de nouvelles fonctions.
+
 ---
 *Ce document fait office de mémoire pour l'assistant IA.*
