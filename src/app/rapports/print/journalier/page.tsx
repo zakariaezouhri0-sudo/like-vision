@@ -267,7 +267,7 @@ function DailyCashReportContent() {
                       {reportData.versements.map((v: any) => (
                         <tr key={v.id} className="hover:bg-slate-50">
                           <td className="p-1.5 text-[11px] font-bold text-slate-900 uppercase">
-                            VERSEMENT | {v.label || "BANQUE"}
+                            VERSEMENT | {v.label && !v.label.includes('VERSEMENT') ? v.label : "BANQUE"}
                           </td>
                           <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant), false)}</td>
                         </tr>

@@ -130,7 +130,9 @@ function OperationsReportContent() {
     if (isVente) {
       displayLabel = sale?.notes || "";
     } else if (t.type === "VERSEMENT") {
-      displayLabel = `VERSEMENT | ${t.label || "BANQUE"}`;
+      // Nettoyage pour Excel
+      let clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
+      displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
     } else {
       displayLabel = t.label || "---";
     }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -238,6 +237,8 @@ function CaisseContent() {
     setOpLoading(true);
     const amt = parseAmount(newOp.montant);
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
+    
+    // Règle demandée : Versement | Banque
     const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
     
     try {
@@ -419,9 +420,15 @@ function CaisseContent() {
                 // Nettoyage final des quotes et espaces
                 cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
 
-                const displayLabel = t.type === "VENTE" 
-                  ? (t.relatedId ? `VENTE ${t.relatedId}` : (labelPart || "VENTE"))
-                  : `${t.type} | ${cleanedLabel || "---"}`;
+                let displayLabel = "";
+                if (t.type === "VENTE") {
+                  displayLabel = t.relatedId ? `VENTE ${t.relatedId}` : (labelPart || "VENTE");
+                } else if (t.type === "VERSEMENT") {
+                  // Règle : VERSEMENT | BANQUE
+                  displayLabel = `VERSEMENT | ${cleanedLabel || "BANQUE"}`;
+                } else {
+                  displayLabel = `${t.type} | ${cleanedLabel || "---"}`;
+                }
 
                 return (
                   <TableRow key={t.id} className="hover:bg-slate-50 border-b transition-all">
