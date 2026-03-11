@@ -23,7 +23,8 @@ import {
   Edit2,
   TrendingUp,
   TrendingDown,
-  Coins
+  Coins,
+  RotateCcw
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -304,6 +305,26 @@ function CaisseContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
+  const handleReopenSession = async () => {
+    if (!confirm("Voulez-vous vraiment ré-ouvrir cette session de caisse ?")) return;
+    try {
+      setOpLoading(true);
+      await updateDoc(sessionRef, {
+        status: "OPEN",
+        closedAt: null,
+        closedBy: null,
+        closingBalanceReal: null,
+        closingBalanceTheoretical: null,
+        discrepancy: null
+      });
+      toast({ variant: "success", title: "Caisse Ré-ouverte", description: "Les modifications sont de nouveau possibles." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la ré-ouverture" });
+    } finally {
+      setOpLoading(false);
+    }
+  };
+
   if (!isClientReady || sessionLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   if (!session) {
@@ -489,6 +510,16 @@ function CaisseContent() {
         </div>
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {isClosed && role === 'ADMIN' && (
+            <Button 
+              variant="outline" 
+              onClick={handleReopenSession} 
+              disabled={opLoading}
+              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
+            </Button>
+          )}
           {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>

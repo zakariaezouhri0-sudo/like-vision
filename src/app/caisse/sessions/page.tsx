@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -19,12 +20,13 @@ import {
   ChevronRight,
   Download,
   ListOrdered,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RotateCcw
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp } from "firebase/firestore";
+import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp, updateDoc } from "firebase/firestore";
 import { format, parseISO, isSunday, isValid, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -140,6 +142,23 @@ export default function CashSessionsPage() {
     } catch (e) { 
       console.error(e);
       toast({ variant: "destructive", title: "Erreur lors de la suppression" }); 
+    }
+  };
+
+  const handleReopenSession = async (session: any) => {
+    if (!confirm(`Voulez-vous vraiment ré-ouvrir la session du ${session.date} ?`)) return;
+    try {
+      await updateDoc(doc(db, "cash_sessions", session.id), {
+        status: "OPEN",
+        closedAt: null,
+        closedBy: null,
+        closingBalanceReal: null,
+        closingBalanceTheoretical: null,
+        discrepancy: null
+      });
+      toast({ variant: "success", title: "Session ré-ouverte", description: "La caisse est de nouveau modifiable." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la ré-ouverture" });
     }
   };
 
@@ -392,6 +411,9 @@ export default function CashSessionsPage() {
                                         <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel Opérations</DropdownMenuItem>
+                                        {role === 'ADMIN' && s.status === "CLOSED" && (
+                                          <DropdownMenuItem onClick={() => handleReopenSession(s)} className="text-orange-600 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><RotateCcw className="mr-3 h-4 w-4" /> Ré-ouvrir</DropdownMenuItem>
+                                        )}
                                         {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}
                                       </DropdownMenuContent>
                                     </DropdownMenu>
