@@ -12,11 +12,11 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Centrage** : Toutes les cartes de statistiques (Ventes, CA, Restes, Clients) doivent avoir leurs textes et montants parfaitement centrés (`text-center`).
 
 ## 3. Formulaire de Vente (Nouvelle Vente)
+- **RÈGLE D'OR : INTERDICTION DE VENTE SI CAISSE CLÔTURÉE** : Il est strictement impossible d'enregistrer, de modifier une vente ou d'encaisser un règlement si la session de caisse correspondante est fermée (`status: CLOSED`). Cette règle est absolue et doit être appliquée par transaction atomique en base de données.
 - **Ordre des champs Client** : La ligne supérieure doit impérativement respecter l'ordre : `Téléphone / Nom Complet / Date de la vente`.
 - **Sécurité Date** : Le sélecteur de date est désactivé (`disabled`) pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 - **Logique de Remise** : Le système doit gérer les deux types : Montant Fixe (DH) et Pourcentage (%).
 - **Trabilité des Ventes** : Une vente (`RC` ou `FC`) doit TOUJOURS conserver sa date de création d'origine (`createdAt`), même lors d'un règlement ultérieur.
-- **Verrouillage Session** : Il est strictement interdit d'enregistrer ou de modifier une vente pour une date dont la caisse a déjà été clôturée (`status: CLOSED`). Cette règle est imposée par transaction atomique en base de données.
 
 ## 4. Journal de Caisse
 - **Groupement** : Les sessions de caisse sont groupées par mois.
