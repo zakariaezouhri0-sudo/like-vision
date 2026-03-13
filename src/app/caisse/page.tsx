@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -28,7 +29,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -55,7 +56,6 @@ function CaisseContent() {
     const savedMode = localStorage.getItem('work_mode');
     
     setRole(savedRole);
-    // Isolation stricte : compte PREPA ou mode DRAFT choisi par l'admin
     setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsHydrated(true);
   }, []);
@@ -86,7 +86,6 @@ function CaisseContent() {
 
   const session = useMemo(() => {
     if (!rawSession) return null;
-    // Vérification de sécurité sur le flag isDraft du document
     if (isPrepaMode !== (rawSession.isDraft === true)) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
@@ -127,7 +126,6 @@ function CaisseContent() {
 
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
-    // Isolation stricte dans la vue
     return rawTransactions
       .filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true)
       .sort((a, b) => {
@@ -234,44 +232,62 @@ function CaisseContent() {
   const handleAddOperation = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newOp.montant) return;
+    
+    // SÉCURITÉ STRICTE
+    if (session?.status === "CLOSED") {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Ré-ouvrez la caisse pour ajouter une opération." });
+      return;
+    }
+
     setOpLoading(true);
     const amt = parseAmount(newOp.montant);
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
-    
-    // Règle demandée : Versement | Banque
     const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
     
     try {
-      const transRef = doc(collection(db, "transactions"));
-      await setDoc(transRef, { 
-        type: newOp.type, 
-        label: finalLabel, 
-        clientName: newOp.clientName || "---",
-        category: "Général", 
-        montant: finalAmount, 
-        userName: user?.displayName || "---", 
-        isDraft: isPrepaMode, 
-        createdAt: serverTimestamp() 
+      await runTransaction(db, async (transaction) => {
+        const sSnap = await transaction.get(sessionRef);
+        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+          throw new Error("SESSION_CLOSED");
+        }
+
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, { 
+          type: newOp.type, 
+          label: finalLabel, 
+          clientName: newOp.clientName || "---",
+          category: "Général", 
+          montant: finalAmount, 
+          userName: user?.displayName || "---", 
+          isDraft: isPrepaMode, 
+          createdAt: serverTimestamp() 
+        });
       });
 
-      const affected = await handleAutoAffectBC(newOp.clientName, newOp.type, amt);
+      await handleAutoAffectBC(newOp.clientName, newOp.type, amt);
       
       toast({ 
         variant: "success", 
         title: "Opération enregistrée", 
-        description: affected ? `Coût affecté au BC ${newOp.clientName.match(/(\d+)/)?.[0]}` : undefined 
+        description: newOp.clientName.match(/(\d+)/) ? `Coût affecté au BC ${newOp.clientName.match(/(\d+)/)?.[0]}` : undefined 
       });
 
-      setNewOp(prev => ({
-        ...prev,
-        label: "",
-        clientName: "",
-        montant: ""
-      }));
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+      setNewOp(prev => ({ ...prev, label: "", clientName: "", montant: "" }));
+      setIsOpDialogOpen(false);
+    } catch (e: any) { 
+      if (e.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur" }); 
+      }
+    } finally { setOpLoading(false); }
   };
 
   const handleOpenEdit = (t: any) => {
+    if (session?.status === "CLOSED") {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour modifier une opération." });
+      return;
+    }
     setSelectedTrans(t);
     setEditOp({
       type: t.type,
@@ -285,25 +301,69 @@ function CaisseContent() {
   const handleUpdateOperation = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedTrans || !editOp.montant) return;
+
+    if (session?.status === "CLOSED") {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+      return;
+    }
+
     setOpLoading(true);
     const amt = parseAmount(editOp.montant);
     const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = editOp.label || (editOp.type === "VERSEMENT" ? "BANQUE" : editOp.type);
     
     try {
-      await updateDoc(doc(db, "transactions", selectedTrans.id), {
-        type: editOp.type,
-        label: finalLabel,
-        clientName: editOp.clientName || "---",
-        montant: finalAmount,
-        updatedAt: serverTimestamp()
+      await runTransaction(db, async (transaction) => {
+        const sSnap = await transaction.get(sessionRef);
+        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+          throw new Error("SESSION_CLOSED");
+        }
+
+        const transRef = doc(db, "transactions", selectedTrans.id);
+        transaction.update(transRef, {
+          type: editOp.type,
+          label: finalLabel,
+          clientName: editOp.clientName || "---",
+          montant: finalAmount,
+          updatedAt: serverTimestamp()
+        });
       });
 
       await handleAutoAffectBC(editOp.clientName, editOp.type, amt);
-
       toast({ variant: "success", title: "Opération mise à jour" });
       setIsEditDialogOpen(false);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+    } catch (e: any) { 
+      if (e.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur" }); 
+      }
+    } finally { setOpLoading(false); }
+  };
+
+  const handleDeleteOp = async (t: any) => {
+    if (session?.status === "CLOSED") {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour supprimer une opération." });
+      return;
+    }
+    if (!confirm("Supprimer cette opération ?")) return;
+    
+    try {
+      await runTransaction(db, async (transaction) => {
+        const sSnap = await transaction.get(sessionRef);
+        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+          throw new Error("SESSION_CLOSED");
+        }
+        transaction.delete(doc(db, "transactions", t.id));
+      });
+      toast({ variant: "success", title: "Supprimé" });
+    } catch (e: any) {
+      if (e.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur" });
+      }
+    }
   };
 
   const handleReopenSession = async () => {
@@ -409,22 +469,18 @@ function CaisseContent() {
               data.map((t: any) => {
                 const labelPart = t.label || "";
                 const typeStr = t.type || "";
-                
-                // Nettoyage des libellés redondants pour l'affichage uniquement
                 const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
                 let cleanedLabel = labelPart;
                 redundantPrefixes.forEach(p => {
                   const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
                   cleanedLabel = cleanedLabel.replace(reg, '');
                 });
-                // Nettoyage final des quotes et espaces
                 cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
 
                 let displayLabel = "";
                 if (t.type === "VENTE") {
                   displayLabel = t.relatedId ? `VENTE ${t.relatedId}` : (labelPart || "VENTE");
                 } else if (t.type === "VERSEMENT") {
-                  // Règle : VERSEMENT | BANQUE
                   displayLabel = `VERSEMENT | ${cleanedLabel || "BANQUE"}`;
                 } else {
                   displayLabel = `${t.type} | ${cleanedLabel || "---"}`;
@@ -436,12 +492,8 @@ function CaisseContent() {
                       <div className="flex items-center gap-4">
                         <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">
-                            {displayLabel}
-                          </span>
-                          <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">
-                            {t.clientName || "---"}
-                          </span>
+                          <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{displayLabel}</span>
+                          <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">{t.clientName || "---"}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -449,26 +501,12 @@ function CaisseContent() {
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {(!isClosed || isAdminOrPrepa) && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleOpenEdit(t)} 
-                            className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={async () => { if(confirm("Supprimer cette opération ?")) await deleteDoc(doc(db, "transactions", t.id)) }} 
-                          className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {!isClosed && (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="icon" onClick={() => handleOpenEdit(t)} className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"><Edit2 className="h-3.5 w-3.5" /></Button>
+                          <Button variant="outline" size="icon" onClick={() => handleDeleteOp(t)} className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -518,16 +556,9 @@ function CaisseContent() {
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isClosed && role === 'ADMIN' && (
-            <Button 
-              variant="outline" 
-              onClick={handleReopenSession} 
-              disabled={opLoading}
-              className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
-            </Button>
+            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"><RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE</Button>
           )}
-          {(!isClosed || isAdminOrPrepa) && (
+          {!isClosed && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
@@ -571,13 +602,7 @@ function CaisseContent() {
                     ))}
                     <div className="flex items-center gap-3 bg-primary/5 p-2 rounded-xl border border-primary/20 mt-4">
                       <span className="w-16 text-right font-black text-[10px] text-primary uppercase">Centimes</span>
-                      <Input 
-                        type="number" 
-                        className="h-9 w-20 text-center font-black bg-white" 
-                        placeholder="60" 
-                        value={manualCents} 
-                        onChange={(e) => setManualCents(e.target.value)}
-                      />
+                      <Input type="number" className="h-9 w-20 text-center font-black bg-white" placeholder="60" value={manualCents} onChange={(e) => setManualCents(e.target.value)} />
                       <span className="flex-1 text-right font-black text-primary text-xs tabular-nums flex items-center justify-end gap-1"><Coins className="h-3 w-3" /> DH</span>
                     </div>
                   </div>
@@ -605,19 +630,8 @@ function CaisseContent() {
         <Card className="bg-primary text-primary-foreground p-5 rounded-[24px]"><p className="text-[9px] uppercase font-black opacity-60 mb-2">Solde {isClosed ? "Clôt." : "Théorique"}</p><p className="text-xl font-black tabular-nums">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p></Card>
       </div>
 
-      {renderTransactionTable(
-        "Encaissements (Ventes)", 
-        salesTransactions, 
-        <TrendingUp className="h-4 w-4 text-green-500" />, 
-        "bg-green-100 text-green-700"
-      )}
-
-      {renderTransactionTable(
-        "Sorties (Charges & Versements)", 
-        expenseTransactions, 
-        <TrendingDown className="h-4 w-4 text-red-500" />, 
-        "bg-red-100 text-red-700"
-      )}
+      {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-4 w-4 text-green-500" />, "bg-green-100 text-green-700")}
+      {renderTransactionTable("Sorties (Charges & Versements)", expenseTransactions, <TrendingDown className="h-4 w-4 text-red-500" />, "bg-red-100 text-red-700")}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleUpdateOperation(e)}>
