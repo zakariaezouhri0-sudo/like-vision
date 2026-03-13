@@ -6,10 +6,5 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if true;
     }
-    
-    // Règle redondante explicite pour la collection settings (sécurité supplémentaire)
-    match /settings/{document=**} {
-      allow read, write: if true;
-    }
   }
 }
