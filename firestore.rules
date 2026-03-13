@@ -2,8 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
-    // Garantit l'accès à tous les documents, y compris les paramètres du magasin.
+    // Autorise l'accès complet à tous les documents pour éviter les blocages UI.
     match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Règle redondante explicite pour la collection settings (sécurité supplémentaire)
+    match /settings/{document=**} {
       allow read, write: if true;
     }
   }
