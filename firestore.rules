@@ -2,7 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // RÈGLES DE SÉCURITÉ OUVERTES POUR DÉVELOPPEMENT
-    // Permet la lecture et l'écriture à tous les utilisateurs
+    // Ces règles permettent l'accès total à la base de données.
+    
+    // Règle explicite pour la configuration du magasin
+    match /settings/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Règle globale pour toutes les autres collections
     match /{document=**} {
       allow read, write: if true;
     }
