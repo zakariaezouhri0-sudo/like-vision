@@ -58,9 +58,7 @@ function NewSaleForm() {
   const [fromDoctor, setFromDoctor] = useState(searchParams.get("fromDoctor") === "true");
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
 
-  // Nouveaux champs Parrainage
   const [isFamilyMode, setIsFamilyMode] = useState(false);
-  const [parentPhone, setParentPhone] = useState("");
 
   const [mutuelle, setMutuelle] = useState(() => {
     const m = searchParams.get("mutuelle");
@@ -102,7 +100,6 @@ function NewSaleForm() {
   const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
   const { data: allClients } = useCollection(clientsQuery);
 
-  // Recherche des membres de la famille par numéro
   const matchedFamily = useMemo(() => {
     if (!allClients || !isClientReady || activeEditId) return [];
     const cleaned = clientPhone.replace(/\s/g, "");
@@ -121,7 +118,6 @@ function NewSaleForm() {
     setClientPhone(client.phone || clientPhone);
     if (client.parentPhone) {
       setIsFamilyMode(true);
-      setParentPhone(client.parentPhone);
     }
     if (client.mutuelle) {
       if (MUTUELLES.filter(m => m !== 'Autre').includes(client.mutuelle)) {
@@ -142,7 +138,6 @@ function NewSaleForm() {
       let foundClient = null;
       if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8) {
         const cleanedPhone = clientPhone.replace(/\s/g, "");
-        // On ne peuple que s'il y a un seul match exact pour éviter d'écraser le choix de l'utilisateur s'il y a plusieurs membres
         const matches = allClients.filter(c => matchMode(c) && (c.phone || "").replace(/\s/g, "") === cleanedPhone);
         if (matches.length === 1) foundClient = matches[0];
       }
@@ -157,7 +152,6 @@ function NewSaleForm() {
         if (clientPhone.replace(/\s/g, "") !== (foundClient.phone || "").replace(/\s/g, "")) setClientPhone(foundClient.phone || "");
         if (foundClient.parentPhone) {
           setIsFamilyMode(true);
-          setParentPhone(foundClient.parentPhone);
         }
         if (foundClient.mutuelle) {
           if (MUTUELLES.filter(m => m !== 'Autre').includes(foundClient.mutuelle)) {
@@ -189,7 +183,6 @@ function NewSaleForm() {
       setMutuelle("Aucun"); 
       setCustomMutuelle(""); 
       setIsFamilyMode(false);
-      setParentPhone("");
       return; 
     }
     if (raw.length > 10) return;
@@ -212,7 +205,8 @@ function NewSaleForm() {
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const cleanedPhone = clientPhone.replace(/\s/g, "");
-    const cleanedParentPhone = isFamilyMode ? parentPhone.replace(/\s/g, "") : "";
+    // Si mode famille, le numéro saisi dans le champ principal devient le parentPhone
+    const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
     let finalInvoiceId = "";
 
     try {
@@ -342,14 +336,13 @@ function NewSaleForm() {
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed Alami..." value={clientName} onChange={e => setClientName(e.target.value)} readOnly={isSessionClosed} />
                       
-                      {/* Dropdown Intelligent si plusieurs membres */}
                       {matchedFamily.length > 1 && !isSessionClosed && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
-                          <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">Famille détectée ({matchedFamily.length} dossiers)</p>
+                          <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">Membres trouvés ({matchedFamily.length})</p>
                           {matchedFamily.map(c => (
                             <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0">
                               <span className="text-xs font-black uppercase group-hover:text-primary">{c.name}</span>
-                              <span className="text-[8px] font-bold text-slate-400">Voir dossier</span>
+                              <span className="text-[8px] font-bold text-slate-400">Choisir</span>
                             </button>
                           ))}
                         </div>
@@ -372,7 +365,7 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}>
@@ -384,15 +377,6 @@ function NewSaleForm() {
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
                       <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isSessionClosed} />
-                    </div>
-                  )}
-                  {isFamilyMode && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <Label className="text-[10px] font-black uppercase ml-1 text-orange-600">Numéro du Parent</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-3.5 h-4 w-4 text-orange-400" />
-                        <Input className={cn("h-12 pl-11 rounded-xl bg-orange-50/30 border-2 border-orange-100 font-bold text-orange-700", isSessionClosed && "opacity-50")} placeholder="06..." value={formatPhoneNumber(parentPhone)} onChange={e => setParentPhone(e.target.value.replace(/\D/g, ''))} readOnly={isSessionClosed} />
-                      </div>
                     </div>
                   )}
                   {isAdminOrPrepa && activeEditId && (
