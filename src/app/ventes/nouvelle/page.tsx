@@ -129,7 +129,6 @@ function NewSaleForm() {
         setCustomMutuelle(client.mutuelle);
       }
     }
-    // Règle behavior dropdown : Disparaît après sélection
     setIsNameFocused(false);
   };
 
@@ -185,7 +184,7 @@ function NewSaleForm() {
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading) return;
     if (isSessionClosed) {
-      toast({ variant: "destructive", title: "ERREUR CRITIQUE", description: "Impossible d'enregistrer : La caisse de cette journée est clôturée." });
+      toast({ variant: "destructive", title: "ERREUR CRITIQUE", description: "La caisse de cette journée est clôturée." });
       return;
     }
     if (!clientName) { toast({ variant: "destructive", title: "Erreur", description: "Nom client obligatoire." }); return; }
@@ -270,7 +269,7 @@ function NewSaleForm() {
       } else { router.push("/ventes"); }
     } catch (err: any) { 
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée. Impossible de valider la vente." });
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée." });
       } else {
         toast({ variant: "destructive", title: "Erreur" });
       }
@@ -330,8 +329,9 @@ function NewSaleForm() {
                         value={clientName} 
                         onChange={e => setClientName(e.target.value)} 
                         onFocus={() => setIsNameFocused(true)}
+                        onClick={() => setIsNameFocused(true)}
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
-                        readOnly={isSessionClosed} 
+                        readOnly={isSessionClosed || (!isFamilyMode && matchedFamily.length > 0 && clientName !== "")} 
                       />
                       
                       {matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (

@@ -28,8 +28,8 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Ordre des champs Client** : La ligne supérieure doit impérativement respecter l'ordre : `Téléphone / Nom Complet / Date de la vente`.
 - **Parrainage / Famille** : Le numéro de téléphone est le pivot. Si coché, le numéro saisi lie le client au groupe familial (`parentPhone`).
 - **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche la liste des membres sous le champ Nom. 
-- **Comportement Dropdown** : La liste disparaît immédiatement après sélection d'un membre. Elle réapparaît au clic (focus) dans le champ Nom pour permettre de changer ou d'éditer.
-- **Liberté d'Édition** : En mode "Parrainage", le nom peut être librement modifié ou saisi même si le numéro est déjà lié à une famille existante. Cela permet d'ajouter un nouveau membre au même numéro.
+- **Comportement Dropdown** : La liste disparaît immédiatement après sélection d'un membre. Elle réapparaît au clic (focus ou clic) dans le champ Nom pour permettre de changer ou d'éditer.
+- **Liberté d'Édition** : Le nom peut être librement modifié ou saisi uniquement si le mode "Parrainage" est activé (lorsque le numéro est déjà lié à une famille). Cela permet d'ajouter un nouveau membre au même numéro.
 - **Sécurité Date** : Le sélecteur de date est désactivé pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 
 ## 6. Journal de Caisse (Sessions)
