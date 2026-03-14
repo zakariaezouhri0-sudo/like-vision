@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Glasses, Loader2, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import { format, parseISO, isValid } from "date-fns";
@@ -16,6 +17,13 @@ function ReceiptPrintContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const db = useFirestore();
+  const [role, setRole] = useState<string>("OPTICIENNE");
+
+  useEffect(() => {
+    setRole(localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE");
+  }, []);
+
+  const isPrepaMode = role === "PREPA";
 
   const getParam = (key: string) => {
     const val = searchParams.get(key);
@@ -44,7 +52,13 @@ function ReceiptPrintContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), where("invoiceId", "==", params.id)), [db, params.id]);
+  // Sécurité isolation : On cherche la vente dans le mode correspondant à l'utilisateur
+  const salesQuery = useMemoFirebase(() => 
+    query(collection(db, "sales"), 
+    where("invoiceId", "==", params.id),
+    where("isDraft", "==", isPrepaMode)
+  ), [db, params.id, isPrepaMode]);
+  
   const { data: saleDocs, isLoading: saleLoading } = useCollection(salesQuery);
   const saleData = saleDocs?.[0];
 
