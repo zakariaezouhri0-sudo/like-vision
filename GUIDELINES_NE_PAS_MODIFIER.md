@@ -40,7 +40,12 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Mise en page** : Utiliser un système de grille à 3 colonnes pour garantir que le Flux Net mensuel soit toujours au centre exact de la barre, quelle que soit la largeur du libellé du mois.
 - **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle.
 
-## 7. Maintenance & Intégrité
+## 7. Design & Mode Sombre
+- **Dark Mode** : L'application supporte nativement le mode sombre via `next-themes`. 
+- **Couleurs Sémantiques** : Utiliser impérativement les variables HSL (`--background`, `--card`, `--primary`, etc.) au lieu de couleurs fixes (ex: `bg-white`).
+- **Contraste** : En mode sombre, veiller à ce que les montants (Vert pour les ventes, Rouge pour les dépenses) conservent un haut niveau de lisibilité.
+
+## 8. Maintenance & Intégrité
 - **Précision** : TOUS les montants sont arrondis à 2 chiffres après la virgule (`roundAmount`).
 - **Outils de Maintenance** : 
     - **Harmoniser les données** : Nettoie les noms d'opérateurs et restaure les dates.
