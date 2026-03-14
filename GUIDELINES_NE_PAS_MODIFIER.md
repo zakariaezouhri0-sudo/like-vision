@@ -11,7 +11,8 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 2. Rapports & Impression
 - **Nommage des fichiers** : Les rapports (Journalier et Clôture) DOIVENT être nommés `Like Vision - DD-MM-YYYY` (ex: Like Vision - 23-05-2024).
 - **Design Impression** : Les tableaux doivent rester aérés, centrés, et les montants doivent être sur une seule ligne.
-- **Nettoyage Libellés** : Dans les rapports, les sorties de caisse doivent être formatées proprement : `TYPE | LIBELLÉ` (ex: `ACHAT MONTURE | OPTICALIA`).
+- **Nettoyage Libellés** : Dans les rapports et la caisse, les sorties doivent être formatées proprement : `TYPE | LIBELLÉ` (ex: `ACHAT MONTURE | OPTICALIA`).
+- **Versements** : Doivent impérativement s'afficher comme `VERSEMENT | BANQUE` par défaut.
 
 ## 3. Tableau de Bord (Dashboard)
 - **Centrage** : Toutes les cartes de statistiques (Ventes, CA, Restes, Clients) doivent avoir leurs textes et montants parfaitement centrés (`text-center`).
@@ -20,28 +21,30 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Ordre des champs Client** : La ligne supérieure doit impérativement respecter l'ordre : `Téléphone / Nom Complet / Date de la vente`.
 - **Sécurité Date** : Le sélecteur de date est désactivé (`disabled`) pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 - **Logique de Remise** : Le système doit gérer les deux types : Montant Fixe (DH) et Pourcentage (%).
-- **Trabilité des Ventes** : Une vente (`RC` ou `FC`) doit TOUJOURS conserver sa date de création d'origine (`createdAt`), même lors d'un règlement ultérieur.
+- **Traçabilité des Ventes** : Une vente (`RC` ou `FC`) doit TOUJOURS conserver sa date de création d'origine (`createdAt`), même lors d'un règlement ultérieur.
 
-## 5. Journal de Caisse
-- **Groupement** : Les sessions de caisse sont groupées par mois.
-- **Affichage** : Les mois passés sont repliés par défaut. Seul le mois actuel est ouvert.
-- **Calcul Flux Net** : Le "Flux Net Total" mensuel inclut une déduction automatique des charges fixes : **15 000 DH** pour Janvier (Mois 01) et **20 000 DH** pour tous les mois suivants.
-- **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle. Le filtrage des dates pour l'export "Opérations" doit être strictement limité aux 24h du jour sélectionné.
+## 5. Journal de Caisse (Sessions)
+- **Groupement** : Les sessions de caisse sont groupées par mois. Seul le mois actuel est ouvert par défaut.
+- **Calcul Flux Net Mensuel (DÉDUCTION CHARGES)** : 
+    - Le "Flux Net Total" affiché pour chaque mois inclut une déduction automatique des charges fixes.
+    - **Mois 01 (Janvier)** : Déduction de **15 000 DH**.
+    - **Mois 02 à 12** : Déduction de **20 000 DH**.
+- **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle.
 
-## 6. Synchronisation & Données
-- **Champ Mutuelle** : L'option "Autre" doit toujours afficher un champ de saisie libre.
-- **Précision Financière** : TOUS les montants doivent être arrondis à 2 chiffres après la virgule (utilisation de `roundAmount`).
-- **Maintenance** : 
-    - L'outil "Harmoniser les données" permet de restaurer les dates de création des factures.
-    - L'outil "Réparer les sessions" permet de recalculer les soldes théoriques en fonction des transactions.
+## 6. Synchronisation & Maintenance
+- **Précision Financière** : TOUS les montants sont arrondis à 2 chiffres après la virgule (`roundAmount`).
+- **Outils de Maintenance (Paramètres)** : 
+    - **Harmoniser les données** : Restaure les dates et nettoie les noms d'opérateurs.
+    - **Réparer les sessions** : Recalcule les soldes théoriques en fonction des transactions réelles.
+    - **Recalculer les coûts BC** : Réaffecte automatiquement les prix d'achat des verres et montures aux ventes correspondantes.
 
-## 7. Isolation des Comptes
+## 7. Isolation des Comptes & Modes
 - **Compte PREPA** : Est automatiquement et exclusivement en mode "Brouillon". Toutes ses opérations sont isolées dans l'espace de test (ZAKARIAE).
-- **Autres Comptes (ADMIN / OPTICIENNE)** : Sont fixés exclusivement en mode "Réel". Le sélecteur de mode manuel a été supprimé.
+- **Autres Comptes (ADMIN / OPTICIENNE)** : Sont fixés exclusivement en mode "Réel". Le sélecteur de mode manuel est supprimé.
 
 ## 8. Stabilité & Intégrité (VERROUILLAGE)
-- **Aucune Modification Non Sollicitée** : L'IA ne doit JAMAIS modifier, "optimiser" ou supprimer une fonctionnalité, une logique ou un élément de design déjà mis en place sans une demande explicite et détaillée de l'utilisateur. 
+- **Aucune Modification Non Sollicitée** : L'IA ne doit JAMAIS modifier, "optimiser" ou supprimer une fonctionnalité, une logique ou un élément de design déjà mis en place sans une demande explicite.
 - **Respect du Code Existant** : Tout ce qui a été configuré et validé doit rester intact lors de l'ajout de nouvelles fonctions.
 
 ---
-*Ce document fait office de mémoire pour l'assistant IA.*
+*Ce document fait office de mémoire centrale et de garde-fou pour l'assistant IA.*
