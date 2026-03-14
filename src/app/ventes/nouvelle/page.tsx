@@ -29,7 +29,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsHydrated] = useState(false);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -136,11 +136,12 @@ function NewSaleForm() {
     if (activeEditId || !allClients || !isClientReady) return;
 
     const findAndPopulate = () => {
-      if (clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length > 0) {
+      const cleaned = clientPhone.replace(/\s/g, "");
+      if (cleaned.length >= 8 && matchedFamily.length > 0) {
         setIsFamilyMode(true);
       }
 
-      if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length === 1 && !clientName) {
+      if (cleaned.length >= 8 && matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
         setClientName(found.name);
         if (found.mutuelle) {
@@ -156,7 +157,7 @@ function NewSaleForm() {
     };
     const timeout = setTimeout(findAndPopulate, 500);
     return () => clearTimeout(timeout);
-  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily.length]);
+  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);

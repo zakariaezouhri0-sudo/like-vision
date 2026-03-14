@@ -29,7 +29,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Parrainage / Famille** : Le numéro de téléphone est le pivot. Si coché, le numéro saisi lie le client au groupe familial (`parentPhone`).
 - **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche la liste des membres sous le champ Nom. 
 - **Comportement Dropdown** : La liste disparaît immédiatement après sélection d'un membre. Elle réapparaît au clic (focus ou clic) dans le champ Nom pour permettre de changer ou d'éditer.
-- **Liberté d'Édition** : Le nom peut être librement modifié ou saisi uniquement si le mode "Parrainage" est activé (lorsque le numéro est déjà lié à une famille). Cela permet d'ajouter un nouveau membre au même numéro.
+- **Liberté d'ÉDITION** : Le nom du client peut être librement modifié ou saisi uniquement si le mode "Parrainage" est activé (lorsque le numéro est déjà lié à une famille). Si le numéro appartient à quelqu'un mais que le mode parrainage n'est pas actif, le nom est verrouillé pour protéger l'intégrité du dossier.
 - **Sécurité Date** : Le sélecteur de date est désactivé pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 
 ## 6. Journal de Caisse (Sessions)
