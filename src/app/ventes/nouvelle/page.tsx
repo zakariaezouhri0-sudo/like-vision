@@ -34,6 +34,8 @@ function NewSaleForm() {
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
+  const [isNameFocused, setIsNameFocused] = useState(false);
+
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
     if (savedRole) {
@@ -128,32 +130,29 @@ function NewSaleForm() {
         setCustomMutuelle(client.mutuelle);
       }
     }
+    setIsNameFocused(false);
   };
 
   useEffect(() => {
     if (activeEditId || !allClients || !isClientReady) return;
 
     const findAndPopulate = () => {
-      const matchMode = isPrepaMode ? (c: any) => c.isDraft === true : (c: any) => !c.isDraft;
-      
       // Si on trouve une famille pour ce numéro, on suggère le mode famille
       if (clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length > 0) {
         setIsFamilyMode(true);
       }
 
-      // Si match exact (1 seul membre connu pour ce numéro), on pré-remplit
-      if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length === 1) {
+      // Si match exact (1 seul membre connu pour ce numéro), on pré-remplit UNIQUEMENT si le nom est vide
+      if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
-        if (!clientName) {
-          setClientName(found.name);
-          if (found.mutuelle) {
-            if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
-              setMutuelle(found.mutuelle);
-              setCustomMutuelle("");
-            } else {
-              setMutuelle("Autre");
-              setCustomMutuelle(found.mutuelle);
-            }
+        setClientName(found.name);
+        if (found.mutuelle) {
+          if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
+            setMutuelle(found.mutuelle);
+            setCustomMutuelle("");
+          } else {
+            setMutuelle("Autre");
+            setCustomMutuelle(found.mutuelle);
           }
         }
       }
@@ -327,9 +326,17 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">Nom Complet</Label>
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed Alami..." value={clientName} onChange={e => setClientName(e.target.value)} readOnly={isSessionClosed} />
+                      <Input 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} 
+                        placeholder="M. Mohamed Alami..." 
+                        value={clientName} 
+                        onChange={e => setClientName(e.target.value)} 
+                        onFocus={() => setIsNameFocused(true)}
+                        onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
+                        readOnly={isSessionClosed} 
+                      />
                       
-                      {matchedFamily.length > 0 && !isSessionClosed && (
+                      {matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
                             {matchedFamily.length === 1 && matchedFamily[0].name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}

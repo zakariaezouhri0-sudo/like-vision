@@ -27,7 +27,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 5. Formulaire de Vente & Parrainage
 - **Ordre des champs Client** : La ligne supérieure doit impérativement respecter l'ordre : `Téléphone / Nom Complet / Date de la vente`.
 - **Parrainage / Famille** : Le numéro de téléphone est le pivot. Si coché, le numéro saisi lie le client au groupe familial (`parentPhone`).
-- **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche immédiatement la liste des membres de la famille sous le champ Nom. Choisir un membre charge ses données. Saisir un nouveau nom avec "Parrainage" coché crée un nouveau membre lié à cette famille.
+- **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche la liste des membres sous le champ Nom. 
+- **Comportement Dropdown** : La liste disparaît après sélection d'un membre. Elle réapparaît au clic (focus) dans le champ Nom pour permettre de changer ou d'éditer.
+- **Liberté d'Édition** : En mode "Parrainage", le nom peut être librement modifié/saisi même si le numéro est déjà lié à une famille.
 - **Sécurité Date** : Le sélecteur de date est désactivé pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 
 ## 6. Journal de Caisse (Sessions)
