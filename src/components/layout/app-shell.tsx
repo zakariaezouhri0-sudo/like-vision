@@ -5,7 +5,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2, Sun, Moon } from "lucide-react";
+import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
@@ -13,7 +13,6 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -25,11 +24,8 @@ export function AppShell({ children }: AppShellProps) {
   const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const savedRole = localStorage.getItem('user_role')?.toUpperCase();
     if (savedRole) {
       setRole(savedRole);
@@ -53,11 +49,11 @@ export function AppShell({ children }: AppShellProps) {
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
     <div className="flex items-center gap-3 min-w-0">
       <div className={cn(
-        "flex items-center justify-center shrink-0 relative overflow-hidden bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800",
+        "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
         size === "large" ? "h-12 w-12" : "h-9 w-9"
       )}>
         {settingsLoading ? (
-          <div className="h-full w-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+          <div className="h-full w-full bg-slate-50 flex items-center justify-center">
             <Loader2 className="h-4 w-4 animate-spin text-primary/20" />
           </div>
         ) : settings?.logoUrl ? (
@@ -73,7 +69,7 @@ export function AppShell({ children }: AppShellProps) {
           )}>
             <div className="relative">
               <Glasses className={size === "large" ? "h-7 w-7" : "h-5 w-5"} />
-              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white dark:border-slate-900", size === "large" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
+              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white", size === "large" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
             </div>
           </div>
         )}
@@ -83,7 +79,7 @@ export function AppShell({ children }: AppShellProps) {
           "font-black tracking-tighter text-primary leading-tight uppercase block whitespace-nowrap",
           size === "large" ? "text-sm lg:text-base" : "text-xs"
         )}>
-          {settingsLoading ? <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
+          {settingsLoading ? <div className="h-4 w-24 bg-slate-100 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
         </span>
         <span className="text-[7px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
           Optique Pro
@@ -108,7 +104,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="p-4 border-t bg-muted/20 space-y-3">
           <div className={cn(
             "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm",
-            isPrepa ? "bg-orange-50 dark:bg-orange-950/20 border-orange-100 dark:border-orange-900 text-orange-700 dark:text-orange-400" : "bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900 text-blue-700 dark:text-blue-400"
+            isPrepa ? "bg-orange-50 border-orange-100 text-orange-700" : "bg-blue-50 border-blue-100 text-blue-700"
           )}>
             <div className={cn("h-2 w-2 rounded-full", isPrepa ? "bg-orange-500 animate-pulse" : "bg-blue-500")} />
             <span className="text-[9px] font-black uppercase tracking-widest">
@@ -170,17 +166,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
-            {mounted && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11 rounded-xl hover:bg-muted"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {theme === "dark" ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-primary" />}
-              </Button>
-            )}
-            
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-3" />
