@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, ChevronDown } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -20,7 +20,6 @@ import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, whe
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -30,7 +29,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -130,6 +129,7 @@ function NewSaleForm() {
         setCustomMutuelle(client.mutuelle);
       }
     }
+    // Règle behavior dropdown : Disparaît après sélection
     setIsNameFocused(false);
   };
 
@@ -137,12 +137,10 @@ function NewSaleForm() {
     if (activeEditId || !allClients || !isClientReady) return;
 
     const findAndPopulate = () => {
-      // Si on trouve une famille pour ce numéro, on suggère le mode famille
       if (clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length > 0) {
         setIsFamilyMode(true);
       }
 
-      // Si match exact (1 seul membre connu pour ce numéro), on pré-remplit UNIQUEMENT si le nom est vide
       if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
         setClientName(found.name);
