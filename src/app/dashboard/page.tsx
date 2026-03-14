@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -44,12 +45,21 @@ const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15', '#A855F7', '#EF4444'
 export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const router = useRouter();
   const [todayStr, setTodayStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
   useEffect(() => {
+    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    
+    // Sécurité : Les Opticiennes n'ont pas accès au Dashboard
+    if (savedRole.toUpperCase() === "OPTICIENNE") {
+      router.replace("/caisse");
+      return;
+    }
+
     const now = new Date();
     setTodayStr(now.toLocaleDateString("fr-FR", { 
       weekday: 'short', 
@@ -57,9 +67,9 @@ export default function DashboardPage() {
       month: 'short'
     }));
     setDateStr(format(now, "yyyy-MM-dd"));
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    setRole(savedRole.toUpperCase());
     setIsHydrated(true);
-  }, []);
+  }, [router]);
 
   const isPrepaMode = role === "PREPA";
 

@@ -33,6 +33,7 @@ export function AppShell({ children }: AppShellProps) {
 
   // Le mode est maintenant strictement lié au rôle
   const isPrepa = role === "PREPA";
+  const isOpticienne = role === "OPTICIENNE";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -92,7 +93,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Sidebar - Desktop */}
       <aside className="w-72 border-r bg-white hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <Link 
-          href="/dashboard" 
+          href={isOpticienne ? "/caisse" : "/dashboard"} 
           className="h-24 border-b flex items-center px-6 hover:bg-slate-50 transition-all"
         >
           <LogoContainer size="large" />
@@ -156,7 +157,7 @@ export function AppShell({ children }: AppShellProps) {
               </SheetContent>
             </Sheet>
 
-            <Link href="/dashboard" className="md:hidden">
+            <Link href={isOpticienne ? "/caisse" : "/dashboard"} className="md:hidden">
               <LogoContainer size="small" />
             </Link>
 

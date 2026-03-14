@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -48,7 +47,7 @@ export default function LoginPage() {
       return;
     }
 
-    // NOUVEAU : Mode Préparation (Brouillon)
+    // Mode Préparation (Brouillon)
     if (username.toLowerCase() === "prepa" && password === "prepa123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -85,15 +84,22 @@ export default function LoginPage() {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: userData.name });
-          localStorage.setItem('user_role', (userData.role || 'OPTICIENNE').toUpperCase());
+          const role = (userData.role || 'OPTICIENNE').toUpperCase();
+          localStorage.setItem('user_role', role);
+          
+          toast({
+            variant: "success",
+            title: "Bienvenue",
+            description: `Ravi de vous revoir, ${userData.name}.`,
+          });
+
+          // Redirection basée sur le rôle
+          if (role === "OPTICIENNE") {
+            router.push("/caisse");
+          } else {
+            router.push("/dashboard");
+          }
         }
-        
-        toast({
-          variant: "success",
-          title: "Bienvenue",
-          description: `Ravi de vous revoir, ${userData.name}.`,
-        });
-        router.push("/dashboard");
       } else {
         throw new Error("Mot de passe incorrect.");
       }
