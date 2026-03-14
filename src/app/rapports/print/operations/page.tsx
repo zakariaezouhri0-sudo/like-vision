@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, Layers } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -88,6 +89,32 @@ function OperationsReportContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
+  const groupTransactionsByBC = (list: any[]) => {
+    const grouped: any[] = [];
+    const map: Record<string, any> = {};
+
+    list.forEach(t => {
+      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+      const canGroup = bcMatch && ["ACHAT VERRES", "ACHAT MONTURE", "VENTE"].includes(t.type);
+      
+      if (canGroup) {
+        const bcId = bcMatch[1];
+        const key = `${t.type}-${bcId}`;
+        if (map[key]) {
+          map[key].montant = roundAmount(map[key].montant + t.montant);
+          map[key].isGrouped = true;
+          map[key].childCount = (map[key].childCount || 1) + 1;
+        } else {
+          map[key] = { ...t, childCount: 1 };
+          grouped.push(map[key]);
+        }
+      } else {
+        grouped.push({ ...t });
+      }
+    });
+    return grouped;
+  };
+
   const groupedTransactions = useMemo(() => {
     if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
     
@@ -105,15 +132,19 @@ function OperationsReportContent() {
       return timeA - timeB;
     });
 
+    const vNew = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+    const vSorties = sorted.filter((t: any) => t.type !== "VENTE");
+    const vRegl = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
+
     return {
-      nouvellesVentes: sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true),
-      sorties: sorted.filter((t: any) => t.type !== "VENTE"),
-      reglements: sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true)
+      nouvellesVentes: groupTransactionsByBC(vNew),
+      sorties: groupTransactionsByBC(vSorties),
+      reglements: groupTransactionsByBC(vRegl)
     };
   }, [rawTransactions, selectedDate]);
 
   const mapToExcelRow = (t: any) => {
-    if (!t.id) return {}; // Ligne vide pour Excel
+    if (!t.id) return {};
 
     let invoiceId = t.relatedId || "";
     if (!invoiceId && t.label?.includes('VENTE')) {
@@ -130,12 +161,13 @@ function OperationsReportContent() {
     if (isVente) {
       displayLabel = sale?.notes || "";
     } else if (t.type === "VERSEMENT") {
-      // Nettoyage pour Excel
       let clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
       displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
     } else {
       displayLabel = t.label || "---";
     }
+
+    if (t.isGrouped) displayLabel += " (Groupé)";
 
     return {
       "Réf": refDisplay,
@@ -151,9 +183,9 @@ function OperationsReportContent() {
   const handleExportExcel = () => {
     const excelRows = [
       ...groupedTransactions.nouvellesVentes.map(mapToExcelRow),
-      {}, // Ligne vide
+      {},
       ...groupedTransactions.sorties.map(mapToExcelRow),
-      {}, // Ligne vide
+      {},
       ...groupedTransactions.reglements.map(mapToExcelRow)
     ];
 
@@ -198,7 +230,12 @@ function OperationsReportContent() {
             <tr key={t.id} className="hover:bg-slate-50 transition-colors">
               <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
               <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</td>
-              <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">{displayLabel}</td>
+              <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
+                <div className="flex items-center gap-2">
+                  {displayLabel}
+                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase">Σ {t.childCount}</Badge>}
+                </div>
+              </td>
               <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
               <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">{isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}</td>
               <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">{isVente ? (<span className="text-green-600">+{formatCurrency(movement, false)}</span>) : ""}</td>

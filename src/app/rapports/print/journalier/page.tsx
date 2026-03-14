@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, TrendingUp, Landmark, FileText, UserCheck } from "lucide-react";
+import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, TrendingUp, Landmark, FileText, UserCheck, Layers } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -112,25 +113,54 @@ function DailyCashReportContent() {
     logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
   };
 
+  const groupTransactionsByBC = (list: any[]) => {
+    const grouped: any[] = [];
+    const map: Record<string, any> = {};
+
+    list.forEach(t => {
+      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+      const canGroup = bcMatch && ["ACHAT VERRES", "ACHAT MONTURE", "VENTE"].includes(t.type);
+      
+      if (canGroup) {
+        const bcId = bcMatch[1];
+        const key = `${t.type}-${bcId}`;
+        if (map[key]) {
+          map[key].montant = roundAmount(map[key].montant + t.montant);
+          map[key].isGrouped = true;
+          map[key].childCount = (map[key].childCount || 1) + 1;
+        } else {
+          map[key] = { ...t, childCount: 1 };
+          grouped.push(map[key]);
+        }
+      } else {
+        grouped.push({ ...t });
+      }
+    });
+    return grouped;
+  };
+
   const reportData = useMemo(() => {
     if (!rawTransactions) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
     
     const filteredTransactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     
     const initialBalance = roundAmount(session?.openingBalance || 0);
-    const salesList: any[] = [];
-    const expensesList: any[] = [];
+    const salesListRaw: any[] = [];
+    const expensesListRaw: any[] = [];
     const versementsList: any[] = [];
     
     filteredTransactions.forEach((t: any) => {
       if (t.type === "VENTE") {
-        salesList.push(t);
+        salesListRaw.push(t);
       } else if (t.type === "VERSEMENT") {
         versementsList.push(t);
       } else {
-        expensesList.push(t);
+        expensesListRaw.push(t);
       }
     });
+
+    const salesList = groupTransactionsByBC(salesListRaw);
+    const expensesList = groupTransactionsByBC(expensesListRaw);
 
     expensesList.sort((a, b) => {
       const priority: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "VERSEMENT": 3, "DEPENSE": 4 };
@@ -142,8 +172,8 @@ function DailyCashReportContent() {
       return timeA - timeB;
     });
 
-    const totalSales = roundAmount(salesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
-    const totalExpenses = roundAmount(expensesList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
+    const totalSales = roundAmount(salesListRaw.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
+    const totalExpenses = roundAmount(expensesListRaw.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
     const totalVersements = roundAmount(versementsList.reduce((acc, curr) => acc + Math.abs(curr.montant || 0), 0));
     
     const fluxOp = roundAmount(totalSales - totalExpenses);
@@ -196,7 +226,7 @@ function DailyCashReportContent() {
                         <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
-                              {t.label || `VENTE ${t.relatedId || "---"}`}
+                              {t.label || `VENTE ${t.relatedId || "---"}`} {t.isGrouped && " (Σ)"}
                             </span>
                             <span className="text-[10px] font-bold text-slate-500 uppercase truncate">
                               {sale?.clientName || t.clientName || "---"}
@@ -235,7 +265,7 @@ function DailyCashReportContent() {
                         cleanedLabel = cleanedLabel.replace(reg, '');
                       });
                       cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
-                      const displayLabel = `${typeStr} | ${cleanedLabel || "---"}`;
+                      const displayLabel = `${typeStr} | ${cleanedLabel || "---"} ${e.isGrouped ? " (Σ)" : ""}`;
 
                       return (
                         <tr key={e.id} className="hover:bg-slate-50">

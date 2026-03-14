@@ -24,7 +24,8 @@ import {
   TrendingUp,
   TrendingDown,
   Coins,
-  RotateCcw
+  RotateCcw,
+  Layers
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -135,10 +136,40 @@ function CaisseContent() {
       });
   }, [rawTransactions, isPrepaMode]);
 
-  const salesTransactions = useMemo(() => transactions.filter(t => t.type === "VENTE"), [transactions]);
+  const groupTransactionsByBC = (list: any[]) => {
+    const grouped: any[] = [];
+    const map: Record<string, any> = {};
+
+    list.forEach(t => {
+      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+      const canGroup = bcMatch && ["ACHAT VERRES", "ACHAT MONTURE", "VENTE"].includes(t.type);
+      
+      if (canGroup) {
+        const bcId = bcMatch[1];
+        const key = `${t.type}-${bcId}`;
+        if (map[key]) {
+          map[key].montant = roundAmount(map[key].montant + t.montant);
+          map[key].isGrouped = true;
+          map[key].childCount = (map[key].childCount || 1) + 1;
+        } else {
+          map[key] = { ...t, childCount: 1 };
+          grouped.push(map[key]);
+        }
+      } else {
+        grouped.push({ ...t });
+      }
+    });
+    return grouped;
+  };
+
+  const salesTransactions = useMemo(() => {
+    const raw = transactions.filter(t => t.type === "VENTE");
+    return groupTransactionsByBC(raw);
+  }, [transactions]);
   
   const expenseTransactions = useMemo(() => {
     const data = transactions.filter(t => t.type !== "VENTE");
+    const grouped = groupTransactionsByBC(data);
     const priority: Record<string, number> = {
       "ACHAT VERRES": 1,
       "ACHAT MONTURE": 2,
@@ -146,7 +177,7 @@ function CaisseContent() {
       "DEPENSE": 4
     };
     
-    return [...data].sort((a, b) => {
+    return [...grouped].sort((a, b) => {
       const pA = priority[a.type as string] || 99;
       const pB = priority[b.type as string] || 99;
       if (pA !== pB) return pA - pB;
@@ -288,6 +319,10 @@ function CaisseContent() {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour modifier une opération." });
       return;
     }
+    if (t.isGrouped) {
+      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul de plusieurs opérations. Modifiez-les individuellement via l'historique." });
+      return;
+    }
     setSelectedTrans(t);
     setEditOp({
       type: t.type,
@@ -344,6 +379,10 @@ function CaisseContent() {
   const handleDeleteOp = async (t: any) => {
     if (session?.status === "CLOSED") {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour supprimer une opération." });
+      return;
+    }
+    if (t.isGrouped) {
+      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul. Supprimez les opérations individuellement." });
       return;
     }
     if (!confirm("Supprimer cette opération ?")) return;
@@ -492,7 +531,14 @@ function CaisseContent() {
                       <div className="flex items-center gap-4">
                         <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{displayLabel}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{displayLabel}</span>
+                            {t.isGrouped && (
+                              <Badge variant="outline" className="text-[7px] font-black h-4 px-1 border-primary/20 text-primary bg-primary/5 uppercase">
+                                <Layers className="h-2 w-2 mr-1" /> Σ {t.childCount}
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[10px] font-black text-primary/60 uppercase tracking-tight leading-none mt-1">{t.clientName || "---"}</span>
                         </div>
                       </div>
@@ -503,8 +549,24 @@ function CaisseContent() {
                     <TableCell className="text-right px-6 py-4">
                       {!isClosed && (
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="outline" size="icon" onClick={() => handleOpenEdit(t)} className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm"><Edit2 className="h-3.5 w-3.5" /></Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDeleteOp(t)} className="h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm"><Trash2 className="h-3.5 w-3.5" /></Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleOpenEdit(t)} 
+                            disabled={t.isGrouped}
+                            className={cn("h-8 w-8 text-primary border-primary/20 hover:bg-primary/10 rounded-lg shadow-sm", t.isGrouped && "opacity-30 cursor-not-allowed")}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleDeleteOp(t)} 
+                            disabled={t.isGrouped}
+                            className={cn("h-8 w-8 text-red-500 border-red-100 hover:bg-red-50 rounded-lg shadow-sm", t.isGrouped && "opacity-30 cursor-not-allowed")}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       )}
                     </TableCell>
