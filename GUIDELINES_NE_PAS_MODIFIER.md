@@ -24,10 +24,11 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Centrage** : Toutes les cartes de statistiques (Ventes, CA, Restes, Clients) doivent avoir leurs textes et montants parfaitement centrés (`text-center`).
 - **Restriction Accès** : Le Dashboard est réservé exclusivement à l'ADMIN et au mode PREPA. Les OPTICIENNES sont redirigées directement vers la Caisse après connexion.
 
-## 5. Formulaire de Vente
+## 5. Formulaire de Vente & Parrainage
 - **Ordre des champs Client** : La ligne supérieure doit impérativement respecter l'ordre : `Téléphone / Nom Complet / Date de la vente`.
-- **Parrainage / Famille** : Lorsque coché, le numéro de téléphone saisi est utilisé comme lien familial (`parentPhone`). Une liste déroulante s'affiche sous le nom si plusieurs membres partagent le même numéro.
-- **Sécurité Date** : Le sélecteur de date est désactivé (`disabled`) pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
+- **Parrainage / Famille** : Le numéro de téléphone est le pivot. Si coché, le numéro saisi lie le client au groupe familial (`parentPhone`).
+- **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche immédiatement la liste des membres de la famille sous le champ Nom. Choisir un membre charge ses données. Saisir un nouveau nom avec "Parrainage" coché crée un nouveau membre lié à cette famille.
+- **Sécurité Date** : Le sélecteur de date est désactivé pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 
 ## 6. Journal de Caisse (Sessions)
 - **Groupement Mensuel** : Les sessions sont groupées par mois. Seul le mois actuel est ouvert par défaut.

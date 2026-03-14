@@ -116,7 +116,7 @@ function NewSaleForm() {
   const handleSelectMember = (client: any) => {
     setClientName(client.name);
     setClientPhone(client.phone || clientPhone);
-    if (client.parentPhone) {
+    if (client.parentPhone || matchedFamily.length > 0) {
       setIsFamilyMode(true);
     }
     if (client.mutuelle) {
@@ -135,38 +135,32 @@ function NewSaleForm() {
 
     const findAndPopulate = () => {
       const matchMode = isPrepaMode ? (c: any) => c.isDraft === true : (c: any) => !c.isDraft;
-      let foundClient = null;
-      if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8) {
-        const cleanedPhone = clientPhone.replace(/\s/g, "");
-        const matches = allClients.filter(c => matchMode(c) && (c.phone || "").replace(/\s/g, "") === cleanedPhone);
-        if (matches.length === 1) foundClient = matches[0];
-      }
       
-      if (!foundClient && clientName && clientName.trim().length >= 3 && matchedFamily.length <= 1) {
-        const cleanedName = clientName.toLowerCase().trim();
-        foundClient = allClients.find(c => matchMode(c) && (c.name || "").toLowerCase().trim() === cleanedName);
+      // Si on trouve une famille pour ce numéro, on suggère le mode famille
+      if (clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length > 0) {
+        setIsFamilyMode(true);
       }
 
-      if (foundClient) {
-        if (clientName !== foundClient.name) setClientName(foundClient.name);
-        if (clientPhone.replace(/\s/g, "") !== (foundClient.phone || "").replace(/\s/g, "")) setClientPhone(foundClient.phone || "");
-        if (foundClient.parentPhone) {
-          setIsFamilyMode(true);
-        }
-        if (foundClient.mutuelle) {
-          if (MUTUELLES.filter(m => m !== 'Autre').includes(foundClient.mutuelle)) {
-            setMutuelle(foundClient.mutuelle);
-            setCustomMutuelle("");
-          } else {
-            setMutuelle("Autre");
-            setCustomMutuelle(foundClient.mutuelle);
+      // Si match exact (1 seul membre connu pour ce numéro), on pré-remplit
+      if (clientPhone && clientPhone.replace(/\s/g, "").length >= 8 && matchedFamily.length === 1) {
+        const found = matchedFamily[0];
+        if (!clientName) {
+          setClientName(found.name);
+          if (found.mutuelle) {
+            if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
+              setMutuelle(found.mutuelle);
+              setCustomMutuelle("");
+            } else {
+              setMutuelle("Autre");
+              setCustomMutuelle(found.mutuelle);
+            }
           }
         }
       }
     };
     const timeout = setTimeout(findAndPopulate, 500);
     return () => clearTimeout(timeout);
-  }, [clientPhone, clientName, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily]);
+  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily.length]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -205,7 +199,6 @@ function NewSaleForm() {
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
     const cleanedPhone = clientPhone.replace(/\s/g, "");
-    // Si mode famille, le numéro saisi dans le champ principal devient le parentPhone
     const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
     let finalInvoiceId = "";
 
@@ -336,12 +329,17 @@ function NewSaleForm() {
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="M. Mohamed Alami..." value={clientName} onChange={e => setClientName(e.target.value)} readOnly={isSessionClosed} />
                       
-                      {matchedFamily.length > 1 && !isSessionClosed && (
+                      {matchedFamily.length > 0 && !isSessionClosed && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
-                          <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">Membres trouvés ({matchedFamily.length})</p>
+                          <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
+                            {matchedFamily.length === 1 && matchedFamily[0].name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}
+                          </p>
                           {matchedFamily.map(c => (
-                            <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0">
-                              <span className="text-xs font-black uppercase group-hover:text-primary">{c.name}</span>
+                            <button key={c.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c.name === clientName && "bg-primary/5")}>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black uppercase group-hover:text-primary">{c.name}</span>
+                                {c.mutuelle && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{c.mutuelle}</span>}
+                              </div>
                               <span className="text-[8px] font-bold text-slate-400">Choisir</span>
                             </button>
                           ))}
