@@ -21,7 +21,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Agrégation BC** : Les opérations (Ventes, Achats) partageant le même numéro de BC (ex: BC:2516) sont automatiquement cumulées en une seule ligne affichant la somme totale.
 
 ## 4. Tableau de Bord & Accès
-- **Centrage** : Toutes les cartes de statistiques (Ventes, CA, Restes, Clients) doivent avoir leurs textes et montants parfaitement centrés (`text-center`).
+- **Centrage Absolu** : Toutes les cartes de statistiques (Ventes, CA, Restes, Clients) et les en-têtes de sessions (Flux Net) doivent avoir leurs textes et montants parfaitement centrés géométriquement.
 - **Restriction Accès** : Le Dashboard est réservé exclusivement à l'ADMIN et au mode PREPA. Les OPTICIENNES sont redirigées directement vers la Caisse après connexion.
 
 ## 5. Formulaire de Vente & Parrainage
@@ -37,6 +37,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Calcul Flux Net (APRES CHARGES)** : 
     - Mois 01 (Janvier) : Déduction de **15 000 DH**.
     - Mois 02 à 12 : Déduction de **20 000 DH**.
+- **Mise en page** : Utiliser un système de grille à 3 colonnes pour garantir que le Flux Net mensuel soit toujours au centre exact de la barre, quelle que soit la largeur du libellé du mois.
 - **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle.
 
 ## 7. Maintenance & Intégrité

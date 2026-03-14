@@ -333,7 +333,7 @@ export default function CashSessionsPage() {
                 <Card key={group.monthLabel} className="shadow-xl border-none overflow-hidden rounded-[32px] bg-white">
                   <div 
                     className={cn(
-                      "flex items-center justify-between px-8 py-5 cursor-pointer transition-colors select-none",
+                      "grid grid-cols-1 md:grid-cols-3 items-center px-8 py-5 cursor-pointer transition-colors select-none gap-4",
                       isExpanded ? "bg-primary text-white" : "bg-slate-50 hover:bg-slate-100 text-primary"
                     )}
                     onClick={() => toggleMonth(group.monthLabel)}
@@ -343,25 +343,27 @@ export default function CashSessionsPage() {
                       <span className="text-base font-black uppercase tracking-[0.2em]">{group.monthLabel}</span>
                     </div>
 
-                    {isAdminOrPrepa && (
+                    {isAdminOrPrepa ? (
                       <div className="hidden md:flex flex-col items-center">
                         <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
                         <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
                           {formatCurrency(group.totalFlux).replace('+', '')}
                         </span>
                       </div>
-                    )}
+                    ) : <div className="hidden md:block" />}
 
-                    <Button 
-                      size="sm" 
-                      onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
-                      className={cn(
-                        "h-9 px-4 rounded-xl font-black text-[9px] uppercase shadow-lg transition-all",
-                        isExpanded ? "bg-white text-primary hover:bg-slate-100" : "bg-primary text-white"
-                      )}
-                    >
-                      <Download className="mr-2 h-3.5 w-3.5" /> EXCEL DU MOIS
-                    </Button>
+                    <div className="flex justify-end">
+                      <Button 
+                        size="sm" 
+                        onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
+                        className={cn(
+                          "h-9 px-4 rounded-xl font-black text-[9px] uppercase shadow-lg transition-all",
+                          isExpanded ? "bg-white text-primary hover:bg-slate-100" : "bg-primary text-white"
+                        )}
+                      >
+                        <Download className="mr-2 h-3.5 w-3.5" /> EXCEL DU MOIS
+                      </Button>
+                    </div>
                   </div>
 
                   {isExpanded && (
