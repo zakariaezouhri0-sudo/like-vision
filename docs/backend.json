@@ -22,12 +22,13 @@
       "properties": {
         "name": { "type": "string" },
         "phone": { "type": "string" },
+        "parentPhone": { "type": "string", "description": "Numéro du tuteur pour regroupement familial." },
         "mutuelle": { "type": "string" },
         "lastVisit": { "type": "string" },
         "ordersCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "phone"]
+      "required": ["name"]
     },
     "Sale": {
       "title": "Sale",

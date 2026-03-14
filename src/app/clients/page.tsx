@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
@@ -49,7 +49,7 @@ export default function ClientsPage() {
   const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newClient, setNewClient] = useState({ name: "", phone: "", mutuelle: "Aucun" });
+  const [newClient, setNewClient] = useState({ name: "", phone: "", parentPhone: "", mutuelle: "Aucun" });
   const [newCustomMutuelle, setNewCustomMutuelle] = useState("");
 
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -68,9 +68,12 @@ export default function ClientsPage() {
 
         const clientName = (c.name || "").toLowerCase();
         const clientPhone = (c.phone || "").replace(/\s/g, "");
+        const parentPhone = (c.parentPhone || "").replace(/\s/g, "");
         const searchClean = search.replace(/\s/g, "");
 
-        return clientName.includes(search) || clientPhone.includes(searchClean);
+        return clientName.includes(search) || 
+               clientPhone.includes(searchClean) || 
+               parentPhone.includes(searchClean);
       })
       .sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
@@ -104,10 +107,12 @@ export default function ClientsPage() {
 
     const finalMutuelle = newClient.mutuelle === "Autre" ? newCustomMutuelle : newClient.mutuelle;
     const cleanedPhone = newClient.phone ? newClient.phone.replace(/\s/g, '') : "";
+    const cleanedParentPhone = newClient.parentPhone ? newClient.parentPhone.replace(/\s/g, '') : "";
 
     const clientData = {
       name: newClient.name,
       phone: cleanedPhone,
+      parentPhone: cleanedParentPhone,
       mutuelle: finalMutuelle || "Aucun",
       lastVisit: new Date().toLocaleDateString("fr-FR"),
       ordersCount: 0,
@@ -116,7 +121,7 @@ export default function ClientsPage() {
     };
 
     setIsCreateOpen(false);
-    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
+    setNewClient({ name: "", phone: "", parentPhone: "", mutuelle: "Aucun" });
     setNewCustomMutuelle("");
 
     addDoc(collection(db, "clients"), clientData)
@@ -136,6 +141,8 @@ export default function ClientsPage() {
     const isStandard = MUTUELLES.filter(m => m !== "Autre").includes(client.mutuelle);
     setEditingClient({
       ...client,
+      phone: client.phone || "",
+      parentPhone: client.parentPhone || "",
       mutuelle: isStandard ? client.mutuelle : (client.mutuelle === "Aucun" ? "Aucun" : "Autre")
     });
     setEditCustomMutuelle(isStandard ? "" : (client.mutuelle === "Aucun" ? "" : client.mutuelle));
@@ -150,6 +157,7 @@ export default function ClientsPage() {
     const updateData = {
       name: editingClient.name,
       phone: editingClient.phone ? editingClient.phone.replace(/\s/g, '') : "",
+      parentPhone: editingClient.parentPhone ? editingClient.parentPhone.replace(/\s/g, '') : "",
       mutuelle: finalMutuelle || "Aucun"
     };
 
@@ -207,7 +215,7 @@ export default function ClientsPage() {
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">
               Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}
             </h1>
-            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers et ordonnances.</p>
+            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers et regroupement familial.</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -223,20 +231,27 @@ export default function ClientsPage() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Nom Complet</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Nom Complet</Label>
                     <Input placeholder="M. Mohamed Alami" className="h-11 rounded-xl font-bold" value={newClient.name} onChange={(e) => setNewClient({...newClient, name: e.target.value})} autoFocus />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Téléphone (Optionnel)</Label>
-                    <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, '');
-                      if (validatePhone(raw)) {
-                        setNewClient({...newClient, phone: raw});
-                      }
-                    }} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Téléphone Client</Label>
+                      <Input placeholder="06 00 00 00 00" className="h-11 rounded-xl font-bold" value={formatPhoneNumber(newClient.phone)} onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '');
+                        if (validatePhone(raw)) setNewClient({...newClient, phone: raw});
+                      }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase text-orange-600 ml-1">Numéro Parent / Tuteur</Label>
+                      <Input placeholder="06 00 00..." className="h-11 rounded-xl font-bold border-orange-100 bg-orange-50/30" value={formatPhoneNumber(newClient.parentPhone)} onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '');
+                        if (validatePhone(raw)) setNewClient({...newClient, parentPhone: raw});
+                      }} />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Mutuelle</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Mutuelle</Label>
                     <Select value={newClient.mutuelle} onValueChange={(v) => setNewClient({...newClient, mutuelle: v})}>
                       <SelectTrigger className="h-11 rounded-xl font-bold"><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-xl">
@@ -246,7 +261,7 @@ export default function ClientsPage() {
                   </div>
                   {newClient.mutuelle === "Autre" && (
                     <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Libellé Mutuelle</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Libellé Mutuelle</Label>
                       <Input placeholder="Précisez la mutuelle..." className="h-11 rounded-xl font-bold" value={newCustomMutuelle} onChange={(e) => setNewCustomMutuelle(e.target.value)} />
                     </div>
                   )}
@@ -264,7 +279,7 @@ export default function ClientsPage() {
             <div className="relative max-w-md">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-primary/40" />
               <input 
-                placeholder="Chercher par nom ou téléphone..." 
+                placeholder="Chercher par nom, téléphone ou parent..." 
                 className="w-full pl-12 h-12 text-sm font-bold rounded-xl border-none shadow-inner bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -280,7 +295,7 @@ export default function ClientsPage() {
                 </div>
               ) : error ? (
                 <div className="p-12 text-center text-destructive font-bold">
-                  Erreur de chargement des clients. Veuillez rafraîchir la page.
+                  Erreur de chargement des clients.
                 </div>
               ) : (
                 <Table>
@@ -288,8 +303,8 @@ export default function ClientsPage() {
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Client</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Téléphone</TableHead>
+                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Lien Parent</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Mutuelle</TableHead>
-                      <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white hidden md:table-cell whitespace-nowrap">Dernière Visite</TableHead>
                       <TableHead className="text-right text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -309,15 +324,23 @@ export default function ClientsPage() {
                             {c.phone ? formatPhoneNumber(c.phone) : <span className="text-slate-300">---</span>}
                           </TableCell>
                           <TableCell className="px-4 md:px-8 py-4 md:py-5">
+                            {c.parentPhone ? (
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5">
+                                  <Users className="h-3 w-3 text-orange-500" />
+                                  <span className="text-[10px] font-black text-orange-600 tabular-nums">{formatPhoneNumber(c.parentPhone)}</span>
+                                </div>
+                                <Badge variant="outline" className="text-[7px] font-black uppercase mt-1 px-1.5 h-4 border-orange-200 bg-orange-50 text-orange-700 w-fit">Tuteur</Badge>
+                              </div>
+                            ) : <span className="text-slate-200">---</span>}
+                          </TableCell>
+                          <TableCell className="px-4 md:px-8 py-4 md:py-5">
                             <Badge 
                               className="text-[8px] md:text-[9px] px-2 md:px-3 py-1 font-black rounded-lg uppercase tracking-tighter shadow-sm border-none bg-blue-100 text-blue-700 whitespace-nowrap"
                               variant="outline"
                             >
                               {c.mutuelle || "---"}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-bold text-muted-foreground px-4 md:px-8 py-4 md:py-5 hidden md:table-cell whitespace-nowrap">
-                            {c.lastVisit || "---"}
                           </TableCell>
                           <TableCell className="text-right px-4 md:px-8 py-4 md:py-5">
                             <DropdownMenu modal={false}>
@@ -344,7 +367,7 @@ export default function ClientsPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-32 text-xs font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">
-                          Aucun dossier trouvé {isPrepaMode ? "en brouillon" : "en réel"}.
+                          Aucun dossier trouvé.
                         </TableCell>
                       </TableRow>
                     )}
@@ -366,14 +389,21 @@ export default function ClientsPage() {
                   <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
                   <Input className="font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black">Téléphone</Label>
-                  <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    if (validatePhone(raw)) {
-                      setEditingClient({...editingClient, phone: raw});
-                    }
-                  }} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black">Téléphone Client</Label>
+                    <Input className="font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      if (validatePhone(raw)) setEditingClient({...editingClient, phone: raw});
+                    }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-black text-orange-600">Numéro Parent</Label>
+                    <Input className="font-bold border-orange-100 bg-orange-50/30" value={formatPhoneNumber(editingClient.parentPhone)} onChange={e => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      if (validatePhone(raw)) setEditingClient({...editingClient, parentPhone: raw});
+                    }} />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
