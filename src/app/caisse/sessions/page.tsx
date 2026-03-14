@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -38,13 +39,13 @@ export default function CashSessionsPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [role, setRole] = useState<string>("OPTICIENNE");
-  const [loadingRole, setLoadingRole] = useState(true);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
-    setRole(savedRole.toUpperCase());
-    setLoadingRole(false);
+    const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    setRole(savedRole?.toUpperCase() || "OPTICIENNE");
+    setIsClientReady(true);
   }, []);
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
@@ -57,14 +58,14 @@ export default function CashSessionsPage() {
     if (!rawSessions) return [];
     
     const filtered = [...rawSessions]
-      .filter(s => isPrepaMode ? s.isDraft === true : (s.isDraft !== true))
-      .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      .filter(s => isPrepaMode ? s?.isDraft === true : (s?.isDraft !== true))
+      .sort((a, b) => (b?.date || "").localeCompare(a?.date || ""));
 
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
     
     // Grouping and basic sum
     filtered.forEach(s => {
-      if (!s.date) return;
+      if (!s?.date) return;
       try {
         const date = parseISO(s.date);
         if (!isValid(date)) return;
@@ -86,7 +87,10 @@ export default function CashSessionsPage() {
       if (group.sessions.length === 0) return group;
       
       try {
-        const d = parseISO(group.sessions[0].date);
+        const firstSession = group.sessions[0];
+        if (!firstSession?.date) return group;
+        const d = parseISO(firstSession.date);
+        if (!isValid(d)) return group;
         const monthNum = d.getMonth() + 1; // 1-indexed
         
         let deduction = 0;
@@ -293,7 +297,7 @@ export default function CashSessionsPage() {
     }
   };
 
-  if (loadingRole) return null;
+  if (!isClientReady) return null;
 
   return (
     <AppShell>
@@ -378,18 +382,18 @@ export default function CashSessionsPage() {
                           </TableHeader>
                           <TableBody>
                             {group.sessions.map((s: any) => {
-                              const initial = roundAmount(s.openingBalance || 0);
-                              const sales = roundAmount(s.totalSales || 0);
-                              const expenses = roundAmount(s.totalExpenses || 0);
-                              const versements = roundAmount(s.totalVersements || 0);
+                              const initial = roundAmount(s?.openingBalance || 0);
+                              const sales = roundAmount(s?.totalSales || 0);
+                              const expenses = roundAmount(s?.totalExpenses || 0);
+                              const versements = roundAmount(s?.totalVersements || 0);
                               const flux = roundAmount(sales - expenses);
-                              const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
+                              const reel = roundAmount(s?.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
                               
-                              const isSun = s.date ? isSunday(parseISO(s.date)) : false;
+                              const isSun = s?.date ? isSunday(parseISO(s.date)) : false;
 
                               return (
                                 <TableRow 
-                                  key={s.id} 
+                                  key={s?.id} 
                                   className={cn(
                                     "hover:bg-slate-50/80 border-b",
                                     isSun && "bg-red-50/80 hover:bg-red-100/80"
@@ -397,16 +401,16 @@ export default function CashSessionsPage() {
                                 >
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
-                                      <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s.date)}</span>
-                                      <span className={cn("text-[8px] font-black uppercase mt-1", s.status === "OPEN" ? "text-green-600" : "text-red-500")}>
-                                        {s.status === "OPEN" ? "En cours" : "Clôturée"}
+                                      <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s?.date)}</span>
+                                      <span className={cn("text-[8px] font-black uppercase mt-1", s?.status === "OPEN" ? "text-green-600" : "text-red-500")}>
+                                        {s?.status === "OPEN" ? "En cours" : "Clôturée"}
                                       </span>
                                     </div>
                                   </TableCell>
                                   <TableCell className="px-6 py-5">
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-green-600 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s.openedAt)}</span>
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{s.openedBy || "---"}</span>
+                                      <span className="text-[11px] font-black text-green-600 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.openedAt)}</span>
+                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{s?.openedBy || "---"}</span>
                                     </div>
                                   </TableCell>
                                   <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
@@ -418,10 +422,10 @@ export default function CashSessionsPage() {
                                   <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
                                   <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
                                   <TableCell className="px-6 py-5">
-                                    {s.status === "CLOSED" ? (
+                                    {s?.status === "CLOSED" ? (
                                       <div className="flex flex-col">
-                                        <span className="text-[11px] font-black text-red-500 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s.closedAt)}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase">{s.closedBy || "---"}</span>
+                                        <span className="text-[11px] font-black text-red-500 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.closedAt)}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase">{s?.closedBy || "---"}</span>
                                       </div>
                                     ) : <span className="text-[9px] font-black uppercase text-slate-300 italic">En cours...</span>}
                                   </TableCell>
@@ -429,10 +433,10 @@ export default function CashSessionsPage() {
                                     <DropdownMenu modal={false}>
                                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
-                                        <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s?.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s?.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel Opérations</DropdownMenuItem>
-                                        {role === 'ADMIN' && s.status === "CLOSED" && (
+                                        {role === 'ADMIN' && s?.status === "CLOSED" && (
                                           <DropdownMenuItem onClick={() => handleReopenSession(s)} className="text-orange-600 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><RotateCcw className="mr-3 h-4 w-4" /> Ré-ouvrir</DropdownMenuItem>
                                         )}
                                         {isAdminOrPrepa && <DropdownMenuItem onClick={() => handleDeleteSession(s)} className="text-red-500 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>}

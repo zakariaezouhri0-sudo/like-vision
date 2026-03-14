@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, getDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
@@ -36,7 +36,7 @@ function NewSaleForm() {
   const [isNameFocused, setIsNameFocused] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role');
+    const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
     if (savedRole) {
       setRole(savedRole.toUpperCase());
       setIsClientReady(true);
@@ -103,19 +103,20 @@ function NewSaleForm() {
 
   const matchedFamily = useMemo(() => {
     if (!allClients || !isClientReady || activeEditId) return [];
-    const cleaned = clientPhone.replace(/\s/g, "");
+    const cleaned = (clientPhone || "").replace(/\s/g, "");
     if (cleaned.length < 8) return [];
 
     return allClients.filter(c => {
-      const matchMode = isPrepaMode ? c.isDraft === true : !c.isDraft;
-      const cPhone = (c.phone || "").replace(/\s/g, "");
-      const pPhone = (c.parentPhone || "").replace(/\s/g, "");
+      const matchMode = isPrepaMode ? c?.isDraft === true : !c?.isDraft;
+      const cPhone = (c?.phone || "").replace(/\s/g, "");
+      const pPhone = (c?.parentPhone || "").replace(/\s/g, "");
       return matchMode && (cPhone === cleaned || pPhone === cleaned);
     });
   }, [allClients, clientPhone, isPrepaMode, isClientReady, activeEditId]);
 
   const handleSelectMember = (client: any) => {
-    setClientName(client.name);
+    if (!client) return;
+    setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     if (client.parentPhone || matchedFamily.length > 0) {
       setIsFamilyMode(true);
@@ -136,28 +137,30 @@ function NewSaleForm() {
     if (activeEditId || !allClients || !isClientReady) return;
 
     const findAndPopulate = () => {
-      const cleaned = clientPhone.replace(/\s/g, "");
+      const cleaned = (clientPhone || "").replace(/\s/g, "");
       if (cleaned.length >= 8 && matchedFamily.length > 0) {
         setIsFamilyMode(true);
       }
 
       if (cleaned.length >= 8 && matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
-        setClientName(found.name);
-        if (found.mutuelle) {
-          if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
-            setMutuelle(found.mutuelle);
-            setCustomMutuelle("");
-          } else {
-            setMutuelle("Autre");
-            setCustomMutuelle(found.mutuelle);
+        if (found) {
+          setClientName(found.name || "");
+          if (found.mutuelle) {
+            if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
+              setMutuelle(found.mutuelle);
+              setCustomMutuelle("");
+            } else {
+              setMutuelle("Autre");
+              setCustomMutuelle(found.mutuelle);
+            }
           }
         }
       }
     };
     const timeout = setTimeout(findAndPopulate, 500);
     return () => clearTimeout(timeout);
-  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily]);
+  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily, clientName]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -195,7 +198,7 @@ function NewSaleForm() {
     const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
-    const cleanedPhone = clientPhone.replace(/\s/g, "");
+    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
     let finalInvoiceId = "";
 
@@ -235,7 +238,7 @@ function NewSaleForm() {
         transaction.set(saleRef, saleData, { merge: true });
         finalInvoiceId = invoiceId;
 
-        const existingClient = allClients?.find(c => (isPrepaMode ? c.isDraft === true : !c.isDraft) && (c.name?.toLowerCase().trim() === clientName.toLowerCase().trim()));
+        const existingClient = allClients?.find(c => (isPrepaMode ? c?.isDraft === true : !c?.isDraft) && (c?.name?.toLowerCase().trim() === clientName.toLowerCase().trim()));
         if (existingClient) {
           transaction.update(doc(db, "clients", existingClient.id), { 
             phone: cleanedPhone, 
@@ -338,13 +341,13 @@ function NewSaleForm() {
                       {matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
-                            {matchedFamily.length === 1 && matchedFamily[0].name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}
+                            {matchedFamily.length === 1 && matchedFamily[0]?.name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}
                           </p>
                           {matchedFamily.map(c => (
-                            <button key={c.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c.name === clientName && "bg-primary/5")}>
+                            <button key={c?.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c?.name === clientName && "bg-primary/5")}>
                               <div className="flex flex-col">
-                                <span className="text-xs font-black uppercase group-hover:text-primary">{c.name}</span>
-                                {c.mutuelle && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{c.mutuelle}</span>}
+                                <span className="text-xs font-black uppercase group-hover:text-primary">{c?.name || "---"}</span>
+                                {c?.mutuelle && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{c.mutuelle}</span>}
                               </div>
                               <span className="text-[8px] font-bold text-slate-400">Choisir</span>
                             </button>
