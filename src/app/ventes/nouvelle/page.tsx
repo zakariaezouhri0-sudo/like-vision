@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -29,7 +28,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsHydrated] = useState(false);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
