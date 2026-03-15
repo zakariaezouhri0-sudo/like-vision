@@ -17,7 +17,7 @@ import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWh
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
 
@@ -50,7 +50,11 @@ function NewSaleForm() {
 
   const [saleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
-    return d ? new Date(d) : new Date();
+    if (d) {
+      const parsed = new Date(d);
+      if (isValid(parsed)) return parsed;
+    }
+    return new Date();
   });
   
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
@@ -89,7 +93,7 @@ function NewSaleForm() {
   });
 
   const sessionDocId = useMemo(() => {
-    if (!isClientReady) return null;
+    if (!isClientReady || !isValid(saleDate)) return null;
     const ds = format(saleDate, "yyyy-MM-dd");
     return isPrepaMode ? `DRAFT-${ds}` : ds;
   }, [isClientReady, saleDate, isPrepaMode]);
@@ -197,10 +201,10 @@ function NewSaleForm() {
     setLoading(true);
     const currentIsDraft = role === "PREPA";
     const currentUserName = user?.displayName || "Inconnu";
-    const finalMutuelle = mutuelle === "Autre" ? customMutuelle : mutuelle;
+    const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
-    let finalInvoiceId = "";
+    let finalInvoiceIdForURL = "";
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -223,10 +227,42 @@ function NewSaleForm() {
           invoiceId = invoiceId.replace("RC-", "FC-");
         }
 
+        // Sécurisation des données (Firestore n'accepte pas undefined)
+        const cleanPrescription = {
+          od: {
+            sph: prescription.od.sph || "",
+            cyl: prescription.od.cyl || "",
+            axe: prescription.od.axe || "",
+            add: prescription.od.add || ""
+          },
+          og: {
+            sph: prescription.og.sph || "",
+            cyl: prescription.og.cyl || "",
+            axe: prescription.og.axe || "",
+            add: prescription.og.add || ""
+          }
+        };
+
         const saleData: any = {
-          invoiceId, bonNumber, fromDoctor, clientName, clientPhone: cleanedPhone, mutuelle: finalMutuelle || "Aucun",
-          monture, verres, notes, total: nTotal, remise: calculatedRemise, discountType, discountValue: nDiscountVal,
-          avance: nAvance, reste: resteAPayerValue, statut, prescription, isDraft: currentIsDraft, updatedAt: serverTimestamp()
+          invoiceId: invoiceId || "---",
+          bonNumber: bonNumber || "---",
+          fromDoctor: !!fromDoctor,
+          clientName: clientName || "---",
+          clientPhone: cleanedPhone || "",
+          mutuelle: finalMutuelle,
+          monture: monture || "",
+          verres: verres || "",
+          notes: notes || "",
+          total: nTotal,
+          remise: calculatedRemise,
+          discountType: discountType,
+          discountValue: nDiscountVal,
+          avance: nAvance,
+          reste: resteAPayerValue,
+          statut: statut,
+          prescription: cleanPrescription,
+          isDraft: !!currentIsDraft,
+          updatedAt: serverTimestamp()
         };
 
         if (!activeEditId) {
@@ -236,14 +272,14 @@ function NewSaleForm() {
         }
 
         transaction.set(saleRef, saleData, { merge: true });
-        finalInvoiceId = invoiceId;
+        finalInvoiceIdForURL = invoiceId;
 
         const existingClient = allClients?.find(c => (isPrepaMode ? c?.isDraft === true : !c?.isDraft) && (c?.name?.toLowerCase().trim() === clientName.toLowerCase().trim()));
         if (existingClient) {
           transaction.update(doc(db, "clients", existingClient.id), { 
             phone: cleanedPhone, 
             parentPhone: cleanedParentPhone,
-            mutuelle: finalMutuelle || "Aucun", 
+            mutuelle: finalMutuelle, 
             lastVisit: format(new Date(), "dd/MM/yyyy"), 
             ordersCount: (existingClient.ordersCount || 0) + 1, 
             updatedAt: serverTimestamp() 
@@ -253,22 +289,31 @@ function NewSaleForm() {
             name: clientName, 
             phone: cleanedPhone, 
             parentPhone: cleanedParentPhone,
-            mutuelle: finalMutuelle || "Aucun", 
+            mutuelle: finalMutuelle, 
             lastVisit: format(new Date(), "dd/MM/yyyy"), 
             ordersCount: 1, 
-            isDraft: currentIsDraft, 
+            isDraft: !!currentIsDraft, 
             createdAt: serverTimestamp() 
           });
         }
 
         if (nAvance > 0 && !activeEditId) {
-          transaction.set(doc(collection(db, "transactions")), { type: "VENTE", label: `VENTE ${invoiceId}`, clientName, montant: nAvance, relatedId: invoiceId, saleId: saleRef.id, userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp() }, { merge: true });
+          transaction.set(doc(collection(db, "transactions")), { 
+            type: "VENTE", 
+            label: `VENTE ${invoiceId}`, 
+            clientName, 
+            montant: nAvance, 
+            relatedId: invoiceId, 
+            saleId: saleRef.id, 
+            userName: currentUserName, 
+            isDraft: !!currentIsDraft, 
+            createdAt: serverTimestamp() 
+          }, { merge: true });
         }
       });
 
       toast({ variant: "success", title: "Vente Enregistrée" });
 
-      // Notification WhatsApp (Optionnelle)
       if (cleanedPhone && !activeEditId) {
         setTimeout(() => {
           if (confirm("Voulez-vous envoyer une notification de remerciement via WhatsApp au client ?")) {
@@ -277,17 +322,22 @@ function NewSaleForm() {
         }, 500);
       }
 
-      if (shouldPrint && finalInvoiceId) {
+      if (shouldPrint && finalInvoiceIdForURL) {
         const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
-        router.push(`/ventes/${page}/${finalInvoiceId}?client=${clientName}&phone=${cleanedPhone}&mutuelle=${finalMutuelle || "---"}&total=${nTotal}&remise=${calculatedRemise}&remisePercent=${discountType === 'percent' ? nDiscountVal : "Fixe"}&avance=${nAvance}&od_sph=${prescription.od.sph || "---"}&od_cyl=${prescription.od.cyl || "---"}&od_axe=${prescription.od.axe || "---"}&od_add=${prescription.od.add || "---"}&og_sph=${prescription.og.sph || "---"}&og_cyl=${prescription.og.cyl || "---"}&og_axe=${prescription.og.axe || "---"}&og_add=${prescription.og.add || "---"}&monture=${monture || "---"}&verres=${verres || "---"}&date=${format(saleDate, "dd-MM-yyyy")}`);
-      } else { router.push("/ventes"); }
+        router.push(`/ventes/${page}/${finalInvoiceIdForURL}?client=${clientName}&phone=${cleanedPhone}&mutuelle=${finalMutuelle}&total=${nTotal}&remise=${calculatedRemise}&remisePercent=${discountType === 'percent' ? nDiscountVal : "Fixe"}&avance=${nAvance}&od_sph=${prescription.od.sph || "---"}&od_cyl=${prescription.od.cyl || "---"}&od_axe=${prescription.od.axe || "---"}&od_add=${prescription.od.add || "---"}&og_sph=${prescription.og.sph || "---"}&og_cyl=${prescription.og.cyl || "---"}&og_axe=${prescription.og.axe || "---"}&og_add=${prescription.og.add || "---"}&monture=${monture || "---"}&verres=${verres || "---"}&date=${format(saleDate, "dd-MM-yyyy")}`);
+      } else { 
+        router.push("/ventes"); 
+      }
     } catch (err: any) { 
+      console.error("Erreur lors de la sauvegarde :", err);
       if (err.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée." });
       } else {
-        toast({ variant: "destructive", title: "Erreur" });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente. Vérifiez votre connexion." });
       }
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   if (!isClientReady) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
