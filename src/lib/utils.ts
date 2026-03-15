@@ -53,7 +53,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Envoie un message WhatsApp professionnel (Arabe & Français) avec emojis.
- * Utilise encodeURIComponent pour garantir l'affichage correct des caractères spéciaux.
+ * LOGIQUE CRITIQUE : Encodage UTF-8 forcé pour supporter l'Arabe et les Emojis.
  */
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
@@ -64,16 +64,17 @@ export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  // Templates exacts demandés avec Emojis (UTF-8)
+  // Templates EXACTS demandés
   const msgAr = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
   const msgFr = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
 
-  // Combinaison bilingue
+  // Construction du message final
   const fullMessage = `${msgAr}\n\n---\n\n${msgFr}`;
   
-  // LOGIQUE CRITIQUE : encodeURIComponent sur l'ensemble du message pour supporter l'Arabe et les Emojis
+  // Encodage strict de l'intégralité de la chaîne
   const encodedMessage = encodeURIComponent(fullMessage);
   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
 
-  window.open(whatsappUrl, '_blank');
+  // Ouverture sécurisée
+  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 }
