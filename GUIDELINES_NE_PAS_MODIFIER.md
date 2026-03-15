@@ -15,12 +15,13 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Nommage des fichiers** : Les rapports DOIVENT être nommés `Like Vision - DD-MM-YYYY`.
 - **Design Impression** : Tableaux aérés, centrés, montants sur une seule ligne.
 
-## 8. Notifications WhatsApp (SÉCURITÉ UNICODE)
-- **Encodage** : Utilisation IMPÉRATIVE de `encodeURIComponent()` ET des codes Unicode (`\uD83D...`) pour les emojis.
+## 8. Notifications WhatsApp (SÉCURITÉ ABSOLUE)
+- **Encodage** : Utilisation IMPÉRATIVE de `encodeURIComponent()` sur l'intégralité du message bilingue pour supporter l'arabe et les emojis.
 - **Messages Officiels** :
     - *Darija* : "السلام عليكم [Nom] 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎"
     - *Français* : "Bonjour [Nom] 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟"
 
 ## 9. Optimisation des Ressources (Anti-Quota)
-- **Limitation des Lectures** : Listes limitées à 100-200 résultats.
+- **Limitation des Lectures** : Listes limitées à 100-200 résultats maximum.
 - **Requêtes Ciblées** : La recherche de parrainage ne s'active qu'à partir de 8 chiffres saisis.
+- **Précision Financière** : Utilisation systématique de `roundAmount()` pour tout calcul avant enregistrement Firestore.
