@@ -29,7 +29,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -102,6 +102,10 @@ function NewSaleForm() {
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
+
+  // Récupération des réglages pour les templates WhatsApp
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
 
   const clientsQuery = useMemoFirebase(() => {
     const cleaned = (clientPhone || "").replace(/\s/g, "");
@@ -314,7 +318,13 @@ function NewSaleForm() {
       if (cleanedPhone && !activeEditId) {
         setTimeout(() => {
           if (confirm("Voulez-vous envoyer une notification de remerciement via WhatsApp au client ?")) {
-            sendWhatsAppMessage(clientName, cleanedPhone);
+            // Utilisation des templates depuis les réglages
+            sendWhatsAppMessage(
+              clientName, 
+              cleanedPhone, 
+              settings?.whatsappDarija, 
+              settings?.whatsappFrench
+            );
           }
         }, 500);
       }
