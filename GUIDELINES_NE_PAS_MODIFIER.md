@@ -16,10 +16,11 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Design Impression** : Tableaux aérés, centrés, montants sur une seule ligne.
 
 ## 8. Notifications WhatsApp (SÉCURITÉ ABSOLUE)
-- **Encodage** : Utilisation IMPÉRATIVE de `encodeURIComponent()` sur l'intégralité du message bilingue pour supporter l'arabe et les emojis. Le fichier source doit être en UTF-8.
+- **Encodage** : Utilisation IMPÉRATIVE de `encodeURIComponent()` sur l'intégralité du message.
+- **Emojis** : Utilisation EXCLUSIVE des séquences d'échappement Unicode (ex: \uD83D\uDC4B) dans le code source pour éviter toute corruption de caractères.
 - **Messages Officiels** :
-    - *Darija* : "السلام عليكم [Nom] 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎"
-    - *Français* : "Bonjour [Nom] 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟"
+    - *Darija* : "السلام عليكم [Nom] \uD83D\uDC4B, équipe Like Vision \uD83D\uDC53\u2728..."
+    - *Français* : "Bonjour [Nom] \uD83D\uDC4B, équipe Like Vision \u2728\uD83D\uDC53..."
 
 ## 9. Optimisation des Ressources (Anti-Quota)
 - **Limitation des Lectures** : Listes limitées à 100-200 résultats maximum.

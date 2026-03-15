@@ -49,29 +49,26 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * Envoie un message WhatsApp professionnel (Arabe & Français).
- * MÉTHODE DE SÉCURITÉ : Utilisation de encodeURIComponent sur l'intégralité du bloc UTF-8.
+ * Envoie un message WhatsApp professionnel en utilisant des codes Unicode pour les emojis.
+ * 👋 = \uD83D\uDC4B | 👓 = \uD83D\uDC53 | ✨ = \u2728 | ✅ = \u2705 
+ * 📲 = \uD83D\uDCF2 | 🌟 = \uD83C\uDF1F | 😎 = \uD83D\uDE0E | 😊 = \uD83D\uDE0A
  */
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
   
-  const darija = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
+  const darija = `السلام عليكم ${clientName} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \uD83D\uDC53\u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDCF2. شكراً ليك ونهار مبروك! \u2728\uD83D\uDE0E`;
   
-  const french = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
+  const french = `Bonjour ${clientName} \uD83D\uDC4B, Toute l'équipe Like Vision vous remercie pour votre visite \u2728\uD83D\uDC53. Votre commande a été enregistrée avec succès \u2705. Nous vous contacterons dès qu'elle sera prête \uD83D\uDCF2. Merci pour votre confiance ! \uD83D\uDE0A\uD83C\uDF1F`;
 
-  // Construction du message bilingue
   const fullMessage = darija + "\n\n---\n\n" + french;
 
-  // THE FIX: Encode the message properly for URL support
-  const encodedMsg = encodeURIComponent(fullMessage);
-  
+  // Formatage du numéro et encodage URL
   const cleanPhone = phoneNumber.replace(/\D/g, '');
   const formattedPhone = cleanPhone.startsWith('0') 
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
+  const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(fullMessage)}`;
 
-  // Ouverture de la fenêtre WhatsApp
-  window.open(whatsappUrl, '_blank');
+  window.open(url, '_blank');
 }
