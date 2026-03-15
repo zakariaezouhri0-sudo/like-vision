@@ -50,15 +50,15 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Envoie un message WhatsApp professionnel en utilisant des codes Unicode pour les emojis.
- * 👋 = \uD83D\uDC4B | 👓 = \uD83D\uDC53 | ✨ = \u2728 | ✅ = \u2705 
- * 📲 = \uD83D\uDCF2 | 🌟 = \uD83C\uDF1F | 😎 = \uD83D\uDE0E | 😊 = \uD83D\uDE0A
+ * 👋 = \uD83D\uDC4B | ✨ = \u2728 | ✅ = \u2705 | 👓 = \uD83D\uDC53
+ * 🌟 = \uD83C\uDF1F | 😎 = \uD83D\uDE0E | 😊 = \uD83D\uDE0A
  */
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
   
-  const darija = `السلام عليكم ${clientName} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \uD83D\uDC53\u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDCF2. شكراً ليك ونهار مبروك! \u2728\uD83D\uDE0E`;
+  const darija = `السلام عليكم ${clientName} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDC53. شكراً ليك ونهار مبروك! \uD83C\uDF1F\uD83D\uDE0E`;
   
-  const french = `Bonjour ${clientName} \uD83D\uDC4B, Toute l'équipe Like Vision vous remercie pour votre visite \u2728\uD83D\uDC53. Votre commande a été enregistrée avec succès \u2705. Nous vous contacterons dès qu'elle sera prête \uD83D\uDCF2. Merci pour votre confiance ! \uD83D\uDE0A\uD83C\uDF1F`;
+  const french = `Bonjour ${clientName} \uD83D\uDC4B, Toute l'équipe Like Vision vous remercie pour votre visite \u2728. Votre commande a été enregistrée avec succès \u2705. Nous vous contacterons dès qu'elle sera prête \uD83D\uDC53. Merci pour votre confiance ! \uD83D\uDE0A\uD83C\uDF1F`;
 
   const fullMessage = darija + "\n\n---\n\n" + french;
 
