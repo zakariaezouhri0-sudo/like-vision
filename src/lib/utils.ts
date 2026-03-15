@@ -55,21 +55,23 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
   
+  const darija = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
+  
+  const french = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
+
+  // Construction du message bilingue
+  const fullMessage = darija + "\n\n---\n\n" + french;
+
+  // THE FIX: Encode the message properly for URL support
+  const encodedMsg = encodeURIComponent(fullMessage);
+  
   const cleanPhone = phoneNumber.replace(/\D/g, '');
   const formattedPhone = cleanPhone.startsWith('0') 
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  // Templates exacts avec Emojis
-  const msgAr = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
-  const msgFr = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
-
-  // THE FIX: Construction et encodage complet
-  const fullText = msgAr + "\n\n---\n\n" + msgFr;
-  const encodedText = encodeURIComponent(fullText);
-  
-  const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedText}`;
+  const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
 
   // Ouverture de la fenêtre WhatsApp
-  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  window.open(whatsappUrl, '_blank');
 }
