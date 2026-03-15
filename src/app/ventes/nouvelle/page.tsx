@@ -16,8 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsAppMessage } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
-import { format, isValid, parseISO } from "date-fns";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit } from "firebase/firestore";
+import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
 
@@ -102,27 +102,24 @@ function NewSaleForm() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  const clientsQuery = useMemoFirebase(() => collection(db, "clients"), [db]);
-  const { data: allClients } = useCollection(clientsQuery);
-
-  const matchedFamily = useMemo(() => {
-    if (!allClients || !isClientReady || activeEditId) return [];
+  // OPTIMISATION QUOTA : On ne charge les membres que si un numéro est saisi
+  const clientsQuery = useMemoFirebase(() => {
     const cleaned = (clientPhone || "").replace(/\s/g, "");
-    if (cleaned.length < 8) return [];
+    if (cleaned.length < 8) return null;
+    return query(
+      collection(db, "clients"), 
+      where("phone", "==", cleaned),
+      limit(10)
+    );
+  }, [db, clientPhone]);
 
-    return allClients.filter(c => {
-      const matchMode = isPrepaMode ? c?.isDraft === true : !c?.isDraft;
-      const cPhone = (c?.phone || "").replace(/\s/g, "");
-      const pPhone = (c?.parentPhone || "").replace(/\s/g, "");
-      return matchMode && (cPhone === cleaned || pPhone === cleaned);
-    });
-  }, [allClients, clientPhone, isPrepaMode, isClientReady, activeEditId]);
+  const { data: matchedFamily } = useCollection(clientsQuery);
 
   const handleSelectMember = (client: any) => {
     if (!client) return;
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
-    if (client.parentPhone || matchedFamily.length > 0) {
+    if (client.parentPhone || (matchedFamily && matchedFamily.length > 0)) {
       setIsFamilyMode(true);
     }
     if (client.mutuelle) {
@@ -138,33 +135,25 @@ function NewSaleForm() {
   };
 
   useEffect(() => {
-    if (activeEditId || !allClients || !isClientReady) return;
+    if (activeEditId || !isClientReady || !matchedFamily) return;
 
-    const findAndPopulate = () => {
-      const cleaned = (clientPhone || "").replace(/\s/g, "");
-      if (cleaned.length >= 8 && matchedFamily.length > 0) {
-        setIsFamilyMode(true);
-      }
-
-      if (cleaned.length >= 8 && matchedFamily.length === 1 && !clientName) {
+    if (matchedFamily.length > 0) {
+      setIsFamilyMode(true);
+      if (matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
-        if (found) {
-          setClientName(found.name || "");
-          if (found.mutuelle) {
-            if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
-              setMutuelle(found.mutuelle);
-              setCustomMutuelle("");
-            } else {
-              setMutuelle("Autre");
-              setCustomMutuelle(found.mutuelle);
-            }
+        setClientName(found.name || "");
+        if (found.mutuelle) {
+          if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
+            setMutuelle(found.mutuelle);
+            setCustomMutuelle("");
+          } else {
+            setMutuelle("Autre");
+            setCustomMutuelle(found.mutuelle);
           }
         }
       }
-    };
-    const timeout = setTimeout(findAndPopulate, 500);
-    return () => clearTimeout(timeout);
-  }, [clientPhone, allClients, isPrepaMode, activeEditId, isClientReady, matchedFamily, clientName]);
+    }
+  }, [matchedFamily, activeEditId, isClientReady, clientName]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -227,7 +216,6 @@ function NewSaleForm() {
           invoiceId = invoiceId.replace("RC-", "FC-");
         }
 
-        // Sécurisation des données (Firestore n'accepte pas undefined)
         const cleanPrescription = {
           od: {
             sph: prescription.od.sph || "",
@@ -274,28 +262,18 @@ function NewSaleForm() {
         transaction.set(saleRef, saleData, { merge: true });
         finalInvoiceIdForURL = invoiceId;
 
-        const existingClient = allClients?.find(c => (isPrepaMode ? c?.isDraft === true : !c?.isDraft) && (c?.name?.toLowerCase().trim() === clientName.toLowerCase().trim()));
-        if (existingClient) {
-          transaction.update(doc(db, "clients", existingClient.id), { 
-            phone: cleanedPhone, 
-            parentPhone: cleanedParentPhone,
-            mutuelle: finalMutuelle, 
-            lastVisit: format(new Date(), "dd/MM/yyyy"), 
-            ordersCount: (existingClient.ordersCount || 0) + 1, 
-            updatedAt: serverTimestamp() 
-          });
-        } else {
-          transaction.set(doc(collection(db, "clients")), { 
-            name: clientName, 
-            phone: cleanedPhone, 
-            parentPhone: cleanedParentPhone,
-            mutuelle: finalMutuelle, 
-            lastVisit: format(new Date(), "dd/MM/yyyy"), 
-            ordersCount: 1, 
-            isDraft: !!currentIsDraft, 
-            createdAt: serverTimestamp() 
-          });
-        }
+        // Gestion client simplifiée pour éviter les lectures inutiles
+        const clientRef = doc(collection(db, "clients")); 
+        transaction.set(doc(collection(db, "clients")), { 
+          name: clientName, 
+          phone: cleanedPhone, 
+          parentPhone: cleanedParentPhone,
+          mutuelle: finalMutuelle, 
+          lastVisit: format(new Date(), "dd/MM/yyyy"), 
+          ordersCount: 1, 
+          isDraft: !!currentIsDraft, 
+          createdAt: serverTimestamp() 
+        }, { merge: true });
 
         if (nAvance > 0 && !activeEditId) {
           transaction.set(doc(collection(db, "transactions")), { 
@@ -395,10 +373,10 @@ function NewSaleForm() {
                         onFocus={() => setIsNameFocused(true)}
                         onClick={() => setIsNameFocused(true)}
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
-                        readOnly={isSessionClosed || (!isFamilyMode && matchedFamily.length > 0 && clientName !== "")} 
+                        readOnly={isSessionClosed || (!isFamilyMode && matchedFamily && matchedFamily.length > 0 && clientName !== "")} 
                       />
                       
-                      {matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
+                      {matchedFamily && matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
                             {matchedFamily.length === 1 && matchedFamily[0]?.name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}

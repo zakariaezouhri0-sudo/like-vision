@@ -17,7 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion, getDoc, limit } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { format, isWithinInterval, startOfDay, endOfDay, isValid } from "date-fns";
@@ -66,7 +66,12 @@ function SalesHistoryContent() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  const salesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
+  // OPTIMISATION QUOTA : Limite à 100 dernières ventes pour économiser les lectures
+  const salesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"),
+    orderBy("createdAt", "desc"),
+    limit(100)
+  ), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
   const filteredSales = useMemo(() => {
@@ -93,11 +98,6 @@ function SalesHistoryContent() {
         const matchesSearch = !search || (sale.clientName || "").toLowerCase().includes(search) || (sale.invoiceId || "").toLowerCase().includes(search) || (sale.clientPhone || "").replace(/\s/g, '').includes(search.replace(/\s/g, ''));
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
         return matchesDate && matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return dateB - dateA;
       });
   }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
 
@@ -249,7 +249,7 @@ function SalesHistoryContent() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes {isPrepaMode ? "(Brouillon)" : ""}</h1><p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturations.</p></div>
+        <div><h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes {isPrepaMode ? "(Brouillon)" : ""}</h1><p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturations (100 dernières).</p></div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {selectedIds.size > 0 && isAdminOrPrepa && (<Button variant="destructive" onClick={handleBulkDelete} disabled={isDeletingBulk} className="h-14 font-black rounded-2xl px-6 shadow-xl">{isDeletingBulk ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Trash2 className="h-5 w-5 mr-2" />} SUPPRIMER ({selectedIds.size})</Button>)}
           <Button asChild className="flex-1 sm:flex-none h-14 font-black rounded-2xl px-8 shadow-lg"><Link href="/ventes/nouvelle"><Plus className="mr-2 h-6 w-6" />NOUVELLE VENTE</Link></Button>

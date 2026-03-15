@@ -48,9 +48,13 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
     - **Recalculer les coûts BC** : Réaffecte les prix d'achat des verres/montures aux ventes correspondantes.
 
 ## 8. Notifications WhatsApp
-- **Déclenchement** : After each successful sale registration, a confirmation box proposes sending a WhatsApp message.
-- **Formatage Numéro** : Les numéros commençant par '0' sont automatiquement convertis au format international +212.
-- **Message** : Le texte est prédéfini en Darija/Français pour remercier le client et confirmer l'enregistrement de sa commande.
+- **Déclenchement** : Après chaque vente enregistrée avec succès, une confirmation propose l'envoi d'un message WhatsApp.
+- **Formatage Numéro** : Conversion automatique au format international +212.
+- **Message** : Texte prédéfini en Darija/Français.
+
+## 9. Optimisation des Ressources (Anti-Quota)
+- **Limitation des Lectures** : Toutes les listes (Ventes, Clients, Restes) doivent être limitées à **100 résultats** par défaut.
+- **Requêtes Ciblées** : La recherche de membres de famille (parrainage) ne doit se déclencher qu'à partir de **8 chiffres** saisis dans le champ téléphone pour éviter des lectures inutiles de la base complète.
 
 ---
 *Ce document fait office de mémoire centrale et de garde-fou pour l'assistant IA.*
