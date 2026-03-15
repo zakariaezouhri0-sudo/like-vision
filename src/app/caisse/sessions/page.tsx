@@ -26,7 +26,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp, updateDoc, limit } from "firebase/firestore";
+import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp, updateDoc, limit, orderBy } from "firebase/firestore";
 import { format, parseISO, isSunday, isValid, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
