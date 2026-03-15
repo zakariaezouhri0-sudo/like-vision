@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -52,7 +53,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * Envoie un message WhatsApp de remerciement au client.
+ * Envoie un message WhatsApp professionnel (Arabe & Français) avec emojis.
  */
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
@@ -63,8 +64,14 @@ export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  const message = `السلام عليكم ${clientName}، فريق Like Vision كيشكرك على الثقة ديالك. الطلب ديالك تسجل بنجاح. غادي نعلموك غير يوجدو النظارات ديالك. شكراً ليك!`;
-  const encodedMsg = encodeURIComponent(message);
+  // Modèles avec emojis UTF-8
+  const msgAr = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلبية ديالك تسجلات بنجاح ✅. غادي نعلموك غير توجد النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
+  const msgFr = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
+
+  // Combinaison des deux messages pour un rendu bilingue professionnel
+  const fullMessage = `${msgAr}\n\n---\n\n${msgFr}`;
+  
+  const encodedMsg = encodeURIComponent(fullMessage);
   const url = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
 
   window.open(url, '_blank');

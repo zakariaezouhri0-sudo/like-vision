@@ -50,7 +50,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 ## 8. Notifications WhatsApp
 - **Déclenchement** : Après chaque vente enregistrée avec succès, une confirmation propose l'envoi d'un message WhatsApp.
 - **Formatage Numéro** : Conversion automatique au format international +212.
-- **Message** : Texte prédéfini en Darija/Français.
+- **Messages Officiels** :
+    - *Arabe* : "السلام عليكم [Nom] 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلبية ديالك تسجلات بنجاح ✅. غادي نعلموك غير توجد النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎"
+    - *Français* : "Bonjour [Nom] 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟"
 
 ## 9. Optimisation des Ressources (Anti-Quota)
 - **Limitation des Lectures** : Toutes les listes (Ventes, Clients, Restes) doivent être limitées à **100 résultats** par défaut.
