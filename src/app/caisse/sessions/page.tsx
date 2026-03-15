@@ -26,7 +26,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, query, deleteDoc, doc, writeBatch, getDocs, where, Timestamp, updateDoc, limit } from "firebase/firestore";
 import { format, parseISO, isSunday, isValid, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -51,19 +51,22 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  const sessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
+  // OPTIMISATION QUOTA : Limite aux 50 dernières sessions (~2 mois)
+  const sessionsQuery = useMemoFirebase(() => query(
+    collection(db, "cash_sessions"), 
+    orderBy("date", "desc"), 
+    limit(50)
+  ), [db]);
   const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
   const groupedSessions = useMemo(() => {
     if (!rawSessions) return [];
     
     const filtered = [...rawSessions]
-      .filter(s => isPrepaMode ? s?.isDraft === true : (s?.isDraft !== true))
-      .sort((a, b) => (b?.date || "").localeCompare(a?.date || ""));
+      .filter(s => isPrepaMode ? s?.isDraft === true : (s?.isDraft !== true));
 
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
     
-    // Grouping and basic sum
     filtered.forEach(s => {
       if (!s?.date) return;
       try {
@@ -82,7 +85,6 @@ export default function CashSessionsPage() {
       } catch (e) {}
     });
     
-    // Apply monthly fixed charges deduction: Jan = 15k, Other = 20k
     return groups.map(group => {
       if (group.sessions.length === 0) return group;
       
@@ -91,14 +93,9 @@ export default function CashSessionsPage() {
         if (!firstSession?.date) return group;
         const d = parseISO(firstSession.date);
         if (!isValid(d)) return group;
-        const monthNum = d.getMonth() + 1; // 1-indexed
+        const monthNum = d.getMonth() + 1;
         
-        let deduction = 0;
-        if (monthNum === 1) {
-          deduction = 15000;
-        } else {
-          deduction = 20000;
-        }
+        let deduction = monthNum === 1 ? 15000 : 20000;
         
         return {
           ...group,
@@ -147,7 +144,6 @@ export default function CashSessionsPage() {
     
     try {
       const batch = writeBatch(db);
-      
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
       
@@ -163,17 +159,15 @@ export default function CashSessionsPage() {
       });
       
       batch.delete(doc(db, "cash_sessions", session.id));
-      
       await batch.commit();
-      toast({ variant: "success", title: "Session et transactions supprimées" });
+      toast({ variant: "success", title: "Session supprimée" });
     } catch (e) { 
-      console.error(e);
-      toast({ variant: "destructive", title: "Erreur lors de la suppression" }); 
+      toast({ variant: "destructive", title: "Erreur" }); 
     }
   };
 
   const handleReopenSession = async (session: any) => {
-    if (!confirm(`Voulez-vous vraiment ré-ouvrir la session du ${session.date} ?`)) return;
+    if (!confirm(`Ré-ouvrir la session du ${session.date} ?`)) return;
     try {
       await updateDoc(doc(db, "cash_sessions", session.id), {
         status: "OPEN",
@@ -183,9 +177,9 @@ export default function CashSessionsPage() {
         closingBalanceTheoretical: null,
         discrepancy: null
       });
-      toast({ variant: "success", title: "Session ré-ouverte", description: "La caisse est de nouveau modifiable." });
+      toast({ variant: "success", title: "Session ré-ouverte" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de la ré-ouverture" });
+      toast({ variant: "destructive", title: "Erreur" });
     }
   };
 
@@ -198,43 +192,30 @@ export default function CashSessionsPage() {
       const flux = roundAmount(sales - expenses);
       const reel = roundAmount(s.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
       
-      let formattedDate = s.date;
-      try {
-        const d = parseISO(s.date);
-        if (isValid(d)) formattedDate = format(d, "dd-MM-yyyy");
-      } catch (e) {}
-
       return {
-        "Date": formattedDate,
-        "Statut": s.status === "OPEN" ? "En cours" : "Clôturée",
-        "Ouvert par": s.openedBy || "---",
-        "Clôturé par": s.closedBy || "---",
+        "Date": s.date,
+        "Statut": s.status,
         "Solde Initial": initial,
-        "Total Ventes": sales,
-        "Total Dépenses": expenses,
-        "Total Versements": versements,
+        "Ventes": sales,
+        "Dépenses": expenses,
+        "Versements": versements,
         "Flux Net": flux,
-        "Solde Final": reel,
-        "Écart": roundAmount(s.discrepancy || 0)
+        "Solde Final": reel
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Journal de Caisse");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Journal");
     XLSX.writeFile(workbook, `Like Vision - Sessions ${monthLabel}.xlsx`);
-    
-    toast({ variant: "success", title: "Export réussi" });
   };
 
   const handleExportDayTransactions = async (session: any) => {
-    toast({ title: "Génération de l'Excel...", description: "Veuillez patienter." });
+    toast({ title: "Génération de l'Excel..." });
     try {
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
-      const isPrepa = session.isDraft === true;
-      
-      const qTrans = query(collection(db, "transactions"), where("isDraft", "==", isPrepa));
+      const qTrans = query(collection(db, "transactions"), where("isDraft", "==", session.isDraft === true));
       const snapTrans = await getDocs(qTrans);
       const trans = snapTrans.docs
         .map(d => ({ ...d.data(), id: d.id }))
@@ -243,57 +224,19 @@ export default function CashSessionsPage() {
           return d && d >= dateStart && d <= dateEnd;
         });
 
-      const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepa));
-      const snapSales = await getDocs(qSales);
-      const salesMap: Record<string, any> = {};
-      snapSales.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.invoiceId) salesMap[data.invoiceId] = data;
-      });
-
-      const nouvellesVentes = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
-      const sorties = trans.filter((t: any) => t.type !== "VENTE");
-      const reglements = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
-
-      const mapToExcelRow = (t: any) => {
-        let invoiceId = t.relatedId || "";
-        if (!invoiceId && t.label?.includes('VENTE')) {
-          invoiceId = t.label.replace('VENTE ', '').trim();
-        }
-        const sale = salesMap[invoiceId];
-        const isVente = t.type === "VENTE";
-        const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-        const movement = Math.abs(t.montant);
-        let displayLabel = isVente ? (sale?.notes || "") : (t.type === "VERSEMENT" ? `VERSEMENT | ${t.label || "BANQUE"}` : (t.label || "---"));
-
-        return {
-          "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
-          "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-          "Libellé": displayLabel,
-          "Nom client": t.clientName || "---",
-          "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
-          "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
-          "SORTIE": !isVente ? formatCurrency(movement, false) : ""
-        };
-      };
-
-      const excelRows = [
-        ...nouvellesVentes.map(mapToExcelRow),
-        {},
-        ...sorties.map(mapToExcelRow),
-        {},
-        ...reglements.map(mapToExcelRow)
-      ];
+      const excelRows = trans.map((t: any) => ({
+        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+        "Libellé": t.label,
+        "Client": t.clientName,
+        "Montant": t.montant
+      }));
 
       const worksheet = XLSX.utils.json_to_sheet(excelRows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
       XLSX.writeFile(workbook, `Like Vision - Opérations ${session.date}.xlsx`);
-      
-      toast({ variant: "success", title: "Export Excel réussi" });
     } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+      toast({ variant: "destructive", title: "Erreur" });
     }
   };
 
@@ -314,7 +257,7 @@ export default function CashSessionsPage() {
                   "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
                   isPrepaMode ? "bg-orange-50 text-orange-600 border-orange-100" : "bg-blue-50 text-blue-600 border-blue-100"
                 )}>
-                  Mode {isPrepaMode ? "ZAKARIAE" : "Réel"}
+                  Mode {isPrepaMode ? "ZAKARIAE" : "Réel"} (50 dernières)
                 </span>
               </div>
             </div>
@@ -333,7 +276,7 @@ export default function CashSessionsPage() {
                 <Card key={group.monthLabel} className="shadow-xl border-none overflow-hidden rounded-[32px] bg-white">
                   <div 
                     className={cn(
-                      "grid grid-cols-1 md:grid-cols-3 items-center px-8 py-5 cursor-pointer transition-colors select-none gap-4",
+                      "grid grid-cols-3 items-center px-8 py-5 cursor-pointer transition-colors select-none gap-4",
                       isExpanded ? "bg-primary text-white" : "bg-slate-50 hover:bg-slate-100 text-primary"
                     )}
                     onClick={() => toggleMonth(group.monthLabel)}
@@ -343,25 +286,20 @@ export default function CashSessionsPage() {
                       <span className="text-base font-black uppercase tracking-[0.2em]">{group.monthLabel}</span>
                     </div>
 
-                    {isAdminOrPrepa ? (
-                      <div className="hidden md:flex flex-col items-center">
-                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
-                        <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
-                          {formatCurrency(group.totalFlux).replace('+', '')}
-                        </span>
-                      </div>
-                    ) : <div className="hidden md:block" />}
+                    <div className="flex flex-col items-center">
+                      <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
+                      <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
+                        {formatCurrency(group.totalFlux).replace('+', '')}
+                      </span>
+                    </div>
 
                     <div className="flex justify-end">
                       <Button 
                         size="sm" 
                         onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
-                        className={cn(
-                          "h-9 px-4 rounded-xl font-black text-[9px] uppercase shadow-lg transition-all",
-                          isExpanded ? "bg-white text-primary hover:bg-slate-100" : "bg-primary text-white"
-                        )}
+                        className={cn("h-9 px-4 rounded-xl font-black text-[9px] uppercase", isExpanded ? "bg-white text-primary" : "bg-primary text-white")}
                       >
-                        <Download className="mr-2 h-3.5 w-3.5" /> EXCEL DU MOIS
+                        <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
                       </Button>
                     </div>
                   </div>
@@ -390,17 +328,10 @@ export default function CashSessionsPage() {
                               const versements = roundAmount(s?.totalVersements || 0);
                               const flux = roundAmount(sales - expenses);
                               const reel = roundAmount(s?.closingBalanceReal !== undefined ? s.closingBalanceReal : (initial + flux - versements));
-                              
                               const isSun = s?.date ? isSunday(parseISO(s.date)) : false;
 
                               return (
-                                <TableRow 
-                                  key={s?.id} 
-                                  className={cn(
-                                    "hover:bg-slate-50/80 border-b",
-                                    isSun && "bg-red-50/80 hover:bg-red-100/80"
-                                  )}
-                                >
+                                <TableRow key={s?.id} className={cn("hover:bg-slate-50 border-b", isSun && "bg-red-50/80")}>
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
                                       <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s?.date)}</span>
@@ -410,10 +341,7 @@ export default function CashSessionsPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="px-6 py-5">
-                                    <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-green-600 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.openedAt)}</span>
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{s?.openedBy || "---"}</span>
-                                    </div>
+                                    <span className="text-[11px] font-black text-green-600"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.openedAt)}</span>
                                   </TableCell>
                                   <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
                                   <TableCell className="text-right px-6 py-5">
@@ -425,19 +353,15 @@ export default function CashSessionsPage() {
                                   <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
                                   <TableCell className="px-6 py-5">
                                     {s?.status === "CLOSED" ? (
-                                      <div className="flex flex-col">
-                                        <span className="text-[11px] font-black text-red-500 tabular-nums"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.closedAt)}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase">{s?.closedBy || "---"}</span>
-                                      </div>
-                                    ) : <span className="text-[9px] font-black uppercase text-slate-300 italic">En cours...</span>}
+                                      <span className="text-[11px] font-black text-red-500"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.closedAt)}</span>
+                                    ) : <span className="text-[9px] font-black uppercase text-slate-300">En cours...</span>}
                                   </TableCell>
                                   <TableCell className="text-right px-8 py-5">
                                     <DropdownMenu modal={false}>
-                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                                         <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s?.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><ArrowRight className="mr-3 h-4 w-4 text-primary" /> Détails</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s?.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> Voir Rapport</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel Opérations</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleExportDayTransactions(s)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileSpreadsheet className="mr-3 h-4 w-4 text-green-600" /> Excel</DropdownMenuItem>
                                         {role === 'ADMIN' && s?.status === "CLOSED" && (
                                           <DropdownMenuItem onClick={() => handleReopenSession(s)} className="text-orange-600 py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><RotateCcw className="mr-3 h-4 w-4" /> Ré-ouvrir</DropdownMenuItem>
                                         )}

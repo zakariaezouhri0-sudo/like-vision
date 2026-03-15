@@ -16,7 +16,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, where } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy, where, limit } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { formatPhoneNumber } from "@/lib/utils";
@@ -42,8 +42,9 @@ export default function ClientsPage() {
 
   const isPrepaMode = role === "PREPA";
   
+  // OPTIMISATION QUOTA : Limite à 100 clients
   const clientsQuery = useMemoFirebase(() => {
-    return query(collection(db, "clients"));
+    return query(collection(db, "clients"), orderBy("createdAt", "desc"), limit(100));
   }, [db]);
 
   const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
@@ -74,14 +75,6 @@ export default function ClientsPage() {
         return clientName.includes(search) || 
                clientPhone.includes(searchClean) || 
                parentPhone.includes(searchClean);
-      })
-      .sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(0);
-        if (dateB.getTime() !== dateA.getTime()) {
-          return dateB.getTime() - dateA.getTime();
-        }
-        return (a.name || "").localeCompare(b.name || "");
       });
   }, [allClients, searchTerm, isPrepaMode, role]);
 
@@ -215,7 +208,7 @@ export default function ClientsPage() {
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">
               Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}
             </h1>
-            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers et regroupement familial.</p>
+            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers (100 derniers).</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

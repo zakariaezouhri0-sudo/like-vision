@@ -29,7 +29,7 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Parrainage / Famille** : Le numéro de téléphone est le pivot. Si coché, le numéro saisi lie le client au groupe familial (`parentPhone`).
 - **Reconnaissance Automatique** : La saisie du numéro de téléphone affiche la liste des membres sous le champ Nom. 
 - **Comportement Dropdown** : La liste disparaît immédiatement après sélection d'un membre. Elle réapparaît au clic (focus ou clic) dans le champ Nom pour permettre de changer ou d'éditer.
-- **Liberté d'ÉDITION** : Le nom du client peut être librement modifié ou saisi uniquement si le mode "Parrainage" est activé (lorsque le numéro est déjà lié à une famille). Si le numéro appartient à quelqu'un mais que le mode parrainage n'est pas actif, le nom est verrouillé pour protéger l'intégrité du dossier.
+- **Liberté d'ÉDITION** : Le nom du client peut être librement modifié ou saisi uniquement si le mode "Parrainage" est activé. Sinon, il est verrouillé.
 - **Sécurité Date** : Le sélecteur de date est désactivé pour les utilisateurs standards. Seuls l'ADMIN et le mode PREPA y ont accès.
 
 ## 6. Journal de Caisse (Sessions)
@@ -37,8 +37,8 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Calcul Flux Net (APRES CHARGES)** : 
     - Mois 01 (Janvier) : Déduction de **15 000 DH**.
     - Mois 02 à 12 : Déduction de **20 000 DH**.
-- **Mise en page** : Utiliser un système de grille à 3 colonnes pour garantir que le Flux Net mensuel soit toujours au centre exact de la barre, quelle que soit la largeur du libellé du mois.
-- **Export** : Le bouton "EXCEL DU MOIS" doit être présent sur chaque section mensuelle.
+- **Mise en page** : Utiliser un système de grille à 3 colonnes pour garantir que le Flux Net mensuel soit toujours au centre exact de la barre.
+- **Export** : Le bouton "EXCEL" doit être présent sur chaque section mensuelle.
 
 ## 7. Maintenance & Intégrité
 - **Précision** : TOUS les montants sont arrondis à 2 chiffres après la virgule (`roundAmount`).
@@ -56,8 +56,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Encodage** : Utilisation impérative de `encodeURIComponent()` pour garantir l'affichage des caractères arabes et des emojis.
 
 ## 9. Optimisation des Ressources (Anti-Quota)
-- **Limitation des Lectures** : Toutes les listes (Ventes, Clients, Restes) doivent être limitées à **100 résultats** par défaut.
-- **Requêtes Ciblées** : La recherche de membres de famille (parrainage) ne doit se déclencher qu'à partir de **8 chiffres** saisis dans le champ téléphone pour éviter des lectures inutiles de la base complète.
+- **Limitation des Lectures** : Toutes les listes (Ventes, Clients, Restes, Sessions) DOIVENT être limitées à **100-200 résultats** par défaut.
+- **Calculs Dashboard** : Le Dashboard calcule les statistiques sur les **200 dernières entrées** pour préserver le quota gratuit.
+- **Requêtes Ciblées** : La recherche de membres de famille (parrainage) ne doit se déclencher qu'à partir de **8 chiffres** saisis.
 
 ---
 *Ce document fait office de mémoire centrale et de garde-fou pour l'assistant IA.*

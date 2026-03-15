@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -45,7 +45,12 @@ export default function UnpaidSalesPage() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  const allSalesQuery = useMemoFirebase(() => collection(db, "sales"), [db]);
+  // OPTIMISATION QUOTA : Limite aux 100 dernières ventes avec reste
+  const allSalesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"), 
+    orderBy("createdAt", "desc"),
+    limit(100)
+  ), [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
   const filteredSales = useMemo(() => {
@@ -66,11 +71,6 @@ export default function UnpaidSalesPage() {
           (sale.clientPhone || "").includes(search.replace(/\s/g, ''));
         
         return matchesSearch;
-      })
-      .sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return dateB - dateA;
       });
   }, [sales, searchTerm, isPrepaMode, isReady]);
 
@@ -97,7 +97,6 @@ export default function UnpaidSalesPage() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        // SÉCURITÉ ATOMIQUE : Vérifier l'état de la session d'aujourd'hui
         if (sessionRef) {
           const sSnap = await transaction.get(sessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") {
@@ -170,7 +169,7 @@ export default function UnpaidSalesPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler {isPrepaMode ? "(Brouillon)" : ""}</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des créances par date décroissante.</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des 100 dernières créances.</p>
           </div>
         </div>
 

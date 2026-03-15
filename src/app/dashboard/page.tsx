@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -36,7 +37,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, query, orderBy, limit, doc } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where } from "firebase/firestore";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -54,7 +55,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
     
-    // Sécurité : Les Opticiennes n'ont pas accès au Dashboard
     if (savedRole.toUpperCase() === "OPTICIENNE") {
       router.replace("/caisse");
       return;
@@ -86,13 +86,25 @@ export default function DashboardPage() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  const salesQuery = useMemoFirebase(() => query(collection(db, "sales")), [db]);
+  // OPTIMISATION QUOTA : Limite aux 200 dernières ventes/transactions pour les stats globales
+  const salesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"), 
+    orderBy("createdAt", "desc"), 
+    limit(200)
+  ), [db]);
   const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
 
-  const transQuery = useMemoFirebase(() => query(collection(db, "transactions")), [db]);
+  const transQuery = useMemoFirebase(() => query(
+    collection(db, "transactions"), 
+    orderBy("createdAt", "desc"), 
+    limit(200)
+  ), [db]);
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
-  const clientsQuery = useMemoFirebase(() => query(collection(db, "clients")), [db]);
+  const clientsQuery = useMemoFirebase(() => query(
+    collection(db, "clients"), 
+    limit(100)
+  ), [db]);
   const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
 
   const allSales = useMemo(() => {
@@ -234,7 +246,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-primary text-primary-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group flex flex-col items-center text-center">
           <Wallet className="absolute -right-6 -top-6 h-40 w-40 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Total Encaissé {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Encaissé (Récent)</p>
           <div className="flex flex-col items-center">
             <span className="text-2xl md:text-3xl font-black tracking-tighter tabular-nums">{formatCurrency(stats.ca)}</span>
             <span className="text-[8px] font-black uppercase opacity-40 mt-1">Volume Facturé: {formatCurrency(stats.volume)}</span>
@@ -243,13 +255,13 @@ export default function DashboardPage() {
         
         <Card className="bg-accent text-accent-foreground border-none shadow-xl p-8 rounded-[40px] relative overflow-hidden group flex flex-col items-center text-center">
           <ShoppingCart className="absolute -right-6 -top-6 h-40 w-40 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Nombre de Ventes {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <p className="text-[11px] uppercase font-black opacity-60 mb-3 tracking-[0.2em]">Ventes (Récent)</p>
           <p className="text-3xl md:text-4xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-destructive flex flex-col items-center text-center">
           <AlertCircle className="absolute -right-6 -top-6 h-40 w-40 text-destructive opacity-5 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Reste à Recouvrer</p>
           <div className="flex items-baseline">
             <span className="text-2xl md:text-3xl font-black text-destructive tracking-tighter tabular-nums">{formatCurrency(stats.reste)}</span>
           </div>
@@ -257,7 +269,7 @@ export default function DashboardPage() {
         
         <Card className="bg-white border border-slate-100 shadow-xl p-8 rounded-[40px] relative overflow-hidden group border-l-[12px] border-l-green-500 flex flex-col items-center text-center">
           <Users className="absolute -right-6 -top-6 h-40 w-40 text-green-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
-          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}</p>
+          <p className="text-[11px] uppercase font-black text-muted-foreground mb-3 tracking-[0.2em]">Dossiers Clients</p>
           <p className="text-3xl md:text-4xl font-black text-green-600 tracking-tighter">{stats.newClients}</p>
         </Card>
       </div>
@@ -267,7 +279,7 @@ export default function DashboardPage() {
           <CardHeader className="p-8 border-b bg-slate-50/50">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-3">
               <TrendingUp className="h-5 w-5" />
-              Recettes (Ventes) Hebdo {isPrepaMode ? "(Brouillon)" : ""}
+              Recettes (Ventes) Hebdo
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] p-8">
@@ -285,7 +297,7 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3 shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
           <CardHeader className="p-8 border-b bg-slate-50/50">
-            <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">PARTS DE MUTUELLE {isPrepaMode ? "(Brouillon)" : ""}</CardTitle>
+            <CardTitle className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-primary">PARTS DE MUTUELLE</CardTitle>
           </CardHeader>
           <CardContent className="p-8 flex flex-col items-center">
              <div className="w-full h-[220px]">
