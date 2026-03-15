@@ -52,8 +52,8 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * Envoie un message WhatsApp professionnel (Arabe & Français) avec emojis.
- * LOGIQUE CRITIQUE : Encodage UTF-8 forcé pour supporter l'Arabe et les Emojis.
+ * Envoie un message WhatsApp professionnel (Arabe & Français).
+ * LOGIQUE DE SÉCURITÉ : Utilise des codes Unicode pour les emojis afin d'éviter tout problème d'encodage.
  */
 export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
   if (!phoneNumber) return;
@@ -64,17 +64,25 @@ export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  // Templates EXACTS demandés
-  const msgAr = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
-  const msgFr = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
+  // Définition des Emojis via codes Unicode (Robustesse maximale)
+  const wave = "\u{1F44B}";      // 👋
+  const glasses = "\u{1F453}";   // 👓
+  const sparkles = "\u{2728}";   // ✨
+  const check = "\u{2705}";      // ✅
+  const mobile = "\u{1F4F2}";    // 📲
+  const star = "\u{1F31F}";      // 🌟
+  const cool = "\u{1F60E}";      // 😎
+  const smile = "\u{1F60A}";     // 😊
 
-  // Construction du message final
+  // Construction des messages
+  const msgAr = `السلام عليكم ${clientName} ${wave}، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا ${glasses}${sparkles}. الطلب ديالك تسجل بنجاح ${check}. غادي نعلموك غير يوجدو النظارات ديالك ${mobile}. شكراً ليك ونهار مبروك! ${star}${cool}`;
+  const msgFr = `Bonjour ${clientName} ${wave}, Toute l'équipe Like Vision vous remercie pour votre visite ${sparkles}${glasses}. Votre commande a été enregistrée avec succès ${check}. Nous vous contacterons dès qu'elle sera prête ${mobile}. Merci pour votre confiance ! ${smile}${star}`;
+
+  // Fusion et encodage URL
   const fullMessage = `${msgAr}\n\n---\n\n${msgFr}`;
-  
-  // Encodage strict de l'intégralité de la chaîne
   const encodedMessage = encodeURIComponent(fullMessage);
   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
 
-  // Ouverture sécurisée
+  // Ouverture
   window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 }
