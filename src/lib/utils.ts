@@ -50,3 +50,22 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
   const formatted = cleaned.replace(/(\d{2})(?=\d)/g, '$1 ');
   return formatted.substring(0, 14);
 }
+
+/**
+ * Envoie un message WhatsApp de remerciement au client.
+ */
+export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
+  if (!phoneNumber) return;
+  
+  // Formatage international : 06... -> 2126...
+  const cleanPhone = phoneNumber.replace(/\D/g, '');
+  const formattedPhone = cleanPhone.startsWith('0') 
+    ? '212' + cleanPhone.substring(1) 
+    : cleanPhone;
+
+  const message = `السلام عليكم ${clientName}، فريق Like Vision كيشكرك على الثقة ديالك. الطلب ديالك تسجل بنجاح. غادي نعلموك غير يوجدو النظارات ديالك. شكراً ليك!`;
+  const encodedMsg = encodeURIComponent(message);
+  const url = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
+
+  window.open(url, '_blank');
+}

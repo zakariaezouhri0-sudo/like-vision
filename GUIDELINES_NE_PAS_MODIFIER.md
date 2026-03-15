@@ -47,5 +47,10 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
     - **Réparer les sessions** : Recalcule les soldes théoriques en fonction des transactions réelles.
     - **Recalculer les coûts BC** : Réaffecte les prix d'achat des verres/montures aux ventes correspondantes.
 
+## 8. Notifications WhatsApp
+- **Déclenchement** : Après chaque enregistrement de vente réussie, une boîte de confirmation propose l'envoi d'un message WhatsApp.
+- **Formatage Numéro** : Les numéros commençant par '0' sont automatiquement convertis au format international +212.
+- **Message** : Le texte est prédéfini en Darija/Français pour remercier le client et confirmer l'enregistrement de sa commande.
+
 ---
 *Ce document fait office de mémoire centrale et de garde-fou pour l'assistant IA.*

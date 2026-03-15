@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsAppMessage } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where } from "firebase/firestore";
@@ -267,6 +267,16 @@ function NewSaleForm() {
       });
 
       toast({ variant: "success", title: "Vente Enregistrée" });
+
+      // Notification WhatsApp (Optionnelle)
+      if (cleanedPhone && !activeEditId) {
+        setTimeout(() => {
+          if (confirm("Voulez-vous envoyer une notification de remerciement via WhatsApp au client ?")) {
+            sendWhatsAppMessage(clientName, cleanedPhone);
+          }
+        }, 500);
+      }
+
       if (shouldPrint && finalInvoiceId) {
         const page = resteAPayerValue <= 0 ? 'facture' : 'recu';
         router.push(`/ventes/${page}/${finalInvoiceId}?client=${clientName}&phone=${cleanedPhone}&mutuelle=${finalMutuelle || "---"}&total=${nTotal}&remise=${calculatedRemise}&remisePercent=${discountType === 'percent' ? nDiscountVal : "Fixe"}&avance=${nAvance}&od_sph=${prescription.od.sph || "---"}&od_cyl=${prescription.od.cyl || "---"}&od_axe=${prescription.od.axe || "---"}&od_add=${prescription.od.add || "---"}&og_sph=${prescription.og.sph || "---"}&og_cyl=${prescription.og.cyl || "---"}&og_axe=${prescription.og.axe || "---"}&og_add=${prescription.og.add || "---"}&monture=${monture || "---"}&verres=${verres || "---"}&date=${format(saleDate, "dd-MM-yyyy")}`);
