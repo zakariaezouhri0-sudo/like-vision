@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins, Lock } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins, Lock, MessageSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
+import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount, copyAndOpenWhatsApp } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, writeBatch, where, runTransaction, arrayUnion, getDoc, limit } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -60,13 +60,15 @@ function SalesHistoryContent() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
+
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  // OPTIMISATION QUOTA : Limite à 100 dernières ventes pour économiser les lectures
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
     orderBy("createdAt", "desc"),
@@ -303,6 +305,11 @@ function SalesHistoryContent() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
                               <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-primary" /> {sale.reste <= 0 ? "Facture" : "Reçu"}</DropdownMenuItem>
+                              {sale.clientPhone && (
+                                <DropdownMenuItem onClick={() => copyAndOpenWhatsApp(sale.clientName, sale.clientPhone, settings?.whatsappDarija, settings?.whatsappFrench)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600">
+                                  <MessageSquare className="mr-3 h-4 w-4" /> Relancer WhatsApp
+                                </DropdownMenuItem>
+                              )}
                               {sale.reste > 0 && !isTodayClosed && (<DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>)}
                               <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
                               {isAdminOrPrepa && (<><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem><DropdownMenuItem onClick={() => handleDelete(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem></>)}
