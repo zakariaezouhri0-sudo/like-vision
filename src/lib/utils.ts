@@ -64,7 +64,7 @@ export function sendWhatsAppMessage(clientName: string, phoneNumber: string) {
     ? '212' + cleanPhone.substring(1) 
     : cleanPhone;
 
-  // Templates exacts demandés avec Emojis
+  // Templates exacts demandés avec Emojis (UTF-8)
   const msgAr = `السلام عليكم ${clientName} 👋، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا 👓✨. الطلب ديالك تسجل بنجاح ✅. غادي نعلموك غير يوجدو النظارات ديالك 📲. شكراً ليك ونهار مبروك! 🌟😎`;
   const msgFr = `Bonjour ${clientName} 👋, Toute l'équipe Like Vision vous remercie pour votre visite ✨👓. Votre commande a été enregistrée avec succès ✅. Nous vous contacterons dès qu'elle sera prête 📲. Merci pour votre confiance ! 😊🌟`;
 
