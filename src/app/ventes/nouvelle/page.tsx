@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsAppMessage } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
@@ -34,6 +34,7 @@ function NewSaleForm() {
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
   const [isNameFocused, setIsNameFocused] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   useEffect(() => {
     const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
@@ -102,7 +103,6 @@ function NewSaleForm() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  // OPTIMISATION QUOTA : On ne charge les membres que si un numéro est saisi
   const clientsQuery = useMemoFirebase(() => {
     const cleaned = (clientPhone || "").replace(/\s/g, "");
     if (cleaned.length < 8) return null;
@@ -119,6 +119,7 @@ function NewSaleForm() {
     if (!client) return;
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
+    setSelectedClientId(client.id || null);
     if (client.parentPhone || (matchedFamily && matchedFamily.length > 0)) {
       setIsFamilyMode(true);
     }
@@ -142,6 +143,7 @@ function NewSaleForm() {
       if (matchedFamily.length === 1 && !clientName) {
         const found = matchedFamily[0];
         setClientName(found.name || "");
+        setSelectedClientId(found.id);
         if (found.mutuelle) {
           if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
             setMutuelle(found.mutuelle);
@@ -170,6 +172,7 @@ function NewSaleForm() {
       setMutuelle("Aucun"); 
       setCustomMutuelle(""); 
       setIsFamilyMode(false);
+      setSelectedClientId(null);
       return; 
     }
     if (raw.length > 10) return;
@@ -196,6 +199,21 @@ function NewSaleForm() {
     let finalInvoiceIdForURL = "";
 
     try {
+      let finalClientId = selectedClientId;
+      if (!finalClientId && !activeEditId) {
+        const qC = query(
+          collection(db, "clients"),
+          where("name", "==", clientName.trim().toUpperCase()),
+          where("phone", "==", cleanedPhone),
+          where("isDraft", "==", !!currentIsDraft),
+          limit(1)
+        );
+        const snapC = await getDocs(qC);
+        if (!snapC.empty) {
+          finalClientId = snapC.docs[0].id;
+        }
+      }
+
       await runTransaction(db, async (transaction) => {
         if (sessionRef) {
           const sessionSnap = await transaction.get(sessionRef);
@@ -235,7 +253,7 @@ function NewSaleForm() {
           invoiceId: invoiceId || "---",
           bonNumber: bonNumber || "---",
           fromDoctor: !!fromDoctor,
-          clientName: clientName || "---",
+          clientName: clientName.trim().toUpperCase() || "---",
           clientPhone: cleanedPhone || "",
           mutuelle: finalMutuelle,
           monture: monture || "",
@@ -262,24 +280,25 @@ function NewSaleForm() {
         transaction.set(saleRef, saleData, { merge: true });
         finalInvoiceIdForURL = invoiceId;
 
-        // Gestion client simplifiée pour éviter les lectures inutiles
-        const clientRef = doc(collection(db, "clients")); 
-        transaction.set(doc(collection(db, "clients")), { 
-          name: clientName, 
+        const clientRef = finalClientId ? doc(db, "clients", finalClientId) : doc(collection(db, "clients"));
+        const clientData: any = { 
+          name: clientName.trim().toUpperCase(), 
           phone: cleanedPhone, 
           parentPhone: cleanedParentPhone,
           mutuelle: finalMutuelle, 
           lastVisit: format(new Date(), "dd/MM/yyyy"), 
-          ordersCount: 1, 
           isDraft: !!currentIsDraft, 
-          createdAt: serverTimestamp() 
-        }, { merge: true });
+          updatedAt: serverTimestamp() 
+        };
+        if (!finalClientId) clientData.createdAt = serverTimestamp();
+        
+        transaction.set(clientRef, clientData, { merge: true });
 
         if (nAvance > 0 && !activeEditId) {
           transaction.set(doc(collection(db, "transactions")), { 
             type: "VENTE", 
             label: `VENTE ${invoiceId}`, 
-            clientName, 
+            clientName: clientName.trim().toUpperCase(), 
             montant: nAvance, 
             relatedId: invoiceId, 
             saleId: saleRef.id, 
@@ -307,11 +326,10 @@ function NewSaleForm() {
         router.push("/ventes"); 
       }
     } catch (err: any) { 
-      console.error("Erreur lors de la sauvegarde :", err);
       if (err.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée." });
       } else {
-        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente. Vérifiez votre connexion." });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente." });
       }
     } finally { 
       setLoading(false); 
@@ -366,14 +384,14 @@ function NewSaleForm() {
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isSessionClosed && "opacity-50")} 
                         placeholder="M. Mohamed Alami..." 
                         value={clientName} 
                         onChange={e => setClientName(e.target.value)} 
                         onFocus={() => setIsNameFocused(true)}
                         onClick={() => setIsNameFocused(true)}
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
-                        readOnly={isSessionClosed || (!isFamilyMode && matchedFamily && matchedFamily.length > 0 && clientName !== "")} 
+                        readOnly={isSessionClosed} 
                       />
                       
                       {matchedFamily && matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
