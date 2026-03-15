@@ -103,7 +103,6 @@ function NewSaleForm() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  // Récupération des réglages pour les templates WhatsApp
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings } = useDoc(settingsRef);
 
@@ -316,10 +315,9 @@ function NewSaleForm() {
       toast({ variant: "success", title: "Vente Enregistrée" });
 
       if (cleanedPhone && !activeEditId) {
-        setTimeout(() => {
-          if (confirm("Voulez-vous envoyer une notification de remerciement via WhatsApp au client ?")) {
-            // Utilisation des templates depuis les réglages
-            sendWhatsAppMessage(
+        setTimeout(async () => {
+          if (confirm("Voulez-vous envoyer une notification WhatsApp au client ?")) {
+            await sendWhatsAppMessage(
               clientName, 
               cleanedPhone, 
               settings?.whatsappDarija, 

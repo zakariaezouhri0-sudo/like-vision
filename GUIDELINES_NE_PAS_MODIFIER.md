@@ -16,11 +16,9 @@ Ce fichier répertorie les fonctionnalités et règles de design définitives. E
 - **Design Impression** : Tableaux aérés, centrés, montants sur une seule ligne.
 
 ## 8. Notifications WhatsApp (SÉCURITÉ ABSOLUE)
-- **Encodage** : Utilisation IMPÉRATIVE de `encodeURIComponent()` sur l'intégralité du message.
+- **Stratégie** : Priorité au `navigator.share()` si supporté.
+- **Fallback Clipboard** : Si l'URL encoding échoue, copier le message dans le presse-papier (`navigator.clipboard`) puis ouvrir la discussion WhatsApp.
 - **Emojis** : Utilisation EXCLUSIVE des séquences d'échappement Unicode (ex: \uD83D\uDC4B) dans le code source pour éviter toute corruption de caractères.
-- **Messages Officiels** :
-    - *Darija* : "السلام عليكم [Nom] \uD83D\uDC4B, équipe Like Vision ... \u2728 ... \u2705 ... \uD83D\uDC53 ... \uD83C\uDF1F\uD83D\uDE0E"
-    - *Français* : "Bonjour [Nom] \uD83D\uDC4B, Toute l'équipe Like Vision ... \u2728 ... \u2705 ... \uD83D\uDC53 ... \uD83D\uDE0A\uD83C\uDF1F"
 
 ## 9. Optimisation des Ressources (Anti-Quota)
 - **Limitation des Lectures** : Listes limitées à 100-200 résultats maximum.
