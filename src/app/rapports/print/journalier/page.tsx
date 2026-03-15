@@ -74,36 +74,35 @@ function DailyCashReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
+  // OPTIMISATION : On récupère toutes les ventes de la journée d'un coup au lieu de boucler
   useEffect(() => {
-    const fetchDetails = async () => {
-      if (!rawTransactions || rawTransactions.length === 0) return;
+    const fetchSalesOfDay = async () => {
+      if (!selectedDate) return;
       setLoadingSales(true);
-      
-      const transactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
-      const details: Record<string, any> = {};
-
-      for (const t of transactions) {
-        if (t.type === "VENTE") {
-          if (t.saleId) {
-            const snap = await getDocs(query(collection(db, "sales"), where("__name__", "==", t.saleId)));
-            if (!snap.empty) {
-              details[t.id] = snap.docs[0].data();
-              continue;
-            }
-          }
-          if (t.relatedId) {
-            const snap = await getDocs(query(collection(db, "sales"), where("invoiceId", "==", t.relatedId)));
-            if (!snap.empty) {
-              details[t.id] = snap.docs[0].data();
-            }
-          }
-        }
+      try {
+        const start = startOfDay(selectedDate);
+        const end = endOfDay(selectedDate);
+        const q = query(
+          collection(db, "sales"),
+          where("createdAt", ">=", Timestamp.fromDate(start)),
+          where("createdAt", "<=", Timestamp.fromDate(end)),
+          where("isDraft", "==", isPrepaMode)
+        );
+        const snap = await getDocs(q);
+        const details: Record<string, any> = {};
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.invoiceId) details[data.invoiceId] = data;
+        });
+        setSalesDetails(details);
+      } catch (e) {
+        console.error("Erreur chargement ventes jour:", e);
+      } finally {
+        setLoadingSales(false);
       }
-      setSalesDetails(details);
-      setLoadingSales(false);
     };
-    fetchDetails();
-  }, [rawTransactions, db, isPrepaMode]);
+    fetchSalesOfDay();
+  }, [db, selectedDate, isPrepaMode]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -219,8 +218,14 @@ function DailyCashReportContent() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((t: any) => {
-                    const sale = salesDetails[t.id];
+                    // Recherche de la vente correspondante dans l'objet salesDetails
+                    let invoiceId = t.relatedId || "";
+                    if (!invoiceId && t.label?.includes('VENTE')) {
+                      invoiceId = t.label.replace('VENTE ', '').trim();
+                    }
+                    const sale = salesDetails[invoiceId];
                     const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : 0;
+                    
                     return (
                       <tr key={t.id} className="hover:bg-slate-50">
                         <td className="p-2 align-middle">

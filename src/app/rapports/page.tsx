@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -19,7 +20,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,10 +51,19 @@ export default function ReportsPage() {
     to: new Date(),
   });
 
-  const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc")), [db]);
+  // OPTIMISATION : Limite à 500 documents pour économiser le quota
+  const salesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"), 
+    orderBy("createdAt", "desc"),
+    limit(500)
+  ), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
 
-  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), orderBy("createdAt", "desc")), [db]);
+  const transQuery = useMemoFirebase(() => query(
+    collection(db, "transactions"), 
+    orderBy("createdAt", "desc"),
+    limit(500)
+  ), [db]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
   const stats = useMemo(() => {
@@ -284,18 +294,18 @@ export default function ReportsPage() {
                             <span className="text-[9px] font-bold text-primary/40 mt-0.5 tracking-wider">{s.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6 py-5 font-black text-sm text-slate-900 tabular-nums">
+                        <td className="text-right px-6 py-5 font-black text-sm text-slate-900 tabular-nums">
                           {formatCurrency(net)}
-                        </TableCell>
-                        <TableCell className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
+                        </td>
+                        <td className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
                           {formatCurrency(frameCost)}
-                        </TableCell>
-                        <TableCell className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
+                        </td>
+                        <td className="text-right px-6 py-5 font-bold text-sm text-slate-500 tabular-nums">
                           {formatCurrency(lensesCost)}
-                        </TableCell>
-                        <TableCell className="text-right px-6 py-5 font-black text-accent text-sm tabular-nums">
+                        </td>
+                        <td className="text-right px-6 py-5 font-black text-accent text-sm tabular-nums">
                           {formatCurrency(margin)}
-                        </TableCell>
+                        </td>
                       </TableRow>
                     );
                   }) : <TableRow><TableCell colSpan={5} className="text-center py-24 text-[10px] font-black uppercase opacity-30 tracking-[0.4em]">Aucune donnée de marge disponible.</TableCell></TableRow>}

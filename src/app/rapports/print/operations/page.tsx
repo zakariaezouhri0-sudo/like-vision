@@ -9,7 +9,7 @@ import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
@@ -52,19 +52,37 @@ function OperationsReportContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  const transQuery = useMemoFirebase(() => query(collection(db, "transactions"), where("isDraft", "==", isPrepaMode)), [db, isPrepaMode]);
+  // OPTIMISATION : Requête précise par date pour les transactions
+  const transQuery = useMemoFirebase(() => {
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+    return query(
+      collection(db, "transactions"), 
+      where("isDraft", "==", isPrepaMode),
+      where("createdAt", ">=", Timestamp.fromDate(start)),
+      where("createdAt", "<=", Timestamp.fromDate(end))
+    );
+  }, [db, isPrepaMode, selectedDate]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
+  // OPTIMISATION : Requête précise par date pour les ventes
   useEffect(() => {
     const fetchSalesForMatching = async () => {
-      if (!rawTransactions || rawTransactions.length === 0) return;
+      if (!selectedDate) return;
       setLoadingSales(true);
       
       try {
-        const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
+        const start = startOfDay(selectedDate);
+        const end = endOfDay(selectedDate);
+        const qSales = query(
+          collection(db, "sales"), 
+          where("isDraft", "==", isPrepaMode),
+          where("createdAt", ">=", Timestamp.fromDate(start)),
+          where("createdAt", "<=", Timestamp.fromDate(end))
+        );
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
         snap.docs.forEach(doc => {
@@ -79,7 +97,7 @@ function OperationsReportContent() {
       }
     };
     fetchSalesForMatching();
-  }, [rawTransactions, db, isPrepaMode]);
+  }, [db, isPrepaMode, selectedDate]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -118,15 +136,7 @@ function OperationsReportContent() {
   const groupedTransactions = useMemo(() => {
     if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
     
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
-
-    const filtered = rawTransactions.filter((t: any) => {
-      const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
-      return d && d >= start && d <= end;
-    });
-    
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = [...rawTransactions].sort((a, b) => {
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
@@ -141,7 +151,7 @@ function OperationsReportContent() {
       sorties: groupTransactionsByBC(vSorties),
       reglements: groupTransactionsByBC(vRegl)
     };
-  }, [rawTransactions, selectedDate]);
+  }, [rawTransactions]);
 
   const mapToExcelRow = (t: any) => {
     if (!t.id) return {};
