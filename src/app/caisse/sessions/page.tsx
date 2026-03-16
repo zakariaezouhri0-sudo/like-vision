@@ -21,7 +21,8 @@ import {
   Download,
   ListOrdered,
   FileSpreadsheet,
-  RotateCcw
+  RotateCcw,
+  AlertCircle
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { format, parseISO, isSunday, isValid, startOfDay, endOfDay } from "date-
 import { fr } from "date-fns/locale";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import React from "react";
 import * as XLSX from "xlsx";
 
@@ -51,11 +53,11 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // AUGMENTATION DE LA LIMITE POUR AFFICHER TOUT L'HISTORIQUE RÉCENT (200 AU LIEU DE 50)
+  // LIMITE À 500 POUR COUVRIR UNE ANNÉE COMPLÈTE DE SESSIONS
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"), 
-    limit(200)
+    limit(500)
   ), [db]);
   const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
@@ -234,6 +236,7 @@ export default function CashSessionsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions</h1>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2 opacity-60">Historique complet sur 12 mois.</p>
             </div>
           </div>
         </div>
@@ -312,10 +315,17 @@ export default function CashSessionsPage() {
                               const isSun = s?.date ? isSunday(parseISO(s.date)) : false;
 
                               return (
-                                <TableRow key={s?.id} className={cn("hover:bg-slate-50 border-b", isSun && "bg-red-50/80")}>
+                                <TableRow key={s?.id} className={cn("hover:bg-slate-50 border-b transition-colors", isSun && "bg-red-50/40 hover:bg-red-50/60")}>
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
-                                      <span className="font-black text-xs uppercase text-slate-800">{formatSessionDate(s?.date)}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className={cn("font-black text-xs uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
+                                        {isSun && (
+                                          <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase rounded-sm bg-red-600">
+                                            DIMANCHE
+                                          </Badge>
+                                        )}
+                                      </div>
                                       <span className={cn("text-[8px] font-black uppercase mt-1", s?.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                         {s?.status === "OPEN" ? "En cours" : "Clôturée"}
                                       </span>
