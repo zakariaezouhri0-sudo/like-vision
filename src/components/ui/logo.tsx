@@ -54,11 +54,15 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
       {variant === "full" && (
         <div className="flex flex-col items-center mt-4">
           <span 
-            className="font-black text-xs sm:text-sm uppercase tracking-[0.3em] whitespace-nowrap leading-none text-center text-white"
+            className="font-black text-xs sm:text-sm uppercase tracking-[0.3em] whitespace-nowrap leading-none text-center"
+            style={{ color: color }}
           >
             Like Vision Optique
           </span>
-          <div className="h-1 w-12 mt-3 rounded-full bg-white/30" />
+          <div 
+            className="h-1 w-12 mt-3 rounded-full opacity-30" 
+            style={{ backgroundColor: color }}
+          />
         </div>
       )}
     </div>
