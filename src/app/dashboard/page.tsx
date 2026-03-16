@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -41,7 +40,6 @@ import { collection, query, orderBy, limit, doc, where } from "firebase/firestor
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Palette de verts harmonisée
 const COLORS = ['#6a8036', '#89a644', '#768e3a', '#a3b18a', '#588157', '#344e41'];
 
 export default function DashboardPage() {
@@ -87,7 +85,6 @@ export default function DashboardPage() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // OPTIMISATION QUOTA : Limite aux 200 dernières ventes/transactions pour les stats globales
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
     orderBy("createdAt", "desc"), 
@@ -188,15 +185,15 @@ export default function DashboardPage() {
     <div className="space-y-6 md:space-y-8 pb-10">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border shadow-sm border-slate-200">
         <div className="flex items-center gap-6 min-w-0">
-          <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-slate-100 shrink-0 overflow-hidden group">
+          <div className="h-16 w-16 bg-transparent flex items-center justify-center shrink-0 overflow-hidden group">
             {settingsLoading ? (
               <Loader2 className="h-6 w-6 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
             ) : (
-              <div className="h-full w-full bg-gradient-to-br from-primary to-slate-800 flex items-center justify-center text-white transform -rotate-3 transition-transform group-hover:rotate-0 duration-500">
+              <div className="h-full w-full flex items-center justify-center text-primary">
                 <div className="relative">
-                  <Eye className="h-9 w-9" />
+                  <Glasses className="h-12 w-12" />
                   <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-accent rounded-full border-2 border-primary animate-pulse" />
                 </div>
               </div>

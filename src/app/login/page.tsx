@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -114,10 +113,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-md space-y-10">
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="h-32 w-32 bg-white rounded-[40px] flex items-center justify-center shadow-2xl border border-slate-100 overflow-hidden p-4">
+          <div className="h-32 w-32 bg-transparent flex items-center justify-center overflow-hidden p-4">
             {settingsLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
@@ -128,10 +127,10 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase min-h-[40px]">
+            <h1 className="text-4xl font-black text-white tracking-tighter uppercase min-h-[40px]">
               {settingsLoading ? "" : (settings?.name || APP_NAME)}
             </h1>
-            <p className="text-muted-foreground font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
+            <p className="text-white/40 font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
           </div>
         </div>
 

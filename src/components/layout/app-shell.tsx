@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -50,9 +49,9 @@ export function AppShell({ children }: AppShellProps) {
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
     <div className="flex items-center gap-3 min-w-0">
       <div className={cn(
-        "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl shadow-sm",
+        "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl",
         size === "large" ? "h-14 w-14" : "h-10 w-10",
-        "bg-white"
+        "bg-transparent"
       )}>
         {settingsLoading ? (
           <div className="h-full w-full bg-slate-50 flex items-center justify-center">
