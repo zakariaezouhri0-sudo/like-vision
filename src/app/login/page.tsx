@@ -113,24 +113,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f4f7ed] px-4">
       <div className="w-full max-w-md space-y-10">
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="h-32 w-32 bg-transparent flex items-center justify-center overflow-hidden p-4">
+          <div className="h-48 w-48 bg-transparent flex items-center justify-center overflow-hidden p-4">
             {settingsLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-primary/20" />
+              <Loader2 className="h-10 w-10 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
-              <Logo className="w-full h-full" variant="full" />
+              <Logo className="w-full h-full" variant="full" color="#6a8036" />
             )}
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase min-h-[40px]">
+            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase min-h-[40px]">
               {settingsLoading ? "" : (settings?.name || APP_NAME)}
             </h1>
-            <p className="text-white/40 font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
+            <p className="text-primary/40 font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
           </div>
         </div>
 
