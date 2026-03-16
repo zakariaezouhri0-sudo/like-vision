@@ -486,41 +486,41 @@ function NewSaleForm() {
           <div className="space-y-6">
             <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
-              <CardContent className="p-6 space-y-5">
-                <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
-                  <Label className="text-[10px] font-black text-white/80 uppercase">Prix Brut (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-white/40 outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isSessionClosed} />
+              <CardContent className="p-6 space-y-4">
+                <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
+                  <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Prix Brut (DH)</Label>
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isSessionClosed} />
                 </div>
                 
-                <div className="bg-white/10 p-4 rounded-2xl flex flex-col gap-3 group transition-all">
-                  <div className="flex justify-between items-center">
+                <div className="bg-black/10 p-6 rounded-[40px] flex flex-col gap-4">
+                  <div className="flex justify-between items-center px-2">
                     <Label className="text-[10px] font-black uppercase text-white/80">Remise</Label>
-                    <div className="flex bg-slate-950/20 p-1 rounded-lg">
-                      <button onClick={() => setDiscountType('fixed')} disabled={isSessionClosed} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>DH</button>
-                      <button onClick={() => setDiscountType('percent')} disabled={isSessionClosed} className={cn("px-3 py-1 rounded-md text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-white/40 hover:text-white")}>%</button>
+                    <div className="flex bg-black/20 p-1 rounded-full">
+                      <button onClick={() => setDiscountType('fixed')} disabled={isSessionClosed} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>DH</button>
+                      <button onClick={() => setDiscountType('percent')} disabled={isSessionClosed} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>%</button>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-white/40 uppercase">Valeur :</span>
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-[9px] font-black text-white/40 uppercase mb-1">Valeur :</span>
                     <div className="relative">
-                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isSessionClosed} />
+                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isSessionClosed} />
                       {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
                     </div>
                   </div>
                   {discountType === 'percent' && calculatedRemise > 0 && (
-                    <div className="text-right"><span className="text-[9px] font-black text-accent uppercase">- {formatCurrency(calculatedRemise)}</span></div>
+                    <div className="text-right px-2"><span className="text-[9px] font-black text-accent uppercase">- {formatCurrency(calculatedRemise)}</span></div>
                   )}
                 </div>
 
-                <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
-                  <Label className="text-[10px] font-black text-white/80 uppercase">Versé ce jour (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-white/40 outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isSessionClosed} />
+                <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
+                  <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Versé ce jour (DH)</Label>
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isSessionClosed} />
                 </div>
 
-                <div className="space-y-3">
-                  <div className={cn("p-5 rounded-3xl text-center space-y-1 border shadow-2xl transition-all", resteAPayerValue <= 0 ? "bg-emerald-500/20 border-emerald-500/20" : "bg-orange-500/20 border-orange-500/20")}>
+                <div className="pt-4">
+                  <div className={cn("p-6 rounded-[40px] text-center space-y-1 border shadow-2xl transition-all", resteAPayerValue <= 0 ? "bg-emerald-500/20 border-emerald-500/20" : "bg-orange-500/20 border-orange-500/20")}>
                     <p className="text-[9px] font-black text-white/60 uppercase tracking-widest flex items-center justify-center gap-2"><HandCoins className="h-3 w-3" /> Reste à régler</p>
-                    <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
+                    <p className="text-4xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
                   </div>
                 </div>
               </CardContent>
