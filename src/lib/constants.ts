@@ -1,4 +1,3 @@
-
 export const ROLES = {
   ADMIN: 'ADMIN',
   OPTICIENNE: 'OPTICIENNE',
