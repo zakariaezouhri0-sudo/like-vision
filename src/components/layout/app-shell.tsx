@@ -152,6 +152,9 @@ export function AppShell({ children }: AppShellProps) {
                 <div className="py-6 overflow-y-auto px-2" onClick={() => setOpen(false)}>
                   <SidebarNav role={role} />
                 </div>
+                <div className="p-6 border-t mt-auto">
+                   <ThemeToggle />
+                </div>
               </SheetContent>
             </Sheet>
 
@@ -164,12 +167,12 @@ export function AppShell({ children }: AppShellProps) {
                 <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
                 <p className="text-xl font-black text-foreground tracking-tighter">Gestion Optique</p>
               </div>
-              <div className="h-8 w-px bg-border mx-2" />
-              <ThemeToggle />
             </div>
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
+            <ThemeToggle />
+            <div className="hidden md:block h-8 w-px bg-border mx-2" />
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-3" />
