@@ -487,9 +487,9 @@ function NewSaleForm() {
             <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-5">
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
-                  <Label className="text-[10px] font-black text-primary uppercase">Prix Brut (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isSessionClosed} />
+                <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
+                  <Label className="text-[10px] font-black text-white/80 uppercase">Prix Brut (DH)</Label>
+                  <input type="text" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isSessionClosed} />
                 </div>
                 
                 <div className="bg-white/10 p-4 rounded-2xl flex flex-col gap-3 group transition-all">
@@ -512,9 +512,9 @@ function NewSaleForm() {
                   )}
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
-                  <Label className="text-[10px] font-black text-primary uppercase">Versé ce jour (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-950 outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isSessionClosed} />
+                <div className="bg-white/10 p-4 rounded-2xl flex justify-between items-center shadow-inner group transition-all focus-within:ring-2 focus-within:ring-accent">
+                  <Label className="text-[10px] font-black text-white/80 uppercase">Versé ce jour (DH)</Label>
+                  <input type="text" className="bg-transparent text-right font-black text-white outline-none text-xl w-28 tabular-nums" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isSessionClosed} />
                 </div>
 
                 <div className="space-y-3">
