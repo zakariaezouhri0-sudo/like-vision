@@ -49,8 +49,9 @@ export function AppShell({ children }: AppShellProps) {
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
     <div className="flex items-center gap-3 min-w-0">
       <div className={cn(
-        "flex items-center justify-center shrink-0 relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-100",
-        size === "large" ? "h-12 w-12" : "h-9 w-9"
+        "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl shadow-sm",
+        size === "large" ? "h-12 w-12" : "h-9 w-9",
+        "bg-white"
       )}>
         {settingsLoading ? (
           <div className="h-full w-full bg-slate-50 flex items-center justify-center">
@@ -76,12 +77,12 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <div className="flex flex-col justify-center min-w-0 pr-2">
         <span className={cn(
-          "font-black tracking-tighter text-primary leading-tight uppercase block whitespace-nowrap",
+          "font-black tracking-tighter text-[hsl(var(--sidebar-fg))] leading-tight uppercase block whitespace-nowrap transition-colors",
           size === "large" ? "text-sm lg:text-base" : "text-xs"
         )}>
-          {settingsLoading ? <div className="h-4 w-24 bg-slate-100 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
+          {settingsLoading ? <div className="h-4 w-24 bg-slate-100/20 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
         </span>
-        <span className="text-[7px] font-black text-primary/30 uppercase tracking-[0.3em] mt-0.5 shrink-0">
+        <span className="text-[7px] font-black text-[hsl(var(--sidebar-fg))]/40 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
           Optique Pro
         </span>
       </div>
@@ -91,34 +92,34 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className="w-72 border-r bg-card hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
+      <aside className="w-72 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
         <Link 
           href={isOpticienne ? "/caisse" : "/dashboard"} 
-          className="h-24 border-b flex items-center px-6 hover:bg-muted/50 transition-all"
+          className="h-24 border-b border-[hsl(var(--sidebar-border))] flex items-center px-6 hover:bg-black/5 transition-all"
         >
           <LogoContainer size="large" />
         </Link>
         <div className="flex-1 py-6 overflow-y-auto px-2">
           <SidebarNav role={role} />
         </div>
-        <div className="p-4 border-t bg-muted/20 space-y-3">
+        <div className="p-4 border-t border-[hsl(var(--sidebar-border))] bg-black/5 space-y-3">
           <div className={cn(
-            "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm",
-            isPrepa ? "bg-orange-50 border-orange-100 text-orange-700" : "bg-blue-50 border-blue-100 text-blue-700"
+            "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm transition-all",
+            isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/10 text-white border-white/10"
           )}>
-            <div className={cn("h-2 w-2 rounded-full", isPrepa ? "bg-orange-500 animate-pulse" : "bg-blue-500")} />
+            <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
             <span className="text-[9px] font-black uppercase tracking-widest">
               {isPrepa ? "Espace Brouillon" : "Espace Réel"}
             </span>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-3 bg-card rounded-2xl border border-border shadow-sm">
-            <Avatar className="h-10 w-10 border-2 border-primary/10 shadow-inner">
-              <AvatarFallback className="bg-primary text-white text-xs font-black">{userInitials}</AvatarFallback>
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-2xl border border-white/10 shadow-sm transition-all">
+            <Avatar className="h-10 w-10 border-2 border-white/20 shadow-inner">
+              <AvatarFallback className="bg-white text-primary text-xs font-black">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black truncate capitalize">{userName}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">
+              <span className="text-xs font-black truncate capitalize text-white">{userName}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
                 {role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")}
               </span>
             </div>
@@ -135,7 +136,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
         
-        <header className="h-20 border-b bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0">
+        <header className="h-20 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
           <div className="flex items-center gap-4">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -143,8 +144,8 @@ export function AppShell({ children }: AppShellProps) {
                   <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-80">
-                <SheetHeader className="p-6 border-b text-left bg-card">
+              <SheetContent side="left" className="p-0 w-80 bg-[hsl(var(--sidebar-bg))] border-none">
+                <SheetHeader className="p-6 border-b border-[hsl(var(--sidebar-border))] text-left">
                   <SheetTitle>
                     <LogoContainer size="large" />
                   </SheetTitle>
@@ -152,7 +153,7 @@ export function AppShell({ children }: AppShellProps) {
                 <div className="py-6 overflow-y-auto px-2" onClick={() => setOpen(false)}>
                   <SidebarNav role={role} />
                 </div>
-                <div className="p-6 border-t mt-auto">
+                <div className="p-6 border-t border-[hsl(var(--sidebar-border))] mt-auto">
                    <ThemeToggle />
                 </div>
               </SheetContent>
@@ -182,7 +183,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-muted/10">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-background transition-colors">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

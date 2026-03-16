@@ -34,12 +34,10 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
-  // Utilisation de useEffect pour marquer le composant comme monté sur le client
   useEffect(() => {
     setMounted(true);
   }, []);
   
-  // Normalisation : PREPA a les mêmes droits de visibilité que ADMIN
   const currentRole = (role || "OPTICIENNE").toUpperCase();
   const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
 
@@ -48,7 +46,6 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        // Calcul de l'état actif, sécurisé contre les valeurs nulles du serveur
         const isExact = pathname === item.href;
         const isSubPath = pathname ? pathname.startsWith(item.href + "/") : false;
         const hasBetterMatch = pathname ? NAV_ITEMS.some(other => 
@@ -57,8 +54,6 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
           pathname.startsWith(other.href)
         ) : false;
 
-        // CRITIQUE : isActive n'est vrai que si mounted est vrai.
-        // Cela garantit que le rendu initial (hydratation) correspond au rendu serveur (où mounted est faux).
         const isActive = mounted && (isExact || (isSubPath && !hasBetterMatch));
 
         return (
@@ -68,11 +63,11 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold group",
               isActive 
-                ? "bg-primary text-primary-foreground shadow-md scale-[1.02]" 
-                : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                ? "bg-[hsl(var(--sidebar-border))] text-white shadow-md scale-[1.02]" 
+                : "text-[hsl(var(--sidebar-fg))]/70 hover:bg-black/10 hover:text-white"
             )}
           >
-            <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-primary/40")} />
+            <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-white/40")} />
             <span className="tracking-tight">{item.label}</span>
           </Link>
         );

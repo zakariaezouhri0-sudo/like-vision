@@ -24,6 +24,9 @@
     --input: 208 20% 88%;
     --ring: 192 70% 53%;
     --radius: 0.75rem;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-fg: 209 43% 34%;
+    --sidebar-border: 208 20% 88%;
   }
 
   .theme-elegance {
@@ -33,10 +36,18 @@
     --card-foreground: 184 9% 19%;
     --primary: 78 42% 46%; /* #89a644 */
     --primary-foreground: 0 0% 100%;
+    --secondary: 79 31% 85%; /* #dce4cd */
+    --secondary-foreground: 78 42% 46%;
+    --muted: 79 31% 92%;
+    --muted-foreground: 78 20% 45%;
+    --accent: 78 42% 39%; /* #768e3a */
+    --accent-foreground: 0 0% 100%;
     --border: 79 31% 85%; /* #dce4cd */
     --input: 79 31% 85%;
     --ring: 78 42% 46%;
-    --accent: 78 42% 39%; /* #768e3a */
+    --sidebar-bg: 78 42% 46%; /* #89a644 */
+    --sidebar-fg: 0 0% 100%; /* #ffffff */
+    --sidebar-border: 78 42% 39%; /* #768e3a */
   }
 }
 
