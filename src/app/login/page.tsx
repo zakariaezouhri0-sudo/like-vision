@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,16 +115,31 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
       <div className="w-full max-w-xl space-y-10 flex flex-col items-center">
-        {/* Logo Section - Espacement vertical augmenté pour assurer la visibilité */}
-        <div className="w-full flex flex-col items-center text-center pb-6">
+        {/* Logo Section */}
+        <div className="w-full flex flex-col items-center text-center pb-8">
           {settingsLoading ? (
             <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
-          ) : settings?.logoUrl ? (
-            <div className="w-full max-w-[200px] md:max-w-[240px]">
-              <img src={settings.logoUrl} alt="Logo" className="w-full h-auto object-contain p-2" />
-            </div>
           ) : (
-            <Logo variant="full" color="#6a8036" />
+            <div className="flex flex-col items-center">
+              {settings?.logoUrl ? (
+                <div className="w-32 h-32 mb-6">
+                  <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="mb-6">
+                  <Logo variant="icon" color="#6a8036" className="w-32 h-16" />
+                </div>
+              )}
+              
+              <div className="flex flex-col items-center space-y-1">
+                <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tighter leading-none">
+                  LIKE VISION OPTIQUE
+                </h1>
+                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 whitespace-nowrap">
+                  GESTION OPTIQUE PROFESSIONNELLE
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

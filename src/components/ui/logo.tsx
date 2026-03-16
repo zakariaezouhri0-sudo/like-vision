@@ -10,12 +10,10 @@ interface LogoProps {
 }
 
 export function Logo({ className, variant = "full", color }: LogoProps) {
-  // On utilise la couleur passée (pour le login) ou currentColor (pour s'adapter au parent, ex: sidebar)
   const mainColor = color || "currentColor";
 
   return (
     <div className={cn("flex flex-col items-center justify-center w-full", className)}>
-      {/* Icône des lunettes - Taille ajustée pour laisser de la place au texte */}
       <div className={cn(variant === "full" ? "w-20 md:w-24" : "w-full h-full")}>
         <svg 
           width="100%" 
@@ -50,7 +48,6 @@ export function Logo({ className, variant = "full", color }: LogoProps) {
         </svg>
       </div>
 
-      {/* Typographie - Même style que "CONNEXION" pour le titre, gris pour le sous-titre */}
       {variant === "full" && (
         <div className="flex flex-col items-center mt-4 w-full space-y-1">
           <h1 
