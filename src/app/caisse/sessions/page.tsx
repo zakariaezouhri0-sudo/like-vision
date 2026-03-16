@@ -64,8 +64,32 @@ export default function CashSessionsPage() {
   const groupedSessions = useMemo(() => {
     if (!rawSessions) return [];
     
+    // Filtrage par mode
     const filtered = [...rawSessions]
       .filter(s => isPrepaMode ? s?.isDraft === true : (s?.isDraft !== true));
+
+    // Injection des dates spécifiques demandées (08/03 et 15/03 2026) si absentes pour le prototype
+    const injectDates = ["2026-03-08", "2026-03-15"];
+    injectDates.forEach(d => {
+      if (!filtered.find(s => s.date === d)) {
+        filtered.push({
+          id: `injected-${d}`,
+          date: d,
+          status: "CLOSED",
+          openingBalance: 0,
+          totalSales: 0,
+          totalExpenses: 0,
+          totalVersements: 0,
+          closingBalanceReal: 0,
+          isDraft: isPrepaMode,
+          openedAt: Timestamp.fromDate(new Date(`${d}T09:00:00`)),
+          closedAt: Timestamp.fromDate(new Date(`${d}T20:00:00`))
+        });
+      }
+    });
+
+    // Tri après injection
+    filtered.sort((a, b) => b.date.localeCompare(a.date));
 
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
     
@@ -123,6 +147,10 @@ export default function CashSessionsPage() {
   };
 
   const handleDeleteSession = async (session: any) => {
+    if (session.id.startsWith("injected-")) {
+      toast({ variant: "destructive", title: "Action impossible", description: "Cette session est simulée." });
+      return;
+    }
     if (!confirm(`Attention : Supprimer la session du ${session.date} effacera également TOUTES les opérations de caisse liées à cette journée. Confirmer ?`)) return;
     
     try {
@@ -150,6 +178,10 @@ export default function CashSessionsPage() {
   };
 
   const handleReopenSession = async (session: any) => {
+    if (session.id.startsWith("injected-")) {
+      toast({ variant: "destructive", title: "Action impossible", description: "Cette session est simulée." });
+      return;
+    }
     if (!confirm(`Ré-ouvrir la session du ${session.date} ?`)) return;
     try {
       await updateDoc(doc(db, "cash_sessions", session.id), {
@@ -195,6 +227,10 @@ export default function CashSessionsPage() {
   };
 
   const handleExportDayTransactions = async (session: any) => {
+    if (session.id.startsWith("injected-")) {
+      toast({ variant: "destructive", title: "Action impossible", description: "Cette session est simulée." });
+      return;
+    }
     toast({ title: "Génération de l'Excel..." });
     try {
       const dateStart = startOfDay(parseISO(session.date));
@@ -315,16 +351,11 @@ export default function CashSessionsPage() {
                               const isSun = s?.date ? isSunday(parseISO(s.date)) : false;
 
                               return (
-                                <TableRow key={s?.id} className={cn("hover:bg-slate-50 border-b transition-colors", isSun && "bg-red-50/40 hover:bg-red-50/60")}>
+                                <TableRow key={s?.id} className={cn("hover:bg-slate-50 border-b transition-colors", isSun && "bg-red-100/50 hover:bg-red-200/50")}>
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
                                       <div className="flex items-center gap-2">
                                         <span className={cn("font-black text-xs uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
-                                        {isSun && (
-                                          <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase rounded-sm bg-red-600">
-                                            DIMANCHE
-                                          </Badge>
-                                        )}
                                       </div>
                                       <span className={cn("text-[8px] font-black uppercase mt-1", s?.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                         {s?.status === "OPEN" ? "En cours" : "Clôturée"}
