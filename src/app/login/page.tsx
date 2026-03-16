@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, User as UserIcon, Loader2 } from "lucide-react";
-import { APP_NAME } from "@/lib/constants";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
@@ -115,9 +114,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
-      <div className="w-full max-w-lg space-y-10">
+      <div className="w-full max-w-xl space-y-12">
         <div className="flex flex-col items-center text-center">
-          <div className="w-full max-w-[320px] md:max-w-[400px] bg-transparent flex items-center justify-center">
+          <div className="w-full max-w-[350px] md:max-w-[500px] bg-transparent flex items-center justify-center">
             {settingsLoading ? (
               <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
@@ -126,15 +125,9 @@ export default function LoginPage() {
               <Logo className="w-full" variant="full" color="#6a8036" />
             )}
           </div>
-
-          {!settings?.logoUrl && (
-            <div className="mt-4">
-              <p className="text-[#6a8036]/40 font-black uppercase text-[10px] tracking-[0.4em] opacity-60">Gestion Optique Professionnelle</p>
-            </div>
-          )}
         </div>
 
-        <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden">
+        <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-lg mx-auto w-full">
           <CardHeader className="space-y-1 pt-10 text-center border-b bg-slate-50/50 pb-8">
             <CardTitle className="text-3xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">

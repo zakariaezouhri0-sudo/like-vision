@@ -9,11 +9,11 @@ interface LogoProps {
   color?: string;
 }
 
-export function Logo({ className, variant = "full", color = "#76933C" }: LogoProps) {
+export function Logo({ className, variant = "full", color = "#6a8036" }: LogoProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center", className)}>
       {/* Eyeglasses Icon - High-End Minimalist Style */}
-      <div className={cn(variant === "full" ? "w-full" : "w-full h-full")}>
+      <div className={cn(variant === "full" ? "w-full max-w-[280px] md:max-w-[350px]" : "w-full h-full")}>
         <svg 
           width="100%" 
           height="auto" 
@@ -43,7 +43,7 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
             strokeWidth="3.5" 
             strokeLinecap="round" 
           />
-          {/* Decorative Temple Pins (Small dots for premium feel) */}
+          {/* Decorative Temple Pins */}
           <circle cx="14" cy="24" r="1.5" fill={color} />
           <circle cx="86" cy="24" r="1.5" fill={color} />
           
@@ -53,19 +53,18 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
         </svg>
       </div>
 
-      {/* Typography - Modern Bold Sans-Serif */}
+      {/* Typography - Matching User Reference Image */}
       {variant === "full" && (
-        <div className="flex flex-col items-center mt-6 w-full">
+        <div className="flex flex-col items-center mt-4 w-full">
           <span 
-            className="font-black text-sm md:text-lg uppercase tracking-[0.4em] whitespace-nowrap leading-none text-center"
+            className="font-black text-2xl md:text-4xl uppercase tracking-tighter whitespace-nowrap leading-none text-center"
             style={{ color: color }}
           >
             Like Vision Optique
           </span>
-          <div 
-            className="h-1.5 w-20 mt-4 rounded-full opacity-30" 
-            style={{ backgroundColor: color }}
-          />
+          <span className="text-[8px] md:text-[11px] font-black text-muted-foreground uppercase tracking-[0.35em] whitespace-nowrap text-center opacity-50 mt-2">
+            Gestion Optique Professionnelle
+          </span>
         </div>
       )}
     </div>
