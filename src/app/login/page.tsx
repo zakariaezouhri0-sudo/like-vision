@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -113,22 +114,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f4f7ed] px-4">
-      <div className="w-full max-w-lg space-y-12">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <div className="h-72 w-72 md:h-80 md:w-80 bg-transparent flex items-center justify-center overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
+      <div className="w-full max-w-lg space-y-10">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-full max-w-[320px] md:max-w-[400px] bg-transparent flex items-center justify-center">
             {settingsLoading ? (
               <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
-              <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
+              <img src={settings.logoUrl} alt="Logo" className="w-full h-auto object-contain p-2" />
             ) : (
-              <Logo className="w-full h-full" variant="full" color="#6a8036" />
+              <Logo className="w-full" variant="full" color="#6a8036" />
             )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-primary/40 font-black uppercase text-[10px] tracking-[0.4em] opacity-60">Gestion Optique Professionnelle</p>
-          </div>
+          {!settings?.logoUrl && (
+            <div className="mt-4">
+              <p className="text-[#6a8036]/40 font-black uppercase text-[10px] tracking-[0.4em] opacity-60">Gestion Optique Professionnelle</p>
+            </div>
+          )}
         </div>
 
         <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden">
