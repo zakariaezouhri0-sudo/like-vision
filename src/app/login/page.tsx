@@ -114,12 +114,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
-      <div className="w-full max-w-xl space-y-8 flex flex-col items-center">
-        <div className="w-full flex flex-col items-center text-center mb-4">
+      <div className="w-full max-w-xl space-y-10 flex flex-col items-center">
+        {/* Logo Section */}
+        <div className="w-full flex flex-col items-center text-center">
           {settingsLoading ? (
             <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
           ) : settings?.logoUrl ? (
-            <div className="w-full max-w-[180px] md:max-w-[220px]">
+            <div className="w-full max-w-[200px] md:max-w-[240px]">
               <img src={settings.logoUrl} alt="Logo" className="w-full h-auto object-contain p-2" />
             </div>
           ) : (
@@ -127,6 +128,7 @@ export default function LoginPage() {
           )}
         </div>
 
+        {/* Login Card */}
         <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-md mx-auto w-full">
           <CardHeader className="space-y-1 pt-10 text-center border-b bg-slate-50/50 pb-8">
             <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
