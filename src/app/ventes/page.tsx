@@ -272,14 +272,14 @@ function SalesHistoryContent() {
               <TableHeader className="bg-[#6a8036]">
                 <TableRow>
                   {isAdminOrPrepa && (<TableHead className="w-12 px-4 py-5 text-center"><Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} /></TableHead>)}
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Document</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Total Net</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Versé</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Reste</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Statut</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Actions</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Date</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Document</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Client</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">TOTAL NET</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">AVANCE</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Reste</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Statut</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
