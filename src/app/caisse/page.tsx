@@ -492,7 +492,7 @@ function CaisseContent() {
       </CardHeader>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-[#064e3b]">
+          <TableHeader className="bg-[#052e16]">
             <TableRow>
               <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails ({data.length})</TableHead>
               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead>
@@ -532,7 +532,7 @@ function CaisseContent() {
                         <span className="text-[9px] font-bold text-slate-400 w-10 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{displayLabel}</span>
+                            <span className="text-11px font-black uppercase text-slate-800 leading-tight">{displayLabel}</span>
                             {t.isGrouped && (
                               <Badge variant="outline" className="text-[7px] font-black h-4 px-1 border-primary/20 text-primary bg-primary/5 uppercase">
                                 <Layers className="h-2 w-2 mr-1" /> Σ {t.childCount}

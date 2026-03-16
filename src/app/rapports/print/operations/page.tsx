@@ -68,7 +68,8 @@ function OperationsReportContent() {
   const [loadingSales, setLoadingSales] = useState(false);
 
   useEffect(() => {
-    const fetchSalesForMatching = async () => {
+    const fetchSalesForMatching = async (
+    ) => {
       if (!selectedDate) return;
       setLoadingSales(true);
       
@@ -307,7 +308,7 @@ function OperationsReportContent() {
 
         <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-[#064e3b] text-white border-b-2 border-slate-950">
+            <thead className="bg-[#052e16] text-white border-b-2 border-slate-950">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
                 <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Heure</th>

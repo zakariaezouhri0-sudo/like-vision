@@ -235,7 +235,7 @@ export default function ReportsPage() {
           <TabsContent value="flux" className="mt-6">
             <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
               <Table>
-                <TableHeader className="bg-[#064e3b]">
+                <TableHeader className="bg-[#052e16]">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Date</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Opération</TableHead>
@@ -269,7 +269,7 @@ export default function ReportsPage() {
           <TabsContent value="marges" className="mt-6">
             <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
               <Table>
-                <TableHeader className="bg-[#064e3b]">
+                <TableHeader className="bg-[#052e16]">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Vente</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Prix Vente</TableHead>
