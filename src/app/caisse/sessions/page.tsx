@@ -51,10 +51,11 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
+  // AUGMENTATION DE LA LIMITE POUR AFFICHER TOUT L'HISTORIQUE RÉCENT (200 AU LIEU DE 50)
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"), 
-    limit(50)
+    limit(200)
   ), [db]);
   const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
