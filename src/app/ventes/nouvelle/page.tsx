@@ -28,7 +28,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -360,7 +360,10 @@ function NewSaleForm() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
-              <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><User className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Dossier Client</CardTitle></CardHeader>
+              <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
+                <User className="h-7 w-7 text-[#6a8036]" />
+                <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Dossier Client</CardTitle>
+              </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                   <div className="space-y-2">
@@ -454,7 +457,10 @@ function NewSaleForm() {
             </Card>
             
             <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
-              <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><FileText className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Prescription Optique</CardTitle></CardHeader>
+              <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
+                <FileText className="h-7 w-7 text-[#6a8036]" />
+                <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Prescription Optique</CardTitle>
+              </CardHeader>
               <CardContent className="p-8">
                 <div className={cn(isSessionClosed && "pointer-events-none")}>
                   <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
@@ -463,7 +469,10 @@ function NewSaleForm() {
             </Card>
 
             <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
-              <CardHeader className="py-4 px-8 bg-slate-50 border-b flex flex-row items-center gap-2"><Glasses className="h-4 w-4 text-primary/40" /><CardTitle className="text-[10px] uppercase font-black text-primary/60">Équipement & Notes</CardTitle></CardHeader>
+              <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
+                <Glasses className="h-7 w-7 text-[#6a8036]" />
+                <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Équipement & Notes</CardTitle>
+              </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed} /></div>
