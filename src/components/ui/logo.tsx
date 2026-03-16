@@ -54,12 +54,11 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
       {variant === "full" && (
         <div className="flex flex-col items-center mt-1">
           <span 
-            className="font-black text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap leading-none text-center"
-            style={{ color }}
+            className="font-black text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap leading-none text-center text-white"
           >
             HAHIA BLAST LOGO AUCUN CHANGEMENT
           </span>
-          <div className="h-0.5 w-8 mt-1.5 rounded-full" style={{ backgroundColor: color, opacity: 0.3 }} />
+          <div className="h-0.5 w-8 mt-1.5 rounded-full bg-white/30" />
         </div>
       )}
     </div>
