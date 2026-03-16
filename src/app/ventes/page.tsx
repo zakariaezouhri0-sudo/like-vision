@@ -349,3 +349,13 @@ function SalesHistoryContent() {
     </div>
   );
 }
+
+export default function UnpaidSalesPage() { 
+  return (
+    <AppShell>
+      <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>}>
+        <SalesHistoryContent />
+      </Suspense>
+    </AppShell>
+  );
+}
