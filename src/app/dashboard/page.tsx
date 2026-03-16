@@ -41,7 +41,8 @@ import { collection, query, orderBy, limit, doc, where } from "firebase/firestor
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const COLORS = ['#31577A', '#34B9DB', '#4ADE80', '#FACC15', '#A855F7', '#EF4444'];
+// Palette de verts harmonisée
+const COLORS = ['#064e3b', '#89a644', '#768e3a', '#a3b18a', '#588157', '#344e41'];
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -285,11 +286,27 @@ export default function DashboardPage() {
           <CardContent className="h-[350px] p-8">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#064e3b" stopOpacity={1}/>
+                    <stop offset="100%" stopColor="#89a644" stopOpacity={0.8}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '900', fill: '#64748b' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '900', fill: '#64748b' }} />
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', fontWeight: 'bold', padding: '12px' }} />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[10, 10, 0, 0]} barSize={36} />
+                <Tooltip 
+                  cursor={{fill: '#f8fafc'}} 
+                  contentStyle={{ 
+                    borderRadius: '20px', 
+                    border: 'none', 
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', 
+                    fontWeight: 'bold', 
+                    padding: '12px',
+                    backgroundColor: '#ffffff'
+                  }} 
+                />
+                <Bar dataKey="total" fill="url(#barGradient)" radius={[10, 10, 0, 0]} barSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -306,7 +323,15 @@ export default function DashboardPage() {
                   <Pie data={mutuelleData} innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
                     {mutuelleData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                      backgroundColor: '#ffffff',
+                      fontWeight: 'bold'
+                    }} 
+                  />
                 </PieChart>
               </ResponsiveContainer>
              </div>
