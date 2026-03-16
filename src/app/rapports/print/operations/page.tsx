@@ -52,7 +52,6 @@ function OperationsReportContent() {
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
-  // OPTIMISATION : Requête précise par date pour les transactions
   const transQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
@@ -68,7 +67,6 @@ function OperationsReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
-  // OPTIMISATION : Requête précise par date pour les ventes
   useEffect(() => {
     const fetchSalesForMatching = async () => {
       if (!selectedDate) return;
@@ -309,7 +307,7 @@ function OperationsReportContent() {
 
         <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-slate-200 text-slate-950 border-b-2 border-slate-950">
+            <thead className="bg-[#064e3b] text-white border-b-2 border-slate-950">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
                 <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Heure</th>

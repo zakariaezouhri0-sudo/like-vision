@@ -74,7 +74,6 @@ function DailyCashReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
-  // OPTIMISATION : On récupère toutes les ventes de la journée d'un coup au lieu de boucler
   useEffect(() => {
     const fetchSalesOfDay = async () => {
       if (!selectedDate) return;
@@ -213,12 +212,11 @@ function DailyCashReportContent() {
             <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-green-600" />Encaissements</h3><span className="text-[10px] font-black text-green-700 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
-                <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
-                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20 text-green-700">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-700 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
+                <thead className="bg-[#064e3b] text-white">
+                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-green-400 w-20">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.sales.length > 0 ? reportData.sales.map((t: any) => {
-                    // Recherche de la vente correspondante dans l'objet salesDetails
                     let invoiceId = t.relatedId || "";
                     if (!invoiceId && t.label?.includes('VENTE')) {
                       invoiceId = t.label.replace('VENTE ', '').trim();
@@ -256,7 +254,7 @@ function DailyCashReportContent() {
               <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)), false)}</span></div>
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
-                  <thead className="bg-slate-100 text-slate-900 border-b border-slate-300">
+                  <thead className="bg-[#064e3b] text-white">
                     <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -298,6 +296,9 @@ function DailyCashReportContent() {
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements), false)}</span></div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                   <table className="w-full border-collapse">
+                    <thead className="bg-[#064e3b] text-white">
+                      <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest">Montant</th></tr>
+                    </thead>
                     <tbody className="divide-y divide-slate-100">
                       {reportData.versements.map((v: any) => (
                         <tr key={v.id} className="hover:bg-slate-50">
