@@ -13,7 +13,7 @@ export function Logo({ className, variant = "full", color = "#6a8036" }: LogoPro
   return (
     <div className={cn("flex flex-col items-center justify-center", className)}>
       {/* Eyeglasses Icon - Minimalist & Elegant */}
-      <div className={cn(variant === "full" ? "w-full max-w-[180px] md:max-w-[220px]" : "w-full h-full")}>
+      <div className={cn(variant === "full" ? "w-24 md:w-32" : "w-full h-full")}>
         <svg 
           width="100%" 
           height="auto" 
@@ -53,16 +53,16 @@ export function Logo({ className, variant = "full", color = "#6a8036" }: LogoPro
         </svg>
       </div>
 
-      {/* Typography - Matching precisely the User Reference Image */}
+      {/* Typography - Explicitly shown when variant is "full" */}
       {variant === "full" && (
-        <div className="flex flex-col items-center mt-3 w-full">
+        <div className="flex flex-col items-center mt-4 w-full">
           <span 
-            className="font-black text-2xl md:text-3xl uppercase tracking-tighter whitespace-nowrap leading-none text-center"
+            className="font-black text-xl md:text-2xl uppercase tracking-tighter whitespace-nowrap leading-none text-center"
             style={{ color: color }}
           >
             Like Vision Optique
           </span>
-          <span className="text-[7px] md:text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] whitespace-nowrap text-center mt-2.5">
+          <span className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-[0.3em] whitespace-nowrap text-center mt-2">
             Gestion Optique Professionnelle
           </span>
         </div>
