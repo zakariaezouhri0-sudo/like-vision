@@ -4,7 +4,7 @@
 import { useSearchParams, useParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Glasses, ThumbsUp, Loader2 } from "lucide-react";
+import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatPhoneNumber, roundAmount } from "@/lib/utils";
 import { Suspense, useEffect } from "react";
@@ -12,6 +12,7 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Logo } from "@/components/ui/logo";
 
 function InvoicePrintContent() {
   const params = useParams();
@@ -78,10 +79,26 @@ function InvoicePrintContent() {
     <div className="pdf-a5-portrait bg-white flex flex-col p-[8mm] relative h-[210mm] max-h-[210mm] overflow-hidden">
       <div className="flex justify-between items-start mb-10 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white shadow-sm">{shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />) : (<div className="relative text-primary"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" /></div>)}</div>
-          <div className="space-y-0.5"><h2 className="text-base font-black text-slate-900 leading-tight uppercase tracking-tighter">{shop.name || "---"}</h2><p className="text-[8px] text-slate-500 max-w-[200px] leading-tight font-bold">{shop.address || "---"}</p><p className="text-[8px] font-black text-slate-700">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p></div>
+          <div className="h-16 w-16 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white shadow-sm">
+            {shop.logoUrl ? (
+              <img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
+            ) : (
+              <Logo variant="icon" className="w-10" />
+            )}
+          </div>
+          <div className="space-y-0.5">
+            <h2 className="text-base font-black text-slate-900 leading-tight uppercase tracking-tighter">{shop.name || "---"}</h2>
+            <p className="text-[8px] text-slate-500 max-w-[200px] leading-tight font-bold">{shop.address || "---"}</p>
+            <p className="text-[8px] font-black text-slate-700">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
+          </div>
         </div>
-        <div className="text-right"><div className="bg-white text-slate-950 border border-slate-950 px-4 py-1.5 rounded-md inline-block mb-2"><h1 className="text-[10px] font-black uppercase tracking-[0.2em]">Facture</h1></div><p className="text-[11px] font-black text-slate-900 leading-none">N°: {invoiceNo}</p><p className="text-[8px] text-slate-400 font-bold italic mt-1.5 uppercase">Date: {dateDisplay}</p></div>
+        <div className="text-right">
+          <div className="bg-white text-slate-950 border border-slate-950 px-4 py-1.5 rounded-md inline-block mb-2">
+            <h1 className="text-[10px] font-black uppercase tracking-[0.2em]">Facture</h1>
+          </div>
+          <p className="text-[11px] font-black text-slate-900 leading-none">N°: {invoiceNo}</p>
+          <p className="text-[8px] text-slate-400 font-bold italic mt-1.5 uppercase">Date: {dateDisplay}</p>
+        </div>
       </div>
 
       <div className="mb-12 bg-slate-50 border border-slate-200 py-5 px-4 flex justify-around items-center rounded-[20px] shadow-inner">

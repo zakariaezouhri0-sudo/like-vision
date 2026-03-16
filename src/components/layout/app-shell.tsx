@@ -1,10 +1,11 @@
+
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Glasses, ThumbsUp, Menu, AlertTriangle, Loader2 } from "lucide-react";
+import { LogOut, Menu, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
@@ -13,6 +14,7 @@ import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
+import { Logo } from "@/components/ui/logo";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -50,7 +52,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="flex items-center gap-3 min-w-0">
       <div className={cn(
         "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl shadow-sm",
-        size === "large" ? "h-12 w-12" : "h-9 w-9",
+        size === "large" ? "h-14 w-14" : "h-10 w-10",
         "bg-white"
       )}>
         {settingsLoading ? (
@@ -64,15 +66,7 @@ export function AppShell({ children }: AppShellProps) {
             className="h-full w-full object-contain p-1" 
           />
         ) : (
-          <div className={cn(
-            "h-full w-full bg-primary flex items-center justify-center text-primary-foreground",
-            size === "large" ? "p-2" : "p-1.5"
-          )}>
-            <div className="relative">
-              <Glasses className={size === "large" ? "h-7 w-7" : "h-5 w-5"} />
-              <ThumbsUp className={cn("absolute -top-1 -right-1 bg-primary p-0.5 rounded-full border border-white", size === "large" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
-            </div>
-          </div>
+          <Logo variant="icon" className={size === "large" ? "w-10" : "w-7"} />
         )}
       </div>
       <div className="flex flex-col justify-center min-w-0 pr-2">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Glasses, ThumbsUp, Lock, User as UserIcon, Loader2 } from "lucide-react";
+import { Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +31,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Mode Admin Standard
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -47,7 +48,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Mode Préparation (Brouillon)
     if (username.toLowerCase() === "prepa" && password === "prepa123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -93,7 +93,6 @@ export default function LoginPage() {
             description: `Ravi de vous revoir, ${userData.name}.`,
           });
 
-          // Redirection basée sur le rôle
           if (role === "OPTICIENNE") {
             router.push("/caisse");
           } else {
@@ -118,18 +117,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md space-y-10">
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="h-32 w-32 bg-white rounded-[40px] flex items-center justify-center shadow-2xl border border-slate-100 overflow-hidden">
+          <div className="h-32 w-32 bg-white rounded-[40px] flex items-center justify-center shadow-2xl border border-slate-100 overflow-hidden p-4">
             {settingsLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
-              <div className="h-full w-full bg-primary flex items-center justify-center text-white">
-                <div className="relative">
-                  <Glasses className="h-16 w-16" />
-                  <ThumbsUp className="h-8 w-8 absolute -top-3 -right-3 bg-primary p-1 rounded-full border-2 border-white" />
-                </div>
-              </div>
+              <Logo className="w-full h-full" variant="full" />
             )}
           </div>
 
