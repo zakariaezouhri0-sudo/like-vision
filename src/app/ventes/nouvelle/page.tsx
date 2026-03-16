@@ -28,7 +28,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsHydrated] = useState(false);
+  const [isClientReady, setIsClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -325,7 +325,7 @@ function NewSaleForm() {
       }
     } catch (err: any) { 
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée." });
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       } else {
         toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente." });
       }
