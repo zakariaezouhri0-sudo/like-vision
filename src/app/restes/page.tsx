@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, HandCoins, Loader2, Calendar, Lock } from "lucide-react";
+import { Search, HandCoins, Loader2, Calendar, Lock, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
@@ -38,6 +38,7 @@ export default function UnpaidSalesPage() {
   }, []);
 
   const isPrepaMode = role === "PREPA";
+  const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
@@ -84,7 +85,7 @@ export default function UnpaidSalesPage() {
     if (!selectedSale || !paymentAmount) return;
 
     if (sessionLoading) return;
-    if (isTodayClosed) {
+    if (isTodayClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
       return;
     }
@@ -97,7 +98,7 @@ export default function UnpaidSalesPage() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        if (sessionRef) {
+        if (sessionRef && !isAdminOrPrepa) {
           const sSnap = await transaction.get(sessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") {
             throw new Error("SESSION_CLOSED");
@@ -221,7 +222,7 @@ export default function UnpaidSalesPage() {
                           <Button 
                             onClick={() => handleOpenPayment(sale)} 
                             size="sm" 
-                            disabled={sessionLoading || isTodayClosed}
+                            disabled={sessionLoading || (isTodayClosed && !isAdminOrPrepa)}
                             className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
                           >
                             <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
@@ -246,7 +247,14 @@ export default function UnpaidSalesPage() {
                 <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
               </DialogHeader>
 
-              {isTodayClosed && (
+              {isTodayClosed && isAdminOrPrepa && (
+                <div className="bg-orange-50 p-4 border-b border-orange-100 flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  <p className="text-[10px] font-black text-orange-700 uppercase">Mode Correction : Modification autorisée sur caisse close.</p>
+                </div>
+              )}
+
+              {isTodayClosed && !isAdminOrPrepa && (
                 <div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3">
                   <Lock className="h-5 w-5 text-red-600" />
                   <p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p>
@@ -262,19 +270,19 @@ export default function UnpaidSalesPage() {
                   <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                   <input 
                     type="text" 
-                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed || sessionLoading) && "opacity-50 cursor-not-allowed")} 
+                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed && !isAdminOrPrepa || sessionLoading) && "opacity-50 cursor-not-allowed")} 
                     value={paymentAmount} 
                     placeholder="0,00"
-                    onChange={(e) => !isTodayClosed && !sessionLoading && setPaymentAmount(e.target.value)} 
-                    onBlur={() => !isTodayClosed && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                    onChange={(e) => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && setPaymentAmount(e.target.value)} 
+                    onBlur={() => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                     autoFocus 
-                    readOnly={isTodayClosed || sessionLoading}
+                    readOnly={isTodayClosed && !isAdminOrPrepa || sessionLoading}
                   />
                 </div>
               </div>
               <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
                 <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isTodayClosed || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || (isTodayClosed && !isAdminOrPrepa) || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

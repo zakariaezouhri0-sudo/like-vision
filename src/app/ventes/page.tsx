@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins, Lock, MessageSquare } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, Filter, X, RotateCcw, FileText, Tag, Save, Clock, History as HistoryIcon, CheckSquare, HandCoins, Lock, MessageSquare, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -132,7 +132,7 @@ function SalesHistoryContent() {
       const batch = writeBatch(db);
       for (const id of Array.from(selectedIds)) {
         const sale = rawSales?.find(s => s.id === id);
-        if (sale && await checkSessionStatus(sale)) {
+        if (sale && !isAdminOrPrepa && await checkSessionStatus(sale)) {
           toast({ variant: "destructive", title: "Action Rejetée", description: `La vente ${sale.invoiceId} appartient à une caisse clôturée.` });
           continue;
         }
@@ -145,8 +145,9 @@ function SalesHistoryContent() {
   };
 
   const handleEdit = async (sale: any) => {
-    if (await checkSessionStatus(sale)) {
-      toast({ variant: "destructive", title: "Accès Refusé", description: "Cette caisse est clôturée. Ré-ouvrez la pour modifier." });
+    const isClosed = await checkSessionStatus(sale);
+    if (isClosed && !isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Accès Refusé", description: "Cette caisse est clôturée. Seul l'ADMIN peut modifier." });
       return;
     }
     const params = new URLSearchParams({ 
@@ -162,7 +163,8 @@ function SalesHistoryContent() {
   };
 
   const handleDelete = async (sale: any) => {
-    if (await checkSessionStatus(sale)) {
+    const isClosed = await checkSessionStatus(sale);
+    if (isClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Impossible de supprimer une vente sur une caisse close." });
       return;
     }
@@ -213,7 +215,11 @@ function SalesHistoryContent() {
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
-    if (isTodayClosed) { toast({ variant: "destructive", title: "Caisse Fermée", description: "Règlement impossible aujourd'hui." }); return; }
+    
+    if (isTodayClosed && !isAdminOrPrepa) { 
+      toast({ variant: "destructive", title: "Caisse Fermée", description: "Règlement impossible aujourd'hui." }); 
+      return; 
+    }
 
     const amount = parseAmount(paymentAmount);
     if (amount <= 0) return;
@@ -222,7 +228,7 @@ function SalesHistoryContent() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        if (sessionRef) {
+        if (sessionRef && !isAdminOrPrepa) {
           const sSnap = await transaction.get(sessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") throw new Error("SESSION_CLOSED");
         }
@@ -298,7 +304,7 @@ function SalesHistoryContent() {
                         <TableCell className="px-4 md:px-8 py-5 min-w-[150px]"><div className="flex flex-col"><span className="font-black text-xs uppercase truncate max-w-[180px]">{sale.clientName || "---"}</span><span className="text-[10px] font-black text-slate-400 tabular-nums">{formatPhoneNumber(sale.clientPhone) || "---"}</span></div></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><span className="font-black text-xs tabular-nums">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex flex-col items-end"><span className="font-black text-xs tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span>{histAmt > 0 && <span className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1"><HistoryIcon className="h-2 w-2" /> {formatCurrency(histAmt)} (Hist)</span>}</div></TableCell>
-                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex flex-col items-end gap-1"><span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>{sale.reste > 0 && (<Button size="sm" variant="outline" disabled={sessionLoading || isTodayClosed} onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="h-6 px-2 text-[8px] font-black uppercase border-red-100 text-red-600 hover:bg-red-50 rounded-md"><HandCoins className="h-2 w-2 mr-1" /> Régler</Button>)}</div></TableCell>
+                        <TableCell className="text-right px-4 md:px-8 py-5 whitespace-nowrap"><div className="flex flex-col items-end gap-1"><span className="font-black text-xs tabular-nums text-red-500">{formatCurrency(sale.reste || 0)}</span>{sale.reste > 0 && (<Button size="sm" variant="outline" disabled={sessionLoading || (isTodayClosed && !isAdminOrPrepa)} onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="h-6 px-2 text-[8px] font-black uppercase border-red-100 text-red-600 hover:bg-red-50 rounded-md"><HandCoins className="h-2 w-2 mr-1" /> Régler</Button>)}</div></TableCell>
                         <TableCell className="text-center px-4 md:px-8 py-5"><Badge className={cn("text-[8px] px-2 py-1 font-black rounded-lg uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : sale.statut === "En attente" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut || "---"}</Badge></TableCell>
                         <TableCell className="text-right px-4 md:px-8 py-5">
                           <DropdownMenu modal={false}>
@@ -310,9 +316,10 @@ function SalesHistoryContent() {
                                   <MessageSquare className="mr-3 h-4 w-4" /> Relancer WhatsApp
                                 </DropdownMenuItem>
                               )}
-                              {sale.reste > 0 && !isTodayClosed && (<DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>)}
+                              {sale.reste > 0 && (!isTodayClosed || isAdminOrPrepa) && (<DropdownMenuItem onClick={() => { setPaymentSale(sale); setPaymentAmount(formatCurrency(sale.reste)); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600"><HandCoins className="mr-3 h-4 w-4" /> Encaisser Règlement</DropdownMenuItem>)}
                               <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-primary" /> Coûts d'Achat</DropdownMenuItem>
-                              {isAdminOrPrepa && (<><DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem><DropdownMenuItem onClick={() => handleDelete(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem></>)}
+                              <DropdownMenuItem onClick={() => handleEdit(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-primary" /> Modifier</DropdownMenuItem>
+                              {isAdminOrPrepa && (<DropdownMenuItem onClick={() => handleDelete(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>)}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -340,9 +347,10 @@ function SalesHistoryContent() {
         <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
           <form onSubmit={handleValidatePayment}>
             <DialogHeader className="p-8 bg-primary text-white"><DialogTitle className="text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-7 w-7" /> Règlement Vente</DialogTitle><p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{paymentSale?.clientName} | {paymentSale?.invoiceId}</p></DialogHeader>
-            {isTodayClosed && (<div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3"><Lock className="h-5 w-5 text-red-600" /><p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p></div>)}
-            <div className="p-8 space-y-6 bg-white"><div className="bg-slate-50 p-6 rounded-2xl border space-y-3"><div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div></div><div className="space-y-3"><Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label><input type="text" className={cn("w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed || sessionLoading) && "opacity-50 cursor-not-allowed")} value={paymentAmount} placeholder="0,00" onChange={(e) => !isTodayClosed && !sessionLoading && setPaymentAmount(e.target.value)} onBlur={() => !isTodayClosed && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} autoFocus readOnly={isTodayClosed || sessionLoading} /></div></div>
-            <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3"><Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button><Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || isTodayClosed || sessionLoading}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button></DialogFooter>
+            {isTodayClosed && isAdminOrPrepa && (<div className="bg-orange-50 p-4 border-b border-orange-100 flex items-center gap-3"><AlertTriangle className="h-5 w-5 text-orange-600" /><p className="text-[10px] font-black text-orange-700 uppercase">Mode Correction : Modification autorisée sur caisse close.</p></div>)}
+            {isTodayClosed && !isAdminOrPrepa && (<div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3"><Lock className="h-5 w-5 text-red-600" /><p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p></div>)}
+            <div className="p-8 space-y-6 bg-white"><div className="bg-slate-50 p-6 rounded-2xl border space-y-3"><div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Reste actuel :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div></div><div className="space-y-3"><Label className="text-[10px] font-black uppercase text-primary ml-1">Montant à Encaisser (DH)</Label><input type="text" className={cn("w-full h-20 text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed && !isAdminOrPrepa || sessionLoading) && "opacity-50 cursor-not-allowed")} value={paymentAmount} placeholder="0,00" onChange={(e) => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && setPaymentAmount(e.target.value)} onBlur={() => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} autoFocus readOnly={isTodayClosed && !isAdminOrPrepa || sessionLoading} /></div></div>
+            <DialogFooter className="p-8 pt-0 bg-white flex flex-col sm:flex-row gap-3"><Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px]" onClick={() => setPaymentSale(null)}>Annuler</Button><Button type="submit" className="w-full h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || (isTodayClosed && !isAdminOrPrepa) || sessionLoading}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

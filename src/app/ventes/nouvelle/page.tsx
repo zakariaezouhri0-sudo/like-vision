@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -182,7 +183,8 @@ function NewSaleForm() {
 
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading) return;
-    if (isSessionClosed) {
+    
+    if (isSessionClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "ERREUR CRITIQUE", description: "La caisse de cette journée est clôturée." });
       return;
     }
@@ -214,7 +216,7 @@ function NewSaleForm() {
       }
 
       await runTransaction(db, async (transaction) => {
-        if (sessionRef) {
+        if (sessionRef && !isAdminOrPrepa) {
           const sessionSnap = await transaction.get(sessionRef);
           if (sessionSnap.exists() && sessionSnap.data().status === "CLOSED") {
             throw new Error("SESSION_CLOSED");
@@ -336,6 +338,8 @@ function NewSaleForm() {
 
   if (!isClientReady) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
+  const isReadOnly = isSessionClosed && !isAdminOrPrepa;
+
   return (
     <AppShell>
       <div className="space-y-4 max-w-6xl mx-auto pb-24">
@@ -345,15 +349,28 @@ function NewSaleForm() {
             <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || sessionLoading || isSessionClosed}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || sessionLoading || isSessionClosed}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
+            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || sessionLoading || isReadOnly}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
+            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || sessionLoading || isReadOnly}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
           </div>
         </div>
 
         {isSessionClosed && (
-          <div className="bg-white border-l-[12px] border-l-destructive shadow-2xl p-6 rounded-[32px] flex items-center gap-6 relative overflow-hidden">
-            <div className="h-16 w-16 bg-red-100 rounded-2xl flex items-center justify-center shrink-0 shadow-inner"><Lock className="h-8 w-8 text-destructive animate-pulse" /></div>
-            <div className="flex-1"><h3 className="text-[10px] font-black text-destructive uppercase tracking-[0.3em] mb-1">Accès Verrouillé</h3><p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">La caisse du <span className="text-destructive font-black">{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span> est clôturée.</p></div>
+          <div className={cn(
+            "bg-white border-l-[12px] shadow-2xl p-6 rounded-[32px] flex items-center gap-6 relative overflow-hidden",
+            isAdminOrPrepa ? "border-l-orange-500" : "border-l-destructive"
+          )}>
+            <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-inner", isAdminOrPrepa ? "bg-orange-100" : "bg-red-100")}>
+              {isAdminOrPrepa ? <AlertTriangle className="h-8 w-8 text-orange-600" /> : <Lock className="h-8 w-8 text-destructive animate-pulse" />}
+            </div>
+            <div className="flex-1">
+              <h3 className={cn("text-[10px] font-black uppercase tracking-[0.3em] mb-1", isAdminOrPrepa ? "text-orange-600" : "text-destructive")}>
+                {isAdminOrPrepa ? "Mode Correction" : "Accès Verrouillé"}
+              </h3>
+              <p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">
+                La caisse du <span className={isAdminOrPrepa ? "text-orange-600 font-black" : "text-destructive font-black"}>{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span> est clôturée. 
+                {isAdminOrPrepa && " Modification autorisée (Admin)."}
+              </p>
+            </div>
           </div>
         )}
 
@@ -370,10 +387,10 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isSessionClosed} />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
-                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={(v) => setIsFamilyMode(!!v)} disabled={isSessionClosed} />
+                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={(v) => setIsFamilyMode(!!v)} disabled={isReadOnly} />
                       <label htmlFor="familyMode" className="text-[10px] font-black uppercase cursor-pointer flex items-center gap-1.5 text-orange-600">
                         <Users className="h-3 w-3" /> PARRAINAGE / FAMILLE
                       </label>
@@ -385,17 +402,17 @@ function NewSaleForm() {
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isSessionClosed && "opacity-50")} 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "opacity-50")} 
                         placeholder="M. Mohamed Alami..." 
                         value={clientName} 
                         onChange={e => setClientName(e.target.value)} 
-                        onFocus={() => setIsNameFocused(true)}
-                        onClick={() => setIsNameFocused(true)}
+                        onFocus={() => !isReadOnly && setIsNameFocused(true)}
+                        onClick={() => !isReadOnly && setIsNameFocused(true)}
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
-                        readOnly={isSessionClosed} 
+                        readOnly={isReadOnly} 
                       />
                       
-                      {matchedFamily && matchedFamily.length > 0 && !isSessionClosed && isNameFocused && (
+                      {matchedFamily && matchedFamily.length > 0 && !isReadOnly && isNameFocused && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
                             {matchedFamily.length === 1 && matchedFamily[0]?.name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}
@@ -418,10 +435,10 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">N° BON</Label>
                     <div className="relative">
                       <ClipboardList className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", isSessionClosed && "opacity-50")} placeholder="Ex: 2472" value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isSessionClosed} />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", isReadOnly && "opacity-50")} placeholder="Ex: 2472" value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
-                      <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} disabled={isSessionClosed} />
+                      <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} disabled={isReadOnly} />
                       <label htmlFor="fromDoctor" className="text-[10px] font-black uppercase cursor-pointer flex items-center gap-1.5 text-slate-500">
                         <Stethoscope className="h-3 w-3" /> MÉDECIN
                       </label>
@@ -432,15 +449,15 @@ function NewSaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
-                    <Select value={mutuelle} onValueChange={setMutuelle} disabled={isSessionClosed}>
-                      <SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")}><SelectValue /></SelectTrigger>
+                    <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
+                      <SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")}><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   {mutuelle === "Autre" && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
-                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isSessionClosed} />
+                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   )}
                   {isAdminOrPrepa && activeEditId && (
@@ -448,7 +465,7 @@ function NewSaleForm() {
                       <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
                       <div className="relative">
                         <FileText className="absolute left-4 top-3.5 h-4 w-4 text-destructive/30" />
-                        <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={isSessionClosed} />
+                        <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={isReadOnly} />
                       </div>
                     </div>
                   )}
@@ -456,54 +473,54 @@ function NewSaleForm() {
               </CardContent>
             </Card>
             
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isReadOnly && "opacity-80")}>
               <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
                 <FileText className="h-7 w-7 text-[#6a8036]" />
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Prescription Optique</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <div className={cn(isSessionClosed && "pointer-events-none")}>
+                <div className={cn(isReadOnly && "pointer-events-none")}>
                   <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isSessionClosed && "opacity-80")}>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isReadOnly && "opacity-80")}>
               <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
                 <Glasses className="h-7 w-7 text-[#6a8036]" />
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Équipement & Notes</CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isSessionClosed} /></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isSessionClosed && "opacity-50")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isSessionClosed} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} /></div>
                 </div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isSessionClosed && "opacity-50")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isSessionClosed} /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isReadOnly && "opacity-50")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} /></div>
               </CardContent>
             </Card>
           </div>
 
           <div className="space-y-6">
-            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isSessionClosed && "grayscale brightness-75")}>
+            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isReadOnly && "grayscale brightness-75")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Prix Brut (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isSessionClosed} />
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
                 </div>
                 
                 <div className="bg-black/10 p-6 rounded-[40px] flex flex-col gap-4">
                   <div className="flex justify-between items-center px-2">
                     <Label className="text-[10px] font-black uppercase text-white/80">Remise</Label>
                     <div className="flex bg-black/20 p-1 rounded-full">
-                      <button onClick={() => setDiscountType('fixed')} disabled={isSessionClosed} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>DH</button>
-                      <button onClick={() => setDiscountType('percent')} disabled={isSessionClosed} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>%</button>
+                      <button onClick={() => setDiscountType('fixed')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>DH</button>
+                      <button onClick={() => setDiscountType('percent')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>%</button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center px-2">
                     <span className="text-[9px] font-black text-white/40 uppercase mb-1">Valeur :</span>
                     <div className="relative">
-                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isSessionClosed} />
+                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
                       {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
                     </div>
                   </div>
@@ -514,7 +531,7 @@ function NewSaleForm() {
 
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Versé ce jour (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isSessionClosed} />
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
                 </div>
 
                 <div className="pt-4">
