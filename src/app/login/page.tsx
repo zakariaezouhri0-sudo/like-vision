@@ -115,8 +115,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
       <div className="w-full max-w-xl space-y-10 flex flex-col items-center">
-        {/* Logo Section */}
-        <div className="w-full flex flex-col items-center text-center">
+        {/* Logo Section - Espacement vertical augmenté pour assurer la visibilité */}
+        <div className="w-full flex flex-col items-center text-center pb-6">
           {settingsLoading ? (
             <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
           ) : settings?.logoUrl ? (
