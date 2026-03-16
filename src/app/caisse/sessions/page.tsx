@@ -268,44 +268,42 @@ export default function CashSessionsPage() {
                       <span className="text-base font-black uppercase tracking-[0.2em]">{group.monthLabel}</span>
                     </div>
 
-                    {isAdminOrPrepa && (
-                      <>
-                        <div className="flex flex-col items-center">
-                          <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
-                          <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
-                            {formatCurrency(group.totalFlux).replace('+', '')}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-end">
-                          <Button 
-                            size="sm" 
-                            onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
-                            className={cn("h-9 px-4 rounded-xl font-black text-[9px] uppercase", isExpanded ? "bg-white text-primary" : "bg-primary text-white")}
-                          >
-                            <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
-                          </Button>
-                        </div>
-                      </>
+                    {isAdminOrPrepa ? (
+                      <div className="flex flex-col items-center">
+                        <span className={cn("text-[8px] font-black uppercase tracking-[0.2em] mb-0.5", isExpanded ? "text-white/50" : "text-slate-400")}>FLUX NET (APRES CHARGES)</span>
+                        <span className={cn("text-lg font-black tabular-nums", isExpanded ? "text-white" : (group.totalFlux > 0 ? "text-emerald-600" : "text-red-500"))}>
+                          {formatCurrency(group.totalFlux).replace('+', '')}
+                        </span>
+                      </div>
+                    ) : (
+                      <div />
                     )}
+
+                    <div className="flex justify-end">
+                      {isAdminOrPrepa && (
+                        <Button 
+                          size="sm" 
+                          onClick={(e) => { e.stopPropagation(); handleExportMonth(group.sessions, group.monthLabel); }}
+                          className={cn("h-9 px-4 rounded-xl font-black text-[9px] uppercase", isExpanded ? "bg-white text-primary" : "bg-primary text-white")}
+                        >
+                          <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {isExpanded && (
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <Table className={cn("min-w-[1200px]", !isAdminOrPrepa && "min-w-full")}>
+                        <Table className="min-w-[1200px]">
                           <TableHeader className="bg-[#6a8036]">
                             <TableRow>
                               <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white">Date & Statut</TableHead>
                               <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Ouverture</TableHead>
-                              {isAdminOrPrepa && (
-                                <>
-                                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Initial</TableHead>
-                                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">FLUX (Net)</TableHead>
-                                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Versement</TableHead>
-                                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Final</TableHead>
-                                </>
-                              )}
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Final</TableHead>
                               <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Clôture</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white">Actions</TableHead>
                             </TableRow>
@@ -334,18 +332,14 @@ export default function CashSessionsPage() {
                                     <span className="text-[11px] font-black text-green-600"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.openedAt)}</span>
                                   </TableCell>
                                   
-                                  {isAdminOrPrepa && (
-                                    <>
-                                      <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
-                                      <TableCell className="text-right px-6 py-5">
-                                        <span className={cn("font-black text-xs tabular-nums", flux >= 0 ? "text-emerald-600" : "text-red-500")}>
-                                          {formatCurrency(flux)}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
-                                      <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
-                                    </>
-                                  )}
+                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
+                                  <TableCell className="text-right px-6 py-5">
+                                    <span className={cn("font-black text-xs tabular-nums", flux >= 0 ? "text-emerald-600" : "text-red-500")}>
+                                      {formatCurrency(flux)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
+                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
 
                                   <TableCell className="px-6 py-5">
                                     {s?.status === "CLOSED" ? (
