@@ -292,7 +292,7 @@ export default function ClientsPage() {
                 </div>
               ) : (
                 <Table>
-                  <TableHeader className="bg-[#052e16]">
+                  <TableHeader className="bg-[#064e3b]">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Client</TableHead>
                       <TableHead className="text-[10px] md:text-[11px] uppercase font-black px-4 md:px-8 py-5 tracking-widest text-white whitespace-nowrap">Téléphone</TableHead>

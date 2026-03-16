@@ -269,7 +269,7 @@ function SalesHistoryContent() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
-              <TableHeader className="bg-[#052e16]">
+              <TableHeader className="bg-[#064e3b]">
                 <TableRow>
                   {isAdminOrPrepa && (<TableHead className="w-12 px-4 py-5 text-center"><Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} /></TableHead>)}
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>
@@ -347,15 +347,5 @@ function SalesHistoryContent() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-export default function UnpaidSalesPage() { 
-  return (
-    <AppShell>
-      <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>}>
-        <SalesHistoryContent />
-      </Suspense>
-    </AppShell>
   );
 }

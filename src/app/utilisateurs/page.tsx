@@ -145,7 +145,7 @@ export default function UsersPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-[#052e16]">
+                <TableHeader className="bg-[#064e3b]">
                   <TableRow><TableHead className="text-sm uppercase font-black px-6 py-4 text-white">Nom complet</TableHead><TableHead className="text-sm uppercase font-black px-6 py-4 text-white">Identifiant</TableHead><TableHead className="text-sm uppercase font-black px-6 py-4 text-white">Accès</TableHead><TableHead className="text-right text-sm uppercase font-black px-6 py-4 text-white">Actions</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
