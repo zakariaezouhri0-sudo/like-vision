@@ -93,9 +93,16 @@ export function AppShell({ children }: AppShellProps) {
         >
           <LogoContainer size="large" />
         </Link>
-        <div className="flex-1 py-6 overflow-y-auto px-2">
+        
+        {/* Theme Toggle - Moved to top of sidebar for accessibility */}
+        <div className="px-4 pt-6">
+          <ThemeToggle />
+        </div>
+
+        <div className="flex-1 py-4 overflow-y-auto px-2">
           <SidebarNav role={role} />
         </div>
+
         <div className="p-4 border-t border-[hsl(var(--sidebar-border))] bg-black/5 space-y-3">
           <div className={cn(
             "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm transition-all",
@@ -144,11 +151,11 @@ export function AppShell({ children }: AppShellProps) {
                     <LogoContainer size="large" />
                   </SheetTitle>
                 </SheetHeader>
-                <div className="py-6 overflow-y-auto px-2" onClick={() => setOpen(false)}>
-                  <SidebarNav role={role} />
+                <div className="px-4 pt-6">
+                  <ThemeToggle />
                 </div>
-                <div className="p-6 border-t border-[hsl(var(--sidebar-border))] mt-auto">
-                   <ThemeToggle />
+                <div className="py-4 overflow-y-auto px-2" onClick={() => setOpen(false)}>
+                  <SidebarNav role={role} />
                 </div>
               </SheetContent>
             </Sheet>
@@ -166,8 +173,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
-            <ThemeToggle />
-            <div className="hidden md:block h-8 w-px bg-border mx-2" />
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-3" />
