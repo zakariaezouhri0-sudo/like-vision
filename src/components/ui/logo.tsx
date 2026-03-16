@@ -18,7 +18,7 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
         viewBox="0 0 100 45" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
-        className={variant === "icon" ? "w-full h-full" : "w-20 h-12"}
+        className="w-full h-full"
       >
         {/* Left Lens Frame - Soft Rectangular Profile */}
         <rect 
@@ -52,13 +52,13 @@ export function Logo({ className, variant = "full", color = "#76933C" }: LogoPro
 
       {/* Typography - Modern Bold Sans-Serif */}
       {variant === "full" && (
-        <div className="flex flex-col items-center mt-1">
+        <div className="flex flex-col items-center mt-4">
           <span 
-            className="font-black text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap leading-none text-center text-white"
+            className="font-black text-xs sm:text-sm uppercase tracking-[0.3em] whitespace-nowrap leading-none text-center text-white"
           >
-            HAHIA BLAST LOGO AUCUN CHANGEMENT
+            Like Vision Optique
           </span>
-          <div className="h-0.5 w-8 mt-1.5 rounded-full bg-white/30" />
+          <div className="h-1 w-12 mt-3 rounded-full bg-white/30" />
         </div>
       )}
     </div>

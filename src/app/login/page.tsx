@@ -114,11 +114,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f4f7ed] px-4">
-      <div className="w-full max-w-md space-y-10">
-        <div className="flex flex-col items-center text-center space-y-6">
-          <div className="h-48 w-48 bg-transparent flex items-center justify-center overflow-hidden p-4">
+      <div className="w-full max-w-lg space-y-12">
+        <div className="flex flex-col items-center text-center space-y-8">
+          <div className="h-72 w-72 md:h-80 md:w-80 bg-transparent flex items-center justify-center overflow-hidden">
             {settingsLoading ? (
-              <Loader2 className="h-10 w-10 animate-spin text-primary/20" />
+              <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
             ) : settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
@@ -126,44 +126,41 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-primary tracking-tighter uppercase min-h-[40px]">
-              {settingsLoading ? "" : (settings?.name || APP_NAME)}
-            </h1>
-            <p className="text-primary/40 font-black uppercase text-[10px] tracking-[0.3em] opacity-60">Gestion Optique Professionnelle</p>
+          <div className="space-y-2">
+            <p className="text-primary/40 font-black uppercase text-[10px] tracking-[0.4em] opacity-60">Gestion Optique Professionnelle</p>
           </div>
         </div>
 
-        <Card className="border-none shadow-2xl bg-white rounded-[32px] overflow-hidden">
-          <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
-            <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-widest">
+        <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden">
+          <CardHeader className="space-y-1 pt-10 text-center border-b bg-slate-50/50 pb-8">
+            <CardTitle className="text-3xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">
               Saisissez vos identifiants
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
-            <CardContent className="space-y-5 pt-8">
-              <div className="space-y-2">
+            <CardContent className="space-y-6 pt-10">
+              <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Identifiant</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
+                  <UserIcon className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
                   <Input 
                     placeholder="ex: admin" 
-                    className="pl-12 h-12 font-bold rounded-xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
+                  <Lock className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
                   <Input 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-12 h-12 font-bold rounded-xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
@@ -171,9 +168,9 @@ export default function LoginPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pb-10 pt-4">
-              <Button className="w-full h-14 text-sm font-black shadow-xl rounded-2xl bg-primary hover:scale-[1.02] transition-transform" disabled={loading}>
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
+            <CardFooter className="pb-12 pt-6">
+              <Button className="w-full h-16 text-base font-black shadow-xl rounded-2xl bg-primary hover:scale-[1.02] active:scale-95 transition-all" disabled={loading}>
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>
           </form>
