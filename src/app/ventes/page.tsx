@@ -238,7 +238,7 @@ function SalesHistoryContent() {
         let finalInvoiceId = currentData.invoiceId;
         if (isFullyPaid && finalInvoiceId.startsWith("RC-")) finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
 
-        transaction.update(saleRef, { invoiceId: finalInvoiceId, avance: newAvance, reste: newReste, statut: isFullyPaid ? "Payé" : "Partiel", payments: arrayUnion({ amount, date: new Date().toISOString(), userName: currentUserName, note: "Règlement Historique" }), updatedAt: serverTimestamp() });
+        transaction.update(saleRef, { invoiceId: finalInvoiceId, avance: newAvance, reste: newReste, statut: iisFullyPaid ? "Payé" : "Partiel", payments: arrayUnion({ amount, date: new Date().toISOString(), userName: currentUserName, note: "Règlement Historique" }), updatedAt: serverTimestamp() });
         transaction.set(doc(collection(db, "transactions")), { type: "VENTE", label: `VENTE ${finalInvoiceId}`, clientName: currentData.clientName, montant: amount, relatedId: finalInvoiceId, saleId: paymentSale.id, userName: currentUserName, isDraft: isPrepaMode, isBalancePayment: true, createdAt: serverTimestamp() });
       });
       toast({ variant: "success", title: "Paiement enregistré" });
@@ -269,7 +269,7 @@ function SalesHistoryContent() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
-              <TableHeader className="bg-slate-800">
+              <TableHeader className="bg-[#064e3b]">
                 <TableRow>
                   {isAdminOrPrepa && (<TableHead className="w-12 px-4 py-5 text-center"><Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} /></TableHead>)}
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>

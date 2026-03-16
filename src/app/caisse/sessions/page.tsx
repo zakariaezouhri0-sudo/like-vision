@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -287,7 +288,7 @@ export default function CashSessionsPage() {
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
                         <Table className="min-w-[1200px]">
-                          <TableHeader className="bg-slate-800">
+                          <TableHeader className="bg-[#064e3b]">
                             <TableRow>
                               <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white">Date & Statut</TableHead>
                               <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Ouverture</TableHead>

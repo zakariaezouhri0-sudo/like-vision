@@ -235,11 +235,11 @@ export default function ReportsPage() {
           <TabsContent value="flux" className="mt-6">
             <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
               <Table>
-                <TableHeader className="bg-slate-50/80">
+                <TableHeader className="bg-[#064e3b]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest">Date</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest">Opération</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Montant</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Date</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Opération</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Montant</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -269,13 +269,13 @@ export default function ReportsPage() {
           <TabsContent value="marges" className="mt-6">
             <Card className="shadow-sm border-none overflow-hidden rounded-[32px] bg-white">
               <Table>
-                <TableHeader className="bg-slate-50/80">
+                <TableHeader className="bg-[#064e3b]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest">Vente</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Prix Vente</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Achat Monture</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest">Achat Verre</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-accent">Marge</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Vente</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Prix Vente</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Achat Monture</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Achat Verre</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Marge</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

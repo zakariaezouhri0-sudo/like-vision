@@ -334,12 +334,12 @@ export default function DashboardPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-[#064e3b]">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">ID FACTURE</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">CLIENT</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">TOTAL NET</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-slate-500 whitespace-nowrap">STATUT</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">ID FACTURE</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">CLIENT</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">TOTAL NET</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">STATUT</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
