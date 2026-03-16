@@ -233,14 +233,6 @@ export default function CashSessionsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-primary uppercase tracking-tighter leading-none">Journal des Sessions</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className={cn(
-                  "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
-                  isPrepaMode ? "bg-orange-50 text-orange-600 border-orange-100" : "bg-blue-50 text-blue-600 border-blue-100"
-                )}>
-                  Mode {isPrepaMode ? "ZAKARIAE" : "Réel"} (50 dernières)
-                </span>
-              </div>
             </div>
           </div>
         </div>
