@@ -113,21 +113,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-12">
-      <div className="w-full max-w-xl space-y-10 flex flex-col items-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-8">
+      <div className="w-full max-w-xl space-y-6 flex flex-col items-center">
         {/* Logo Section */}
-        <div className="w-full flex flex-col items-center text-center pb-8">
+        <div className="w-full flex flex-col items-center text-center pb-2">
           {settingsLoading ? (
             <Loader2 className="h-12 w-12 animate-spin text-primary/20" />
           ) : (
             <div className="flex flex-col items-center">
               {settings?.logoUrl ? (
-                <div className="w-32 h-32 mb-6">
+                <div className="w-32 h-32 mb-4">
                   <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               ) : (
-                <div className="mb-6">
-                  <Logo variant="icon" color="#6a8036" className="w-32 h-16" />
+                <div className="mb-2">
+                  <Logo variant="icon" color="#6a8036" className="w-48 h-20" />
                 </div>
               )}
               
@@ -145,7 +145,7 @@ export default function LoginPage() {
 
         {/* Login Card */}
         <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-md mx-auto w-full">
-          <CardHeader className="space-y-1 pt-10 text-center border-b bg-slate-50/50 pb-8">
+          <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
             <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">
               Saisissez vos identifiants
