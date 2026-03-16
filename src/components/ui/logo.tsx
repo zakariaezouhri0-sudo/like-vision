@@ -11,50 +11,57 @@ interface LogoProps {
 
 export function Logo({ className, variant = "full", color = "#76933C" }: LogoProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-2", className)}>
-      {/* Eyeglasses Icon - Modern Square Outline Style */}
+    <div className={cn("flex flex-col items-center justify-center", className)}>
+      {/* Eyeglasses Icon - High-End Minimalist Style */}
       <svg 
         width="100%" 
         height="100%" 
-        viewBox="0 0 100 60" 
+        viewBox="0 0 100 45" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
-        className={variant === "icon" ? "w-full h-full" : "w-16 h-10"}
+        className={variant === "icon" ? "w-full h-full" : "w-20 h-12"}
       >
-        {/* Left Lens Frame */}
+        {/* Left Lens Frame - Soft Rectangular Profile */}
         <rect 
-          x="10" y="15" width="32" height="28" 
-          rx="6" 
+          x="8" y="12" width="34" height="24" 
+          rx="10" 
           stroke={color} 
-          strokeWidth="4" 
+          strokeWidth="3.5" 
         />
         {/* Right Lens Frame */}
         <rect 
-          x="58" y="15" width="32" height="28" 
-          rx="6" 
+          x="58" y="12" width="34" height="24" 
+          rx="10" 
           stroke={color} 
-          strokeWidth="4" 
+          strokeWidth="3.5" 
         />
-        {/* Bridge */}
+        {/* Bridge - Elegant Curved Arch */}
         <path 
-          d="M42 28C42 28 45 24 50 24C55 24 58 28 58 28" 
+          d="M42 22C42 22 45 18 50 18C55 18 58 22 58 22" 
           stroke={color} 
-          strokeWidth="4" 
+          strokeWidth="3.5" 
           strokeLinecap="round" 
         />
-        {/* Decorative Detail (Square feel) */}
-        <rect x="6" y="26" width="4" height="4" fill={color} rx="1" />
-        <rect x="90" y="26" width="4" height="4" fill={color} rx="1" />
+        {/* Decorative Temple Pins (Small dots for premium feel) */}
+        <circle cx="14" cy="24" r="1.5" fill={color} />
+        <circle cx="86" cy="24" r="1.5" fill={color} />
+        
+        {/* Subtle Temple Arms start */}
+        <path d="M2 20H8" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+        <path d="M92 20H98" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
       </svg>
 
-      {/* Typography */}
+      {/* Typography - Modern Bold Sans-Serif */}
       {variant === "full" && (
-        <span 
-          className="font-black text-[10px] sm:text-[12px] uppercase tracking-[0.3em] whitespace-nowrap"
-          style={{ color }}
-        >
-          LIKE VISION
-        </span>
+        <div className="flex flex-col items-center mt-1">
+          <span 
+            className="font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] whitespace-nowrap leading-none"
+            style={{ color }}
+          >
+            LIKE VISION
+          </span>
+          <div className="h-0.5 w-8 mt-1.5 rounded-full" style={{ backgroundColor: color, opacity: 0.3 }} />
+        </div>
       )}
     </div>
   );
