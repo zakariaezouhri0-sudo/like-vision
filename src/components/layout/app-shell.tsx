@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
@@ -13,6 +12,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "./theme-toggle";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -159,9 +159,13 @@ export function AppShell({ children }: AppShellProps) {
               <LogoContainer size="small" />
             </Link>
 
-            <div className="hidden md:block">
-              <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
-              <p className="text-xl font-black text-foreground tracking-tighter">Gestion Optique</p>
+            <div className="hidden md:flex items-center gap-4">
+              <div>
+                <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
+                <p className="text-xl font-black text-foreground tracking-tighter">Gestion Optique</p>
+              </div>
+              <div className="h-8 w-px bg-border mx-2" />
+              <ThemeToggle />
             </div>
           </div>
           

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,11 +24,19 @@
     --input: 208 20% 88%;
     --ring: 192 70% 53%;
     --radius: 0.75rem;
-    --chart-1: 209 43% 34%;
-    --chart-2: 192 70% 53%;
-    --chart-3: 160 60% 45%;
-    --chart-4: 30 80% 55%;
-    --chart-5: 280 65% 60%;
+  }
+
+  .theme-elegance {
+    --background: 77 33% 95%; /* #f4f7ed */
+    --foreground: 184 9% 19%; /* #2d3436 */
+    --card: 0 0% 100%;
+    --card-foreground: 184 9% 19%;
+    --primary: 78 42% 46%; /* #89a644 */
+    --primary-foreground: 0 0% 100%;
+    --border: 79 31% 85%; /* #dce4cd */
+    --input: 79 31% 85%;
+    --ring: 78 42% 46%;
+    --accent: 78 42% 39%; /* #768e3a */
   }
 }
 
@@ -38,22 +45,28 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased transition-colors duration-300;
   }
-  /* Masquer les flèches d'incrémentation (spinners) pour Chrome, Safari, Edge, Opera */
+  
+  input, select, textarea {
+    @apply focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
+  }
+
+  .card-style {
+    @apply rounded-xl border border-border bg-card shadow-sm;
+  }
+
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
 
-  /* Masquer les flèches d'incrémentation (spinners) pour Firefox */
   input[type=number] {
     -moz-appearance: textfield;
   }
 }
 
-/* Print Specific Styles */
 @media print {
   @page {
     size: auto;
@@ -65,40 +78,12 @@
     padding: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    font-family: 'Inter', sans-serif;
   }
   .no-print {
     display: none !important;
   }
   .print-only {
     display: block !important;
-  }
-  
-  /* Désactivation des ombres pour l'impression */
-  * {
-    box-shadow: none !important;
-    -webkit-filter: none !important;
-    filter: none !important;
-  }
-
-  /* Préservation des fonds gris légers pour les blocs de total */
-  .bg-slate-50, .bg-slate-100 {
-    background-color: #f8fafc !important;
-    -webkit-print-color-adjust: exact;
-  }
-  
-  /* Forçage noir absolu pour la visibilité PDF */
-  .text-slate-900, .text-slate-950, .font-black, .text-black, .text-slate-800 {
-    color: #000000 !important;
-  }
-
-  .text-slate-400, .text-slate-500, .text-slate-600 {
-    color: #334155 !important; /* Gris foncé lisible en PDF */
-  }
-
-  /* Bordures plus nettes */
-  .border-slate-100, .border-slate-200 {
-    border-color: #e2e8f0 !important;
   }
 }
 
@@ -111,21 +96,13 @@
   height: 210mm;
   margin: 0 auto;
   background: white;
-  position: relative;
-  box-sizing: border-box;
   display: flex;
-  flex-direction: row;
 }
 
 .pdf-a5-portrait {
   width: 148.5mm;
   height: 210mm;
   padding: 8mm 10mm;
-  box-sizing: border-box;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
   background: white;
 }
 
@@ -133,10 +110,6 @@
   border-left: 1px dashed #cbd5e1;
   height: 100%;
   width: 1px;
-  position: absolute;
-  left: 148.5mm;
-  top: 0;
-  z-index: 50;
 }
 
 .pdf-a4-portrait {
@@ -145,5 +118,4 @@
   margin: 0 auto;
   background: white;
   padding: 15mm;
-  box-sizing: border-box;
 }

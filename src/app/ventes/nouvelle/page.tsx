@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -13,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, copyAndOpenWhatsApp } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
@@ -102,9 +101,6 @@ function NewSaleForm() {
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
-
-  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
-  const { data: settings } = useDoc(settingsRef);
 
   const clientsQuery = useMemoFirebase(() => {
     const cleaned = (clientPhone || "").replace(/\s/g, "");
@@ -316,14 +312,8 @@ function NewSaleForm() {
 
       if (cleanedPhone && !activeEditId) {
         setTimeout(async () => {
-          if (confirm("Voulez-vous envoyer une notification WhatsApp au client ?")) {
-            await copyAndOpenWhatsApp(
-              clientName, 
-              cleanedPhone, 
-              settings?.whatsappDarija, 
-              settings?.whatsappFrench
-            );
-          }
+          await sendWhatsApp(cleanedPhone, clientName);
+          toast({ variant: "success", title: "\u2705 Message copié !", description: "Collez le message (Ctrl+V) dans WhatsApp." });
         }, 500);
       }
 

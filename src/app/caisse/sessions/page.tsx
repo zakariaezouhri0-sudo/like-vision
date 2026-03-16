@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -51,7 +50,6 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // OPTIMISATION QUOTA : Limite aux 50 dernières sessions (~2 mois)
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"), 
@@ -85,26 +83,7 @@ export default function CashSessionsPage() {
       } catch (e) {}
     });
     
-    return groups.map(group => {
-      if (group.sessions.length === 0) return group;
-      
-      try {
-        const firstSession = group.sessions[0];
-        if (!firstSession?.date) return group;
-        const d = parseISO(firstSession.date);
-        if (!isValid(d)) return group;
-        const monthNum = d.getMonth() + 1;
-        
-        let deduction = monthNum === 1 ? 15000 : 20000;
-        
-        return {
-          ...group,
-          totalFlux: roundAmount(group.totalFlux - deduction)
-        };
-      } catch (e) {
-        return group;
-      }
-    });
+    return groups;
   }, [rawSessions, isPrepaMode]);
 
   useEffect(() => {

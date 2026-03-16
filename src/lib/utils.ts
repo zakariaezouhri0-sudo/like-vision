@@ -5,16 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * Arrondit un nombre à 2 décimales pour la précision financière.
- */
 export function roundAmount(amount: number): number {
   return Math.round((amount + Number.EPSILON) * 100) / 100;
 }
 
-/**
- * Convertit une chaîne de caractères en nombre propre.
- */
 export function parseAmount(val: string | number): number {
   if (typeof val === 'number') return roundAmount(val);
   if (!val || val === "") return 0;
@@ -23,9 +17,6 @@ export function parseAmount(val: string | number): number {
   return isNaN(parsed) ? 0 : roundAmount(parsed);
 }
 
-/**
- * Formate un montant en format monétaire strict : 000,00
- */
 export function formatCurrency(amount: number | string, includeSymbol: boolean = false): string {
   const num = typeof amount === 'string' ? parseAmount(amount) : (amount || 0);
   const rounded = roundAmount(num);
@@ -38,9 +29,6 @@ export function formatCurrency(amount: number | string, includeSymbol: boolean =
   return includeSymbol ? value + '\u00A0DH' : value;
 }
 
-/**
- * Formate un numéro de téléphone sous la forme : 06 00 00 00 00
- */
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return "";
   const cleaned = phone.toString().replace(/\D/g, '');
@@ -49,33 +37,28 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * STRATÉGIE ROBUSTE : Copie le message dans le presse-papier et ouvre WhatsApp.
- * Utilise des séquences Unicode pour garantir que les emojis ne sont jamais corrompus.
+ * Fonction de secours pour WhatsApp utilisant Unicode Escape Sequences.
+ * Copie dans le presse-papier et ouvre la discussion.
  */
-export async function copyAndOpenWhatsApp(clientName: string, phoneNumber: string, templateDarija?: string, templateFrench?: string) {
-  if (!phoneNumber) return;
+export async function sendWhatsApp(phone: string, name: string) {
+  if (!phone) return;
   
-  // 👋 = \uD83D\uDC4B, ✨ = \u2728, ✅ = \u2705, 👓 = \uD83D\uDC53, 🌟 = \uD83C\uDF1F, 😎 = \uD83D\uDE0E, 😊 = \uD83D\uDE0A
-  const defDarija = "السلام عليكم [Nom] \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDC53. شكراً ليك ونهار مبروك! \uD83C\uDF1F\uD83D\uDE0E";
-  const defFrench = "Bonjour [Nom] \uD83D\uDC4B, Toute l'équipe Like Vision vous remercie pour votre visite \u2728. Votre commande a été enregistrée avec succès \u2705. Nous vous contacterons dès qu'elle sera prête \uD83D\uDC53. Merci pour votre confiance ! \uD83D\uDE0A\uD83C\uDF1F";
+  // Message utilisant exclusivement des séquences Unicode pour les emojis
+  // 👋 = \uD83D\uDC4B, 👓 = \uD83D\uDC53, ✨ = \u2728, ✅ = \u2705, 📲 = \uD83D\uDCF2, 🌟 = \uD83C\uDF1F, 😎 = \uD83D\uDE0E
+  const message = `السلام عليكم ${name} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \uD83D\uDC53\u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDCF2. شكراً ليك ونهار مبروك! \uD83C\uDF1F\uD83D\uDE0E`;
 
-  const msgDarija = (templateDarija || defDarija).replace(/\[Nom\]/g, clientName);
-  const msgFrench = (templateFrench || defFrench).replace(/\[Nom\]/g, clientName);
-
-  const fullMessage = `${msgDarija}\n\n---\n\n${msgFrench}`;
-
-  // 1. Copie dans le presse-papier
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(fullMessage);
-      alert("\u2705 Message copié !\n\nCollez le message (Ctrl+V) dans la discussion WhatsApp qui va s'ouvrir.");
+      await navigator.clipboard.writeText(message);
     }
   } catch (err) {
     console.error("Erreur clipboard:", err);
   }
 
-  // 2. Ouverture de WhatsApp
-  const cleanPhone = phoneNumber.replace(/\D/g, '');
+  const cleanPhone = phone.replace(/\D/g, '');
   const formattedPhone = cleanPhone.startsWith('0') ? '212' + cleanPhone.substring(1) : cleanPhone;
   window.open(`https://wa.me/${formattedPhone}`, '_blank');
 }
+
+// Alias pour la compatibilité avec le code existant
+export const copyAndOpenWhatsApp = sendWhatsApp;
