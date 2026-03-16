@@ -6,6 +6,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { GlobalThemeSync } from '@/components/GlobalThemeSync';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className="font-body antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" themes={['light', 'elegance']}>
           <FirebaseClientProvider>
+            <GlobalThemeSync />
             <FirebaseErrorListener />
             {children}
             <Toaster />

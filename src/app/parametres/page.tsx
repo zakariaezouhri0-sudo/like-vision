@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, 
   AlertTriangle, RefreshCcw, Database, Eraser, Users, Zap, Wrench, 
-  Calculator, HeartPulse, MessageSquare, Smartphone 
+  Calculator, HeartPulse, MessageSquare, Smartphone, Palette
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -58,6 +59,7 @@ export default function SettingsPage() {
         phone: remoteSettings.phone || DEFAULT_SHOP_SETTINGS.phone,
         icePatent: remoteSettings.icePatent || DEFAULT_SHOP_SETTINGS.icePatent,
         logoUrl: remoteSettings.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
+        theme: remoteSettings.theme || DEFAULT_SHOP_SETTINGS.theme,
         whatsappDarija: remoteSettings.whatsappDarija || DEFAULT_SHOP_SETTINGS.whatsappDarija,
         whatsappFrench: remoteSettings.whatsappFrench || DEFAULT_SHOP_SETTINGS.whatsappFrench,
       });
@@ -68,7 +70,7 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       await setDoc(settingsRef, settings, { merge: true });
-      toast({ variant: "success", title: "Paramètres Enregistrés" });
+      toast({ variant: "success", title: "Paramètres Enregistrés", description: "Le style et les infos ont été mis à jour pour tous." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur" });
     } finally {
@@ -190,66 +192,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleHarmonizeData = async () => {
-    setIsMigrating(true);
-    try {
-      const collections = ["sales", "transactions", "cash_sessions"];
-      let count = 0;
-
-      for (const collName of collections) {
-        const q = query(collection(db, collName));
-        const snap = await getDocs(q);
-        const batch = writeBatch(db);
-        let batchCount = 0;
-
-        snap.docs.forEach(d => {
-          const data = d.data();
-          let needsUpdate = false;
-          const updates: any = {};
-
-          const fieldsToClean = ["openedBy", "closedBy", "userName", "createdBy"];
-          fieldsToClean.forEach(f => {
-            if (data[f] === "Préparation Historique" || data[f] === "PRÉPARATION HISTORIQUE") {
-              updates[f] = "ZAKARIAE";
-              needsUpdate = true;
-            }
-          });
-
-          if (collName === "sales" && data.payments && data.payments.length > 0) {
-            const firstPayment = data.payments[0];
-            if (firstPayment.date) {
-              const pDate = new Date(firstPayment.date);
-              const curDate = data.createdAt?.toDate ? data.createdAt.toDate() : null;
-              if (curDate && pDate < curDate) {
-                updates.updatedAt = serverTimestamp();
-                needsUpdate = true;
-              }
-            }
-          }
-
-          if (collName === "sales") {
-            if (data.clientPhone === undefined || data.clientPhone === null) { updates.clientPhone = ""; needsUpdate = true; }
-            if (data.mutuelle === undefined || data.mutuelle === null) { updates.mutuelle = "Aucun"; needsUpdate = true; }
-          }
-
-          if (needsUpdate) {
-            batch.update(d.ref, updates);
-            batchCount++;
-            count++;
-          }
-        });
-
-        if (batchCount > 0) await batch.commit();
-      }
-
-      toast({ variant: "success", title: "Harmonisation réussie", description: `${count} documents mis à jour.` });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur de migration" });
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   const handleSyncToReal = async () => {
     setIsSyncing(true);
     try {
@@ -341,6 +283,28 @@ export default function SettingsPage() {
                       }
                     }} />
                     <Button variant="outline" className="w-full h-12 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white" onClick={() => fileInputRef.current?.click()}>IMPORTER</Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
+                  <CardHeader className="bg-slate-50/50 border-b p-6">
+                    <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
+                      <Palette className="h-4 w-4" /> Style Global (Tout le magasin)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <Select value={settings.theme} onValueChange={(v) => setSettings({...settings, theme: v})}>
+                      <SelectTrigger className="h-12 rounded-xl font-bold bg-slate-50 border-none shadow-inner">
+                        <SelectValue placeholder="Choisir un style..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="light" className="font-bold">STYLE CLASSIQUE (BLEU)</SelectItem>
+                        <SelectItem value="elegance" className="font-bold">STYLE ELEGANCE (VERT)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[8px] font-bold text-slate-400 mt-3 uppercase leading-tight tracking-widest text-center">
+                      Ce réglage modifie l'apparence pour TOUS les utilisateurs.
+                    </p>
                   </CardContent>
                 </Card>
 

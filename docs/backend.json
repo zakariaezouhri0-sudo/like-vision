@@ -118,7 +118,8 @@
         "address": { "type": "string" },
         "phone": { "type": "string" },
         "icePatent": { "type": "string" },
-        "logoUrl": { "type": "string" }
+        "logoUrl": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "elegance"], "description": "Style visuel global de l'application." }
       }
     }
   },

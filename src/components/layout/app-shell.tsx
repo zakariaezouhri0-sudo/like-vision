@@ -13,7 +13,6 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { ThemeToggle } from "./theme-toggle";
 import { Logo } from "@/components/ui/logo";
 
 interface AppShellProps {
@@ -94,12 +93,7 @@ export function AppShell({ children }: AppShellProps) {
           <LogoContainer size="large" />
         </Link>
         
-        {/* Theme Toggle - Moved to top of sidebar for accessibility */}
-        <div className="px-4 pt-6">
-          <ThemeToggle />
-        </div>
-
-        <div className="flex-1 py-4 overflow-y-auto px-2">
+        <div className="flex-1 py-4 overflow-y-auto px-2 mt-4">
           <SidebarNav role={role} />
         </div>
 
@@ -151,9 +145,6 @@ export function AppShell({ children }: AppShellProps) {
                     <LogoContainer size="large" />
                   </SheetTitle>
                 </SheetHeader>
-                <div className="px-4 pt-6">
-                  <ThemeToggle />
-                </div>
                 <div className="py-4 overflow-y-auto px-2" onClick={() => setOpen(false)}>
                   <SidebarNav role={role} />
                 </div>
