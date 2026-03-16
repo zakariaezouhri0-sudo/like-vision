@@ -57,8 +57,35 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased transition-colors duration-300;
+    /* Custom Scrollbar for Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) transparent;
   }
   
+  /* Custom Scrollbar for Chrome, Safari and Edge */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
   input, select, textarea {
     @apply focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
   }
