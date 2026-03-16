@@ -61,6 +61,7 @@ function NewSaleForm() {
   const [clientName, setClientName] = useState(searchParams.get("client") || "");
   const [clientPhone, setClientPhone] = useState(searchParams.get("phone") || "");
   const [bonNumber, setBonNumber] = useState(searchParams.get("bonNumber") || "");
+  const [bonError, setBonError] = useState(false);
   const [fromDoctor, setFromDoctor] = useState(searchParams.get("fromDoctor") === "true");
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
 
@@ -193,6 +194,32 @@ function NewSaleForm() {
     
     setLoading(true);
     const currentIsDraft = role === "PREPA";
+    
+    // VÉRIFICATION DES DOUBLONS DE BON
+    try {
+      const bonCheckQuery = query(
+        collection(db, "sales"),
+        where("bonNumber", "==", bonNumber.trim()),
+        where("isDraft", "==", currentIsDraft)
+      );
+      const bonCheckSnap = await getDocs(bonCheckQuery);
+      const isDuplicate = bonCheckSnap.docs.some(d => d.id !== activeEditId);
+
+      if (isDuplicate) {
+        setBonError(true);
+        toast({ 
+          variant: "destructive", 
+          title: "Erreur", 
+          description: "Ce Numéro de Bon existe déjà !" 
+        });
+        setLoading(false);
+        return;
+      }
+      setBonError(false);
+    } catch (e) {
+      console.error("Erreur lors de la vérification du doublon:", e);
+    }
+
     const currentUserName = user?.displayName || "Inconnu";
     const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
@@ -435,7 +462,20 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">N° BON</Label>
                     <div className="relative">
                       <ClipboardList className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", isReadOnly && "opacity-50")} placeholder="Ex: 2472" value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
+                      <Input 
+                        className={cn(
+                          "h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", 
+                          isReadOnly && "opacity-50",
+                          bonError && "border-2 border-red-500 bg-red-50 ring-2 ring-red-500/20"
+                        )} 
+                        placeholder="Ex: 2472" 
+                        value={bonNumber} 
+                        onChange={e => {
+                          setBonNumber(e.target.value);
+                          if (bonError) setBonError(false);
+                        }} 
+                        readOnly={isReadOnly} 
+                      />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
                       <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} disabled={isReadOnly} />
