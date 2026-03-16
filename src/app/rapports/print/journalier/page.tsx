@@ -212,7 +212,7 @@ function DailyCashReportContent() {
             <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-green-600" />Encaissements</h3><span className="text-[10px] font-black text-green-700 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
             <div className="overflow-hidden border border-slate-200 rounded-lg">
               <table className="w-full border-collapse">
-                <thead className="bg-[#064e3b] text-white">
+                <thead className="bg-[#6a8036] text-white">
                   <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-green-400 w-20">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -254,7 +254,7 @@ function DailyCashReportContent() {
               <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)), false)}</span></div>
               <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                 <table className="w-full border-collapse">
-                  <thead className="bg-[#064e3b] text-white">
+                  <thead className="bg-[#6a8036] text-white">
                     <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -296,7 +296,7 @@ function DailyCashReportContent() {
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements), false)}</span></div>
                 <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
                   <table className="w-full border-collapse">
-                    <thead className="bg-[#064e3b] text-white">
+                    <thead className="bg-[#6a8036] text-white">
                       <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest">Montant</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -326,3 +326,5 @@ function DailyCashReportContent() {
     </div>
   );
 }
+
+export default function DailyCashReportPage() { return <Suspense fallback={null}><DailyCashReportContent /></Suspense>; }

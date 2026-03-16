@@ -492,7 +492,7 @@ function CaisseContent() {
       </CardHeader>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-[#064e3b]">
+          <TableHeader className="bg-[#6a8036]">
             <TableRow>
               <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Opération & Détails ({data.length})</TableHead>
               <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Montant</TableHead>

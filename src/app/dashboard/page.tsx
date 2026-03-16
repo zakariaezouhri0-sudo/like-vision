@@ -42,7 +42,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "da
 import { fr } from "date-fns/locale";
 
 // Palette de verts harmonisée
-const COLORS = ['#064e3b', '#89a644', '#768e3a', '#a3b18a', '#588157', '#344e41'];
+const COLORS = ['#6a8036', '#89a644', '#768e3a', '#a3b18a', '#588157', '#344e41'];
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -288,7 +288,7 @@ export default function DashboardPage() {
               <BarChart data={weeklyData}>
                 <defs>
                   <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#064e3b" stopOpacity={1}/>
+                    <stop offset="0%" stopColor="#6a8036" stopOpacity={1}/>
                     <stop offset="100%" stopColor="#89a644" stopOpacity={0.8}/>
                   </linearGradient>
                 </defs>
@@ -359,7 +359,7 @@ export default function DashboardPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-[#064e3b]">
+              <TableHeader className="bg-[#6a8036]">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">ID FACTURE</TableHead>
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-4 md:py-6 tracking-widest text-white whitespace-nowrap">CLIENT</TableHead>

@@ -308,7 +308,7 @@ function OperationsReportContent() {
 
         <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-[#064e3b] text-white border-b-2 border-slate-950">
+            <thead className="bg-[#6a8036] text-white border-b-2 border-slate-950">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
                 <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Heure</th>
@@ -351,3 +351,5 @@ function OperationsReportContent() {
     </div>
   );
 }
+
+export default function OperationsReportPage() { return <Suspense fallback={null}><OperationsReportContent /></Suspense>; }

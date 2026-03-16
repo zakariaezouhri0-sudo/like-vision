@@ -188,7 +188,7 @@ export default function UnpaidSalesPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table className="min-w-[900px]">
-                <TableHeader className="bg-[#064e3b]">
+                <TableHeader className="bg-[#6a8036]">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 text-white">Date & Client</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-3 md:px-6 py-5 text-white">Document</TableHead>

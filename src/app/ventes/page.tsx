@@ -269,7 +269,7 @@ function SalesHistoryContent() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
-              <TableHeader className="bg-[#064e3b]">
+              <TableHeader className="bg-[#6a8036]">
                 <TableRow>
                   {isAdminOrPrepa && (<TableHead className="w-12 px-4 py-5 text-center"><Checkbox className="border-white" checked={filteredSales.length > 0 && selectedIds.size === filteredSales.length} onCheckedChange={toggleSelectAll} /></TableHead>)}
                   <TableHead className="text-[10px] uppercase font-black px-4 md:px-8 py-5 text-white">Date</TableHead>
