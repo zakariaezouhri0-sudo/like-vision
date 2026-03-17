@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -27,11 +26,10 @@ import {
   ChevronRight,
   Trash2,
   MoreVertical,
-  Download,
-  ChevronDown
+  Download
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { cn, formatCurrency, roundAmount, formatMAD } from "@/lib/utils";
+import { cn, formatCurrency, formatMAD } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -140,10 +138,6 @@ function SessionsContent() {
       const trans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any))
         .filter(t => format(t.createdAt.toDate(), "yyyy-MM-dd") === dateStr);
 
-      const nouvellesVentes = trans.filter(t => t.type === "VENTE" && !t.isBalancePayment);
-      const sorties = trans.filter(t => t.type !== "VENTE");
-      const reglements = trans.filter(t => t.type === "VENTE" && t.isBalancePayment);
-
       const mapRow = (t: any) => ({
         "Réf": t.relatedId ? t.relatedId.slice(-4) : "---",
         "Date": format(t.createdAt.toDate(), "dd/MM/yyyy"),
@@ -154,15 +148,7 @@ function SessionsContent() {
         "SORTIE": t.type !== "VENTE" ? formatMAD(Math.abs(t.montant)) : ""
       });
 
-      const excelData = [
-        ...nouvellesVentes.map(mapRow),
-        {}, 
-        ...sorties.map(mapRow),
-        {},
-        ...reglements.map(mapRow)
-      ];
-
-      const ws = XLSX.utils.json_to_sheet(excelData);
+      const ws = XLSX.utils.json_to_sheet(trans.map(mapRow));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Opérations");
       XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
@@ -198,9 +184,10 @@ function SessionsContent() {
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
-                <Card className="rounded-full shadow-lg border-none bg-white overflow-hidden">
+                <div className="bg-white rounded-[50px] shadow-lg border-none overflow-hidden mb-6">
                   <div className="px-10 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <AccordionTrigger className="p-0 hover:no-underline flex-1 flex items-center gap-6 group">
+                    <AccordionTrigger className="p-0 hover:no-underline flex-1 flex items-center gap-6 group [&[data-state=open]>svg]:rotate-90">
+                      <ChevronRight className="h-6 w-6 text-[#828A32] shrink-0 transition-transform duration-200" />
                       <span className="text-xl md:text-2xl font-black text-[#828A32] tracking-tighter uppercase shrink-0">
                         {monthName}
                       </span>
@@ -215,24 +202,24 @@ function SessionsContent() {
 
                     <Button 
                       onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                      className="bg-[#89a644] hover:bg-[#768e3a] text-white h-11 px-6 rounded-full font-black text-[10px] uppercase shadow-md transition-all shrink-0 ml-4"
+                      className="bg-[#89a644] hover:bg-[#768e3a] text-white h-11 px-8 rounded-full font-black text-[10px] uppercase shadow-md transition-all shrink-0 ml-4"
                     >
                       <Download className="mr-2 h-4 w-4" /> EXCEL
                     </Button>
                   </div>
 
                   <AccordionContent className="px-6 pb-6 pt-0">
-                    <div className="overflow-hidden rounded-[32px] border shadow-sm">
+                    <div className="overflow-hidden rounded-[32px] border shadow-sm mx-4">
                       <Table>
                         <TableHeader className="bg-[#768e3a]">
                           <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="text-[10px] uppercase font-black px-8 py-5 text-white w-[18%]">Date & Statut</TableHead>
-                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">Ouverture</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Fonds Initial</TableHead>
+                            <TableHead className="text-[10px] uppercase font-black px-8 py-5 text-white">Date & Statut</TableHead>
+                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white">Ouverture</TableHead>
+                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Initial</TableHead>
                             <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Flux (Net)</TableHead>
                             <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Versement</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Fonds Final</TableHead>
-                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">Clôture</TableHead>
+                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Final</TableHead>
+                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white">Clôture</TableHead>
                             <TableHead className="text-right text-[10px] uppercase font-black px-8 py-5 text-white w-20">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -247,48 +234,48 @@ function SessionsContent() {
                               <TableRow key={s.id} className={cn("hover:bg-slate-50 transition-all border-b last:border-0", isSunday && "bg-red-50/50")}>
                                 <TableCell className="px-8 py-6">
                                   <div className="flex flex-col gap-1">
-                                    <span className="text-base font-black text-slate-900 uppercase leading-none">
+                                    <span className="text-sm font-black text-slate-900 uppercase">
                                       {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                                     </span>
-                                    <span className={cn("text-[9px] font-black uppercase tracking-widest", isClosed ? "text-red-500" : "text-green-600")}>
+                                    <span className={cn("text-[8px] font-black uppercase tracking-widest", isClosed ? "text-red-500" : "text-green-600")}>
                                       {isClosed ? "CLÔTURÉE" : "EN COURS"}
                                     </span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-6">
-                                  <div className="flex items-center justify-center gap-1.5 text-green-600/70 font-black text-xs tabular-nums bg-green-50/50 py-1.5 rounded-lg border border-green-100">
-                                    <Clock className="h-3.5 w-3.5" />
+                                  <div className="flex items-center justify-center gap-1 text-green-600 font-bold text-xs tabular-nums">
+                                    <Clock className="h-3 w-3 opacity-40" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-sm tabular-nums text-slate-900">{formatCurrency(s.openingBalance)}</TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-sm text-green-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-600">{formatCurrency(s.openingBalance)}</TableCell>
+                                <TableCell className="text-right px-2 py-6 font-black text-xs text-green-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-sm text-red-500 tabular-nums">
+                                <TableCell className="text-right px-2 py-6 font-black text-xs text-orange-600 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-base text-slate-950 tabular-nums">
+                                <TableCell className="text-right px-2 py-6 font-black text-sm text-slate-900 tabular-nums">
                                   {formatCurrency(s.closingBalanceReal ?? (s.openingBalance + fluxNet - (s.totalVersements || 0)))}
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-6">
                                   {isClosed ? (
-                                    <div className="flex items-center justify-center gap-1.5 text-red-500/70 font-black text-xs tabular-nums bg-red-50/50 py-1.5 rounded-lg border border-red-100">
-                                      <Clock className="h-3.5 w-3.5" />
+                                    <div className="flex items-center justify-center gap-1 text-red-500 font-bold text-xs tabular-nums">
+                                      <Clock className="h-3 w-3 opacity-40" />
                                       {s.closedAt?.toDate ? format(s.closedAt.toDate(), "HH:mm") : "--:--"}
                                     </div>
                                   ) : (
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">En cours...</span>
+                                    <span className="text-[10px] text-slate-300 italic">En cours</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right px-8 py-6">
                                   <DropdownMenu modal={false}>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 transition-colors">
-                                        <MoreVertical className="h-5 w-5 text-slate-400" />
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100">
+                                        <MoreVertical className="h-4 w-4 text-slate-400" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="rounded-[20px] p-2 shadow-2xl border-primary/10 min-w-[180px]">
+                                    <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10">
                                       <DropdownMenuItem onClick={() => handleExportDayTransactions(s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
                                         <FileText className="mr-3 h-4 w-4 text-green-600" /> Export Excel
                                       </DropdownMenuItem>
@@ -315,7 +302,7 @@ function SessionsContent() {
                       </Table>
                     </div>
                   </AccordionContent>
-                </Card>
+                </div>
               </AccordionItem>
             );
           })
