@@ -370,14 +370,14 @@ export default function CashSessionsPage() {
                         <Table className="min-w-[1100px]">
                           <TableHeader className="bg-[#6a8036]">
                             <TableRow>
-                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[22%]">Date & Statut</TableHead>
-                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Ouverture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Fonds Initial</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Versement</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Fonds Final</TableHead>
-                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white w-[10%]">Actions</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[18%]">Date & Statut</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Ouverture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Fonds Final</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Clôture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white w-[14%]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -395,7 +395,7 @@ export default function CashSessionsPage() {
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
                                       <div className="flex items-center gap-2">
-                                        <span className={cn("font-black text-xs uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
+                                        <span className={cn("font-black text-sm uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
                                       </div>
                                       <span className={cn("text-[8px] font-black uppercase mt-1", s?.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                         {s?.status === "OPEN" ? "En cours" : "Clôturée"}
