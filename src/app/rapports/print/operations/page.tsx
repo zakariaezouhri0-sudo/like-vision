@@ -68,19 +68,14 @@ function OperationsReportContent() {
   const [loadingSales, setLoadingSales] = useState(false);
 
   useEffect(() => {
-    const fetchSalesForMatching = async (
-    ) => {
+    const fetchSalesForMatching = async () => {
       if (!selectedDate) return;
       setLoadingSales(true);
       
       try {
-        const start = startOfDay(selectedDate);
-        const end = endOfDay(selectedDate);
         const qSales = query(
           collection(db, "sales"), 
-          where("isDraft", "==", isPrepaMode),
-          where("createdAt", ">=", Timestamp.fromDate(start)),
-          where("createdAt", "<=", Timestamp.fromDate(end))
+          where("isDraft", "==", isPrepaMode)
         );
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
@@ -166,35 +161,29 @@ function OperationsReportContent() {
     const movement = Math.abs(t.montant);
     const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
     
-    let displayLabel = "";
-    if (isVente) {
-      displayLabel = sale?.notes || "";
-    } else if (t.type === "VERSEMENT") {
-      let clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
+    let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
+    if (t.type === "VERSEMENT" && !isVente) {
+      const clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
       displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
-    } else {
-      displayLabel = t.label || "---";
     }
-
-    if (t.isGrouped) displayLabel += " (Groupé)";
 
     return {
       "Réf": refDisplay,
-      "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
+      "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
       "Libellé": displayLabel,
       "Nom client": t.clientName || "---",
-      "Montant Total": isVente && totalNet !== null ? formatCurrency(totalNet, false) : "",
-      "Mouvement (Avance)": isVente ? formatCurrency(movement, false) : "",
-      "SORTIE": !isVente ? formatCurrency(movement, false) : ""
+      "Montant Tot": isVente && totalNet !== null ? totalNet : "",
+      "Mouvement": isVente ? movement : "",
+      "SORTIE": !isVente ? movement : ""
     };
   };
 
   const handleExportExcel = () => {
     const excelRows = [
       ...groupedTransactions.nouvellesVentes.map(mapToExcelRow),
-      {},
+      {}, // Ligne vide entre blocs
       ...groupedTransactions.sorties.map(mapToExcelRow),
-      {},
+      {}, // Ligne vide
       ...groupedTransactions.reglements.map(mapToExcelRow)
     ];
 
@@ -238,7 +227,7 @@ function OperationsReportContent() {
           return (
             <tr key={t.id} className="hover:bg-slate-50 transition-colors">
               <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
-              <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</td>
+              <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----"}</td>
               <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
                 <div className="flex items-center gap-2">
                   {displayLabel}
@@ -311,10 +300,10 @@ function OperationsReportContent() {
             <thead className="bg-[#6a8036] text-white border-b-2 border-slate-950">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
-                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Heure</th>
+                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Date</th>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Libellé</th>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Nom client</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-32">Montant Total</th>
+                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-32">Montant Tot</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-44">Mouvement</th>
                 <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-32">SORTIE</th>
               </tr>

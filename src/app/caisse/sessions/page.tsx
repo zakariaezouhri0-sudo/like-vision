@@ -53,7 +53,6 @@ export default function CashSessionsPage() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === "PREPA";
 
-  // LIMITE À 500 POUR COUVRIR UNE ANNÉE COMPLÈTE DE SESSIONS
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"), 
@@ -64,11 +63,9 @@ export default function CashSessionsPage() {
   const groupedSessions = useMemo(() => {
     if (!rawSessions) return [];
     
-    // Filtrage par mode
     const filtered = [...rawSessions]
       .filter(s => isPrepaMode ? s?.isDraft === true : (s?.isDraft !== true));
 
-    // Injection des dates spécifiques demandées (08/03 et 15/03 2026) si absentes pour le prototype
     const injectDates = ["2026-03-08", "2026-03-15"];
     injectDates.forEach(d => {
       if (!filtered.find(s => s.date === d)) {
@@ -88,7 +85,6 @@ export default function CashSessionsPage() {
       }
     });
 
-    // Tri après injection
     filtered.sort((a, b) => b.date.localeCompare(a.date));
 
     const groups: { monthLabel: string; sessions: any[]; totalFlux: number }[] = [];
@@ -235,27 +231,74 @@ export default function CashSessionsPage() {
     try {
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
+      
+      // Récupération des transactions
       const qTrans = query(collection(db, "transactions"), where("isDraft", "==", session.isDraft === true));
       const snapTrans = await getDocs(qTrans);
-      const trans = snapTrans.docs
+      const allTrans = snapTrans.docs
         .map(d => ({ ...d.data(), id: d.id }))
         .filter((t: any) => {
           const d = t.createdAt?.toDate ? t.createdAt.toDate() : null;
           return d && d >= dateStart && d <= dateEnd;
-        });
+        })
+        .sort((a: any, b: any) => (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0));
 
-      const excelRows = trans.map((t: any) => ({
-        "Heure": t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--",
-        "Libellé": t.label,
-        "Client": t.clientName,
-        "Montant": t.montant
-      }));
+      // Récupération des ventes pour les montants totaux
+      const qSales = query(collection(db, "sales"), where("isDraft", "==", session.isDraft === true));
+      const snapSales = await getDocs(qSales);
+      const salesMap: Record<string, any> = {};
+      snapSales.docs.forEach(d => {
+        const data = d.data();
+        if (data.invoiceId) salesMap[data.invoiceId] = data;
+      });
+
+      const mapToExcelRow = (t: any) => {
+        let invoiceId = t.relatedId || "";
+        if (!invoiceId && t.label?.includes('VENTE')) {
+          invoiceId = t.label.replace('VENTE ', '').trim();
+        }
+        const sale = salesMap[invoiceId];
+        const isVente = t.type === "VENTE";
+        const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+        const movement = Math.abs(t.montant);
+        const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+        
+        let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
+        if (t.type === "VERSEMENT" && !isVente) {
+          const clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
+          displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
+        }
+
+        return {
+          "Réf": refDisplay,
+          "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
+          "Libellé": displayLabel,
+          "Nom client": t.clientName || "---",
+          "Montant Tot": isVente && totalNet !== null ? totalNet : "",
+          "Mouvement": isVente ? movement : "",
+          "SORTIE": !isVente ? movement : ""
+        };
+      };
+
+      // Séparation par blocs
+      const vNew = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+      const vSorties = allTrans.filter((t: any) => t.type !== "VENTE");
+      const vRegl = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
+
+      const excelRows = [
+        ...vNew.map(mapToExcelRow),
+        {}, // Ligne vide
+        ...vSorties.map(mapToExcelRow),
+        {}, // Ligne vide
+        ...vRegl.map(mapToExcelRow)
+      ];
 
       const worksheet = XLSX.utils.json_to_sheet(excelRows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
       XLSX.writeFile(workbook, `Like Vision - Opérations ${session.date}.xlsx`);
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Erreur" });
     }
   };
