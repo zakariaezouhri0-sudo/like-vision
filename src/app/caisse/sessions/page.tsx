@@ -367,7 +367,7 @@ export default function CashSessionsPage() {
                   {isExpanded && (
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <Table className="min-w-[1100px]">
+                        <Table className="min-w-[1000px]">
                           <TableHeader className="bg-[#6a8036]">
                             <TableRow>
                               <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[25%]">Date & Statut</TableHead>
@@ -377,7 +377,7 @@ export default function CashSessionsPage() {
                               <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Versement</TableHead>
                               <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Fonds Final</TableHead>
                               <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[19%]">Actions</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white w-[19%]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -426,7 +426,7 @@ export default function CashSessionsPage() {
                                       </div>
                                     ) : <span className="text-[9px] font-black uppercase text-slate-300">---</span>}
                                   </TableCell>
-                                  <TableCell className="text-right px-4 py-5">
+                                  <TableCell className="text-right px-8 py-5">
                                     <DropdownMenu modal={false}>
                                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">

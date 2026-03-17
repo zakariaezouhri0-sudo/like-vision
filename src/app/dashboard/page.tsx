@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -88,20 +89,20 @@ export default function DashboardPage() {
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
     orderBy("createdAt", "desc"), 
-    limit(200)
+    limit(1000)
   ), [db]);
   const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
 
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"), 
     orderBy("createdAt", "desc"), 
-    limit(200)
+    limit(1000)
   ), [db]);
   const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
   const clientsQuery = useMemoFirebase(() => query(
     collection(db, "clients"), 
-    limit(100)
+    limit(1000)
   ), [db]);
   const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
 
