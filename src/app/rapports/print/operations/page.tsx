@@ -171,9 +171,9 @@ function OperationsReportContent() {
       "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
       "Libellé": displayLabel,
       "Nom client": t.clientName || "---",
-      "Montant Tot": formatMAD(isVente && totalNet !== null ? totalNet : ""),
-      "Mouvement": formatMAD(isVente ? movement : ""),
-      "SORTIE": formatMAD(!isVente ? movement : "")
+      "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
+      "Mouvement": isVente ? formatMAD(movement) : "",
+      "SORTIE": !isVente ? formatMAD(movement) : ""
     };
   };
 
@@ -188,15 +188,14 @@ function OperationsReportContent() {
 
     const worksheet = XLSX.utils.json_to_sheet(excelRows);
     
-    // Ajustement des largeurs pour Excel
     worksheet['!cols'] = [
-      { wch: 10 }, // Réf
-      { wch: 12 }, // Date
-      { wch: 35 }, // Libellé
-      { wch: 25 }, // Nom client
-      { wch: 18 }, // Montant Tot
-      { wch: 18 }, // Mouvement
-      { wch: 18 }, // SORTIE
+      { wch: 10 }, 
+      { wch: 12 }, 
+      { wch: 35 }, 
+      { wch: 25 }, 
+      { wch: 18 }, 
+      { wch: 18 }, 
+      { wch: 18 },
     ];
 
     const workbook = XLSX.utils.book_new();

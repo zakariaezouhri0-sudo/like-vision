@@ -4,34 +4,24 @@ import { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, 
   FileText, 
-  Lock, 
   CalendarDays,
-  TrendingUp,
-  TrendingDown,
   RotateCcw,
-  Layers,
-  Printer,
   Clock,
   ChevronRight,
-  Eye,
-  Trash2,
-  Calendar as CalendarIcon
+  Trash2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { cn, formatCurrency, roundAmount, parseAmount, formatMAD } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, updateDoc, doc, query, where, orderBy, getDocs, deleteDoc, limit } from "firebase/firestore";
+import { cn, formatCurrency, roundAmount } from "@/lib/utils";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isValid, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import * as XLSX from "xlsx";
 
 function SessionsContent() {
   const { toast } = useToast();
@@ -49,7 +39,6 @@ function SessionsContent() {
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
   const isPrepaMode = role === 'PREPA';
 
-  // Limite à 500 pour couvrir 1 an d'historique
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"),
@@ -60,11 +49,8 @@ function SessionsContent() {
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    
-    // Filtrage par mode (Réel vs Brouillon)
     let filtered = rawSessions.filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
 
-    // Injection manuelle des dates du 08/03 et 15/03 demandées si elles n'existent pas
     const requiredDates = ["2026-03-08", "2026-03-15"];
     requiredDates.forEach(dStr => {
       if (!filtered.find(s => s.date === dStr)) {
@@ -93,7 +79,7 @@ function SessionsContent() {
       await deleteDoc(doc(db, "cash_sessions", id));
       toast({ variant: "success", title: "Session supprimée" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+      toast({ variant: "destructive", title: "Erreur" });
     }
   };
 
@@ -139,14 +125,14 @@ function SessionsContent() {
           <Table>
             <TableHeader className="bg-[#6a8036]">
               <TableRow>
-                <TableHead className="text-[10px] uppercase font-black px-6 py-5 text-white w-[18%]">Date & Statut</TableHead>
-                <TableHead className="text-center text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">Ouverture</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">Initial</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">FLUX (Net)</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">Versement</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">Final</TableHead>
-                <TableHead className="text-center text-[10px] uppercase font-black px-4 py-5 text-white w-[12%]">Clôture</TableHead>
-                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 text-white w-[10%]">Actions</TableHead>
+                <TableHead className="text-[10px] uppercase font-black px-6 py-5 text-white w-[25%]">Date & Statut</TableHead>
+                <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white w-[10%]">Ouverture</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">Initial</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">FLUX (Net)</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">Versement</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white w-[12%]">Final</TableHead>
+                <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white w-[10%]">Clôture</TableHead>
+                <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 text-white w-[5%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,7 +158,7 @@ function SessionsContent() {
                     >
                       <TableCell className="px-6 py-5">
                         <div className="flex flex-col">
-                          <span className="text-[13px] font-black text-slate-900 uppercase">
+                          <span className="text-[15px] font-black text-slate-900 uppercase">
                             {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                           </span>
                           <div className="flex items-center gap-2 mt-1">
@@ -187,7 +173,7 @@ function SessionsContent() {
                         </div>
                       </TableCell>
                       
-                      <TableCell className="text-center px-4 py-5">
+                      <TableCell className="text-center px-2 py-5">
                         <div className="flex flex-col items-center">
                           <div className="flex items-center gap-1.5 text-green-600">
                             <Clock className="h-3 w-3" />
@@ -195,15 +181,15 @@ function SessionsContent() {
                               {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                             </span>
                           </div>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 truncate max-w-[80px]">{s.openedBy || "---"}</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 truncate max-w-[60px]">{s.openedBy || "---"}</span>
                         </div>
                       </TableCell>
 
-                      <TableCell className="text-right px-4 py-5 font-bold text-slate-500 tabular-nums text-xs">
+                      <TableCell className="text-right px-2 py-5 font-bold text-slate-500 tabular-nums text-xs">
                         {formatCurrency(s.openingBalance)}
                       </TableCell>
 
-                      <TableCell className="text-right px-4 py-5">
+                      <TableCell className="text-right px-2 py-5">
                         <div className="flex flex-col items-end">
                           <span className={cn("text-xs font-black tabular-nums", flux >= 0 ? "text-green-600" : "text-red-500")}>
                             {flux > 0 ? "+" : ""}{formatCurrency(flux)}
@@ -212,17 +198,17 @@ function SessionsContent() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="text-right px-4 py-5 font-bold text-orange-600 tabular-nums text-xs">
+                      <TableCell className="text-right px-2 py-5 font-bold text-orange-600 tabular-nums text-xs">
                         -{formatCurrency(s.totalVersements || 0)}
                       </TableCell>
 
-                      <TableCell className="text-right px-4 py-5">
+                      <TableCell className="text-right px-2 py-5">
                         <span className="text-sm font-black text-slate-900 tabular-nums">
                           {formatCurrency(s.closingBalanceReal ?? (s.openingBalance + flux - (s.totalVersements || 0)))}
                         </span>
                       </TableCell>
 
-                      <TableCell className="text-center px-4 py-5">
+                      <TableCell className="text-center px-2 py-5">
                         <div className="flex flex-col items-center">
                           <div className="flex items-center gap-1.5 text-red-500">
                             <Clock className="h-3 w-3" />
@@ -230,18 +216,18 @@ function SessionsContent() {
                               {s.closedAt?.toDate ? format(s.closedAt.toDate(), "HH:mm") : "--:--"}
                             </span>
                           </div>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 truncate max-w-[80px]">{s.closedBy || "---"}</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 truncate max-w-[60px]">{s.closedBy || "---"}</span>
                         </div>
                       </TableCell>
 
                       <TableCell className="text-right px-6 py-5">
-                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="outline" 
                             size="icon" 
                             className="h-8 w-8 rounded-lg bg-white border-slate-200" 
                             onClick={() => router.push(`/rapports/print/operations?date=${s.date}`)}
-                            title="Détail des opérations"
+                            title="Opérations"
                           >
                             <FileText className="h-4 w-4 text-blue-600" />
                           </Button>
@@ -275,7 +261,7 @@ function SessionsContent() {
                             size="icon" 
                             className="h-8 w-8 rounded-lg bg-white border-slate-200"
                             onClick={() => router.push(`/caisse?date=${s.date}`)}
-                            title="Voir la caisse"
+                            title="Voir"
                           >
                             <ChevronRight className="h-4 w-4 text-slate-400" />
                           </Button>
