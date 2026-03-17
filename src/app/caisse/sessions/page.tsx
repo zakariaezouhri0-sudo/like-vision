@@ -185,7 +185,7 @@ function SessionsContent() {
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-8">
+      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-6">
         {groupedSessions.length === 0 ? (
           <Card className="p-20 text-center rounded-[40px] border-none shadow-sm bg-white">
             <p className="text-xs font-black uppercase opacity-20 tracking-[0.4em]">Aucune session enregistrée.</p>
@@ -194,36 +194,35 @@ function SessionsContent() {
           groupedSessions.map(([monthKey, monthSessions]) => {
             const [year, month] = monthKey.split('-').map(Number);
             const monthName = format(new Date(year, month - 1), "MMMM yyyy", { locale: fr }).toUpperCase();
-            
             const totalFluxNet = monthSessions.reduce((acc, s) => acc + (s.totalSales || 0) - (s.totalExpenses || 0), 0);
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
-                <Card className="overflow-hidden rounded-[40px] border-none shadow-xl bg-white">
-                  <div className="bg-[#89a644] p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 relative">
-                    <div className="flex items-center gap-4">
-                      <AccordionTrigger className="p-0 hover:no-underline text-white hover:opacity-80 transition-all">
-                        <span className="text-xl md:text-2xl font-black tracking-tight">{monthName}</span>
-                      </AccordionTrigger>
-                    </div>
-
-                    <div className="flex flex-col items-center text-center">
-                      <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.3em] mb-1">Flux Net (Après Charges)</span>
-                      <span className="text-3xl md:text-4xl font-black text-white tracking-tighter tabular-nums">
-                        {formatCurrency(totalFluxNet)}
+                <Card className="rounded-full shadow-lg border-none bg-white overflow-hidden">
+                  <div className="px-10 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <AccordionTrigger className="p-0 hover:no-underline flex-1 flex items-center gap-6 group">
+                      <span className="text-xl md:text-2xl font-black text-[#828A32] tracking-tighter uppercase shrink-0">
+                        {monthName}
                       </span>
-                    </div>
+                      
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">FLUX NET (APRES CHARGES)</span>
+                        <span className="text-2xl md:text-3xl font-black text-[#828A32] tracking-tighter tabular-nums">
+                          {formatCurrency(totalFluxNet)}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
 
                     <Button 
                       onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                      className="bg-white text-[#89a644] hover:bg-slate-50 h-12 px-6 rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all"
+                      className="bg-[#89a644] hover:bg-[#768e3a] text-white h-11 px-6 rounded-full font-black text-[10px] uppercase shadow-md transition-all shrink-0 ml-4"
                     >
                       <Download className="mr-2 h-4 w-4" /> EXCEL
                     </Button>
                   </div>
 
-                  <AccordionContent className="p-0">
-                    <div className="overflow-x-auto">
+                  <AccordionContent className="px-6 pb-6 pt-0">
+                    <div className="overflow-hidden rounded-[32px] border shadow-sm">
                       <Table>
                         <TableHeader className="bg-[#768e3a]">
                           <TableRow className="hover:bg-transparent border-none">
@@ -245,7 +244,7 @@ function SessionsContent() {
                             const fluxNet = (s.totalSales || 0) - (s.totalExpenses || 0);
 
                             return (
-                              <TableRow key={s.id} className={cn("hover:bg-slate-50/80 transition-all border-b last:border-0", isSunday && "bg-red-50/50")}>
+                              <TableRow key={s.id} className={cn("hover:bg-slate-50 transition-all border-b last:border-0", isSunday && "bg-red-50/50")}>
                                 <TableCell className="px-8 py-6">
                                   <div className="flex flex-col gap-1">
                                     <span className="text-base font-black text-slate-900 uppercase leading-none">
