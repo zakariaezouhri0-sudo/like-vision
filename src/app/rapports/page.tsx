@@ -51,18 +51,18 @@ export default function ReportsPage() {
     to: new Date(),
   });
 
-  // OPTIMISATION : Limite à 500 documents pour économiser le quota
+  // OPTIMISATION : Limite à 2000 documents pour voir tout depuis le 01/01
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
     orderBy("createdAt", "desc"),
-    limit(500)
+    limit(2000)
   ), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
 
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"), 
     orderBy("createdAt", "desc"),
-    limit(500)
+    limit(2000)
   ), [db]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 

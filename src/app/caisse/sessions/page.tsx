@@ -56,7 +56,7 @@ export default function CashSessionsPage() {
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"), 
-    limit(500)
+    limit(1000)
   ), [db]);
   const { data: rawSessions, isLoading } = useCollection(sessionsQuery);
 
@@ -370,14 +370,14 @@ export default function CashSessionsPage() {
                         <Table className="min-w-[1100px]">
                           <TableHeader className="bg-[#6a8036]">
                             <TableRow>
-                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[18%]">Date & Statut</TableHead>
-                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Ouverture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Fonds Initial</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Versement</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[12%]">Fonds Final</TableHead>
-                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white w-[14%]">Actions</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[25%]">Date & Statut</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Ouverture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[10%]">Fonds Final</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Clôture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[19%]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -395,7 +395,7 @@ export default function CashSessionsPage() {
                                   <TableCell className="px-8 py-5">
                                     <div className="flex flex-col">
                                       <div className="flex items-center gap-2">
-                                        <span className={cn("font-black text-sm uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
+                                        <span className={cn("font-black text-base uppercase", isSun ? "text-red-700" : "text-slate-800")}>{formatSessionDate(s?.date)}</span>
                                       </div>
                                       <span className={cn("text-[8px] font-black uppercase mt-1", s?.status === "OPEN" ? "text-green-600" : "text-red-500")}>
                                         {s?.status === "OPEN" ? "En cours" : "Clôturée"}
@@ -426,7 +426,7 @@ export default function CashSessionsPage() {
                                       </div>
                                     ) : <span className="text-[9px] font-black uppercase text-slate-300">---</span>}
                                   </TableCell>
-                                  <TableCell className="text-right px-8 py-5">
+                                  <TableCell className="text-right px-4 py-5">
                                     <DropdownMenu modal={false}>
                                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10"><MoreVertical className="h-4 w-4 text-slate-400" /></Button></DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">

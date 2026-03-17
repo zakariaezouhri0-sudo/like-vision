@@ -72,7 +72,7 @@ function SalesHistoryContent() {
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
     orderBy("createdAt", "desc"),
-    limit(100)
+    limit(1000)
   ), [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
@@ -257,7 +257,7 @@ function SalesHistoryContent() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes {isPrepaMode ? "(Brouillon)" : ""}</h1><p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturations (100 dernières).</p></div>
+        <div><h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Historique Ventes {isPrepaMode ? "(Brouillon)" : ""}</h1><p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-60">Suivi complet de vos facturations (1000 dernières).</p></div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {selectedIds.size > 0 && isAdminOrPrepa && (<Button variant="destructive" onClick={handleBulkDelete} disabled={isDeletingBulk} className="h-14 font-black rounded-2xl px-6 shadow-xl">{isDeletingBulk ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Trash2 className="h-5 w-5 mr-2" />} SUPPRIMER ({selectedIds.size})</Button>)}
           <Button asChild className="flex-1 sm:flex-none h-14 font-black rounded-2xl px-8 shadow-lg"><Link href="/ventes/nouvelle"><Plus className="mr-2 h-6 w-6" />NOUVELLE VENTE</Link></Button>

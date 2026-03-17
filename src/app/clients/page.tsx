@@ -42,9 +42,9 @@ export default function ClientsPage() {
 
   const isPrepaMode = role === "PREPA";
   
-  // OPTIMISATION QUOTA : Limite à 100 clients
+  // OPTIMISATION QUOTA : Limite à 1000 clients pour voir tout depuis le 01/01
   const clientsQuery = useMemoFirebase(() => {
-    return query(collection(db, "clients"), orderBy("createdAt", "desc"), limit(100));
+    return query(collection(db, "clients"), orderBy("createdAt", "desc"), limit(1000));
   }, [db]);
 
   const { data: allClients, isLoading: loading, error } = useCollection(clientsQuery);
@@ -208,7 +208,7 @@ export default function ClientsPage() {
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">
               Fichier Clients {isPrepaMode ? "(Brouillon)" : ""}
             </h1>
-            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers (100 derniers).</p>
+            <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.3em] mt-1">Gestion des dossiers (1000 derniers).</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
