@@ -29,19 +29,6 @@ export function formatCurrency(amount: number | string, includeSymbol: boolean =
   return includeSymbol ? value + '\u00A0DH' : value;
 }
 
-/**
- * Format spécial pour l'export Excel (ex: 1 300,00 MAD)
- */
-export function formatMAD(amount: number | string): string {
-  if (amount === "" || amount === null || amount === undefined) return "";
-  const num = typeof amount === 'string' ? parseAmount(amount) : (amount || 0);
-  const formatted = new Intl.NumberFormat('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(roundAmount(num));
-  return `${formatted} MAD`;
-}
-
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return "";
   const cleaned = phone.toString().replace(/\D/g, '');
@@ -57,7 +44,6 @@ export async function sendWhatsApp(phone: string, name: string) {
   if (!phone) return;
   
   // Message utilisant exclusivement des séquences Unicode pour les emojis
-  // 👋 = \uD83D\uDC4B, 👓 = \uD83D\uDC53, ✨ = \u2728, ✅ = \u2705, 📲 = \uD83D\uDCF2, 🌟 = \uD83C\uDF1F, 😎 = \uD83D\uDE0E
   const message = `السلام عليكم ${name} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \uD83D\uDC53\u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDCF2. شكراً ليك ونهار مبروك! \uD83C\uDF1F\uD83D\uDE0E`;
 
   try {
@@ -73,5 +59,4 @@ export async function sendWhatsApp(phone: string, name: string) {
   window.open(`https://wa.me/${formattedPhone}`, '_blank');
 }
 
-// Alias pour la compatibilité avec le code existant
 export const copyAndOpenWhatsApp = sendWhatsApp;
