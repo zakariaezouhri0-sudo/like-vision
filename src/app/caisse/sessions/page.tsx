@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -31,9 +32,9 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, isValid, getDay, startOfMonth, endOfMonth } from "date-fns";
+import { format, parseISO, isValid, getDay, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
@@ -100,52 +101,66 @@ function SessionsContent() {
   };
 
   const handleExportMonthExcel = async (monthKey: string, sessionsOfMonth: any[]) => {
-    const [year, month] = monthKey.split('-').map(Number);
-    const monthName = format(new Date(year, month - 1), "MMMM yyyy", { locale: fr }).toUpperCase();
-    
-    const rows = sessionsOfMonth.map(s => {
-      const d = parseISO(s.date);
-      return {
-        "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
-        "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
-        "Initial": formatMAD(s.openingBalance),
-        "Flux Net": formatMAD((s.totalSales || 0) - (s.totalExpenses || 0)),
-        "Versements": formatMAD(s.totalVersements || 0),
-        "Final": formatMAD(s.closingBalanceReal || 0)
-      };
-    });
+    try {
+      const [year, month] = monthKey.split('-').map(Number);
+      const monthName = format(new Date(year, month - 1), "MMMM yyyy", { locale: fr }).toUpperCase();
+      
+      const rows = sessionsOfMonth.map(s => {
+        const d = parseISO(s.date);
+        return {
+          "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
+          "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
+          "Initial": formatMAD(s.openingBalance || 0),
+          "Flux Net": formatMAD((s.totalSales || 0) - (s.totalExpenses || 0)),
+          "Versements": formatMAD(s.totalVersements || 0),
+          "Final": formatMAD(s.closingBalanceReal || 0)
+        };
+      });
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sessions");
-    XLSX.writeFile(wb, `Like Vision - Sessions ${monthName}.xlsx`);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sessions");
+      XLSX.writeFile(wb, `Like Vision - Sessions ${monthName}.xlsx`);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de l'export mensuel" });
+    }
   };
 
   const handleExportDayExcel = async (dateStr: string) => {
     try {
       const d = parseISO(dateStr);
-      const start = startOfMonth(d);
-      const end = endOfMonth(d);
+      if (!isValid(d)) throw new Error("Date invalide");
+
+      const start = startOfDay(d);
+      const end = endOfDay(d);
       
       const q = query(
         collection(db, "transactions"),
         where("isDraft", "==", isPrepaMode),
-        where("createdAt", ">=", start),
-        where("createdAt", "<=", end)
+        where("createdAt", ">=", Timestamp.fromDate(start)),
+        where("createdAt", "<=", Timestamp.fromDate(end))
       );
       
       const snap = await getDocs(q);
       const trans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => format(t.createdAt.toDate(), "yyyy-MM-dd") === dateStr);
+        .filter(t => {
+          if (!t.createdAt || !t.createdAt.toDate) return false;
+          return format(t.createdAt.toDate(), "yyyy-MM-dd") === dateStr;
+        });
+
+      if (trans.length === 0) {
+        toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
+        return;
+      }
 
       const mapRow = (t: any) => ({
         "Réf": t.relatedId ? t.relatedId.slice(-4) : "---",
-        "Date": format(t.createdAt.toDate(), "dd/MM/yyyy"),
+        "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---",
         "Libellé": t.label || "---",
         "Nom client": t.clientName || "---",
-        "Montant Tot": t.type === "VENTE" ? formatMAD(Math.abs(t.montant)) : "",
-        "Mouvement": t.type === "VENTE" ? formatMAD(Math.abs(t.montant)) : "",
-        "SORTIE": t.type !== "VENTE" ? formatMAD(Math.abs(t.montant)) : ""
+        "Montant Tot": t.type === "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : "",
+        "Mouvement": t.type === "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : "",
+        "SORTIE": t.type !== "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : ""
       });
 
       const ws = XLSX.utils.json_to_sheet(trans.map(mapRow));
@@ -153,7 +168,8 @@ function SessionsContent() {
       XLSX.utils.book_append_sheet(wb, ws, "Opérations");
       XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
     } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+      console.error("Export error:", e);
+      toast({ variant: "destructive", title: "Erreur lors de l'exportation" });
     }
   };
 
@@ -163,18 +179,18 @@ function SessionsContent() {
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Journal des Sessions</h1>
+          <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Journal des Sessions</h1>
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Historique complet des clôtures.</p>
         </div>
-        <Button onClick={() => router.push('/caisse')} variant="outline" className="h-12 px-8 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-slate-50">
+        <Button onClick={() => router.push('/caisse')} variant="outline" className="h-11 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-slate-50">
           <RotateCcw className="mr-2 h-4 w-4" /> RETOUR CAISSE
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-6">
+      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-4">
         {groupedSessions.length === 0 ? (
           <Card className="p-20 text-center rounded-[40px] border-none shadow-sm bg-white">
-            <p className="text-xs font-black uppercase opacity-20 tracking-[0.4em]">Aucune session enregistrée.</p>
+            <p className="text-[10px] font-black uppercase opacity-20 tracking-[0.4em]">Aucune session enregistrée.</p>
           </Card>
         ) : (
           groupedSessions.map(([monthKey, monthSessions]) => {
@@ -183,34 +199,34 @@ function SessionsContent() {
             const totalFluxNet = monthSessions.reduce((acc, s) => acc + (s.totalSales || 0) - (s.totalExpenses || 0), 0);
 
             return (
-              <AccordionItem key={monthKey} value={monthKey} className="border-none mb-4">
+              <AccordionItem key={monthKey} value={monthKey} className="border-none mb-2">
                 <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100">
-                  <div className="flex items-center justify-between px-8 py-5">
-                    {/* LEFT SIDE: Arrow + Month Name */}
-                    <div className="flex-1 flex justify-start items-center">
-                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group [&[data-state=open]>svg]:rotate-90">
-                        <ChevronRight className="h-5 w-5 text-[#828A32] shrink-0 transition-transform duration-200" />
-                        <span className="text-lg md:text-xl font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
+                  <div className="flex items-center justify-between px-10 py-5">
+                    {/* LEFT SIDE */}
+                    <div className="w-[200px] flex justify-start items-center">
+                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-3 group">
+                        <ChevronRight className="h-4 w-4 text-[#828A32] shrink-0 transition-transform duration-200" />
+                        <span className="text-sm font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
                           {monthName}
                         </span>
                       </AccordionTrigger>
                     </div>
 
-                    {/* CENTER: Flux Net (Centré et Élégant) */}
-                    <div className="flex-1 flex flex-col items-center">
-                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap">
+                    {/* CENTER: Centered Flux Net */}
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">
                         FLUX NET (APRES CHARGES)
                       </span>
-                      <span className="text-xl md:text-2xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                      <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
                         {formatCurrency(totalFluxNet)}
                       </span>
                     </div>
 
-                    {/* RIGHT SIDE: Excel Button */}
-                    <div className="flex-1 flex justify-end">
+                    {/* RIGHT SIDE */}
+                    <div className="w-[200px] flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-9 px-6 rounded-full font-black text-[9px] uppercase shadow-md transition-all shrink-0"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-8 px-5 rounded-full font-black text-[9px] uppercase shadow-md transition-all shrink-0"
                       >
                         <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
                       </Button>
@@ -222,14 +238,14 @@ function SessionsContent() {
                       <Table>
                         <TableHeader className="bg-[#768e3a]">
                           <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="text-[10px] uppercase font-black px-8 py-5 text-white">Date & Statut</TableHead>
-                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white">Ouverture</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Fonds Initial</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Flux (Net)</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Versement</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-2 py-5 text-white">Fonds Final</TableHead>
-                            <TableHead className="text-center text-[10px] uppercase font-black px-2 py-5 text-white">Clôture</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase font-black px-8 py-5 text-white w-20">Actions</TableHead>
+                            <TableHead className="text-[9px] uppercase font-black px-8 py-4 text-white">Date & Statut</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Ouverture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Initial</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Versements</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Final</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Clôture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-8 py-4 text-white w-20">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -241,47 +257,47 @@ function SessionsContent() {
 
                             return (
                               <TableRow key={s.id} className={cn("hover:bg-slate-50 transition-all border-b last:border-0", isSunday && "bg-red-50/50")}>
-                                <TableCell className="px-8 py-6">
-                                  <div className="flex flex-col gap-1">
-                                    <span className="text-sm font-black text-slate-900 uppercase">
+                                <TableCell className="px-8 py-4">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-black text-slate-900 uppercase">
                                       {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                                     </span>
-                                    <span className={cn("text-[8px] font-black uppercase tracking-widest", isClosed ? "text-red-500" : "text-green-600")}>
+                                    <span className={cn("text-[7px] font-black uppercase tracking-widest", isClosed ? "text-red-500" : "text-green-600")}>
                                       {isClosed ? "CLÔTURÉE" : "EN COURS"}
                                     </span>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-center px-2 py-6">
-                                  <div className="flex items-center justify-center gap-1 text-green-600 font-bold text-xs tabular-nums">
-                                    <Clock className="h-3 w-3 opacity-40" />
+                                <TableCell className="text-center px-2 py-4">
+                                  <div className="flex items-center justify-center gap-1 text-green-600 font-bold text-[10px] tabular-nums">
+                                    <Clock className="h-2.5 w-2.5 opacity-40" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-xs tabular-nums text-slate-600">{formatCurrency(s.openingBalance)}</TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-xs text-green-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-4 font-black text-[10px] tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
+                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-xs text-orange-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-orange-600 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-6 font-black text-sm text-slate-900 tabular-nums">
+                                <TableCell className="text-right px-2 py-4 font-black text-xs text-slate-900 tabular-nums">
                                   {formatCurrency(s.closingBalanceReal ?? (s.openingBalance + fluxNet - (s.totalVersements || 0)))}
                                 </TableCell>
-                                <TableCell className="text-center px-2 py-6">
+                                <TableCell className="text-center px-2 py-4">
                                   {isClosed ? (
-                                    <div className="flex items-center justify-center gap-1 text-red-500 font-bold text-xs tabular-nums">
-                                      <Clock className="h-3 w-3 opacity-40" />
+                                    <div className="flex items-center justify-center gap-1 text-red-500 font-bold text-[10px] tabular-nums">
+                                      <Clock className="h-2.5 w-2.5 opacity-40" />
                                       {s.closedAt?.toDate ? format(s.closedAt.toDate(), "HH:mm") : "--:--"}
                                     </div>
                                   ) : (
-                                    <span className="text-[10px] text-slate-300 italic">En cours</span>
+                                    <span className="text-[9px] text-slate-300 italic">En cours</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right px-8 py-6">
+                                <TableCell className="text-right px-8 py-4">
                                   <DropdownMenu modal={false}>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100">
-                                        <MoreVertical className="h-4 w-4 text-slate-400" />
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-slate-100">
+                                        <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10">
