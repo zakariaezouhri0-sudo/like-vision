@@ -134,19 +134,16 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
+      // Correction : Filtrage en mémoire pour éviter l'erreur d'index composite
       const q = query(
         collection(db, "transactions"),
-        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(start)),
         where("createdAt", "<=", Timestamp.fromDate(end))
       );
       
       const snap = await getDocs(q);
       const trans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => {
-          if (!t.createdAt || !t.createdAt.toDate) return false;
-          return format(t.createdAt.toDate(), "yyyy-MM-dd") === dateStr;
-        });
+        .filter(t => (isPrepaMode ? t.isDraft === true : t.isDraft !== true));
 
       if (trans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
