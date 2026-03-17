@@ -327,17 +327,17 @@ export default function CashSessionsPage() {
                   {isExpanded && (
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <Table className="min-w-[1200px]">
+                        <Table className="min-w-[1100px]">
                           <TableHeader className="bg-[#6a8036]">
                             <TableRow>
-                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white">Date & Statut</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Ouverture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Initial</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">FLUX (Net)</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Versement</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-white">Fonds Final</TableHead>
-                              <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-white">Clôture</TableHead>
-                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white">Actions</TableHead>
+                              <TableHead className="text-[10px] uppercase font-black px-8 py-6 text-white w-[22%]">Date & Statut</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Ouverture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Fonds Initial</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">FLUX (Net)</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Versement</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-4 py-6 text-white w-[13%]">Fonds Final</TableHead>
+                              <TableHead className="text-center text-[10px] uppercase font-black px-4 py-6 text-white w-[8%]">Clôture</TableHead>
+                              <TableHead className="text-right text-[10px] uppercase font-black px-8 py-6 text-white w-[10%]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -362,23 +362,23 @@ export default function CashSessionsPage() {
                                       </span>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="px-6 py-5">
-                                    <span className="text-[11px] font-black text-green-600"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.openedAt)}</span>
+                                  <TableCell className="px-4 py-5 text-center">
+                                    <span className="text-[11px] font-black text-green-600 tabular-nums">{formatTime(s?.openedAt)}</span>
                                   </TableCell>
                                   
-                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(initial)}</TableCell>
-                                  <TableCell className="text-right px-6 py-5">
+                                  <TableCell className="text-right px-4 py-5 font-black text-xs tabular-nums text-slate-600">{formatCurrency(initial)}</TableCell>
+                                  <TableCell className="text-right px-4 py-5">
                                     <span className={cn("font-black text-xs tabular-nums", flux >= 0 ? "text-emerald-600" : "text-red-500")}>
                                       {formatCurrency(flux)}
                                     </span>
                                   </TableCell>
-                                  <TableCell className="text-right px-6 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
-                                  <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums">{formatCurrency(reel)}</TableCell>
+                                  <TableCell className="text-right px-4 py-5"><span className="font-black text-xs tabular-nums text-orange-600">-{formatCurrency(Math.abs(versements))}</span></TableCell>
+                                  <TableCell className="text-right px-4 py-5 font-black text-sm tabular-nums text-slate-900">{formatCurrency(reel)}</TableCell>
 
-                                  <TableCell className="px-6 py-5">
+                                  <TableCell className="px-4 py-5 text-center">
                                     {s?.status === "CLOSED" ? (
-                                      <span className="text-[11px] font-black text-red-500"><Clock className="inline h-3 w-3 mr-1" /> {formatTime(s?.closedAt)}</span>
-                                    ) : <span className="text-[9px] font-black uppercase text-slate-300">En cours...</span>}
+                                      <span className="text-[11px] font-black text-red-500 tabular-nums">{formatTime(s?.closedAt)}</span>
+                                    ) : <span className="text-[9px] font-black uppercase text-slate-300">---</span>}
                                   </TableCell>
                                   <TableCell className="text-right px-8 py-5">
                                     <DropdownMenu modal={false}>
