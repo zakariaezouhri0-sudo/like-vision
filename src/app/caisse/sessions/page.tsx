@@ -210,41 +210,45 @@ function SessionsContent() {
           <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Journal des Sessions</h1>
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Historique des clôtures par mois.</p>
         </div>
-        <Button onClick={() => router.push('/caisse')} className="h-14 px-8 rounded-[24px] bg-[#6a8036] hover:bg-[#5a6d2a] font-black shadow-xl">
+        <Button onClick={() => router.push('/caisse')} className="h-14 px-8 rounded-[24px] bg-[#6a8036] hover:bg-[#5a6d2a] font-black shadow-xl text-white">
           <RotateCcw className="mr-2 h-5 w-5" /> RETOUR CAISSE DU JOUR
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[Object.keys(sessionsByMonth)[0]]} className="space-y-8">
+      <Accordion type="multiple" defaultValue={[Object.keys(sessionsByMonth)[0]]} className="space-y-6">
         {Object.entries(sessionsByMonth).map(([monthName, monthSessions]) => {
           const monthFlux = roundAmount(monthSessions.reduce((acc, s) => acc + ((s.totalSales || 0) - (s.totalExpenses || 0)), 0));
           
           return (
             <AccordionItem key={monthName} value={monthName} className="border-none">
-              <Card className="rounded-[40px] overflow-hidden bg-white shadow-xl border-none">
-                <div className="bg-[#6a8036] px-10 py-6 flex items-center justify-between">
-                  <AccordionTrigger className="hover:no-underline py-0 text-white group">
-                    <div className="flex flex-col items-start text-left">
-                      <h2 className="text-2xl font-black uppercase tracking-widest leading-none">{monthName}</h2>
-                      <div className="flex flex-col mt-2">
-                        <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.2em] flex items-center gap-1">Flux Net (Après charges) <ChevronRight className="h-2 w-2" /></span>
-                        <span className="text-3xl font-black tabular-nums tracking-tighter">{formatCurrency(monthFlux)}</span>
+              <Card className="rounded-[60px] overflow-hidden bg-white shadow-xl border-none">
+                <div className="px-10 py-6 flex items-center justify-between">
+                  <AccordionTrigger className="hover:no-underline py-0 group flex-1">
+                    <div className="flex items-center justify-between w-full pr-8">
+                      <h2 className="text-2xl font-black uppercase tracking-widest text-primary/80">{monthName}</h2>
+                      
+                      <div className="flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Flux Net (Apres Charges)</span>
+                        <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">
+                          {formatCurrency(monthFlux)}
+                        </span>
                       </div>
                     </div>
                   </AccordionTrigger>
+                  
                   <Button 
                     variant="outline" 
                     onClick={(e) => { e.stopPropagation(); exportMonthToExcel(monthName, monthSessions); }}
-                    className="bg-white text-[#6a8036] border-none font-black text-xs uppercase rounded-xl h-12 px-8 shadow-lg hover:bg-slate-50 transition-all"
+                    className="bg-[#89a644] text-white border-none font-black text-[10px] uppercase rounded-2xl h-12 px-8 shadow-lg hover:bg-[#768e3a] transition-all"
                   >
                     <Download className="mr-2 h-4 w-4" /> EXCEL
                   </Button>
                 </div>
 
-                <AccordionContent className="p-0">
+                <AccordionContent className="p-0 border-t border-slate-50">
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-[#f8fafc] border-b border-slate-100">
+                      <TableHeader className="bg-[#f8fafc]">
                         <TableRow>
                           <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-slate-400 tracking-widest w-[18%]">Date & Statut</TableHead>
                           <TableHead className="text-center text-[10px] uppercase font-black px-2 py-6 text-slate-400 tracking-widest w-[10%]">Ouverture</TableHead>
