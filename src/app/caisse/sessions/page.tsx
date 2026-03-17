@@ -232,7 +232,6 @@ export default function CashSessionsPage() {
       const dateStart = startOfDay(parseISO(session.date));
       const dateEnd = endOfDay(parseISO(session.date));
       
-      // Récupération des transactions
       const qTrans = query(collection(db, "transactions"), where("isDraft", "==", session.isDraft === true));
       const snapTrans = await getDocs(qTrans);
       const allTrans = snapTrans.docs
@@ -243,7 +242,6 @@ export default function CashSessionsPage() {
         })
         .sort((a: any, b: any) => (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0));
 
-      // Récupération des ventes pour les montants totaux
       const qSales = query(collection(db, "sales"), where("isDraft", "==", session.isDraft === true));
       const snapSales = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
@@ -280,16 +278,15 @@ export default function CashSessionsPage() {
         };
       };
 
-      // Séparation par blocs
       const vNew = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
       const vSorties = allTrans.filter((t: any) => t.type !== "VENTE");
       const vRegl = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
       const excelRows = [
         ...vNew.map(mapToExcelRow),
-        {}, // Ligne vide
+        {}, 
         ...vSorties.map(mapToExcelRow),
-        {}, // Ligne vide
+        {}, 
         ...vRegl.map(mapToExcelRow)
       ];
 
@@ -406,7 +403,10 @@ export default function CashSessionsPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="px-4 py-5 text-center">
-                                    <span className="text-[11px] font-black text-green-600 tabular-nums">{formatTime(s?.openedAt)}</span>
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <Clock className="h-3 w-3 text-green-500/50" />
+                                      <span className="text-[11px] font-black text-green-600 tabular-nums">{formatTime(s?.openedAt)}</span>
+                                    </div>
                                   </TableCell>
                                   
                                   <TableCell className="text-right px-4 py-5 font-black text-xs tabular-nums text-slate-600">{formatCurrency(initial)}</TableCell>
@@ -420,7 +420,10 @@ export default function CashSessionsPage() {
 
                                   <TableCell className="px-4 py-5 text-center">
                                     {s?.status === "CLOSED" ? (
-                                      <span className="text-[11px] font-black text-red-500 tabular-nums">{formatTime(s?.closedAt)}</span>
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <Clock className="h-3 w-3 text-red-500/50" />
+                                        <span className="text-[11px] font-black text-red-500 tabular-nums">{formatTime(s?.closedAt)}</span>
+                                      </div>
                                     ) : <span className="text-[9px] font-black uppercase text-slate-300">---</span>}
                                   </TableCell>
                                   <TableCell className="text-right px-8 py-5">
