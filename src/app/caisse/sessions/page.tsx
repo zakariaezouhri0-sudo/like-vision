@@ -143,7 +143,7 @@ function SessionsContent() {
         "Date": format(t.createdAt.toDate(), "dd/MM/yyyy"),
         "Libellé": t.label || "---",
         "Nom client": t.clientName || "---",
-        "Montant Tot": t.type === "VENTE" ? formatMAD(Math.abs(t.montant)) : "", // Montant simplifié pour export
+        "Montant Tot": t.type === "VENTE" ? formatMAD(Math.abs(t.montant)) : "",
         "Mouvement": t.type === "VENTE" ? formatMAD(Math.abs(t.montant)) : "",
         "SORTIE": t.type !== "VENTE" ? formatMAD(Math.abs(t.montant)) : ""
       });
@@ -184,33 +184,35 @@ function SessionsContent() {
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none mb-4">
-                <div className="bg-white rounded-[60px] shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-10 py-6">
+                <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100">
+                  <div className="flex items-center justify-between px-8 py-5">
                     {/* LEFT SIDE: Arrow + Month Name */}
-                    <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-6 group [&[data-state=open]>svg]:rotate-90 flex-1 justify-start">
-                      <ChevronRight className="h-6 w-6 text-[#828A32] shrink-0 transition-transform duration-200" />
-                      <span className="text-xl md:text-2xl font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
-                        {monthName}
-                      </span>
-                    </AccordionTrigger>
+                    <div className="flex-1 flex justify-start items-center">
+                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group [&[data-state=open]>svg]:rotate-90">
+                        <ChevronRight className="h-5 w-5 text-[#828A32] shrink-0 transition-transform duration-200" />
+                        <span className="text-lg md:text-xl font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
+                          {monthName}
+                        </span>
+                      </AccordionTrigger>
+                    </div>
 
-                    {/* CENTER: Flux Net (static inside the pill) */}
+                    {/* CENTER: Flux Net (Centré et Élégant) */}
                     <div className="flex-1 flex flex-col items-center">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap">
                         FLUX NET (APRES CHARGES)
                       </span>
-                      <span className="text-2xl md:text-3xl font-black text-[#1A4D2E] tracking-tighter tabular-nums">
+                      <span className="text-xl md:text-2xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
                         {formatCurrency(totalFluxNet)}
                       </span>
                     </div>
 
-                    {/* RIGHT SIDE: Excel Button (static inside the pill) */}
+                    {/* RIGHT SIDE: Excel Button */}
                     <div className="flex-1 flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-11 px-8 rounded-full font-black text-[10px] uppercase shadow-md transition-all shrink-0 ml-4"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-9 px-6 rounded-full font-black text-[9px] uppercase shadow-md transition-all shrink-0"
                       >
-                        <Download className="mr-2 h-4 w-4" /> EXCEL
+                        <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
                       </Button>
                     </div>
                   </div>
