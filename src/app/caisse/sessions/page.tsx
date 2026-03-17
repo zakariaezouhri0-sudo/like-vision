@@ -26,14 +26,15 @@ import {
   ChevronRight,
   Trash2,
   Download,
-  MoreVertical
+  MoreVertical,
+  FileSpreadsheet
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, formatMAD } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, isValid, getDay } from "date-fns";
+import { format, parseISO, isValid, getDay, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
@@ -43,6 +44,7 @@ function SessionsContent() {
   const router = useRouter();
   const [role, setRole] = useState<string>("");
   const [isClientReady, setIsHydrated] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
@@ -63,27 +65,9 @@ function SessionsContent() {
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    let filtered = rawSessions.filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
-
-    const requiredDates = ["2026-03-08", "2026-03-15"];
-    requiredDates.forEach(dStr => {
-      if (!filtered.find(s => s.date === dStr)) {
-        filtered.push({
-          id: `MANUAL-${dStr}`,
-          date: dStr,
-          status: "CLOSED",
-          openingBalance: 0,
-          closingBalanceReal: 0,
-          totalSales: 0,
-          totalExpenses: 0,
-          totalVersements: 0,
-          isDraft: isPrepaMode,
-          isManualInjection: true
-        });
-      }
-    });
-
-    return filtered.sort((a, b) => b.date.localeCompare(a.date));
+    return rawSessions
+      .filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true)
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [rawSessions, isPrepaMode]);
 
   const sessionsByMonth = useMemo(() => {
@@ -124,6 +108,89 @@ function SessionsContent() {
       toast({ variant: "success", title: "Session ré-ouverte" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur" });
+    }
+  };
+
+  const handleExportDayExcel = async (dateStr: string) => {
+    setIsExporting(true);
+    try {
+      const d = parseISO(dateStr);
+      const start = startOfDay(d);
+      const end = endOfDay(d);
+
+      // 1. Récupérer les transactions du jour
+      const qTrans = query(
+        collection(db, "transactions"),
+        where("isDraft", "==", isPrepaMode),
+        where("createdAt", ">=", Timestamp.fromDate(start)),
+        where("createdAt", "<=", Timestamp.fromDate(end))
+      );
+      const snapTrans = await getDocs(qTrans);
+      const trans = snapTrans.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // 2. Récupérer les ventes (pour le Montant Tot)
+      const qSales = query(
+        collection(db, "sales"),
+        where("isDraft", "==", isPrepaMode)
+      );
+      const snapSales = await getDocs(qSales);
+      const salesMap: Record<string, any> = {};
+      snapSales.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.invoiceId) salesMap[data.invoiceId] = data;
+      });
+
+      // 3. Organiser par blocs
+      const vNew = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+      const vSorties = trans.filter((t: any) => t.type !== "VENTE");
+      const vRegl = trans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
+
+      const mapRow = (t: any) => {
+        let invoiceId = t.relatedId || "";
+        if (!invoiceId && t.label?.includes('VENTE')) {
+          invoiceId = t.label.replace('VENTE ', '').trim();
+        }
+        const sale = salesMap[invoiceId];
+        const isVente = t.type === "VENTE";
+        const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+        
+        let label = t.label || "";
+        if (!isVente) {
+          const typeStr = t.type || "";
+          label = label.replace(new RegExp(`^${typeStr}\\s*[:\\-']?\\s*`, 'i'), '').trim();
+          label = t.type === "VERSEMENT" ? `VERSEMENT | ${label || "BANQUE"}` : `${t.type} | ${label || "---"}`;
+        }
+
+        return {
+          "Réf": isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---",
+          "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
+          "Libellé": label,
+          "Nom client": t.clientName || "---",
+          "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
+          "Mouvement": isVente ? formatMAD(Math.abs(t.montant)) : "",
+          "SORTIE": !isVente ? formatMAD(Math.abs(t.montant)) : ""
+        };
+      };
+
+      const excelData = [
+        ...vNew.map(mapRow),
+        {}, // Espace
+        ...vSorties.map(mapRow),
+        {}, // Espace
+        ...vRegl.map(mapRow)
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
+      XLSX.writeFile(workbook, `Like Vision - Opérations ${dateStr}.xlsx`);
+      toast({ variant: "success", title: "Export réussi" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur export" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -227,7 +294,7 @@ function SessionsContent() {
                             >
                               <TableCell className="px-6 py-5">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-black text-slate-900 uppercase">
+                                  <span className="text-lg font-black text-slate-900 uppercase">
                                     {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                                   </span>
                                   <span className={cn(
@@ -289,8 +356,8 @@ function SessionsContent() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10 min-w-[180px]">
-                                    <DropdownMenuItem onClick={() => router.push(`/rapports/print/journalier?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                      <FileText className="mr-3 h-4 w-4 text-primary" /> Rapport PDF
+                                    <DropdownMenuItem onClick={() => handleExportDayExcel(s.date)} disabled={isExporting} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-green-600">
+                                      {isExporting ? <Loader2 className="mr-3 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-3 h-4 w-4" />} Export Excel
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => router.push(`/rapports/print/operations?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
                                       <FileText className="mr-3 h-4 w-4 text-blue-600" /> Détail Opérations
