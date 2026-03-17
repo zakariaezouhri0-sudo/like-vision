@@ -28,10 +28,11 @@ import {
   Download,
   MoreVertical,
   FileSpreadsheet,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Printer
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { cn, formatCurrency, roundAmount, formatMAD, parseAmount } from "@/lib/utils";
+import { cn, formatCurrency, roundAmount, formatMAD } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -59,7 +60,7 @@ function SessionsContent() {
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"),
-    limit(500)
+    limit(1000)
   ), [db]);
   
   const { data: rawSessions, isLoading: loading } = useCollection(sessionsQuery);
