@@ -29,6 +29,19 @@ export function formatCurrency(amount: number | string, includeSymbol: boolean =
   return includeSymbol ? value + '\u00A0DH' : value;
 }
 
+/**
+ * Format spécial pour l'export Excel (ex: 1 300,00 MAD)
+ */
+export function formatMAD(amount: number | string): string {
+  if (amount === "" || amount === null || amount === undefined) return "";
+  const num = typeof amount === 'string' ? parseAmount(amount) : (amount || 0);
+  const formatted = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(roundAmount(num));
+  return `${formatted} MAD`;
+}
+
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return "";
   const cleaned = phone.toString().replace(/\D/g, '');

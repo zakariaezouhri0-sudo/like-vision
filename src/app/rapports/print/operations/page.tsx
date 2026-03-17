@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -6,7 +5,7 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, Layers } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, cn, roundAmount } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, formatMAD } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
@@ -172,22 +171,34 @@ function OperationsReportContent() {
       "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
       "Libellé": displayLabel,
       "Nom client": t.clientName || "---",
-      "Montant Tot": isVente && totalNet !== null ? totalNet : "",
-      "Mouvement": isVente ? movement : "",
-      "SORTIE": !isVente ? movement : ""
+      "Montant Tot": formatMAD(isVente && totalNet !== null ? totalNet : ""),
+      "Mouvement": formatMAD(isVente ? movement : ""),
+      "SORTIE": formatMAD(!isVente ? movement : "")
     };
   };
 
   const handleExportExcel = () => {
     const excelRows = [
       ...groupedTransactions.nouvellesVentes.map(mapToExcelRow),
-      {}, // Ligne vide entre blocs
+      {}, 
       ...groupedTransactions.sorties.map(mapToExcelRow),
-      {}, // Ligne vide
+      {}, 
       ...groupedTransactions.reglements.map(mapToExcelRow)
     ];
 
     const worksheet = XLSX.utils.json_to_sheet(excelRows);
+    
+    // Ajustement des largeurs pour Excel
+    worksheet['!cols'] = [
+      { wch: 10 }, // Réf
+      { wch: 12 }, // Date
+      { wch: 35 }, // Libellé
+      { wch: 25 }, // Nom client
+      { wch: 18 }, // Montant Tot
+      { wch: 18 }, // Mouvement
+      { wch: 18 }, // SORTIE
+    ];
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
     XLSX.writeFile(workbook, `Like Vision - Opérations ${format(selectedDate, "dd-MM-yyyy")}.xlsx`);
