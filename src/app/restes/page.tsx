@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction, limit } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc, arrayUnion, runTransaction, limit, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -46,12 +46,15 @@ export default function UnpaidSalesPage() {
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
-  // OPTIMISATION QUOTA : Limite aux 1000 dernières ventes avec reste pour voir tout depuis le 01/01
-  const allSalesQuery = useMemoFirebase(() => query(
-    collection(db, "sales"), 
-    orderBy("createdAt", "desc"),
-    limit(1000)
-  ), [db]);
+  const allSalesQuery = useMemoFirebase(() => {
+    const startOfYear = new Date(2026, 0, 1);
+    return query(
+      collection(db, "sales"),
+      where("createdAt", ">=", Timestamp.fromDate(startOfYear)),
+      orderBy("createdAt", "desc"),
+      limit(5000)
+    );
+  }, [db]);
   const { data: sales, isLoading: loading } = useCollection(allSalesQuery);
 
   const filteredSales = useMemo(() => {
@@ -170,7 +173,7 @@ export default function UnpaidSalesPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-primary uppercase tracking-tighter">Restes à Régler {isPrepaMode ? "(Brouillon)" : ""}</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des 1000 dernières créances.</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-60">Suivi des créances depuis le 01/01/2026.</p>
           </div>
         </div>
 
@@ -231,7 +234,7 @@ export default function UnpaidSalesPage() {
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow><TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">Aucun reste à régler.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-24 text-xs font-black uppercase opacity-20 tracking-widest">Aucun reste à régler depuis le 01/01/2026.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

@@ -52,11 +52,15 @@ function SalesHistoryContent() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  const salesQuery = useMemoFirebase(() => query(
-    collection(db, "sales"),
-    orderBy("createdAt", "desc"),
-    limit(200)
-  ), [db]);
+  const salesQuery = useMemoFirebase(() => {
+    const startOfYear = new Date(2026, 0, 1);
+    return query(
+      collection(db, "sales"),
+      where("createdAt", ">=", Timestamp.fromDate(startOfYear)),
+      orderBy("createdAt", "desc"),
+      limit(5000)
+    );
+  }, [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
   const filteredSales = useMemo(() => {
@@ -141,7 +145,7 @@ function SalesHistoryContent() {
       <Card className="shadow-sm rounded-[24px] bg-white">
         <CardHeader className="p-6 border-b bg-slate-50/50">
           <div className="flex flex-col lg:flex-row items-end gap-4">
-            <div className="flex-1 space-y-1.5 w-full"><Label className="text-[10px] font-black uppercase text-muted-foreground">Recherche</Label><div className="relative"><Search className="absolute left-4 top-3 h-4 w-4 text-primary/40" /><input placeholder="Client ou Document..." className="w-full pl-11 h-10 text-sm font-bold rounded-xl border-none shadow-inner outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
+            <div className="flex-1 space-y-1.5 w-full"><Label className="text-[10px] font-black uppercase text-muted-foreground">Recherche (Depuis le 01/01/2026)</Label><div className="relative"><Search className="absolute left-4 top-3 h-4 w-4 text-primary/40" /><input placeholder="Client ou Document..." className="w-full pl-11 h-10 text-sm font-bold rounded-xl border-none shadow-inner outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
             <div className="w-full lg:w-48 space-y-1.5"><Label className="text-[10px] font-black uppercase text-muted-foreground">Statut</Label><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10 rounded-xl font-bold"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="TOUS">Tous</SelectItem><SelectItem value="Payé">Payé</SelectItem><SelectItem value="Partiel">Partiel</SelectItem><SelectItem value="En attente">En attente</SelectItem></SelectContent></Select></div>
           </div>
         </CardHeader>
@@ -164,7 +168,7 @@ function SalesHistoryContent() {
                 {loading ? (
                   <TableRow><TableCell colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                 ) : filteredSales.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-20 text-[10px] font-black uppercase opacity-20">Aucune vente.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-20 text-[10px] font-black uppercase opacity-20">Aucune vente enregistrée depuis le 01/01/2026.</TableCell></TableRow>
                 ) : (
                   filteredSales.map((sale: any) => (
                     <TableRow key={sale.id} className="hover:bg-slate-50">
