@@ -28,12 +28,13 @@ import {
   Trash2,
   MoreVertical,
   Download,
-  Layers
+  Calendar,
+  ArrowRight
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, Timestamp } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isValid, getDay, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -119,8 +120,6 @@ function SessionsContent() {
       });
 
       const ws = XLSX.utils.json_to_sheet(rows);
-      
-      // Appliquer le formatage MAD et l'alignement à droite (par le type nombre)
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
       for (let R = range.s.r + 1; R <= range.e.r; ++R) {
         for (let C = 2; C <= 5; ++C) {
@@ -233,11 +232,8 @@ function SessionsContent() {
       ];
 
       const ws = XLSX.utils.json_to_sheet(finalExcelRows);
-      
-      // Appliquer le formatage MAD et l'alignement à droite
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
       for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        // Colonnes E (4), F (5), G (6) : Montant Tot, Mouvement, SORTIE
         for (let C = 4; C <= 6; ++C) {
           const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
           if (cell && cell.t === 'n') {
@@ -258,21 +254,24 @@ function SessionsContent() {
   if (!isClientReady || loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Journal des Sessions</h1>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">Historique complet des clôtures.</p>
+    <div className="space-y-10 pb-20 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-2">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+            <Calendar className="h-8 w-8 text-primary/40" />
+            Journal des Sessions
+          </h1>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-11">Historique complet et analyses mensuelles.</p>
         </div>
-        <Button onClick={() => router.push('/caisse')} variant="outline" className="h-11 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm hover:bg-slate-50">
-          <RotateCcw className="mr-2 h-4 w-4" /> RETOUR CAISSE
+        <Button onClick={() => router.push('/caisse')} variant="outline" className="h-12 px-8 rounded-2xl font-black text-[10px] uppercase border-slate-200 bg-white text-slate-600 shadow-xl shadow-slate-200/50 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all">
+          <RotateCcw className="mr-3 h-4 w-4" /> RETOUR CAISSE
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-6">
+      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-8">
         {groupedSessions.length === 0 ? (
-          <Card className="p-20 text-center rounded-[40px] border-none shadow-sm bg-white">
-            <p className="text-[10px] font-black uppercase opacity-20 tracking-[0.4em]">Aucune session enregistrée.</p>
+          <Card className="p-24 text-center rounded-[48px] border-dashed border-2 border-slate-100 bg-white">
+            <p className="text-[10px] font-black uppercase opacity-20 tracking-[0.5em]">Aucune donnée disponible.</p>
           </Card>
         ) : (
           groupedSessions.map(([monthKey, monthSessions]) => {
@@ -282,32 +281,32 @@ function SessionsContent() {
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
-                <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
-                  <div className="grid grid-cols-3 items-center px-10 py-5 min-h-[85px]">
-                    <div className="flex justify-start items-center">
-                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
-                        <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
-                          <ChevronRight className="h-4 w-4 text-[#828A32] transition-transform duration-300 group-data-[state=open]:rotate-90" />
+                <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-slate-50 transition-all duration-500 hover:border-primary/10">
+                  <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-6 md:py-8">
+                    <div className="flex justify-start">
+                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-6 group">
+                        <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 transition-all duration-300 shadow-inner">
+                          <ChevronRight className="h-5 w-5 text-primary/60 transition-transform duration-500 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-xs font-black text-[#828A32] tracking-widest uppercase whitespace-nowrap">
+                        <span className="text-sm font-black text-slate-800 tracking-[0.2em] uppercase">
                           {monthName}
                         </span>
                       </AccordionTrigger>
                     </div>
 
-                    <div className="flex flex-col items-center">
+                    <div className="flex justify-center my-6 md:my-0">
                       {role === 'OPTICIENNE' ? (
-                        <div className="h-px w-8 bg-slate-100 opacity-20" />
+                        <div className="h-px w-12 bg-slate-100 opacity-50" />
                       ) : (
-                        <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
-                            FLUX NET (APRES CHARGES)
+                        <div className="bg-slate-50/80 px-8 py-3 rounded-3xl border border-slate-100/50 shadow-inner flex flex-col items-center min-w-[220px]">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">
+                            FLUX NET MENSUEL
                           </span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-xl font-black text-primary tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
+                            <span className="text-[10px] font-black text-primary/30 uppercase">DH</span>
                           </div>
                         </div>
                       )}
@@ -316,27 +315,28 @@ function SessionsContent() {
                     <div className="flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+                        variant="outline"
+                        className="h-11 px-8 rounded-2xl font-black text-[10px] uppercase border-slate-100 bg-white text-slate-500 shadow-sm transition-all hover:bg-primary hover:text-white hover:border-primary group"
                       >
-                        <Download className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
-                        <span>EXCEL</span>
+                        <Download className="h-4 w-4 mr-3 transition-transform group-hover:-translate-y-0.5" />
+                        EXCEL {month.toString().padStart(2, '0')}
                       </Button>
                     </div>
                   </div>
 
-                  <AccordionContent className="px-6 pb-8 pt-0">
-                    <div className="overflow-hidden rounded-[32px] border shadow-sm mx-4">
+                  <AccordionContent className="px-6 md:px-10 pb-10 pt-0">
+                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-inner">
                       <Table>
-                        <TableHeader className="bg-[#768e3a]">
-                          <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="text-[9px] uppercase font-black px-8 py-4 text-white">Date & Statut</TableHead>
-                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Ouverture</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Initial</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Versements</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Final</TableHead>
-                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Clôture</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-8 py-4 text-white w-20">Actions</TableHead>
+                        <TableHeader className="bg-slate-50/80">
+                          <TableRow className="hover:bg-transparent border-b border-slate-100">
+                            <TableHead className="text-[9px] uppercase font-black px-8 py-5 text-slate-400 tracking-widest">Date & Statut</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Ouverture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Initial</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Flux (Net)</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Versements</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Final</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-slate-400 tracking-widest">Clôture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-8 py-5 text-slate-400 tracking-widest w-20">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -347,56 +347,59 @@ function SessionsContent() {
                             const fluxNet = (s.totalSales || 0) - (s.totalExpenses || 0);
 
                             return (
-                              <TableRow key={s.id} className={cn("hover:bg-slate-50 transition-all border-b last:border-0", isSunday && "bg-red-50/50")}>
-                                <TableCell className="px-8 py-4">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-xs font-black text-slate-900 uppercase">
+                              <TableRow key={s.id} className={cn("hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0", isSunday && "bg-rose-50/30")}>
+                                <TableCell className="px-8 py-5">
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
                                       {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                                     </span>
-                                    <span className={cn("text-[7px] font-black uppercase tracking-widest", isClosed ? "text-red-500" : "text-green-600")}>
-                                      {isClosed ? "CLÔTURÉE" : "EN COURS"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn("h-1.5 w-1.5 rounded-full", isClosed ? "bg-slate-300" : "bg-green-500 animate-pulse")} />
+                                      <span className={cn("text-[8px] font-black uppercase tracking-widest", isClosed ? "text-slate-400" : "text-green-600")}>
+                                        {isClosed ? "CLÔTURÉE" : "EN COURS"}
+                                      </span>
+                                    </div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-center px-2 py-4">
-                                  <div className="flex items-center justify-center gap-1 text-green-600 font-bold text-[10px] tabular-nums">
-                                    <Clock className="h-2.5 w-2.5 opacity-40" />
+                                <TableCell className="text-center px-2 py-5">
+                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-400 font-bold text-[10px] tabular-nums border border-slate-100 shadow-sm">
+                                    <Clock className="h-3 w-3 opacity-40" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-xs tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-xs text-green-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">{formatCurrency(s.openingBalance || 0)}</TableCell>
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-green-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-xs text-orange-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-orange-500 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-xs text-slate-900 tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-slate-900 tabular-nums">
                                   {formatCurrency(s.closingBalanceReal ?? (s.openingBalance + fluxNet - (s.totalVersements || 0)))}
                                 </TableCell>
-                                <TableCell className="text-center px-2 py-4">
+                                <TableCell className="text-center px-2 py-5">
                                   {isClosed ? (
-                                    <div className="flex items-center justify-center gap-1 text-red-500 font-bold text-[10px] tabular-nums">
-                                      <Clock className="h-2.5 w-2.5 opacity-40" />
+                                    <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-400 font-bold text-[10px] tabular-nums border border-slate-100 shadow-sm">
+                                      <Clock className="h-3 w-3 opacity-40" />
                                       {s.closedAt?.toDate ? format(s.closedAt.toDate(), "HH:mm") : "--:--"}
                                     </div>
                                   ) : (
-                                    <span className="text-[9px] text-slate-300 italic">En cours</span>
+                                    <span className="text-[10px] text-slate-300 italic font-medium">--:--</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right px-8 py-4">
+                                <TableCell className="text-right px-8 py-5">
                                   <DropdownMenu modal={false}>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-slate-100">
-                                        <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100">
+                                        <MoreVertical className="h-4 w-4 text-slate-400" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-primary/10">
+                                    <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-slate-100 min-w-[180px]">
                                       <DropdownMenuItem onClick={() => handleExportDayExcel(s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                        <FileText className="mr-3 h-4 w-4 text-green-600" /> Export Excel
+                                        <FileText className="mr-3 h-4 w-4 text-green-600" /> Détails (Excel)
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                        <ChevronRight className="mr-3 h-4 w-4 text-primary" /> Voir Détails
+                                        <ArrowRight className="mr-3 h-4 w-4 text-primary" /> Voir la session
                                       </DropdownMenuItem>
                                       {isClosed && isAdminOrPrepa && (
                                         <DropdownMenuItem onClick={() => handleReopenSession(s.id)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-orange-600">
@@ -405,7 +408,7 @@ function SessionsContent() {
                                       )}
                                       {isAdminOrPrepa && (
                                         <DropdownMenuItem onClick={() => handleDeleteSession(s.id, s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive">
-                                          <Trash2 className="mr-3 h-4 w-4" /> Supprimer Session
+                                          <Trash2 className="mr-3 h-4 w-4" /> Supprimer Définitivement
                                         </DropdownMenuItem>
                                       )}
                                     </DropdownMenuContent>
