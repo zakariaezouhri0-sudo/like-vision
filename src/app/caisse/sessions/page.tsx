@@ -27,7 +27,8 @@ import {
   ChevronRight,
   Trash2,
   MoreVertical,
-  Download
+  Download,
+  Layers
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
@@ -112,9 +113,7 @@ function SessionsContent() {
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
           "Initial": formatMAD(s.openingBalance || 0),
         };
-        if (isAdminOrPrepa) {
-          data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
-        }
+        data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
         data["Versements"] = formatMAD(s.totalVersements || 0);
         data["Final"] = formatMAD(s.closingBalanceReal || 0);
         return data;
@@ -225,10 +224,6 @@ function SessionsContent() {
       ];
 
       const ws = XLSX.utils.json_to_sheet(finalExcelRows);
-      ws['!cols'] = [
-        { wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
-      ];
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Opérations");
       XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
@@ -279,21 +274,17 @@ function SessionsContent() {
                     </div>
 
                     <div className="flex flex-col items-center">
-                      {isAdminOrPrepa ? (
-                        <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
-                            FLUX NET (APRES CHARGES)
+                      <div className="flex flex-col items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
+                          FLUX NET (APRES CHARGES)
+                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                            {formatCurrency(totalFluxNet)}
                           </span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
-                              {formatCurrency(totalFluxNet)}
-                            </span>
-                            <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
-                          </div>
+                          <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
                         </div>
-                      ) : (
-                        <div className="h-[1px] w-8 bg-slate-100 opacity-10" />
-                      )}
+                      </div>
                     </div>
 
                     <div className="flex justify-end">
