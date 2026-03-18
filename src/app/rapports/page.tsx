@@ -92,6 +92,13 @@ export default function ReportsPage() {
     const expenses = filteredTrans.filter(t => t.type === "DEPENSE" || t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
+    // Tri des ventes par Numéro du Bon (ASC) pour l'onglet Marges
+    const sortedSalesForMargins = [...filteredSales].sort((a: any, b: any) => {
+      const bonA = a.bonNumber || "";
+      const bonB = b.bonNumber || "";
+      return bonA.localeCompare(bonB, undefined, { numeric: true });
+    });
+
     return {
       ca: roundAmount(ca), 
       volumeFacture: roundAmount(volumeFacture),
@@ -99,7 +106,7 @@ export default function ReportsPage() {
       expenses: roundAmount(expenses), 
       versements: roundAmount(versements), 
       count: filteredSales.length,
-      filteredSales, 
+      filteredSales: sortedSalesForMargins, 
       filteredTrans
     };
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
@@ -271,7 +278,9 @@ export default function ReportsPage() {
               <Table>
                 <TableHeader className="bg-[#6a8036]">
                   <TableRow>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Date</TableHead>
                     <TableHead className="text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Vente</TableHead>
+                    <TableHead className="text-center text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Statut</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Prix Vente</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Achat Monture</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-5 tracking-widest text-white">Achat Verre</TableHead>
@@ -288,11 +297,27 @@ export default function ReportsPage() {
                     
                     return (
                       <TableRow key={s.id} className="hover:bg-primary/5 border-b last:border-0 transition-all">
+                        <TableCell className="text-[10px] font-bold text-muted-foreground px-6 py-5">
+                          {s.createdAt?.toDate ? format(s.createdAt.toDate(), "dd/MM/yyyy") : "---"}
+                        </TableCell>
                         <TableCell className="px-6 py-5">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{s.clientName}</span>
                             <span className="text-[9px] font-bold text-primary/40 mt-0.5 tracking-wider">{s.invoiceId}</span>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-center px-6 py-5">
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[8px] font-black uppercase border-none",
+                              s.statut === "Payé" ? "bg-green-100 text-green-700" : 
+                              s.statut === "Partiel" ? "bg-blue-100 text-blue-700" : 
+                              "bg-red-100 text-red-700"
+                            )}
+                          >
+                            {s.statut}
+                          </Badge>
                         </TableCell>
                         <td className="text-right px-6 py-5 font-black text-sm text-slate-900 tabular-nums">
                           {formatCurrency(net)}
@@ -308,7 +333,7 @@ export default function ReportsPage() {
                         </td>
                       </TableRow>
                     );
-                  }) : <TableRow><TableCell colSpan={5} className="text-center py-24 text-[10px] font-black uppercase opacity-30 tracking-[0.4em]">Aucune donnée de marge disponible.</TableCell></TableRow>}
+                  }) : <TableRow><TableCell colSpan={7} className="text-center py-24 text-[10px] font-black uppercase opacity-30 tracking-[0.4em]">Aucune donnée de marge disponible.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </Card>
