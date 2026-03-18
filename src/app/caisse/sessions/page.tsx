@@ -260,7 +260,6 @@ function SessionsContent() {
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
                 <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
                   <div className="grid grid-cols-3 items-center px-10 py-5 min-h-[85px]">
-                    {/* Colonne Gauche : Mois */}
                     <div className="flex justify-start items-center">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
                         <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
@@ -272,7 +271,6 @@ function SessionsContent() {
                       </AccordionTrigger>
                     </div>
 
-                    {/* Colonne Centre : Flux Net (Protégé) */}
                     <div className="flex flex-col items-center">
                       {isAdminOrPrepa ? (
                         <div className="flex flex-col items-center">
@@ -291,7 +289,6 @@ function SessionsContent() {
                       )}
                     </div>
 
-                    {/* Colonne Droite : Bouton Excel */}
                     <div className="flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
@@ -311,7 +308,7 @@ function SessionsContent() {
                             <TableHead className="text-[9px] uppercase font-black px-8 py-4 text-white">Date & Statut</TableHead>
                             <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Ouverture</TableHead>
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Initial</TableHead>
-                            {isAdminOrPrepa && <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>}
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Versements</TableHead>
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Final</TableHead>
                             <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Clôture</TableHead>
@@ -344,11 +341,9 @@ function SessionsContent() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-4 font-black text-[10px] tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                {isAdminOrPrepa && (
-                                  <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
-                                    {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
-                                  </TableCell>
-                                )}
+                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
+                                  {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
+                                </TableCell>
                                 <TableCell className="text-right px-2 py-4 font-black text-[10px] text-orange-600 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
