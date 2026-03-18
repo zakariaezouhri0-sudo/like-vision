@@ -111,14 +111,26 @@ function SessionsContent() {
         return {
           "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
-          "Initial": formatMAD(s.openingBalance || 0),
-          "Flux Net": formatMAD((s.totalSales || 0) - (s.totalExpenses || 0)),
-          "Versements": formatMAD(s.totalVersements || 0),
-          "Final": formatMAD(s.closingBalanceReal || 0)
+          "Initial": s.openingBalance || 0,
+          "Flux Net": (s.totalSales || 0) - (s.totalExpenses || 0),
+          "Versements": s.totalVersements || 0,
+          "Final": s.closingBalanceReal || (s.openingBalance + (s.totalSales || 0) - (s.totalExpenses || 0) - (s.totalVersements || 0))
         };
       });
 
       const ws = XLSX.utils.json_to_sheet(rows);
+      
+      // Appliquer le formatage MAD et l'alignement à droite (par le type nombre)
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        for (let C = 2; C <= 5; ++C) {
+          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.t === 'n') {
+            cell.z = '#,##0.00 "MAD"';
+          }
+        }
+      }
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sessions");
       XLSX.writeFile(wb, `Like Vision - Sessions ${monthName}.xlsx`);
@@ -175,7 +187,7 @@ function SessionsContent() {
         
         const sale = salesMap[invoiceId];
         const isVente = t.type === "VENTE";
-        const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : null;
+        const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
         const movement = Math.abs(t.montant);
         const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
         
@@ -200,9 +212,9 @@ function SessionsContent() {
           "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
           "Libellé": displayLabel,
           "Nom client": t.clientName || "---",
-          "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
-          "Mouvement": isVente ? formatMAD(movement) : "",
-          "SORTIE": !isVente ? formatMAD(movement) : ""
+          "Montant Tot": isVente && totalNet !== null ? totalNet : null,
+          "Mouvement": isVente ? movement : null,
+          "SORTIE": !isVente ? movement : null
         };
       };
 
@@ -221,6 +233,19 @@ function SessionsContent() {
       ];
 
       const ws = XLSX.utils.json_to_sheet(finalExcelRows);
+      
+      // Appliquer le formatage MAD et l'alignement à droite
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        // Colonnes E (4), F (5), G (6) : Montant Tot, Mouvement, SORTIE
+        for (let C = 4; C <= 6; ++C) {
+          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.t === 'n') {
+            cell.z = '#,##0.00 "MAD"';
+          }
+        }
+      }
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Opérations");
       XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
@@ -272,7 +297,7 @@ function SessionsContent() {
 
                     <div className="flex flex-col items-center">
                       {role === 'OPTICIENNE' ? (
-                        <div className="h-px w-8 bg-slate-100" />
+                        <div className="h-px w-8 bg-slate-100 opacity-20" />
                       ) : (
                         <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
