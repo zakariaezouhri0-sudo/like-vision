@@ -282,7 +282,7 @@ function SessionsContent() {
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
                 <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-slate-50 transition-all duration-500 hover:border-primary/10">
-                  <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-6 md:py-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-4 md:py-5">
                     <div className="flex justify-start">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-6 group">
                         <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 transition-all duration-300 shadow-inner">
@@ -347,7 +347,7 @@ function SessionsContent() {
                             const fluxNet = (s.totalSales || 0) - (s.totalExpenses || 0);
 
                             return (
-                              <TableRow key={s.id} className={cn("hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0", isSunday && "bg-rose-50/30")}>
+                              <TableRow key={s.id} className={cn("hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0", isSunday && "bg-red-50/40")}>
                                 <TableCell className="px-8 py-5">
                                   <div className="flex flex-col gap-1">
                                     <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
@@ -362,8 +362,8 @@ function SessionsContent() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
-                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-400 font-bold text-[10px] tabular-nums border border-slate-100 shadow-sm">
-                                    <Clock className="h-3 w-3 opacity-40" />
+                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-600 font-black text-[10px] tabular-nums border border-green-100/50 shadow-sm">
+                                    <Clock className="h-3 w-3" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
@@ -379,8 +379,8 @@ function SessionsContent() {
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
                                   {isClosed ? (
-                                    <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-400 font-bold text-[10px] tabular-nums border border-slate-100 shadow-sm">
-                                      <Clock className="h-3 w-3 opacity-40" />
+                                    <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-600 font-black text-[10px] tabular-nums border border-red-100/50 shadow-sm">
+                                      <Clock className="h-3 w-3" />
                                       {s.closedAt?.toDate ? format(s.closedAt.toDate(), "HH:mm") : "--:--"}
                                     </div>
                                   ) : (
