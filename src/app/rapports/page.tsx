@@ -92,11 +92,14 @@ export default function ReportsPage() {
     const expenses = filteredTrans.filter(t => t.type === "DEPENSE" || t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
-    // Tri des ventes par Numéro du Bon (ASC) pour l'onglet Marges
+    // Tri des ventes par Numéro de Facture (DESC) pour l'onglet Marges
     const sortedSalesForMargins = [...filteredSales].sort((a: any, b: any) => {
-      const bonA = a.bonNumber || "";
-      const bonB = b.bonNumber || "";
-      return bonA.localeCompare(bonB, undefined, { numeric: true });
+      const idA = a.invoiceId || "";
+      const idB = b.invoiceId || "";
+      // Extraction de la séquence numérique (ex: 2516 depuis FC-2026-2516)
+      const numA = parseInt(idA.split("-").pop() || "0", 10);
+      const numB = parseInt(idB.split("-").pop() || "0", 10);
+      return numB - numA;
     });
 
     return {
