@@ -192,7 +192,6 @@ function NewSaleForm() {
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
     
-    // Si le client sélectionné a un parentPhone, on montre qu'il fait partie d'une famille
     setIsFamilyMode(!!client.parentPhone);
 
     if (client.mutuelle) {
@@ -211,7 +210,6 @@ function NewSaleForm() {
     if (activeEditId || !isClientReady || !matchedClients) return;
 
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
-    // On ne pré-remplit le nom que si on n'est pas en mode "Parrainage" (pour ne pas écraser la saisie d'un nouveau membre)
     if (cleanedPhone.length >= 8 && matchedClients.length > 0 && !isFamilyMode) {
       if (matchedClients.length === 1 && !clientName) {
         const found = matchedClients[0];
@@ -256,9 +254,8 @@ function NewSaleForm() {
   const handleToggleFamilyMode = (checked: boolean) => {
     setIsFamilyMode(checked);
     if (checked) {
-      // Si on active le parrainage, on veut ajouter un NOUVEAU membre sous ce téléphone
       setSelectedClientId(null);
-      setClientName(""); // On vide le nom pour inciter à saisir celui du nouveau membre
+      setClientName(""); 
       toast({ 
         title: "Mode Parrainage Activé", 
         description: "Saisissez le nom du nouveau membre pour ce numéro." 
@@ -449,6 +446,11 @@ function NewSaleForm() {
   if (!isClientReady || (activeEditId && saleDataLoading)) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
+  
+  // Afficher la liste si on a des résultats ET (le champ nom est focus OU on vient de saisir un tel de 8+ chiffres sans encore choisir de client)
+  const showMatchedClients = matchedClients && matchedClients.length > 0 && !isReadOnly && (
+    isNameFocused || ((clientPhone || "").replace(/\s/g, "").length >= 8 && !selectedClientId)
+  );
 
   return (
     <AppShell>
@@ -519,20 +521,23 @@ function NewSaleForm() {
                         className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "opacity-50")} 
                         placeholder="M. Mohamed Alami..." 
                         value={clientName} 
-                        onChange={e => setClientName(e.target.value)} 
+                        onChange={e => {
+                          setClientName(e.target.value);
+                          if (selectedClientId) setSelectedClientId(null);
+                        }} 
                         onFocus={() => !isReadOnly && setIsNameFocused(true)}
                         onClick={() => !isReadOnly && setIsNameFocused(true)}
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)}
                         readOnly={isReadOnly} 
                       />
                       
-                      {matchedClients && matchedClients.length > 0 && !isReadOnly && isNameFocused && (
+                      {showMatchedClients && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
-                            {(clientPhone || "").replace(/\s/g, "").length >= 8 ? "Membres de la famille" : "Résultats de recherche"}
+                            {(clientPhone || "").replace(/\s/g, "").length >= 8 ? "Membres de la famille trouvés" : "Résultats de recherche"}
                           </p>
                           {matchedClients.map(c => (
-                            <button key={c?.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c?.name === clientName && "bg-primary/5")}>
+                            <button key={c?.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c?.id === selectedClientId && "bg-primary/5")}>
                               <div className="flex flex-col">
                                 <span className="text-xs font-black uppercase group-hover:text-primary">{c?.name || "---"}</span>
                                 <div className="flex items-center gap-2">
