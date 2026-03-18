@@ -110,13 +110,13 @@ function SessionsContent() {
         const data: any = {
           "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
-          "Initial (MAD)": roundAmount(s.openingBalance || 0),
+          "Initial": formatMAD(s.openingBalance || 0),
         };
         if (isAdminOrPrepa) {
-          data["Flux Net (MAD)"] = roundAmount((s.totalSales || 0) - (s.totalExpenses || 0));
+          data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
         }
-        data["Versements (MAD)"] = roundAmount(s.totalVersements || 0);
-        data["Final (MAD)"] = roundAmount(s.closingBalanceReal || 0);
+        data["Versements"] = formatMAD(s.totalVersements || 0);
+        data["Final"] = formatMAD(s.closingBalanceReal || 0);
         return data;
       });
 
@@ -202,9 +202,9 @@ function SessionsContent() {
           "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
           "Libellé": displayLabel,
           "Nom client": t.clientName || "---",
-          "Montant Tot (MAD)": isVente && totalNet !== null ? roundAmount(totalNet) : null,
-          "Mouvement (MAD)": isVente ? roundAmount(movement) : null,
-          "SORTIE (MAD)": !isVente ? roundAmount(movement) : null
+          "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
+          "Mouvement": isVente ? formatMAD(movement) : "",
+          "SORTIE": !isVente ? formatMAD(movement) : ""
         };
       };
 
@@ -292,7 +292,7 @@ function SessionsContent() {
                           </div>
                         </div>
                       ) : (
-                        <div className="h-[1px] w-8 bg-slate-100 opacity-30" />
+                        <div className="h-[1px] w-8 bg-slate-100 opacity-10" />
                       )}
                     </div>
 
