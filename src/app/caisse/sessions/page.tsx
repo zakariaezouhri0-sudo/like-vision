@@ -207,20 +207,18 @@ function SessionsContent() {
         };
       };
 
-      const nouveauxClients = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
-      
+      const nouveauxVentes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
       const depensesUniquement = allTrans.filter((t: any) => t.type !== "VENTE" && t.type !== "VERSEMENT");
       const versementsUniquement = allTrans.filter((t: any) => t.type === "VERSEMENT");
-      const depensesEtVersements = [...depensesUniquement, ...versementsUniquement];
-      
-      const resteARegler = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
+      const sorties = [...depensesUniquement, ...versementsUniquement];
+      const reglementsRestes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
       const finalExcelRows = [
-        ...nouveauxClients.map(mapRow),
+        ...nouveauxVentes.map(mapRow),
         {}, 
-        ...depensesEtVersements.map(mapRow),
+        ...sorties.map(mapRow),
         {}, 
-        ...resteARegler.map(mapRow)
+        ...reglementsRestes.map(mapRow)
       ];
 
       const ws = XLSX.utils.json_to_sheet(finalExcelRows);
@@ -262,35 +260,42 @@ function SessionsContent() {
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
                 <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
                   <div className="grid grid-cols-3 items-center px-10 py-5 min-h-[85px]">
+                    {/* Colonne Gauche : Mois */}
                     <div className="flex justify-start items-center">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
                         <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
                           <ChevronRight className="h-4 w-4 text-[#828A32] transition-transform duration-300 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-sm font-black text-[#828A32] tracking-widest uppercase whitespace-nowrap">
+                        <span className="text-xs font-black text-[#828A32] tracking-widest uppercase whitespace-nowrap">
                           {monthName}
                         </span>
                       </AccordionTrigger>
                     </div>
 
+                    {/* Colonne Centre : Flux Net (Protégé) */}
                     <div className="flex flex-col items-center">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
-                          FLUX NET (APRES CHARGES)
-                        </span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
-                            {formatCurrency(totalFluxNet)}
+                      {isAdminOrPrepa ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
+                            FLUX NET (APRES CHARGES)
                           </span>
-                          <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                              {formatCurrency(totalFluxNet)}
+                            </span>
+                            <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="h-px w-12 bg-slate-100/50" />
+                      )}
                     </div>
 
+                    {/* Colonne Droite : Bouton Excel */}
                     <div className="flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-9 px-5 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
                       >
                         <Download className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
                         <span>EXCEL</span>
