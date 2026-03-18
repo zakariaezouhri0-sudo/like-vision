@@ -110,13 +110,13 @@ function SessionsContent() {
         const data: any = {
           "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
-          "Initial": formatMAD(s.openingBalance || 0),
+          "Initial (MAD)": roundAmount(s.openingBalance || 0),
         };
         if (isAdminOrPrepa) {
-          data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
+          data["Flux Net (MAD)"] = roundAmount((s.totalSales || 0) - (s.totalExpenses || 0));
         }
-        data["Versements"] = formatMAD(s.totalVersements || 0);
-        data["Final"] = formatMAD(s.closingBalanceReal || 0);
+        data["Versements (MAD)"] = roundAmount(s.totalVersements || 0);
+        data["Final (MAD)"] = roundAmount(s.closingBalanceReal || 0);
         return data;
       });
 
@@ -202,15 +202,14 @@ function SessionsContent() {
           "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
           "Libellé": displayLabel,
           "Nom client": t.clientName || "---",
-          "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
-          "Mouvement": isVente ? formatMAD(movement) : "",
-          "SORTIE": !isVente ? formatMAD(movement) : ""
+          "Montant Tot (MAD)": isVente && totalNet !== null ? roundAmount(totalNet) : null,
+          "Mouvement (MAD)": isVente ? roundAmount(movement) : null,
+          "SORTIE (MAD)": !isVente ? roundAmount(movement) : null
         };
       };
 
       const nouveauxClients = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
       
-      // Séparation Dépenses vs Versements pour forcer les versements en dernier
       const depensesUniquement = allTrans.filter((t: any) => t.type !== "VENTE" && t.type !== "VERSEMENT");
       const versementsUniquement = allTrans.filter((t: any) => t.type === "VERSEMENT");
       const depensesEtVersements = [...depensesUniquement, ...versementsUniquement];
@@ -281,29 +280,29 @@ function SessionsContent() {
 
                     <div className="flex flex-col items-center">
                       {isAdminOrPrepa ? (
-                        <>
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1.5 opacity-70">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
                             FLUX NET (APRES CHARGES)
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                            <span className="text-lg font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[10px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
+                            <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
                           </div>
-                        </>
+                        </div>
                       ) : (
-                        <div className="h-[1px] w-8 bg-slate-100" />
+                        <div className="h-[1px] w-8 bg-slate-100 opacity-30" />
                       )}
                     </div>
 
                     <div className="flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-9 px-5 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
                       >
-                        <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
-                        <span className="hidden md:inline">EXCEL</span>
+                        <Download className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
+                        <span>EXCEL</span>
                       </Button>
                     </div>
                   </div>
