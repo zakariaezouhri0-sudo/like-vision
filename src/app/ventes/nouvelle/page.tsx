@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -20,6 +20,8 @@ import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, whe
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -49,7 +51,7 @@ function NewSaleForm() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
-  const [saleDate] = useState<Date>(() => {
+  const [saleDate, setSaleDate] = useState<Date>(() => {
     const d = searchParams.get("date_raw");
     if (d) {
       const parsed = new Date(d);
@@ -93,6 +95,57 @@ function NewSaleForm() {
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
+
+  const existingSaleRef = useMemoFirebase(() => activeEditId ? doc(db, "sales", activeEditId) : null, [db, activeEditId]);
+  const { data: existingSale, isLoading: saleDataLoading } = useDoc(existingSaleRef);
+
+  useEffect(() => {
+    if (existingSale) {
+      setClientName(existingSale.clientName || "");
+      setClientPhone(existingSale.clientPhone || "");
+      setBonNumber(existingSale.bonNumber || "");
+      setFromDoctor(!!existingSale.fromDoctor);
+      setEditableInvoiceId(existingSale.invoiceId || "");
+      setMonture(existingSale.monture || "");
+      setVerres(existingSale.verres || "");
+      setNotes(existingSale.notes || "");
+      setTotal(formatCurrency(existingSale.total || 0));
+      setDiscountType(existingSale.discountType || 'fixed');
+      setDiscountValue(existingSale.discountType === 'percent' ? (existingSale.discountValue || 0).toString() : formatCurrency(existingSale.discountValue || 0));
+      setAvance(formatCurrency(existingSale.avance || 0));
+      
+      if (existingSale.prescription) {
+        setPrescription({
+          od: {
+            sph: existingSale.prescription.od?.sph || "",
+            cyl: existingSale.prescription.od?.cyl || "",
+            axe: existingSale.prescription.od?.axe || "",
+            add: existingSale.prescription.od?.add || ""
+          },
+          og: {
+            sph: existingSale.prescription.og?.sph || "",
+            cyl: existingSale.prescription.og?.cyl || "",
+            axe: existingSale.prescription.og?.axe || "",
+            add: existingSale.prescription.og?.add || ""
+          }
+        });
+      }
+
+      if (existingSale.mutuelle) {
+        if (MUTUELLES.filter(m => m !== 'Autre').includes(existingSale.mutuelle)) {
+          setMutuelle(existingSale.mutuelle);
+          setCustomMutuelle("");
+        } else {
+          setMutuelle("Autre");
+          setCustomMutuelle(existingSale.mutuelle);
+        }
+      }
+
+      if (existingSale.createdAt?.toDate) {
+        setSaleDate(existingSale.createdAt.toDate());
+      }
+    }
+  }, [existingSale]);
 
   const sessionDocId = useMemo(() => {
     if (!isClientReady || !isValid(saleDate)) return null;
@@ -183,7 +236,7 @@ function NewSaleForm() {
   };
 
   const handleSave = async (shouldPrint: boolean = false) => {
-    if (sessionLoading) return;
+    if (sessionLoading || saleDataLoading) return;
     
     if (isSessionClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "ERREUR CRITIQUE", description: "La caisse de cette journée est clôturée." });
@@ -195,7 +248,6 @@ function NewSaleForm() {
     setLoading(true);
     const currentIsDraft = role === "PREPA";
     
-    // VÉRIFICATION DES DOUBLONS DE BON
     try {
       const bonCheckQuery = query(
         collection(db, "sales"),
@@ -296,11 +348,11 @@ function NewSaleForm() {
           statut: statut,
           prescription: cleanPrescription,
           isDraft: !!currentIsDraft,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          createdAt: Timestamp.fromDate(saleDate)
         };
 
         if (!activeEditId) {
-          saleData.createdAt = Timestamp.fromDate(saleDate);
           saleData.createdBy = currentUserName;
           saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: new Date().toISOString(), userName: currentUserName }] : [];
         }
@@ -337,7 +389,7 @@ function NewSaleForm() {
         }
       });
 
-      toast({ variant: "success", title: "Vente Enregistrée" });
+      toast({ variant: "success", title: activeEditId ? "Modification Enregistrée" : "Vente Enregistrée" });
 
       if (cleanedPhone && !activeEditId) {
         setTimeout(async () => {
@@ -363,7 +415,7 @@ function NewSaleForm() {
     }
   };
 
-  if (!isClientReady) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
+  if (!isClientReady || (activeEditId && saleDataLoading)) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
 
@@ -373,7 +425,11 @@ function NewSaleForm() {
         <div className="flex justify-between items-center bg-white p-6 rounded-[32px] border shadow-sm">
           <div className="flex items-center gap-4">
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", isPrepaMode ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary")}><ShoppingBag className="h-6 w-6" /></div>
-            <div><h1 className="text-2xl font-black text-primary uppercase tracking-tighter">{isPrepaMode ? "Saisie Historique" : "Nouvelle Vente"}</h1></div>
+            <div>
+              <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">
+                {activeEditId ? "Modifier Vente" : (isPrepaMode ? "Saisie Historique" : "Nouvelle Vente")}
+              </h1>
+            </div>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || sessionLoading || isReadOnly}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
@@ -500,16 +556,35 @@ function NewSaleForm() {
                       <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   )}
-                  {isAdminOrPrepa && activeEditId && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
-                      <div className="relative">
-                        <FileText className="absolute left-4 top-3.5 h-4 w-4 text-destructive/30" />
-                        <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={isReadOnly} />
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {isAdminOrPrepa && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-dashed">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase ml-1 text-primary">Date de la Vente (ADMIN)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4" disabled={isReadOnly}>
+                            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                            {format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                          <Calendar mode="single" selected={saleDate} onSelect={(d) => d && setSaleDate(d)} locale={fr} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {activeEditId && (
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
+                        <div className="relative">
+                          <FileText className="absolute left-4 top-3.5 h-4 w-4 text-destructive/30" />
+                          <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={isReadOnly} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
             

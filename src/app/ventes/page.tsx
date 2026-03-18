@@ -88,7 +88,7 @@ function SalesHistoryContent() {
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
         return matchesDate && matchesSearch && matchesStatus;
       });
-  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
+  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, iisReady]);
 
   const handleDelete = async (sale: any) => {
     if (!isAdminOrPrepa) return;
@@ -184,6 +184,11 @@ function SalesHistoryContent() {
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
                             <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-2.5 font-bold text-xs cursor-pointer"><FileText className="mr-2 h-4 w-4" /> Imprimer</DropdownMenuItem>
+                            {isAdminOrPrepa && (
+                              <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-2.5 font-bold text-xs cursor-pointer">
+                                <Edit2 className="mr-2 h-4 w-4" /> Modifier
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-2.5 font-bold text-xs cursor-pointer"><Tag className="mr-2 h-4 w-4" /> Coûts d'Achat</DropdownMenuItem>
                             {isAdminOrPrepa && (<DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-2.5 font-bold text-xs cursor-pointer"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</DropdownMenuItem>)}
                           </DropdownMenuContent>
