@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs, orderBy } from "firebase/firestore";
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
@@ -158,23 +158,42 @@ function NewSaleForm() {
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
 
   const clientsQuery = useMemoFirebase(() => {
-    const cleaned = (clientPhone || "").replace(/\s/g, "");
-    if (cleaned.length < 8) return null;
-    return query(
-      collection(db, "clients"), 
-      where("phone", "==", cleaned),
-      limit(10)
-    );
-  }, [db, clientPhone]);
+    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
+    const nameSearch = (clientName || "").trim().toUpperCase();
+    const currentIsDraft = role === "PREPA";
 
-  const { data: matchedFamily } = useCollection(clientsQuery);
+    // Recherche par téléphone (priorité)
+    if (cleanedPhone.length >= 8) {
+      return query(
+        collection(db, "clients"), 
+        where("isDraft", "==", currentIsDraft),
+        where("phone", "==", cleanedPhone),
+        limit(10)
+      );
+    }
+
+    // Recherche par nom
+    if (nameSearch.length >= 3) {
+      return query(
+        collection(db, "clients"),
+        where("isDraft", "==", currentIsDraft),
+        where("name", ">=", nameSearch),
+        where("name", "<=", nameSearch + "\uf8ff"),
+        limit(10)
+      );
+    }
+
+    return null;
+  }, [db, clientPhone, clientName, role]);
+
+  const { data: matchedClients } = useCollection(clientsQuery);
 
   const handleSelectMember = (client: any) => {
     if (!client) return;
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
-    if (client.parentPhone || (matchedFamily && matchedFamily.length > 0)) {
+    if (client.parentPhone || (client.phone && (clientPhone.length >= 8))) {
       setIsFamilyMode(true);
     }
     if (client.mutuelle) {
@@ -190,12 +209,14 @@ function NewSaleForm() {
   };
 
   useEffect(() => {
-    if (activeEditId || !isClientReady || !matchedFamily) return;
+    if (activeEditId || !isClientReady || !matchedClients) return;
 
-    if (matchedFamily.length > 0) {
+    // Si on cherche par tel et qu'on trouve exactement un membre, on peut pré-remplir si le nom est vide
+    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
+    if (cleanedPhone.length >= 8 && matchedClients.length > 0) {
       setIsFamilyMode(true);
-      if (matchedFamily.length === 1 && !clientName) {
-        const found = matchedFamily[0];
+      if (matchedClients.length === 1 && !clientName) {
+        const found = matchedClients[0];
         setClientName(found.name || "");
         setSelectedClientId(found.id);
         if (found.mutuelle) {
@@ -209,7 +230,7 @@ function NewSaleForm() {
         }
       }
     }
-  }, [matchedFamily, activeEditId, isClientReady, clientName]);
+  }, [matchedClients, activeEditId, isClientReady, clientName, clientPhone]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -222,7 +243,6 @@ function NewSaleForm() {
     const raw = val.replace(/\D/g, '');
     if (raw === "") { 
       setClientPhone(""); 
-      setClientName(""); 
       setMutuelle("Aucun"); 
       setCustomMutuelle(""); 
       setIsFamilyMode(false);
@@ -495,16 +515,19 @@ function NewSaleForm() {
                         readOnly={isReadOnly} 
                       />
                       
-                      {matchedFamily && matchedFamily.length > 0 && !isReadOnly && isNameFocused && (
+                      {matchedClients && matchedClients.length > 0 && !isReadOnly && isNameFocused && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-primary/10 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                           <p className="px-4 py-2 bg-slate-50 text-[8px] font-black text-primary/40 uppercase tracking-widest border-b">
-                            {matchedFamily.length === 1 && matchedFamily[0]?.name === clientName ? "Dossier Identifié" : `Membres de la famille (${matchedFamily.length})`}
+                            {(clientPhone || "").replace(/\s/g, "").length >= 8 ? "Membres de la famille" : "Résultats de recherche"}
                           </p>
-                          {matchedFamily.map(c => (
+                          {matchedClients.map(c => (
                             <button key={c?.id} onClick={() => handleSelectMember(c)} className={cn("w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-0", c?.name === clientName && "bg-primary/5")}>
                               <div className="flex flex-col">
                                 <span className="text-xs font-black uppercase group-hover:text-primary">{c?.name || "---"}</span>
-                                {c?.mutuelle && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{c.mutuelle}</span>}
+                                <div className="flex items-center gap-2">
+                                  {c?.phone && <span className="text-[7px] font-bold text-slate-400 tabular-nums">{formatPhoneNumber(c.phone)}</span>}
+                                  {c?.mutuelle && <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">• {c.mutuelle}</span>}
+                                </div>
                               </div>
                               <span className="text-[8px] font-bold text-slate-400">Choisir</span>
                             </button>
