@@ -162,7 +162,6 @@ function NewSaleForm() {
     const nameSearch = (clientName || "").trim().toUpperCase();
     const currentIsDraft = role === "PREPA";
 
-    // Recherche par téléphone (priorité)
     if (cleanedPhone.length >= 8) {
       return query(
         collection(db, "clients"), 
@@ -172,7 +171,6 @@ function NewSaleForm() {
       );
     }
 
-    // Recherche par nom
     if (nameSearch.length >= 3) {
       return query(
         collection(db, "clients"),
@@ -193,9 +191,10 @@ function NewSaleForm() {
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
-    if (client.parentPhone || (client.phone && (clientPhone.length >= 8))) {
-      setIsFamilyMode(true);
-    }
+    
+    // Si le client sélectionné a un parentPhone, on montre qu'il fait partie d'une famille
+    setIsFamilyMode(!!client.parentPhone);
+
     if (client.mutuelle) {
       if (MUTUELLES.filter(m => m !== 'Autre').includes(client.mutuelle)) {
         setMutuelle(client.mutuelle);
@@ -211,10 +210,9 @@ function NewSaleForm() {
   useEffect(() => {
     if (activeEditId || !isClientReady || !matchedClients) return;
 
-    // Si on cherche par tel et qu'on trouve exactement un membre, on peut pré-remplir si le nom est vide
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
-    if (cleanedPhone.length >= 8 && matchedClients.length > 0) {
-      setIsFamilyMode(true);
+    // On ne pré-remplit le nom que si on n'est pas en mode "Parrainage" (pour ne pas écraser la saisie d'un nouveau membre)
+    if (cleanedPhone.length >= 8 && matchedClients.length > 0 && !isFamilyMode) {
       if (matchedClients.length === 1 && !clientName) {
         const found = matchedClients[0];
         setClientName(found.name || "");
@@ -230,7 +228,7 @@ function NewSaleForm() {
         }
       }
     }
-  }, [matchedClients, activeEditId, isClientReady, clientName, clientPhone]);
+  }, [matchedClients, activeEditId, isClientReady, clientName, clientPhone, isFamilyMode]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -253,6 +251,19 @@ function NewSaleForm() {
     if (raw.length >= 1 && raw[0] !== '0') return;
     if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
     setClientPhone(raw);
+  };
+
+  const handleToggleFamilyMode = (checked: boolean) => {
+    setIsFamilyMode(checked);
+    if (checked) {
+      // Si on active le parrainage, on veut ajouter un NOUVEAU membre sous ce téléphone
+      setSelectedClientId(null);
+      setClientName(""); // On vide le nom pour inciter à saisir celui du nouveau membre
+      toast({ 
+        title: "Mode Parrainage Activé", 
+        description: "Saisissez le nom du nouveau membre pour ce numéro." 
+      });
+    }
   };
 
   const handleSave = async (shouldPrint: boolean = false) => {
@@ -493,7 +504,7 @@ function NewSaleForm() {
                       <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
-                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={(v) => setIsFamilyMode(!!v)} disabled={isReadOnly} />
+                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} disabled={isReadOnly} />
                       <label htmlFor="familyMode" className="text-[10px] font-black uppercase cursor-pointer flex items-center gap-1.5 text-orange-600">
                         <Users className="h-3 w-3" /> PARRAINAGE / FAMILLE
                       </label>
