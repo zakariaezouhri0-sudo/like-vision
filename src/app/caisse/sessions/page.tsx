@@ -137,13 +137,14 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
+      // Récupération des transactions du jour
       const q = query(
         collection(db, "transactions"),
         where("isDraft", "==", isPrepaMode)
       );
       
       const snap = await getDocs(q);
-      const trans = snap.docs
+      const allTrans = snap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as any))
         .filter(t => {
           if (!t.createdAt?.toDate) return false;
@@ -151,22 +152,84 @@ function SessionsContent() {
           return tDate >= start && tDate <= end;
         });
 
-      if (trans.length === 0) {
+      if (allTrans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
         return;
       }
 
-      const mapRow = (t: any) => ({
-        "Réf": t.relatedId ? t.relatedId.slice(-4) : "---",
-        "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---",
-        "Libellé": t.label || "---",
-        "Nom client": t.clientName || "---",
-        "Montant Tot": t.type === "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : "",
-        "Mouvement": t.type === "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : "",
-        "SORTIE": t.type !== "VENTE" ? formatMAD(Math.abs(t.montant || 0)) : ""
+      // Récupération des ventes pour avoir le Montant Tot (Total net)
+      const qSales = query(
+        collection(db, "sales"),
+        where("isDraft", "==", isPrepaMode)
+      );
+      const salesSnap = await getDocs(qSales);
+      const salesMap: Record<string, any> = {};
+      salesSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.invoiceId) salesMap[data.invoiceId] = data;
       });
 
-      const ws = XLSX.utils.json_to_sheet(trans.map(mapRow));
+      const mapRow = (t: any) => {
+        if (!t.id) return {}; // Pour les lignes vides
+
+        let invoiceId = t.relatedId || "";
+        if (!invoiceId && t.label?.includes('VENTE')) {
+          invoiceId = t.label.replace('VENTE ', '').trim();
+        }
+        
+        const sale = salesMap[invoiceId];
+        const isVente = t.type === "VENTE";
+        const totalNet = sale ? (Number(sale.total) - (Number(sale.remise) || 0)) : null;
+        const movement = Math.abs(t.montant);
+        const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+        
+        let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
+        if (t.type === "VERSEMENT" && !isVente) {
+          const clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
+          displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
+        } else if (!isVente) {
+          const typeStr = t.type || "";
+          const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
+          let cleanedLabel = t.label || "";
+          redundantPrefixes.forEach(p => {
+            const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
+            cleanedLabel = cleanedLabel.replace(reg, '');
+          });
+          cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
+          displayLabel = `${typeStr} | ${cleanedLabel || "---"}`;
+        }
+
+        return {
+          "Réf": refDisplay,
+          "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
+          "Libellé": displayLabel,
+          "Nom client": t.clientName || "---",
+          "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
+          "Mouvement": isVente ? formatMAD(movement) : "",
+          "SORTIE": !isVente ? formatMAD(movement) : ""
+        };
+      };
+
+      // Groupement selon les instructions utilisateur
+      const nouveauxClients = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+      const depensesEtVersements = allTrans.filter((t: any) => t.type !== "VENTE");
+      const resteARegler = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
+
+      const finalExcelRows = [
+        ...nouveauxClients.map(mapRow),
+        {}, // Ligne vide après nouveaux clients
+        ...depensesEtVersements.map(mapRow),
+        {}, // Ligne vide après dépenses
+        ...resteARegler.map(mapRow)
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(finalExcelRows);
+      
+      // Ajustement des colonnes
+      ws['!cols'] = [
+        { wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
+      ];
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Opérations");
       XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
@@ -205,7 +268,6 @@ function SessionsContent() {
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
                 <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
                   <div className="flex items-center px-10 py-5 min-h-[85px]">
-                    {/* LEFT SIDE: 1/3 */}
                     <div className="flex-1 flex justify-start items-center">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
                         <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
@@ -217,7 +279,6 @@ function SessionsContent() {
                       </AccordionTrigger>
                     </div>
 
-                    {/* CENTER: 1/3 (ADMIN ONLY) */}
                     <div className="flex-1 flex flex-col items-center">
                       {isAdminOrPrepa ? (
                         <>
@@ -232,11 +293,10 @@ function SessionsContent() {
                           </div>
                         </>
                       ) : (
-                        <div className="h-1 w-12 bg-slate-100 rounded-full opacity-50" />
+                        <div className="h-[1px] w-12 bg-slate-100 opacity-50" />
                       )}
                     </div>
 
-                    {/* RIGHT SIDE: 1/3 */}
                     <div className="flex-1 flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
