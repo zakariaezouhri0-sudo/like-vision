@@ -107,14 +107,17 @@ function SessionsContent() {
       
       const rows = sessionsOfMonth.map(s => {
         const d = parseISO(s.date);
-        return {
+        const data: any = {
           "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
           "Initial": formatMAD(s.openingBalance || 0),
-          "Flux Net": formatMAD((s.totalSales || 0) - (s.totalExpenses || 0)),
-          "Versements": formatMAD(s.totalVersements || 0),
-          "Final": formatMAD(s.closingBalanceReal || 0)
         };
+        if (isAdminOrPrepa) {
+          data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
+        }
+        data["Versements"] = formatMAD(s.totalVersements || 0);
+        data["Final"] = formatMAD(s.closingBalanceReal || 0);
+        return data;
       });
 
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -134,7 +137,6 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
-      // Correction : Filtrage en mémoire pour éviter l'erreur d'index composite
       const q = query(
         collection(db, "transactions"),
         where("createdAt", ">=", Timestamp.fromDate(start)),
@@ -209,14 +211,18 @@ function SessionsContent() {
                       </AccordionTrigger>
                     </div>
 
-                    {/* CENTER: Centered Flux Net */}
+                    {/* CENTER: Centered Flux Net (ADMIN ONLY) */}
                     <div className="flex flex-col items-center flex-1">
-                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">
-                        FLUX NET (APRES CHARGES)
-                      </span>
-                      <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
-                        {formatCurrency(totalFluxNet)}
-                      </span>
+                      {isAdminOrPrepa && (
+                        <>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">
+                            FLUX NET (APRES CHARGES)
+                          </span>
+                          <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                            {formatCurrency(totalFluxNet)}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     {/* RIGHT SIDE */}
@@ -238,7 +244,7 @@ function SessionsContent() {
                             <TableHead className="text-[9px] uppercase font-black px-8 py-4 text-white">Date & Statut</TableHead>
                             <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Ouverture</TableHead>
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Initial</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>
+                            {isAdminOrPrepa && <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Flux (Net)</TableHead>}
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Versements</TableHead>
                             <TableHead className="text-right text-[9px] uppercase font-black px-2 py-4 text-white">Final</TableHead>
                             <TableHead className="text-center text-[9px] uppercase font-black px-2 py-4 text-white">Clôture</TableHead>
@@ -271,9 +277,11 @@ function SessionsContent() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-4 font-black text-[10px] tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
-                                  {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
-                                </TableCell>
+                                {isAdminOrPrepa && (
+                                  <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
+                                    {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
+                                  </TableCell>
+                                )}
                                 <TableCell className="text-right px-2 py-4 font-black text-[10px] text-orange-600 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
