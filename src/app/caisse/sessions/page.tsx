@@ -108,15 +108,14 @@ function SessionsContent() {
       
       const rows = sessionsOfMonth.map(s => {
         const d = parseISO(s.date);
-        const data: any = {
+        return {
           "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
           "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
           "Initial": formatMAD(s.openingBalance || 0),
+          "Flux Net": formatMAD((s.totalSales || 0) - (s.totalExpenses || 0)),
+          "Versements": formatMAD(s.totalVersements || 0),
+          "Final": formatMAD(s.closingBalanceReal || 0)
         };
-        data["Flux Net"] = formatMAD((s.totalSales || 0) - (s.totalExpenses || 0));
-        data["Versements"] = formatMAD(s.totalVersements || 0);
-        data["Final"] = formatMAD(s.closingBalanceReal || 0);
-        return data;
       });
 
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -272,8 +271,10 @@ function SessionsContent() {
                     </div>
 
                     <div className="flex flex-col items-center">
-                      {isAdminOrPrepa ? (
-                        <div className="flex flex-col items-center">
+                      {role === 'OPTICIENNE' ? (
+                        <div className="h-px w-8 bg-slate-100" />
+                      ) : (
+                        <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 opacity-70">
                             FLUX NET (APRES CHARGES)
                           </span>
@@ -284,8 +285,6 @@ function SessionsContent() {
                             <span className="text-[9px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
                           </div>
                         </div>
-                      ) : (
-                        <div className="h-px w-12 bg-slate-100/50" />
                       )}
                     </div>
 
@@ -340,11 +339,11 @@ function SessionsContent() {
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-[10px] tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-green-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-4 font-black text-xs tabular-nums text-slate-600">{formatCurrency(s.openingBalance || 0)}</TableCell>
+                                <TableCell className="text-right px-2 py-4 font-black text-xs text-green-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-4 font-black text-[10px] text-orange-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-4 font-black text-xs text-orange-600 tabular-nums">
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-4 font-black text-xs text-slate-900 tabular-nums">
