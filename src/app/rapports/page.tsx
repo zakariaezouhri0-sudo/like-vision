@@ -306,7 +306,7 @@ export default function ReportsPage() {
                         <TableCell className="px-6 py-5">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black uppercase text-slate-800 leading-tight">{s.clientName}</span>
-                            <span className="text-[9px] font-bold text-primary/40 mt-0.5 tracking-wider">{s.invoiceId}</span>
+                            <span className="text-[9px] font-black text-green-600 mt-0.5 tracking-wider">{s.invoiceId}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center px-6 py-5">
