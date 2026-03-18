@@ -88,7 +88,7 @@ function SalesHistoryContent() {
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
         return matchesDate && matchesSearch && matchesStatus;
       });
-  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, iisReady]);
+  }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
 
   const handleDelete = async (sale: any) => {
     if (!isAdminOrPrepa) return;
