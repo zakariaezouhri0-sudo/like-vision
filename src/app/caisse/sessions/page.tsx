@@ -137,7 +137,6 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
-      // Récupération des transactions du jour
       const q = query(
         collection(db, "transactions"),
         where("isDraft", "==", isPrepaMode)
@@ -157,7 +156,6 @@ function SessionsContent() {
         return;
       }
 
-      // Récupération des ventes pour avoir le Montant Tot (Total net)
       const qSales = query(
         collection(db, "sales"),
         where("isDraft", "==", isPrepaMode)
@@ -170,7 +168,7 @@ function SessionsContent() {
       });
 
       const mapRow = (t: any) => {
-        if (!t.id) return {}; // Pour les lignes vides
+        if (!t.id) return {};
 
         let invoiceId = t.relatedId || "";
         if (!invoiceId && t.label?.includes('VENTE')) {
@@ -210,22 +208,24 @@ function SessionsContent() {
         };
       };
 
-      // Groupement selon les instructions utilisateur
       const nouveauxClients = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
-      const depensesEtVersements = allTrans.filter((t: any) => t.type !== "VENTE");
+      
+      // Séparation Dépenses vs Versements pour forcer les versements en dernier
+      const depensesUniquement = allTrans.filter((t: any) => t.type !== "VENTE" && t.type !== "VERSEMENT");
+      const versementsUniquement = allTrans.filter((t: any) => t.type === "VERSEMENT");
+      const depensesEtVersements = [...depensesUniquement, ...versementsUniquement];
+      
       const resteARegler = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
       const finalExcelRows = [
         ...nouveauxClients.map(mapRow),
-        {}, // Ligne vide après nouveaux clients
+        {}, 
         ...depensesEtVersements.map(mapRow),
-        {}, // Ligne vide après dépenses
+        {}, 
         ...resteARegler.map(mapRow)
       ];
 
       const ws = XLSX.utils.json_to_sheet(finalExcelRows);
-      
-      // Ajustement des colonnes
       ws['!cols'] = [
         { wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
       ];
@@ -267,22 +267,22 @@ function SessionsContent() {
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
                 <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center px-10 py-5 min-h-[85px]">
-                    <div className="flex-1 flex justify-start items-center">
+                  <div className="grid grid-cols-3 items-center px-10 py-5 min-h-[85px]">
+                    <div className="flex justify-start items-center">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
                         <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
                           <ChevronRight className="h-4 w-4 text-[#828A32] transition-transform duration-300 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-sm font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
+                        <span className="text-sm font-black text-[#828A32] tracking-widest uppercase whitespace-nowrap">
                           {monthName}
                         </span>
                       </AccordionTrigger>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center">
+                    <div className="flex flex-col items-center">
                       {isAdminOrPrepa ? (
                         <>
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1.5 opacity-70">
                             FLUX NET (APRES CHARGES)
                           </span>
                           <div className="flex items-baseline gap-1">
@@ -293,16 +293,16 @@ function SessionsContent() {
                           </div>
                         </>
                       ) : (
-                        <div className="h-[1px] w-12 bg-slate-100 opacity-50" />
+                        <div className="h-[1px] w-8 bg-slate-100" />
                       )}
                     </div>
 
-                    <div className="flex-1 flex justify-end">
+                    <div className="flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
                       >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
                         <span className="hidden md:inline">EXCEL</span>
                       </Button>
                     </div>
