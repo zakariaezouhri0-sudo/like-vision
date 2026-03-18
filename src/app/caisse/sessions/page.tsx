@@ -139,13 +139,17 @@ function SessionsContent() {
       
       const q = query(
         collection(db, "transactions"),
-        where("createdAt", ">=", Timestamp.fromDate(start)),
-        where("createdAt", "<=", Timestamp.fromDate(end))
+        where("isDraft", "==", isPrepaMode)
       );
       
       const snap = await getDocs(q);
-      const trans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => (isPrepaMode ? t.isDraft === true : t.isDraft !== true));
+      const trans = snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .filter(t => {
+          if (!t.createdAt?.toDate) return false;
+          const tDate = t.createdAt.toDate();
+          return tDate >= start && tDate <= end;
+        });
 
       if (trans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
@@ -186,7 +190,7 @@ function SessionsContent() {
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-4">
+      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-6">
         {groupedSessions.length === 0 ? (
           <Card className="p-20 text-center rounded-[40px] border-none shadow-sm bg-white">
             <p className="text-[10px] font-black uppercase opacity-20 tracking-[0.4em]">Aucune session enregistrée.</p>
@@ -198,45 +202,53 @@ function SessionsContent() {
             const totalFluxNet = monthSessions.reduce((acc, s) => acc + (s.totalSales || 0) - (s.totalExpenses || 0), 0);
 
             return (
-              <AccordionItem key={monthKey} value={monthKey} className="border-none mb-2">
-                <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100">
-                  <div className="flex items-center justify-between px-10 py-5">
-                    {/* LEFT SIDE */}
-                    <div className="w-[200px] flex justify-start items-center">
-                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-3 group">
-                        <ChevronRight className="h-4 w-4 text-[#828A32] shrink-0 transition-transform duration-200" />
+              <AccordionItem key={monthKey} value={monthKey} className="border-none">
+                <div className="bg-white rounded-[60px] shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center px-10 py-5 min-h-[85px]">
+                    {/* LEFT SIDE: 1/3 */}
+                    <div className="flex-1 flex justify-start items-center">
+                      <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-4 group">
+                        <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#828A32]/10 transition-colors">
+                          <ChevronRight className="h-4 w-4 text-[#828A32] transition-transform duration-300 group-data-[state=open]:rotate-90" />
+                        </div>
                         <span className="text-sm font-black text-[#828A32] tracking-tighter uppercase whitespace-nowrap">
                           {monthName}
                         </span>
                       </AccordionTrigger>
                     </div>
 
-                    {/* CENTER: Centered Flux Net (ADMIN ONLY) */}
-                    <div className="flex flex-col items-center flex-1">
-                      {isAdminOrPrepa && (
+                    {/* CENTER: 1/3 (ADMIN ONLY) */}
+                    <div className="flex-1 flex flex-col items-center">
+                      {isAdminOrPrepa ? (
                         <>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">
                             FLUX NET (APRES CHARGES)
                           </span>
-                          <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
-                            {formatCurrency(totalFluxNet)}
-                          </span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-black text-[#1A4D2E] tracking-tighter tabular-nums leading-none">
+                              {formatCurrency(totalFluxNet)}
+                            </span>
+                            <span className="text-[10px] font-black text-[#1A4D2E]/40 uppercase tracking-tighter">DH</span>
+                          </div>
                         </>
+                      ) : (
+                        <div className="h-1 w-12 bg-slate-100 rounded-full opacity-50" />
                       )}
                     </div>
 
-                    {/* RIGHT SIDE */}
-                    <div className="w-[200px] flex justify-end">
+                    {/* RIGHT SIDE: 1/3 */}
+                    <div className="flex-1 flex justify-end">
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
-                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-8 px-5 rounded-full font-black text-[9px] uppercase shadow-md transition-all shrink-0"
+                        className="bg-[#89a644] hover:bg-[#768e3a] text-white h-10 px-6 rounded-full font-black text-[10px] uppercase shadow-lg shadow-green-900/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                       >
-                        <Download className="mr-2 h-3.5 w-3.5" /> EXCEL
+                        <Download className="h-4 w-4" />
+                        <span className="hidden md:inline">EXCEL</span>
                       </Button>
                     </div>
                   </div>
 
-                  <AccordionContent className="px-6 pb-6 pt-0">
+                  <AccordionContent className="px-6 pb-8 pt-0">
                     <div className="overflow-hidden rounded-[32px] border shadow-sm mx-4">
                       <Table>
                         <TableHeader className="bg-[#768e3a]">
