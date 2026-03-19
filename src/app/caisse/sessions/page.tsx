@@ -34,7 +34,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isValid, getDay, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -146,6 +146,12 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
+      // Récupérer la session pour le solde initial
+      const sessionDocRef = doc(db, "cash_sessions", isPrepaMode ? `DRAFT-${dateStr}` : dateStr);
+      const sessionSnap = await getDoc(sessionDocRef);
+      const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
+      const initialBalance = sessionData?.openingBalance || 0;
+
       const q = query(
         collection(db, "transactions"),
         where("isDraft", "==", isPrepaMode)
@@ -165,6 +171,17 @@ function SessionsContent() {
         return;
       }
 
+      // Calculs pour l'en-tête
+      const totalEncaissements = allTrans
+        .filter((t: any) => t.type === "VENTE")
+        .reduce((acc: number, t: any) => acc + Math.abs(t.montant), 0);
+      
+      const totalDecaissements = allTrans
+        .filter((t: any) => t.type !== "VENTE")
+        .reduce((acc: number, t: any) => acc + Math.abs(t.montant), 0);
+      
+      const finalBalance = initialBalance + totalEncaissements - totalDecaissements;
+
       const qSales = query(
         collection(db, "sales"),
         where("isDraft", "==", isPrepaMode)
@@ -177,7 +194,7 @@ function SessionsContent() {
       });
 
       const mapRow = (t: any) => {
-        if (!t.id) return {};
+        if (!t.id) return ["", "", "", "", "", "", ""];
 
         let invoiceId = t.relatedId || "";
         if (!invoiceId && t.label?.includes('VENTE')) {
@@ -206,15 +223,15 @@ function SessionsContent() {
           displayLabel = `${typeStr} | ${cleanedLabel || "---"}`;
         }
 
-        return {
-          "Réf": refDisplay,
-          "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
-          "Libellé": displayLabel,
-          "Nom client": t.clientName || "---",
-          "Montant Tot": isVente && totalNet !== null ? totalNet : null,
-          "Mouvement": isVente ? movement : null,
-          "SORTIE": !isVente ? movement : null
-        };
+        return [
+          refDisplay,
+          t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
+          displayLabel,
+          t.clientName || "---",
+          isVente && totalNet !== null ? totalNet : null,
+          isVente ? movement : null,
+          !isVente ? movement : null
+        ];
       };
 
       const nouveauxVentes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
@@ -223,18 +240,31 @@ function SessionsContent() {
       const sorties = [...depensesUniquement, ...versementsUniquement];
       const reglementsRestes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
-      const finalExcelRows = [
+      // Construction du tableau final (AOA - Array of Arrays)
+      const aoaData = [
+        [`JOURNAL DE CAISSE - ${format(d, "dd/MM/yyyy")}`],
+        [""],
+        ["SOLDE INITIAL", initialBalance],
+        ["(+) Encaissements", totalEncaissements],
+        ["(-) Décaissements", totalDecaissements],
+        ["SOLDE FINAL", finalBalance],
+        [""],
+        ["Réf", "Date", "Libellé", "Nom client", "Montant Tot", "Mouvement", "SORTIE"],
         ...nouveauxVentes.map(mapRow),
-        {}, 
+        [""],
         ...sorties.map(mapRow),
-        {}, 
-        ...reglementsRestes.map(mapRow)
+        [""],
+        ...reglementsRestes.map(mapRow),
+        [""],
+        ["TOTAL GENERAL", "", "", "", "", totalEncaissements, totalDecaissements]
       ];
 
-      const ws = XLSX.utils.json_to_sheet(finalExcelRows);
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
-      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        for (let C = 4; C <= 6; ++C) {
+      const ws = XLSX.utils.aoa_to_sheet(aoaData);
+      
+      // Formatage des cellules MAD
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = 0; C <= range.e.c; ++C) {
           const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
           if (cell && cell.t === 'n') {
             cell.z = '#,##0.00 "MAD"';
@@ -242,9 +272,14 @@ function SessionsContent() {
         }
       }
 
+      // Largeurs de colonnes
+      ws['!cols'] = [
+        { wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      ];
+
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Opérations");
-      XLSX.writeFile(wb, `Like Vision - Opérations ${dateStr}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, "Journal");
+      XLSX.writeFile(wb, `Like Vision - Journal ${dateStr}.xlsx`);
     } catch (e) {
       console.error("Export error:", e);
       toast({ variant: "destructive", title: "Erreur lors de l'exportation" });
