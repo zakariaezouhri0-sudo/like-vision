@@ -37,6 +37,7 @@ export default function ClientsPage() {
     setIsHydrated(true);
   }, [router]);
 
+  const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
   const isPrepaMode = role === "PREPA";
   
   const clientsQuery = useMemoFirebase(() => {
@@ -47,6 +48,9 @@ export default function ClientsPage() {
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "", mutuelle: "Aucun" });
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
 
   const filteredClients = useMemo(() => {
     if (!allClients || !role) return [];
@@ -72,7 +76,37 @@ export default function ClientsPage() {
       createdAt: serverTimestamp(),
     };
     setIsCreateOpen(false);
+    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
     addDoc(collection(db, "clients"), clientData).then(() => toast({ variant: "success", title: "Client créé" }));
+  };
+
+  const handleUpdateClient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingClient || !editingClient.name) return;
+
+    const clientRef = doc(db, "clients", editingClient.id);
+    const updateData = {
+      name: editingClient.name.toUpperCase(),
+      phone: editingClient.phone.replace(/\s/g, ''),
+      mutuelle: editingClient.mutuelle,
+      updatedAt: serverTimestamp()
+    };
+
+    updateDoc(clientRef, updateData)
+      .then(() => {
+        toast({ variant: "success", title: "Client mis à jour" });
+        setIsEditOpen(false);
+        setEditingClient(null);
+      })
+      .catch(() => toast({ variant: "destructive", title: "Erreur lors de la mise à jour" }));
+  };
+
+  const handleDeleteClient = (client: any) => {
+    if (!confirm(`Supprimer définitivement le client "${client.name}" ?`)) return;
+    
+    deleteDoc(doc(db, "clients", client.id))
+      .then(() => toast({ variant: "success", title: "Client supprimé" }))
+      .catch(() => toast({ variant: "destructive", title: "Erreur lors de la suppression" }));
   };
 
   if (!isClientReady || role === null) return null;
@@ -124,8 +158,24 @@ export default function ClientsPage() {
                       <TableCell className="text-right px-8 py-4">
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2">
+                          <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
                             <DropdownMenuItem onClick={() => router.push(`/ventes?search=${encodeURIComponent(c.name)}`)} className="py-2.5 font-bold text-xs cursor-pointer"><History className="mr-2 h-4 w-4" /> Historique</DropdownMenuItem>
+                            {isAdminOrPrepa && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={() => { setEditingClient({ ...c }); setIsEditOpen(true); }} 
+                                  className="py-2.5 font-bold text-xs cursor-pointer"
+                                >
+                                  <Edit2 className="mr-2 h-4 w-4" /> Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteClient(c)} 
+                                  className="py-2.5 font-bold text-xs cursor-pointer text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -137,6 +187,34 @@ export default function ClientsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <form onSubmit={handleUpdateClient}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Client</DialogTitle></DialogHeader>
+            {editingClient && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
+                  <Input value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Téléphone</Label>
+                  <Input value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
+                  <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{MUTUELLES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="submit" className="w-full font-black rounded-xl">METTRE À JOUR</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
