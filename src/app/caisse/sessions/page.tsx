@@ -303,10 +303,10 @@ function SessionsContent() {
                             FLUX NET MENSUEL
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-primary tracking-tighter tabular-nums leading-none">
+                            <span className="text-lg font-black text-green-600 tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-primary/30 uppercase">DH</span>
+                            <span className="text-[9px] font-black text-green-600/30 uppercase">DH</span>
                           </div>
                         </div>
                       )}
