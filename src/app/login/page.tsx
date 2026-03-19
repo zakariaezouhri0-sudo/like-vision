@@ -127,7 +127,7 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="mb-2">
-                  <Logo variant="icon" color="#6a8036" className="w-48 h-20" />
+                  <Logo variant="icon" color="hsl(var(--primary))" className="w-48 h-20" />
                 </div>
               )}
               
@@ -135,7 +135,7 @@ export default function LoginPage() {
                 <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tighter leading-none">
                   LIKE VISION OPTIQUE
                 </h1>
-                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-primary/60 whitespace-nowrap">
+                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-primary whitespace-nowrap">
                   GESTION OPTIQUE PROFESSIONNELLE
                 </p>
               </div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
         <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-md mx-auto w-full">
           <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
             <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase text-primary/60 tracking-[0.2em]">
+            <CardDescription className="text-[10px] font-bold uppercase text-primary tracking-[0.2em]">
               Saisissez vos identifiants
             </CardDescription>
           </CardHeader>
@@ -156,10 +156,10 @@ export default function LoginPage() {
               <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Identifiant</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
+                  <UserIcon className="absolute left-5 top-4 h-5 w-5 text-primary" />
                   <Input 
                     placeholder="ex: admin" 
-                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 text-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
@@ -169,11 +169,11 @@ export default function LoginPage() {
               <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
+                  <Lock className="absolute left-5 top-4 h-5 w-5 text-primary" />
                   <Input 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 text-primary focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
