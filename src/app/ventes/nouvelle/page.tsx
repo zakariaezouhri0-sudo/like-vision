@@ -156,6 +156,17 @@ function NewSaleForm() {
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
+  const isReadOnly = isSessionClosed && !isAdminOrPrepa;
+
+  useEffect(() => {
+    if (isSessionClosed && !isAdminOrPrepa && isClientReady) {
+      toast({
+        variant: "destructive",
+        title: "CAISSE CLÔTURÉE",
+        description: "La session est fermée. Toute modification est interdite.",
+      });
+    }
+  }, [isSessionClosed, isAdminOrPrepa, isClientReady, toast]);
 
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
@@ -266,12 +277,11 @@ function NewSaleForm() {
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading || saleDataLoading) return;
     
-    // SÉCURITÉ CRITIQUE : Vérification au moment du clic
     if (isSessionClosed && !isAdminOrPrepa) {
       toast({ 
         variant: "destructive", 
         title: "ACTION BLOQUÉE", 
-        description: "Impossible d'enregistrer car la caisse de cette journée est déjà clôturée." 
+        description: "La caisse de cette journée est déjà clôturée." 
       });
       return;
     }
@@ -329,7 +339,6 @@ function NewSaleForm() {
       }
 
       await runTransaction(db, async (transaction) => {
-        // Double vérification transactionnelle
         if (sessionRef && !isAdminOrPrepa) {
           const sessionSnap = await transaction.get(sessionRef);
           if (sessionSnap.exists() && sessionSnap.data().status === "CLOSED") {
@@ -441,9 +450,9 @@ function NewSaleForm() {
       }
     } catch (err: any) { 
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée entre temps par un administrateur." });
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée entre temps." });
       } else {
-        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente." });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer." });
       }
     } finally { 
       setLoading(false); 
@@ -452,8 +461,6 @@ function NewSaleForm() {
 
   if (!isClientReady || (activeEditId && saleDataLoading)) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
-  const isReadOnly = isSessionClosed && !isAdminOrPrepa;
-  
   const showMatchedClients = matchedClients && matchedClients.length > 0 && !isReadOnly && (
     isNameFocused || ((clientPhone || "").replace(/\s/g, "").length >= 8 && !selectedClientId)
   );
@@ -498,7 +505,7 @@ function NewSaleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="rounded-[32px] bg-white border-none shadow-sm overflow-hidden">
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden transition-all", isReadOnly && "grayscale brightness-90 opacity-80 pointer-events-none")}>
               <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
                 <User className="h-7 w-7 text-[#6a8036]" />
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Dossier Client</CardTitle>
@@ -509,7 +516,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "cursor-not-allowed")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
                       <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} disabled={isReadOnly} />
@@ -524,7 +531,7 @@ function NewSaleForm() {
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "opacity-50 cursor-not-allowed")} 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "cursor-not-allowed")} 
                         placeholder="M. Mohamed Alami..." 
                         value={clientName} 
                         onChange={e => {
@@ -566,7 +573,7 @@ function NewSaleForm() {
                       <Input 
                         className={cn(
                           "h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", 
-                          isReadOnly && "opacity-50 cursor-not-allowed",
+                          isReadOnly && "cursor-not-allowed",
                           bonError && "border-2 border-red-500 bg-red-50 ring-2 ring-red-500/20"
                         )} 
                         placeholder="Ex: 2472" 
@@ -598,13 +605,13 @@ function NewSaleForm() {
                   {mutuelle === "Autre" && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
-                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "cursor-not-allowed")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   )}
                 </div>
 
                 {isAdminOrPrepa && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-dashed">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-dashed pointer-events-auto">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase ml-1 text-primary">Date de la Vente (ADMIN)</Label>
                       <Popover>
@@ -633,40 +640,40 @@ function NewSaleForm() {
               </CardContent>
             </Card>
             
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isReadOnly && "opacity-80")}>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden transition-all", isReadOnly && "grayscale brightness-90 opacity-80 pointer-events-none")}>
               <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
                 <FileText className="h-7 w-7 text-[#6a8036]" />
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Prescription Optique</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <div className={cn(isReadOnly && "pointer-events-none opacity-50")}>
+                <div>
                   <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden", isReadOnly && "opacity-80")}>
+            <Card className={cn("rounded-[32px] bg-white border-none shadow-sm overflow-hidden transition-all", isReadOnly && "grayscale brightness-90 opacity-80 pointer-events-none")}>
               <CardHeader className="py-6 px-8 bg-slate-50 border-b flex flex-row items-center gap-4">
                 <Glasses className="h-7 w-7 text-[#6a8036]" />
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Équipement & Notes</CardTitle>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} /></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className="h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold" placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} /></div>
                 </div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className="min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium" placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} /></div>
               </CardContent>
             </Card>
           </div>
 
           <div className="space-y-6">
-            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isReadOnly && "grayscale brightness-75")}>
+            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isReadOnly && "grayscale brightness-75 pointer-events-none opacity-80")}>
               <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Prix Brut (DH)</Label>
-                  <input type="text" className={cn("bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
                 </div>
                 
                 <div className="bg-black/10 p-6 rounded-[40px] flex flex-col gap-4">
@@ -680,7 +687,7 @@ function NewSaleForm() {
                   <div className="flex justify-between items-center px-2">
                     <span className="text-[9px] font-black text-white/40 uppercase mb-1">Valeur :</span>
                     <div className="relative">
-                      <input type="text" className={cn("bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
+                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
                       {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
                     </div>
                   </div>
@@ -691,7 +698,7 @@ function NewSaleForm() {
 
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Versé ce jour (DH)</Label>
-                  <input type="text" className={cn("bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
+                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
                 </div>
 
                 <div className="pt-4">

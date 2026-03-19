@@ -45,6 +45,7 @@ export default function UnpaidSalesPage() {
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
+  const isReadOnly = isTodayClosed && !isAdminOrPrepa;
 
   const allSalesQuery = useMemoFirebase(() => {
     const startOfYear = new Date(2026, 0, 1);
@@ -79,6 +80,10 @@ export default function UnpaidSalesPage() {
   }, [sales, searchTerm, isPrepaMode, isReady]);
 
   const handleOpenPayment = (sale: any) => {
+    if (isTodayClosed && !isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Caisse Clôturée", description: "Impossible d'enregistrer un règlement sur une session fermée." });
+      return;
+    }
     setSelectedSale(sale);
     setPaymentAmount(formatCurrency(sale.reste));
   };
@@ -88,8 +93,8 @@ export default function UnpaidSalesPage() {
     if (!selectedSale || !paymentAmount) return;
 
     if (sessionLoading) return;
-    if (isTodayClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Caisse Fermée", description: "Impossible d'encaisser sur une journée clôturée." });
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Caisse Fermée", description: "L'enregistrement est verrouillé." });
       return;
     }
 
@@ -158,7 +163,7 @@ export default function UnpaidSalesPage() {
       setSelectedSale(null);
     } catch (err: any) {
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée entre temps." });
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée." });
       } else {
         toast({ variant: "destructive", title: "Erreur lors du paiement" });
       }
@@ -225,8 +230,10 @@ export default function UnpaidSalesPage() {
                           <Button 
                             onClick={() => handleOpenPayment(sale)} 
                             size="sm" 
-                            disabled={sessionLoading || (isTodayClosed && !isAdminOrPrepa)}
-                            className="h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg"
+                            className={cn(
+                              "h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg",
+                              isReadOnly && "opacity-50 grayscale cursor-not-allowed"
+                            )}
                           >
                             <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
                           </Button>
@@ -264,7 +271,7 @@ export default function UnpaidSalesPage() {
                 </div>
               )}
 
-              <div className="p-6 md:p-8 space-y-6">
+              <div className={cn("p-6 md:p-8 space-y-6 transition-all", isReadOnly && "grayscale brightness-95 opacity-80 pointer-events-none")}>
                 <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{selectedSale?.clientName}</span></div>
                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(selectedSale?.reste || 0)}</span></div>
@@ -273,19 +280,19 @@ export default function UnpaidSalesPage() {
                   <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
                   <input 
                     type="text" 
-                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", (isTodayClosed && !isAdminOrPrepa || sessionLoading) && "opacity-50 cursor-not-allowed")} 
+                    className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isReadOnly && "cursor-not-allowed")} 
                     value={paymentAmount} 
                     placeholder="0,00"
-                    onChange={(e) => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && setPaymentAmount(e.target.value)} 
-                    onBlur={() => (!isTodayClosed || isAdminOrPrepa) && !sessionLoading && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                    onChange={(e) => !isReadOnly && setPaymentAmount(e.target.value)} 
+                    onBlur={() => !isReadOnly && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
                     autoFocus 
-                    readOnly={isTodayClosed && !isAdminOrPrepa || sessionLoading}
+                    readOnly={isReadOnly}
                   />
                 </div>
               </div>
               <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
                 <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || (isTodayClosed && !isAdminOrPrepa) || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isReadOnly || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
