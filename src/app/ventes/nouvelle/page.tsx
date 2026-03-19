@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -160,16 +161,6 @@ function NewSaleForm() {
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
 
-  useEffect(() => {
-    if (isSessionClosed && !isAdminOrPrepa && isClientReady) {
-      toast({
-        variant: "destructive",
-        title: "CAISSE CLÔTURÉE",
-        description: "La session est fermée. Toute modification est interdite.",
-      });
-    }
-  }, [isSessionClosed, isAdminOrPrepa, isClientReady, toast]);
-
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const nameSearch = (clientName || "").trim().toUpperCase();
@@ -295,13 +286,18 @@ function NewSaleForm() {
     const currentIsDraft = role === "PREPA";
     
     try {
+      // VÉRIFICATION DOUBLON BON (Requête simplifiée sans index composite)
       const bonCheckQuery = query(
         collection(db, "sales"),
-        where("bonNumber", "==", bonNumber.trim()),
-        where("isDraft", "==", currentIsDraft)
+        where("bonNumber", "==", bonNumber.trim())
       );
       const bonCheckSnap = await getDocs(bonCheckQuery);
-      const isDuplicate = bonCheckSnap.docs.some(d => d.id !== activeEditId);
+      
+      // Filtrage isDraft en mémoire pour éviter le besoin d'index composite
+      const isDuplicate = bonCheckSnap.docs.some(d => {
+        const data = d.data();
+        return d.id !== activeEditId && (data.isDraft === currentIsDraft);
+      });
 
       if (isDuplicate) {
         setBonError(true);
@@ -314,30 +310,27 @@ function NewSaleForm() {
         return;
       }
       setBonError(false);
-    } catch (e) {
-      console.error("Erreur lors de la vérification du doublon:", e);
-    }
 
-    const currentUserName = user?.displayName || "Inconnu";
-    const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
-    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
-    const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
-    let finalInvoiceIdForURL = "";
+      const currentUserName = user?.displayName || "Inconnu";
+      const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
+      const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
+      const cleanedParentPhone = isFamilyMode ? cleanedPhone : "";
+      let finalInvoiceIdForURL = "";
 
-    try {
+      // RECHERCHE CLIENT EXISTANT (Simplifiée)
       let finalClientId = selectedClientId;
       if (!finalClientId && !activeEditId) {
         const qC = query(
           collection(db, "clients"),
-          where("name", "==", clientName.trim().toUpperCase()),
-          where("phone", "==", cleanedPhone),
-          where("isDraft", "==", !!currentIsDraft),
-          limit(1)
+          where("name", "==", clientName.trim().toUpperCase())
         );
         const snapC = await getDocs(qC);
-        if (!snapC.empty) {
-          finalClientId = snapC.docs[0].id;
-        }
+        // Filtrage isDraft et phone en mémoire
+        const foundClient = snapC.docs.find(d => {
+          const data = d.data();
+          return data.isDraft === currentIsDraft && (data.phone === cleanedPhone || !cleanedPhone);
+        });
+        if (foundClient) finalClientId = foundClient.id;
       }
 
       await runTransaction(db, async (transaction) => {
@@ -393,7 +386,7 @@ function NewSaleForm() {
           reste: resteAPayerValue,
           statut: statut,
           prescription: cleanPrescription,
-          isDraft: !!currentIsDraft,
+          isDraft: currentIsDraft,
           updatedAt: serverTimestamp(),
           createdAt: Timestamp.fromDate(saleDate)
         };
@@ -413,7 +406,7 @@ function NewSaleForm() {
           parentPhone: cleanedParentPhone,
           mutuelle: finalMutuelle, 
           lastVisit: format(new Date(), "dd/MM/yyyy"), 
-          isDraft: !!currentIsDraft, 
+          isDraft: currentIsDraft, 
           updatedAt: serverTimestamp() 
         };
         if (!finalClientId) clientData.createdAt = serverTimestamp();
@@ -429,9 +422,9 @@ function NewSaleForm() {
             relatedId: invoiceId, 
             saleId: saleRef.id, 
             userName: user?.displayName || "---", 
-            isDraft: !!currentIsDraft, 
+            isDraft: currentIsDraft, 
             createdAt: serverTimestamp() 
-          }, { merge: true });
+          });
         }
       });
 
@@ -453,10 +446,11 @@ function NewSaleForm() {
         router.push("/ventes"); 
       }
     } catch (err: any) { 
+      console.error("Erreur handleSave:", err);
       if (err.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée entre temps." });
       } else {
-        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer." });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer. Vérifiez votre connexion ou contactez le support." });
       }
     } finally { 
       setLoading(false); 
