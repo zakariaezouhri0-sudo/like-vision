@@ -30,7 +30,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -41,7 +41,7 @@ function NewSaleForm() {
     const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
     if (savedRole) {
       setRole(savedRole.toUpperCase());
-      setIsClientReady(true);
+      setIsHydrated(true);
     } else {
       router.push('/login');
     }
@@ -442,7 +442,7 @@ function NewSaleForm() {
           const template = settings?.whatsappDarija;
           const finalMessage = (template || "").replace(/\[Nom\]/gi, clientName.trim().toUpperCase());
           await sendWhatsApp(cleanedPhone, finalMessage);
-          toast({ variant: "success", title: "\u2705 Message copié !", description: "Collez le message (Ctrl+V) dans WhatsApp." });
+          toast({ variant: "success", title: "✅ Message copié !", description: "Collez le message (Ctrl+V) dans WhatsApp." });
         }, 500);
       }
 
@@ -672,27 +672,27 @@ function NewSaleForm() {
           </div>
 
           <div className="space-y-6">
-            <Card className={cn("bg-primary text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isReadOnly && "grayscale brightness-75 pointer-events-none opacity-80")}>
-              <CardHeader className="py-6 px-8 text-white/60 border-b border-white/5 flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
+            <Card className={cn("bg-[hsl(var(--sidebar-bg))] text-[hsl(var(--sidebar-fg))] border border-[hsl(var(--sidebar-border))] rounded-[40px] shadow-2xl overflow-hidden sticky top-24 transition-all", isReadOnly && "grayscale brightness-75 pointer-events-none opacity-80")}>
+              <CardHeader className="py-6 px-8 text-[hsl(var(--sidebar-fg))]/60 border-b border-[hsl(var(--sidebar-border))] flex flex-row items-center gap-2"><ShieldCheck className="h-4 w-4" /><CardTitle className="text-[10px] font-black uppercase tracking-widest">Calcul de la Facture</CardTitle></CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
-                  <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Prix Brut (DH)</Label>
+                  <Label className="text-[10px] font-black text-primary uppercase ml-4">Prix Brut (DH)</Label>
                   <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
                 </div>
                 
-                <div className="bg-black/10 p-6 rounded-[40px] flex flex-col gap-4">
+                <div className="bg-[hsl(var(--sidebar-fg))]/5 p-6 rounded-[40px] flex flex-col gap-4">
                   <div className="flex justify-between items-center px-2">
-                    <Label className="text-[10px] font-black uppercase text-white/80">Remise</Label>
-                    <div className="flex bg-black/20 p-1 rounded-full">
-                      <button onClick={() => setDiscountType('fixed')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>DH</button>
-                      <button onClick={() => setDiscountType('percent')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-[#6a8036] shadow-sm" : "text-white/40 hover:text-white")}>%</button>
+                    <Label className="text-[10px] font-black uppercase text-[hsl(var(--sidebar-fg))]/80">Remise</Label>
+                    <div className="flex bg-[hsl(var(--sidebar-fg))]/10 p-1 rounded-full">
+                      <button onClick={() => setDiscountType('fixed')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-white text-primary shadow-sm" : "text-[hsl(var(--sidebar-fg))]/40 hover:text-[hsl(var(--sidebar-fg))]")}>DH</button>
+                      <button onClick={() => setDiscountType('percent')} disabled={isReadOnly} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-white text-primary shadow-sm" : "text-[hsl(var(--sidebar-fg))]/40 hover:text-[hsl(var(--sidebar-fg))]")}>%</button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center px-2">
-                    <span className="text-[9px] font-black text-white/40 uppercase mb-1">Valeur :</span>
+                    <span className="text-[9px] font-black text-[hsl(var(--sidebar-fg))]/40 uppercase mb-1">Valeur :</span>
                     <div className="relative">
-                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
-                      {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
+                      <input type="text" className="bg-transparent text-right font-black text-[hsl(var(--sidebar-fg))] outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
+                      {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-[hsl(var(--sidebar-fg))]/40" />}
                     </div>
                   </div>
                   {discountType === 'percent' && calculatedRemise > 0 && (
@@ -701,14 +701,14 @@ function NewSaleForm() {
                 </div>
 
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
-                  <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Versé ce jour (DH)</Label>
+                  <Label className="text-[10px] font-black text-primary uppercase ml-4">Versé ce jour (DH)</Label>
                   <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
                 </div>
 
                 <div className="pt-4">
                   <div className={cn("p-6 rounded-[40px] text-center space-y-1 border shadow-2xl transition-all", resteAPayerValue <= 0 ? "bg-emerald-500/20 border-emerald-500/20" : "bg-orange-500/20 border-orange-500/20")}>
-                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest flex items-center justify-center gap-2"><HandCoins className="h-3 w-3" /> Reste à régler</p>
-                    <p className="text-4xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
+                    <p className="text-[9px] font-black text-[hsl(var(--sidebar-fg))]/60 uppercase tracking-widest flex items-center justify-center gap-2"><HandCoins className="h-3 w-3" /> Reste à régler</p>
+                    <p className={cn("text-4xl font-black tabular-nums tracking-tighter", resteAPayerValue <= 0 ? "text-emerald-500" : "text-orange-500")}>{formatCurrency(resteAPayerValue)}</p>
                   </div>
                 </div>
               </CardContent>
