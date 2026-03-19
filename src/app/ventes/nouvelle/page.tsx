@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -428,7 +428,7 @@ function NewSaleForm() {
             montant: nAvance, 
             relatedId: invoiceId, 
             saleId: saleRef.id, 
-            userName: currentUserName, 
+            userName: user?.displayName || "---", 
             isDraft: !!currentIsDraft, 
             createdAt: serverTimestamp() 
           }, { merge: true });
@@ -489,19 +489,19 @@ function NewSaleForm() {
 
         {isSessionClosed && (
           <div className={cn(
-            "bg-white border-l-[12px] shadow-2xl p-8 rounded-[40px] flex items-center gap-8 relative overflow-hidden transition-all animate-in zoom-in-95",
-            isAdminOrPrepa ? "border-l-orange-500" : "border-l-destructive"
+            "border-l-[12px] shadow-2xl p-8 rounded-[40px] flex items-center gap-8 relative overflow-hidden transition-all animate-in zoom-in-95",
+            isAdminOrPrepa ? "bg-white border-l-orange-500" : "bg-red-50 border-l-destructive border-destructive/20"
           )}>
             <div className={cn("h-20 w-20 rounded-3xl flex items-center justify-center shrink-0 shadow-inner", isAdminOrPrepa ? "bg-orange-100" : "bg-red-100")}>
-              {isAdminOrPrepa ? <AlertTriangle className="h-10 w-10 text-orange-600" /> : <Lock className="h-10 w-10 text-destructive animate-pulse" />}
+              {isAdminOrPrepa ? <AlertTriangle className="h-10 w-10 text-orange-600" /> : <XCircle className="h-10 w-10 text-destructive animate-pulse" />}
             </div>
             <div className="flex-1">
               <h3 className={cn("text-xs font-black uppercase tracking-[0.4em] mb-2", isAdminOrPrepa ? "text-orange-600" : "text-destructive")}>
-                {isAdminOrPrepa ? "Attention : Session Clôturée" : "Session Verrouillée"}
+                {isAdminOrPrepa ? "Attention : Session Clôturée" : "OPÉRATION IMPOSSIBLE - CAISSE CLÔTURÉE"}
               </h3>
               <p className="text-slate-900 font-black text-xl leading-tight tracking-tight uppercase">
                 La caisse du <span className={isAdminOrPrepa ? "text-orange-600" : "text-destructive"}>{format(saleDate, "dd MMMM yyyy", { locale: fr })}</span> est clôturée. 
-                {isAdminOrPrepa ? " Modification autorisée (Mode Admin)." : " Enregistrement interdit."}
+                {isAdminOrPrepa ? " Modification autorisée (Mode Admin)." : " Toute saisie ou validation est bloquée."}
               </p>
             </div>
           </div>

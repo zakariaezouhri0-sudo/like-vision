@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, HandCoins, Loader2, Calendar, Lock, AlertTriangle } from "lucide-react";
+import { Search, HandCoins, Loader2, Calendar, Lock, AlertTriangle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
@@ -230,9 +229,10 @@ export default function UnpaidSalesPage() {
                           <Button 
                             onClick={() => handleOpenPayment(sale)} 
                             size="sm" 
+                            disabled={isReadOnly}
                             className={cn(
-                              "h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl bg-primary shadow-lg",
-                              isReadOnly && "opacity-50 grayscale cursor-not-allowed"
+                              "h-8 md:h-10 px-3 md:px-5 font-black text-[9px] md:text-xs uppercase rounded-xl shadow-lg",
+                              isReadOnly ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-primary text-white"
                             )}
                           >
                             <HandCoins className="mr-1.5 h-3 w-3 md:h-4 md:w-4" />Régler
@@ -252,22 +252,22 @@ export default function UnpaidSalesPage() {
         <Dialog open={!!selectedSale} onOpenChange={(open) => !open && setSelectedSale(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
             <form onSubmit={handleValidatePayment}>
-              <DialogHeader className="p-6 md:p-8 bg-primary text-white">
-                <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
-                <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {selectedSale?.invoiceId}</p>
+              <DialogHeader className={cn("p-6 md:p-8 text-white", isReadOnly ? "bg-destructive" : "bg-primary")}>
+                <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3">
+                  {isReadOnly ? <XCircle className="h-6 w-6 md:h-7 md:w-7" /> : <HandCoins className="h-6 w-6 md:h-7 md:w-7" />}
+                  {isReadOnly ? "Action Interdite" : "Encaisser Vente"}
+                </DialogTitle>
+                <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">
+                  {isReadOnly ? "Session de caisse clôturée" : `Document ${selectedSale?.invoiceId}`}
+                </p>
               </DialogHeader>
 
-              {isTodayClosed && isAdminOrPrepa && (
-                <div className="bg-orange-50 p-4 border-b border-orange-100 flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <p className="text-[10px] font-black text-orange-700 uppercase">Mode Correction : Modification autorisée sur caisse close.</p>
-                </div>
-              )}
-
-              {isTodayClosed && !isAdminOrPrepa && (
-                <div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-red-600" />
-                  <p className="text-[10px] font-black text-red-700 uppercase">Attention : La caisse d'aujourd'hui est clôturée.</p>
+              {isTodayClosed && (
+                <div className={cn("p-4 border-b flex items-center gap-3", isAdminOrPrepa ? "bg-orange-50 border-orange-100 text-orange-700" : "bg-red-50 border-red-100 text-red-700")}>
+                  {isAdminOrPrepa ? <AlertTriangle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                  <p className="text-[10px] font-black uppercase">
+                    {isAdminOrPrepa ? "Mode Correction : Modification autorisée sur caisse close." : "Attention : La caisse est clôturée. Enregistrement bloqué."}
+                  </p>
                 </div>
               )}
 
@@ -291,8 +291,12 @@ export default function UnpaidSalesPage() {
                 </div>
               </div>
               <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
-                <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" onClick={() => setSelectedSale(null)}>Annuler</Button>
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || isReadOnly || sessionLoading}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+                <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" type="button" onClick={() => setSelectedSale(null)}>Annuler</Button>
+                {!isReadOnly && (
+                  <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessing || sessionLoading}>
+                    {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}
+                  </Button>
+                )}
               </DialogFooter>
             </form>
           </DialogContent>
