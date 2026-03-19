@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -43,6 +43,11 @@ function SalesHistoryContent() {
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
 
+  // States pour le paiement direct
+  const [paymentSale, setPaymentSale] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
     setRole(savedRole.toUpperCase());
@@ -51,6 +56,14 @@ function SalesHistoryContent() {
 
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
+
+  // Vérification de la caisse pour le règlement direct
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
+  const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
+  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
+  const isReadOnly = isTodayClosed && !isAdminOrPrepa;
 
   const salesQuery = useMemoFirebase(() => {
     const startOfYear = new Date(2026, 0, 1);
@@ -135,6 +148,98 @@ function SalesHistoryContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
 
+  // Logique de paiement direct
+  const handleOpenPayment = (sale: any) => {
+    if (isTodayClosed && !isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Caisse Clôturée", description: "Impossible d'enregistrer un règlement sur une session fermée." });
+      return;
+    }
+    setPaymentSale(sale);
+    setPaymentAmount(formatCurrency(sale.reste));
+  };
+
+  const handleValidatePayment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!paymentSale || !paymentAmount) return;
+
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Caisse Fermée", description: "L'enregistrement est verrouillé." });
+      return;
+    }
+
+    const amount = parseAmount(paymentAmount);
+    if (amount <= 0) return;
+
+    setIsProcessingPayment(true);
+    const currentUserName = user?.displayName || "Inconnu";
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        if (sessionRef && !isAdminOrPrepa) {
+          const sSnap = await transaction.get(sessionRef);
+          if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+            throw new Error("SESSION_CLOSED");
+          }
+        }
+
+        const saleRef = doc(db, "sales", paymentSale.id);
+        const saleSnap = await transaction.get(saleRef);
+        if (!saleSnap.exists()) throw new Error("Vente inexistante.");
+
+        const currentData = saleSnap.data();
+        const totalNet = currentData.total - (currentData.remise || 0);
+        const newAvance = (currentData.avance || 0) + amount;
+        const newReste = Math.max(0, totalNet - newAvance);
+        const isFullyPaid = newReste <= 0;
+        
+        let finalInvoiceId = currentData.invoiceId;
+        if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
+          finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
+        }
+
+        transaction.update(saleRef, { 
+          invoiceId: finalInvoiceId,
+          avance: newAvance, 
+          reste: newReste, 
+          statut: isFullyPaid ? "Payé" : "Partiel", 
+          payments: arrayUnion({ 
+            amount, 
+            date: new Date().toISOString(), 
+            userName: currentUserName,
+            note: "Règlement"
+          }),
+          updatedAt: serverTimestamp() 
+        });
+
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, {
+          type: "VENTE",
+          label: `VENTE ${finalInvoiceId}`,
+          clientName: currentData.clientName,
+          category: "Optique", 
+          montant: amount, 
+          relatedId: finalInvoiceId,
+          saleId: paymentSale.id, 
+          userName: currentUserName, 
+          isDraft: isPrepaMode, 
+          isBalancePayment: true,
+          createdAt: serverTimestamp()
+        });
+      });
+
+      toast({ variant: "success", title: "Paiement validé" });
+      setPaymentSale(null);
+    } catch (err: any) {
+      if (err.message === "SESSION_CLOSED") {
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée." });
+      } else {
+        toast({ variant: "destructive", title: "Erreur lors du paiement" });
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -177,7 +282,25 @@ function SalesHistoryContent() {
                       <TableCell className="px-6 py-4 text-xs font-bold uppercase">{sale.clientName}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency(sale.total - (sale.remise || 0))}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
-                      <TableCell className="text-right px-6 py-4 text-xs font-black text-red-500">{formatCurrency(sale.reste || 0)}</TableCell>
+                      <TableCell className="text-right px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-xs font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
+                          {(sale.reste || 0) > 0 && (
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className={cn(
+                                "h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg",
+                                isReadOnly && "opacity-30 grayscale cursor-not-allowed"
+                              )}
+                              onClick={() => handleOpenPayment(sale)}
+                              title="Régler le reste"
+                            >
+                              <HandCoins className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center px-6 py-4"><Badge className={cn("text-[8px] font-black uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
                       <TableCell className="text-right px-6 py-4">
                         <DropdownMenu modal={false}>
@@ -203,6 +326,7 @@ function SalesHistoryContent() {
         </CardContent>
       </Card>
 
+      {/* Dialog Coûts d'Achat */}
       <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
         <DialogContent className="max-w-md rounded-2xl">
           <form onSubmit={handleUpdateCosts}>
@@ -215,6 +339,49 @@ function SalesHistoryContent() {
               <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Désignation Achat</Label><Input placeholder="Ex: Verres Nikon..." value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
             </div>
             <DialogFooter><Button type="submit" className="w-full font-black rounded-xl" disabled={isSavingCosts}>ENREGISTRER</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Règlement Direct */}
+      <Dialog open={!!paymentSale} onOpenChange={(open) => !open && setPaymentSale(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
+          <form onSubmit={handleValidatePayment}>
+            <DialogHeader className="p-6 md:p-8 bg-primary text-white">
+              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3"><HandCoins className="h-6 w-6 md:h-7 md:w-7" />Encaisser Vente</DialogTitle>
+              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">Document {paymentSale?.invoiceId}</p>
+            </DialogHeader>
+
+            {isTodayClosed && isAdminOrPrepa && (
+              <div className="bg-orange-50 p-4 border-b border-orange-100 flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                <p className="text-[10px] font-black text-orange-700 uppercase">Mode Correction : Modification autorisée sur caisse close.</p>
+              </div>
+            )}
+
+            <div className={cn("p-6 md:p-8 space-y-6 transition-all", isReadOnly && "grayscale brightness-95 opacity-80 pointer-events-none")}>
+              <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{paymentSale?.clientName}</span></div>
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
+              </div>
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
+                <input 
+                  type="text" 
+                  className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isReadOnly && "cursor-not-allowed")} 
+                  value={paymentAmount} 
+                  placeholder="0,00"
+                  onChange={(e) => !isReadOnly && setPaymentAmount(e.target.value)} 
+                  onBlur={() => !isReadOnly && paymentAmount && setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))}
+                  autoFocus 
+                  readOnly={isReadOnly}
+                />
+              </div>
+            </div>
+            <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
+              <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" type="button" onClick={() => setPaymentSale(null)}>Annuler</Button>
+              <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || isReadOnly || sessionLoading}>{isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
