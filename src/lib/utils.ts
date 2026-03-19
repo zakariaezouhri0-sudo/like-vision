@@ -51,14 +51,10 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * Fonction de secours pour WhatsApp utilisant Unicode Escape Sequences.
- * Copie dans le presse-papier et ouvre la discussion.
+ * Envoie un message WhatsApp et copie le texte dans le presse-papiers.
  */
-export async function sendWhatsApp(phone: string, name: string) {
-  if (!phone) return;
-  
-  // Message utilisant exclusivement des séquences Unicode pour les emojis
-  const message = `السلام عليكم ${name} \uD83D\uDC4B، فريق Like Vision كيشكرك بزاف على الثقة ديالك فينا \uD83D\uDC53\u2728. الطلب ديالك تسجل بنجاح \u2705. غادي نعلموك غير يوجدو النظارات ديالك \uD83D\uDCF2. شكراً ليك ونهار مبروك! \uD83C\uDF1F\uD83D\uDE0E`;
+export async function sendWhatsApp(phone: string, message: string) {
+  if (!phone || !message) return;
 
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {

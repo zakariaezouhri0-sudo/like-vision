@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -11,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -66,6 +65,7 @@ function NewSaleForm() {
   const [bonError, setBonError] = useState(false);
   const [fromDoctor, setFromDoctor] = useState(searchParams.get("fromDoctor") === "true");
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
+  const [waLang, setWaLang] = useState<'darija' | 'french'>('darija');
 
   const [isFamilyMode, setIsFamilyMode] = useState(false);
 
@@ -95,6 +95,9 @@ function NewSaleForm() {
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
+
+  const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
+  const { data: settings } = useDoc(settingsRef);
 
   const existingSaleRef = useMemoFirebase(() => activeEditId ? doc(db, "sales", activeEditId) : null, [db, activeEditId]);
   const { data: existingSale, isLoading: saleDataLoading } = useDoc(existingSaleRef);
@@ -437,7 +440,9 @@ function NewSaleForm() {
 
       if (cleanedPhone && !activeEditId) {
         setTimeout(async () => {
-          await sendWhatsApp(cleanedPhone, clientName);
+          const template = waLang === 'darija' ? settings?.whatsappDarija : settings?.whatsappFrench;
+          const finalMessage = (template || "").replace(/\[Nom\]/gi, clientName.trim().toUpperCase());
+          await sendWhatsApp(cleanedPhone, finalMessage);
           toast({ variant: "success", title: "\u2705 Message copié !", description: "Collez le message (Ctrl+V) dans WhatsApp." });
         }, 500);
       }
@@ -594,7 +599,7 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase ml-1">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
@@ -602,12 +607,27 @@ function NewSaleForm() {
                       <SelectContent className="rounded-xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  {mutuelle === "Autre" && (
+                  {mutuelle === "Autre" ? (
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
                       <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "cursor-not-allowed")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
-                  )}
+                  ) : <div />}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">Langue WhatsApp</Label>
+                    <Select value={waLang} onValueChange={(v: any) => setWaLang(v)} disabled={isReadOnly}>
+                      <SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")}>
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="h-3.5 w-3.5 text-primary/40" />
+                          <SelectValue />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="darija" className="font-bold">Darija</SelectItem>
+                        <SelectItem value="french" className="font-bold">Français</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {isAdminOrPrepa && (
