@@ -266,10 +266,16 @@ function NewSaleForm() {
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading || saleDataLoading) return;
     
+    // SÉCURITÉ CRITIQUE : Vérification au moment du clic
     if (isSessionClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "ERREUR CRITIQUE", description: "La caisse de cette journée est clôturée." });
+      toast({ 
+        variant: "destructive", 
+        title: "ACTION BLOQUÉE", 
+        description: "Impossible d'enregistrer car la caisse de cette journée est déjà clôturée." 
+      });
       return;
     }
+
     if (!clientName) { toast({ variant: "destructive", title: "Erreur", description: "Nom client obligatoire." }); return; }
     if (!bonNumber && !activeEditId) { toast({ variant: "destructive", title: "Erreur", description: "N° BON obligatoire." }); return; }
     
@@ -323,6 +329,7 @@ function NewSaleForm() {
       }
 
       await runTransaction(db, async (transaction) => {
+        // Double vérification transactionnelle
         if (sessionRef && !isAdminOrPrepa) {
           const sessionSnap = await transaction.get(sessionRef);
           if (sessionSnap.exists() && sessionSnap.data().status === "CLOSED") {
@@ -434,7 +441,7 @@ function NewSaleForm() {
       }
     } catch (err: any) { 
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée entre temps par un administrateur." });
       } else {
         toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer la vente." });
       }
@@ -447,7 +454,6 @@ function NewSaleForm() {
 
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
   
-  // Afficher la liste si on a des résultats ET (le champ nom est focus OU on vient de saisir un tel de 8+ chiffres sans encore choisir de client)
   const showMatchedClients = matchedClients && matchedClients.length > 0 && !isReadOnly && (
     isNameFocused || ((clientPhone || "").replace(/\s/g, "").length >= 8 && !selectedClientId)
   );
@@ -466,25 +472,25 @@ function NewSaleForm() {
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-xl font-black text-[10px] px-8 border-primary/20 text-primary shadow-sm" disabled={loading || sessionLoading || isReadOnly}><Printer className="mr-2 h-4 w-4" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || sessionLoading || isReadOnly}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
+            <Button onClick={() => handleSave(false)} className="h-12 rounded-xl font-black text-[10px] px-8 shadow-xl" disabled={loading || sessionLoading || isReadOnly}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" /> } ENREGISTRER</Button>
           </div>
         </div>
 
         {isSessionClosed && (
           <div className={cn(
-            "bg-white border-l-[12px] shadow-2xl p-6 rounded-[32px] flex items-center gap-6 relative overflow-hidden",
+            "bg-white border-l-[12px] shadow-2xl p-8 rounded-[40px] flex items-center gap-8 relative overflow-hidden transition-all animate-in zoom-in-95",
             isAdminOrPrepa ? "border-l-orange-500" : "border-l-destructive"
           )}>
-            <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-inner", isAdminOrPrepa ? "bg-orange-100" : "bg-red-100")}>
-              {isAdminOrPrepa ? <AlertTriangle className="h-8 w-8 text-orange-600" /> : <Lock className="h-8 w-8 text-destructive animate-pulse" />}
+            <div className={cn("h-20 w-20 rounded-3xl flex items-center justify-center shrink-0 shadow-inner", isAdminOrPrepa ? "bg-orange-100" : "bg-red-100")}>
+              {isAdminOrPrepa ? <AlertTriangle className="h-10 w-10 text-orange-600" /> : <Lock className="h-10 w-10 text-destructive animate-pulse" />}
             </div>
             <div className="flex-1">
-              <h3 className={cn("text-[10px] font-black uppercase tracking-[0.3em] mb-1", isAdminOrPrepa ? "text-orange-600" : "text-destructive")}>
-                {isAdminOrPrepa ? "Mode Correction" : "Accès Verrouillé"}
+              <h3 className={cn("text-xs font-black uppercase tracking-[0.4em] mb-2", isAdminOrPrepa ? "text-orange-600" : "text-destructive")}>
+                {isAdminOrPrepa ? "Attention : Session Clôturée" : "Session Verrouillée"}
               </h3>
-              <p className="text-slate-700 font-bold text-lg leading-tight tracking-tight">
-                La caisse du <span className={isAdminOrPrepa ? "text-orange-600 font-black" : "text-destructive font-black"}>{format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span> est clôturée. 
-                {isAdminOrPrepa && " Modification autorisée (Admin)."}
+              <p className="text-slate-900 font-black text-xl leading-tight tracking-tight uppercase">
+                La caisse du <span className={isAdminOrPrepa ? "text-orange-600" : "text-destructive"}>{format(saleDate, "dd MMMM yyyy", { locale: fr })}</span> est clôturée. 
+                {isAdminOrPrepa ? " Modification autorisée (Mode Admin)." : " Enregistrement interdit."}
               </p>
             </div>
           </div>
@@ -503,7 +509,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase ml-1">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
-                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
+                      <Input className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="06 00 00 00 00" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-1">
                       <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} disabled={isReadOnly} />
@@ -518,7 +524,7 @@ function NewSaleForm() {
                     <div className="relative">
                       <User className="absolute left-4 top-3.5 h-4 w-4 text-primary/30" />
                       <Input 
-                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "opacity-50")} 
+                        className={cn("h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-bold uppercase", isReadOnly && "opacity-50 cursor-not-allowed")} 
                         placeholder="M. Mohamed Alami..." 
                         value={clientName} 
                         onChange={e => {
@@ -560,7 +566,7 @@ function NewSaleForm() {
                       <Input 
                         className={cn(
                           "h-12 pl-11 rounded-xl bg-slate-50 border-none shadow-inner font-black text-primary", 
-                          isReadOnly && "opacity-50",
+                          isReadOnly && "opacity-50 cursor-not-allowed",
                           bonError && "border-2 border-red-500 bg-red-50 ring-2 ring-red-500/20"
                         )} 
                         placeholder="Ex: 2472" 
@@ -592,7 +598,7 @@ function NewSaleForm() {
                   {mutuelle === "Autre" && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
                       <Label className="text-[10px] font-black uppercase ml-1">Libellé Mutuelle</Label>
-                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                      <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   )}
                 </div>
@@ -603,7 +609,7 @@ function NewSaleForm() {
                       <Label className="text-[10px] font-black uppercase ml-1 text-primary">Date de la Vente (ADMIN)</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4" disabled={isReadOnly}>
+                          <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4" disabled={loading || sessionLoading}>
                             <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                             {format(saleDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}
                           </Button>
@@ -618,7 +624,7 @@ function NewSaleForm() {
                         <Label className="text-[10px] font-black uppercase ml-1 text-destructive">Correction N° Document (ADMIN)</Label>
                         <div className="relative">
                           <FileText className="absolute left-4 top-3.5 h-4 w-4 text-destructive/30" />
-                          <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={isReadOnly} />
+                          <Input className="h-12 pl-11 rounded-xl bg-red-50 border-2 border-red-100 font-black text-destructive" value={editableInvoiceId} onChange={e => setEditableInvoiceId(e.target.value.toUpperCase())} readOnly={loading || sessionLoading} />
                         </div>
                       </div>
                     )}
@@ -633,7 +639,7 @@ function NewSaleForm() {
                 <CardTitle className="text-xl uppercase font-black text-[#6a8036]">Prescription Optique</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <div className={cn(isReadOnly && "pointer-events-none")}>
+                <div className={cn(isReadOnly && "pointer-events-none opacity-50")}>
                   <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
                 </div>
               </CardContent>
@@ -646,10 +652,10 @@ function NewSaleForm() {
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} /></div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Monture</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Marque..." value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Verres</Label><Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="Type..." value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} /></div>
                 </div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isReadOnly && "opacity-50")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Commentaires</Label><Textarea className={cn("min-h-[100px] rounded-2xl bg-slate-50 border-none shadow-inner font-medium", isReadOnly && "opacity-50 cursor-not-allowed")} placeholder="..." value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} /></div>
               </CardContent>
             </Card>
           </div>
@@ -660,7 +666,7 @@ function NewSaleForm() {
               <CardContent className="p-6 space-y-4">
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Prix Brut (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
+                  <input type="text" className={cn("bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} readOnly={isReadOnly} />
                 </div>
                 
                 <div className="bg-black/10 p-6 rounded-[40px] flex flex-col gap-4">
@@ -674,7 +680,7 @@ function NewSaleForm() {
                   <div className="flex justify-between items-center px-2">
                     <span className="text-[9px] font-black text-white/40 uppercase mb-1">Valeur :</span>
                     <div className="relative">
-                      <input type="text" className="bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums" placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
+                      <input type="text" className={cn("bg-transparent text-right font-black text-white outline-none text-2xl w-32 tabular-nums", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={discountValue} onChange={e => setDiscountValue(e.target.value)} onBlur={() => discountValue && setDiscountValue(discountType === 'percent' ? discountValue : formatCurrency(parseAmount(discountValue)))} readOnly={isReadOnly} />
                       {discountType === 'percent' && <Percent className="absolute -right-5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />}
                     </div>
                   </div>
@@ -685,7 +691,7 @@ function NewSaleForm() {
 
                 <div className="bg-white p-4 rounded-[40px] flex justify-between items-center shadow-sm">
                   <Label className="text-[10px] font-black text-[#6a8036] uppercase ml-4">Versé ce jour (DH)</Label>
-                  <input type="text" className="bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4" placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
+                  <input type="text" className={cn("bg-transparent text-right font-black text-slate-500 outline-none text-2xl w-32 tabular-nums mr-4", isReadOnly && "cursor-not-allowed")} placeholder="0,00" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} readOnly={isReadOnly} />
                 </div>
 
                 <div className="pt-4">
