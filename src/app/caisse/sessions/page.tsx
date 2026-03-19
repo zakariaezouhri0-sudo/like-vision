@@ -222,14 +222,22 @@ function SessionsContent() {
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
         ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
         
+        // Calcul automatique des largeurs de colonnes
         const colWidths = aoaData.reduce((acc, row) => {
           row.forEach((cell, i) => {
-            const length = cell ? cell.toString().length : 0;
+            let length = 0;
+            if (cell !== null && cell !== undefined) {
+              if (typeof cell === 'number') {
+                length = cell.toLocaleString('fr-FR', { minimumFractionDigits: 2 }).length + 4;
+              } else {
+                length = cell.toString().length;
+              }
+            }
             if (!acc[i] || length > acc[i]) acc[i] = length;
           });
           return acc;
         }, [] as number[]);
-        ws['!cols'] = colWidths.map(w => ({ wch: w + 5 }));
+        ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 3, 10) }));
 
         const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
         for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -242,7 +250,6 @@ function SessionsContent() {
         XLSX.utils.book_append_sheet(wb, ws, format(d, "dd-MM"));
       }
 
-      // Feuille RÉCAPITULATIF
       const recapAoa = [
         [`BILAN MENSUEL - ${monthName}`, ""],
         ["", ""],
@@ -253,7 +260,6 @@ function SessionsContent() {
         ["TOTAL DÉPENSES (Général)", totalDepensesAmt],
         ["TOTAL VERSEMENTS", totalVersementsAmt],
         ["", ""],
-        // FLUX NET: On ne soustrait plus les versements car cet argent reste la propriété du magasin (juste transféré en banque)
         ["FLUX NET DU MOIS", totalVentesAmt - totalVerresAmt - totalMonturesAmt - totalDepensesAmt]
       ];
 
@@ -400,6 +406,23 @@ function SessionsContent() {
       const ws = XLSX.utils.aoa_to_sheet(aoaData);
       ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
 
+      // Calcul automatique des largeurs
+      const colWidths = aoaData.reduce((acc, row) => {
+        row.forEach((cell, i) => {
+          let length = 0;
+          if (cell !== null && cell !== undefined) {
+            if (typeof cell === 'number') {
+              length = cell.toLocaleString('fr-FR', { minimumFractionDigits: 2 }).length + 4;
+            } else {
+              length = cell.toString().length;
+            }
+          }
+          if (!acc[i] || length > acc[i]) acc[i] = length;
+        });
+        return acc;
+      }, [] as number[]);
+      ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 3, 10) }));
+
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = 0; C <= range.e.c; ++C) {
@@ -407,15 +430,6 @@ function SessionsContent() {
           if (cell && cell.t === 'n') cell.z = '#,##0.00 "MAD"';
         }
       }
-
-      const colWidths = aoaData.reduce((acc, row) => {
-        row.forEach((cell, i) => {
-          const length = cell ? cell.toString().length : 0;
-          if (!acc[i] || length > acc[i]) acc[i] = length;
-        });
-        return acc;
-      }, [] as number[]);
-      ws['!cols'] = colWidths.map(w => ({ wch: w + 5 }));
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Journal");
