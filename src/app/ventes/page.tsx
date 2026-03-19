@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import Link from "link";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
@@ -139,7 +139,7 @@ function SalesHistoryContent() {
 
     const params = new URLSearchParams({ 
       client: sale.clientName || "---", phone: sale.clientPhone || "", mutuelle: sale.mutuelle || "---", 
-      total: sale.total.toString(), remise: (sale.remise || 0).toString(), 
+      total: (sale.total || 0).toString(), remise: (sale.remise || 0).toString(), 
       avance: (sale.avance || 0).toString(), od_sph: sale.prescription?.od?.sph || "---", od_cyl: sale.prescription?.od?.cyl || "---", 
       od_axe: sale.prescription?.od?.axe || "---", od_add: sale.prescription?.od?.add || "---",
       og_sph: sale.prescription?.og?.sph || "---", og_cyl: sale.prescription?.og?.cyl || "---", 
