@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -15,7 +16,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, where, runTransaction, arrayUnion, getDoc, limit } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, where, runTransaction, arrayUnion, getDoc, limit, getDocs, writeBatch } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { format, isWithinInterval, startOfDay, endOfDay, isValid } from "date-fns";
@@ -42,7 +43,6 @@ function SalesHistoryContent() {
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
 
-  // States pour le paiement direct
   const [paymentSale, setPaymentSale] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -56,7 +56,6 @@ function SalesHistoryContent() {
   const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  // Vérification de la caisse pour le règlement direct
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
@@ -104,11 +103,45 @@ function SalesHistoryContent() {
 
   const handleDelete = async (sale: any) => {
     if (!isAdminOrPrepa) return;
-    if (!confirm("Supprimer cette vente ?")) return;
+    
+    // Alerte de sécurité spécifique demandée
+    const confirmMsg = "Êtes-vous sûr ? Cette action supprimera également le montant de la caisse.";
+    if (!confirm(confirmMsg)) return;
+    
     try {
-      await deleteDoc(doc(db, "sales", sale.id));
-      toast({ variant: "success", title: "Vente supprimée" });
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); }
+      // 1. Rechercher toutes les transactions liées à cette vente via son ID unique
+      const transQuery = query(
+        collection(db, "transactions"), 
+        where("saleId", "==", sale.id)
+      );
+      const transSnap = await getDocs(transQuery);
+      
+      const batch = writeBatch(db);
+      
+      // 2. Ajouter la suppression de chaque transaction trouvée au batch
+      transSnap.docs.forEach((tDoc) => {
+        batch.delete(tDoc.ref);
+      });
+      
+      // 3. Ajouter la suppression du document de vente lui-même
+      batch.delete(doc(db, "sales", sale.id));
+      
+      // 4. Exécuter l'opération atomique (tout ou rien)
+      await batch.commit();
+      
+      toast({ 
+        variant: "success", 
+        title: "Vente supprimée", 
+        description: "Le document et ses règlements de caisse ont été retirés." 
+      });
+    } catch (e) { 
+      console.error("Erreur suppression cascade:", e);
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur technique", 
+        description: "Impossible de supprimer la vente et les flux financiers associés." 
+      }); 
+    }
   };
 
   const handlePrint = (sale: any) => {
@@ -147,7 +180,6 @@ function SalesHistoryContent() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
   };
 
-  // Logique de paiement direct
   const handleOpenPayment = (sale: any) => {
     if (isTodayClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Caisse Clôturée", description: "Impossible d'enregistrer un règlement sur une session fermée." });
@@ -325,7 +357,6 @@ function SalesHistoryContent() {
         </CardContent>
       </Card>
 
-      {/* Dialog Coûts d'Achat */}
       <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
         <DialogContent className="max-w-md rounded-2xl">
           <form onSubmit={handleUpdateCosts}>
@@ -342,7 +373,6 @@ function SalesHistoryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Règlement Direct */}
       <Dialog open={!!paymentSale} onOpenChange={(open) => !open && setPaymentSale(null)}>
         <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
           <form onSubmit={handleValidatePayment}>
