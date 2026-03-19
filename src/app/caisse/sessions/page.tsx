@@ -111,23 +111,28 @@ function SessionsContent() {
       
       toast({ title: "Export en cours", description: `Récupération des données pour ${monthName}...` });
 
-      // Fetch all transactions for the month
+      // Fetch all transactions for the month without filtering isDraft in query to avoid index error
       const transQ = query(
         collection(db, "transactions"),
-        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(startDate)),
         where("createdAt", "<=", Timestamp.fromDate(endDate))
       );
       const transSnap = await getDocs(transQ);
-      const allMonthTrans = transSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      // Filter isDraft in memory
+      const allMonthTrans = transSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
       // Fetch all sales for matching
-      const salesQ = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
+      const salesQ = query(collection(db, "sales"));
       const salesSnap = await getDocs(salesQ);
       const salesMap: Record<string, any> = {};
       salesSnap.docs.forEach(doc => {
         const d = doc.data();
-        if (d.invoiceId) salesMap[d.invoiceId] = d;
+        // Match mode
+        if (isPrepaMode === (d.isDraft === true)) {
+          if (d.invoiceId) salesMap[d.invoiceId] = d;
+        }
       });
 
       const wb = XLSX.utils.book_new();
@@ -181,7 +186,7 @@ function SessionsContent() {
           if (t.type === "VERSEMENT" && !isVente) {
             displayLabel = `VERSEMENT | ${(t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim() || "BANQUE"}`;
           } else if (!isVente) {
-            displayLabel = `${t.type} | ${(t.label || "").replace(new RegExp(`^${t.type}\\s*[:\\-']?\\s*`, 'i'), '').trim() || "---"}`;
+            displayLabel = `${t.type} | ${(t.label || "").replace(new RegExp(`^${t.type}\\s*[:\\-']?\s*`, 'i'), '').trim() || "---"}`;
           }
 
           return [
@@ -293,17 +298,14 @@ function SessionsContent() {
 
       const q = query(
         collection(db, "transactions"),
-        where("isDraft", "==", isPrepaMode)
+        where("createdAt", ">=", Timestamp.fromDate(start)),
+        where("createdAt", "<=", Timestamp.fromDate(end))
       );
       
       const snap = await getDocs(q);
       const allTrans = snap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => {
-          if (!t.createdAt?.toDate) return false;
-          const tDate = t.createdAt.toDate();
-          return tDate >= start && tDate <= end;
-        });
+        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
       if (allTrans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
@@ -321,14 +323,15 @@ function SessionsContent() {
       const finalBalance = initialBalance + totalEncaissements - totalDecaissements;
 
       const qSales = query(
-        collection(db, "sales"),
-        where("isDraft", "==", isPrepaMode)
+        collection(db, "sales")
       );
       const salesSnap = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
       salesSnap.docs.forEach(doc => {
         const data = doc.data();
-        if (data.invoiceId) salesMap[data.invoiceId] = data;
+        if (isPrepaMode === (data.isDraft === true)) {
+          if (data.invoiceId) salesMap[data.invoiceId] = data;
+        }
       });
 
       const mapRow = (t: any) => {

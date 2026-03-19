@@ -54,13 +54,13 @@ function OperationsReportContent() {
   const transQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
+    // Query by range without isDraft equality to avoid composite index error
     return query(
       collection(db, "transactions"), 
-      where("isDraft", "==", isPrepaMode),
       where("createdAt", ">=", Timestamp.fromDate(start)),
       where("createdAt", "<=", Timestamp.fromDate(end))
     );
-  }, [db, isPrepaMode, selectedDate]);
+  }, [db, selectedDate]);
   const { data: rawTransactions, isLoading: transLoading } = useCollection(transQuery);
 
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
@@ -73,14 +73,16 @@ function OperationsReportContent() {
       
       try {
         const qSales = query(
-          collection(db, "sales"), 
-          where("isDraft", "==", isPrepaMode)
+          collection(db, "sales")
         );
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
         snap.docs.forEach(doc => {
           const data = doc.data();
-          if (data.invoiceId) details[data.invoiceId] = data;
+          // Filter by isDraft in memory
+          if (isPrepaMode === (data.isDraft === true)) {
+            if (data.invoiceId) details[data.invoiceId] = data;
+          }
         });
         setSalesDetails(details);
       } catch (e) {
@@ -129,7 +131,10 @@ function OperationsReportContent() {
   const groupedTransactions = useMemo(() => {
     if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
     
-    const sorted = [...rawTransactions].sort((a, b) => {
+    // Filter by isDraft in memory to solve index requirement
+    const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+
+    const sorted = [...filtered].sort((a, b) => {
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
       return timeA - timeB;
@@ -144,7 +149,7 @@ function OperationsReportContent() {
       sorties: groupTransactionsByBC(vSorties),
       reglements: groupTransactionsByBC(vRegl)
     };
-  }, [rawTransactions]);
+  }, [rawTransactions, isPrepaMode]);
 
   const mapToExcelRow = (t: any) => {
     if (!t.id) return {};
