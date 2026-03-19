@@ -146,8 +146,8 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
       
-      // Récupérer la session pour le solde initial
-      const sessionDocRef = doc(db, "cash_sessions", isPrepaMode ? `DRAFT-${dateStr}` : dateStr);
+      const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
+      const sessionDocRef = doc(db, "cash_sessions", sessionDocId);
       const sessionSnap = await getDoc(sessionDocRef);
       const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
       const initialBalance = sessionData?.openingBalance || 0;
@@ -171,7 +171,6 @@ function SessionsContent() {
         return;
       }
 
-      // Calculs pour l'en-tête
       const totalEncaissements = allTrans
         .filter((t: any) => t.type === "VENTE")
         .reduce((acc: number, t: any) => acc + Math.abs(t.montant), 0);
@@ -235,24 +234,30 @@ function SessionsContent() {
       };
 
       const nouveauxVentes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
-      const depensesUniquement = allTrans.filter((t: any) => t.type !== "VENTE" && t.type !== "VERSEMENT");
-      const versementsUniquement = allTrans.filter((t: any) => t.type === "VERSEMENT");
-      const sorties = [...depensesUniquement, ...versementsUniquement];
+      
+      // Tri des dépenses selon l'ordre : ACHAT VERRES > ACHAT MONTURE > DEPENSE > VERSEMENT
+      const sortedSorties = allTrans.filter((t: any) => t.type !== "VENTE").sort((a, b) => {
+        const p: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "DEPENSE": 3, "VERSEMENT": 4 };
+        const pA = p[a.type] || 3;
+        const pB = p[b.type] || 3;
+        if (pA !== pB) return pA - pB;
+        return (a.createdAt?.toDate?.().getTime() || 0) - (b.createdAt?.toDate?.().getTime() || 0);
+      });
+
       const reglementsRestes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
-      // Construction du tableau final (AOA - Array of Arrays)
       const aoaData = [
-        [`JOURNAL DE CAISSE - ${format(d, "dd/MM/yyyy")}`],
-        [""],
-        ["SOLDE INITIAL", initialBalance],
-        ["(+) Encaissements", totalEncaissements],
-        ["(-) Décaissements", totalDecaissements],
-        ["SOLDE FINAL", finalBalance],
-        [""],
+        [`JOURNAL DE CAISSE - ${format(d, "dd/MM/yyyy")}`, "", "", "", "", "", ""],
+        ["", "", "", "", "", "", ""],
+        ["SOLDE INITIAL", initialBalance, "", "", "", "", ""],
+        ["(+) Encaissements", totalEncaissements, "", "", "", "", ""],
+        ["(-) Décaissements", totalDecaissements, "", "", "", "", ""],
+        ["SOLDE FINAL", finalBalance, "", "", "", "", ""],
+        ["", "", "", "", "", "", ""],
         ["Réf", "Date", "Libellé", "Nom client", "Montant Tot", "Mouvement", "SORTIE"],
         ...nouveauxVentes.map(mapRow),
         [""],
-        ...sorties.map(mapRow),
+        ...sortedSorties.map(mapRow),
         [""],
         ...reglementsRestes.map(mapRow),
         [""],
@@ -261,6 +266,20 @@ function SessionsContent() {
 
       const ws = XLSX.utils.aoa_to_sheet(aoaData);
       
+      // Fusion et Centrage du Titre (A1:G2)
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }
+      ];
+
+      // Styles de base pour le titre fusionné (via l'objet cell si supporté, sinon via formatage simple)
+      const titleCell = ws[XLSX.utils.encode_cell({ r: 0, c: 0 })];
+      if (titleCell) {
+        titleCell.s = {
+          alignment: { horizontal: "center", vertical: "center" },
+          font: { bold: true, sz: 14 }
+        };
+      }
+
       // Formatage des cellules MAD
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
       for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -272,10 +291,18 @@ function SessionsContent() {
         }
       }
 
-      // Largeurs de colonnes
-      ws['!cols'] = [
-        { wch: 10 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
-      ];
+      // Calcul des largeurs de colonnes "Sur Mesure" (Auto-fit)
+      const colWidths = aoaData.reduce((acc, row) => {
+        row.forEach((cell, i) => {
+          const length = cell ? cell.toString().length : 0;
+          if (!acc[i] || length > acc[i]) {
+            acc[i] = length;
+          }
+        });
+        return acc;
+      }, [] as number[]);
+
+      ws['!cols'] = colWidths.map(w => ({ wch: w + 5 })); // +5 pour un peu d'espace de respiration
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Journal");
