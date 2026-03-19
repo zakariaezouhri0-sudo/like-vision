@@ -135,7 +135,7 @@ export default function LoginPage() {
                 <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tighter leading-none">
                   LIKE VISION OPTIQUE
                 </h1>
-                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 whitespace-nowrap">
+                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-primary/60 whitespace-nowrap">
                   GESTION OPTIQUE PROFESSIONNELLE
                 </p>
               </div>
@@ -147,14 +147,14 @@ export default function LoginPage() {
         <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-md mx-auto w-full">
           <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
             <CardTitle className="text-2xl font-black text-primary uppercase tracking-tight">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">
+            <CardDescription className="text-[10px] font-bold uppercase text-primary/60 tracking-[0.2em]">
               Saisissez vos identifiants
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-6 pt-10">
               <div className="space-y-2.5">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Identifiant</Label>
+                <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Identifiant</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
                   <Input 
@@ -167,7 +167,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="space-y-2.5">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Mot de passe</Label>
+                <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-5 top-4 h-5 w-5 text-primary/40" />
                   <Input 
