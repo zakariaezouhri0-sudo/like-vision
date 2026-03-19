@@ -34,9 +34,9 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, isValid, getDay, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO, isValid, getDay, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
@@ -105,35 +105,174 @@ function SessionsContent() {
   const handleExportMonthExcel = async (monthKey: string, sessionsOfMonth: any[]) => {
     try {
       const [year, month] = monthKey.split('-').map(Number);
-      const monthName = format(new Date(year, month - 1), "MMMM yyyy", { locale: fr }).toUpperCase();
+      const startDate = startOfMonth(new Date(year, month - 1));
+      const endDate = endOfMonth(new Date(year, month - 1));
+      const monthName = format(startDate, "MMMM yyyy", { locale: fr }).toUpperCase();
       
-      const rows = sessionsOfMonth.map(s => {
-        const d = parseISO(s.date);
-        return {
-          "Date": isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date,
-          "Statut": s.status === "CLOSED" ? "CLÔTURÉE" : "EN COURS",
-          "Initial": s.openingBalance || 0,
-          "Flux Net": (s.totalSales || 0) - (s.totalExpenses || 0),
-          "Versements": s.totalVersements || 0,
-          "Final": s.closingBalanceReal || (s.openingBalance + (s.totalSales || 0) - (s.totalExpenses || 0) - (s.totalVersements || 0))
-        };
+      toast({ title: "Export en cours", description: `Récupération des données pour ${monthName}...` });
+
+      // Fetch all transactions for the month
+      const transQ = query(
+        collection(db, "transactions"),
+        where("isDraft", "==", isPrepaMode),
+        where("createdAt", ">=", Timestamp.fromDate(startDate)),
+        where("createdAt", "<=", Timestamp.fromDate(endDate))
+      );
+      const transSnap = await getDocs(transQ);
+      const allMonthTrans = transSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+
+      // Fetch all sales for matching
+      const salesQ = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
+      const salesSnap = await getDocs(salesQ);
+      const salesMap: Record<string, any> = {};
+      salesSnap.docs.forEach(doc => {
+        const d = doc.data();
+        if (d.invoiceId) salesMap[d.invoiceId] = d;
       });
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
-      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        for (let C = 2; C <= 5; ++C) {
-          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-          if (cell && cell.t === 'n') {
-            cell.z = '#,##0.00 "MAD"';
+      const wb = XLSX.utils.book_new();
+
+      // Stats Mensuelles
+      let totalVentesAmt = 0;
+      let countVentes = 0;
+      let totalVerresAmt = 0;
+      let totalMonturesAmt = 0;
+      let totalDepensesAmt = 0;
+      let totalVersementsAmt = 0;
+
+      // Group sessions by date ascending for sheet order
+      const sortedSessions = [...sessionsOfMonth].sort((a, b) => a.date.localeCompare(b.date));
+
+      for (const session of sortedSessions) {
+        const d = parseISO(session.date);
+        if (!isValid(d)) continue;
+
+        const dayStart = startOfDay(d);
+        const dayEnd = endOfDay(d);
+        const dayTrans = allMonthTrans.filter(t => {
+          if (!t.createdAt?.toDate) return false;
+          const tDate = t.createdAt.toDate();
+          return tDate >= dayStart && tDate <= dayEnd;
+        });
+
+        const initialBalance = session.openingBalance || 0;
+        const dayEncaissements = dayTrans.filter(t => t.type === "VENTE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+        const dayDecaissements = dayTrans.filter(t => t.type !== "VENTE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+        const finalBalance = initialBalance + dayEncaissements - dayDecaissements;
+
+        // Update Monthly Stats
+        totalVentesAmt += dayEncaissements;
+        countVentes += dayTrans.filter(t => t.type === "VENTE" && !t.isBalancePayment).length;
+        totalVerresAmt += dayTrans.filter(t => t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+        totalMonturesAmt += dayTrans.filter(t => t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+        totalDepensesAmt += dayTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+        totalVersementsAmt += dayTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+
+        const mapRow = (t: any) => {
+          let invoiceId = t.relatedId || "";
+          if (!invoiceId && t.label?.includes('VENTE')) invoiceId = t.label.replace('VENTE ', '').trim();
+          const sale = salesMap[invoiceId];
+          const isVente = t.type === "VENTE";
+          const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+          const movement = Math.abs(t.montant);
+          const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+          
+          let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
+          if (t.type === "VERSEMENT" && !isVente) {
+            displayLabel = `VERSEMENT | ${(t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim() || "BANQUE"}`;
+          } else if (!isVente) {
+            displayLabel = `${t.type} | ${(t.label || "").replace(new RegExp(`^${t.type}\\s*[:\\-']?\\s*`, 'i'), '').trim() || "---"}`;
+          }
+
+          return [
+            refDisplay,
+            t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
+            displayLabel,
+            t.clientName || "---",
+            isVente && totalNet !== null ? totalNet : null,
+            isVente ? movement : null,
+            !isVente ? movement : null
+          ];
+        };
+
+        const sortedSorties = dayTrans.filter(t => t.type !== "VENTE").sort((a, b) => {
+          const p: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "DEPENSE": 3, "VERSEMENT": 4 };
+          const pA = p[a.type] || 3;
+          const pB = p[b.type] || 3;
+          if (pA !== pB) return pA - pB;
+          return (a.createdAt?.toDate?.().getTime() || 0) - (b.createdAt?.toDate?.().getTime() || 0);
+        });
+
+        const aoaData = [
+          [`JOURNAL DE CAISSE - ${format(d, "dd/MM/yyyy")}`, "", "", "", "", "", ""],
+          ["", "", "", "", "", "", ""],
+          ["SOLDE INITIAL", initialBalance, "", "", "", "", ""],
+          ["(+) Encaissements", dayEncaissements, "", "", "", "", ""],
+          ["(-) Décaissements", dayDecaissements, "", "", "", "", ""],
+          ["SOLDE FINAL", finalBalance, "", "", "", "", ""],
+          ["", "", "", "", "", "", ""],
+          ["Réf", "Date", "Libellé", "Nom client", "Montant Tot", "Mouvement", "SORTIE"],
+          ...dayTrans.filter(t => t.type === "VENTE" && !t.isBalancePayment).map(mapRow),
+          [""],
+          ...sortedSorties.map(mapRow),
+          [""],
+          ...dayTrans.filter(t => t.type === "VENTE" && t.isBalancePayment).map(mapRow),
+          [""],
+          ["TOTAL DU JOUR", "", "", "", "", dayEncaissements, dayDecaissements]
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(aoaData);
+        ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
+        
+        // Auto-fit columns
+        const colWidths = aoaData.reduce((acc, row) => {
+          row.forEach((cell, i) => {
+            const length = cell ? cell.toString().length : 0;
+            if (!acc[i] || length > acc[i]) acc[i] = length;
+          });
+          return acc;
+        }, [] as number[]);
+        ws['!cols'] = colWidths.map(w => ({ wch: w + 5 }));
+
+        // Format Currency
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = 0; C <= range.e.c; ++C) {
+            const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+            if (cell && cell.t === 'n') cell.z = '#,##0.00 "MAD"';
           }
         }
+
+        XLSX.utils.book_append_sheet(wb, ws, format(d, "dd-MM"));
       }
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sessions");
+      // Feuille RÉCAPITULATIF
+      const recapAoa = [
+        [`BILAN MENSUEL - ${monthName}`, ""],
+        ["", ""],
+        ["NOMBRE DE VENTES", countVentes],
+        ["TOTAL VENTES (Encaissements)", totalVentesAmt],
+        ["TOTAL ACHAT VERRES", totalVerresAmt],
+        ["TOTAL ACHAT MONTURE", totalMonturesAmt],
+        ["TOTAL DÉPENSES (Général)", totalDepensesAmt],
+        ["TOTAL VERSEMENTS", totalVersementsAmt],
+        ["", ""],
+        ["FLUX NET DU MOIS", totalVentesAmt - totalVerresAmt - totalMonturesAmt - totalDepensesAmt - totalVersementsAmt]
+      ];
+
+      const wsRecap = XLSX.utils.aoa_to_sheet(recapAoa);
+      wsRecap['!cols'] = [{ wch: 35 }, { wch: 20 }];
+      const recapRange = XLSX.utils.decode_range(wsRecap['!ref'] || 'A1:B1');
+      for (let R = 3; R <= recapRange.e.r; ++R) {
+        const cell = wsRecap[XLSX.utils.encode_cell({ r: R, c: 1 })];
+        if (cell && cell.t === 'n') cell.z = '#,##0.00 "MAD"';
+      }
+      XLSX.utils.book_append_sheet(wb, wsRecap, "RÉCAPITULATIF");
+
       XLSX.writeFile(wb, `Like Vision - Sessions ${monthName}.xlsx`);
+      toast({ variant: "success", title: "Export réussi", description: `Le fichier mensuel de ${monthName} a été généré.` });
     } catch (e) {
+      console.error(e);
       toast({ variant: "destructive", title: "Erreur lors de l'export mensuel" });
     }
   };
@@ -235,7 +374,6 @@ function SessionsContent() {
 
       const nouveauxVentes = allTrans.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
       
-      // Tri des dépenses selon l'ordre : ACHAT VERRES > ACHAT MONTURE > DEPENSE > VERSEMENT
       const sortedSorties = allTrans.filter((t: any) => t.type !== "VENTE").sort((a, b) => {
         const p: Record<string, number> = { "ACHAT VERRES": 1, "ACHAT MONTURE": 2, "DEPENSE": 3, "VERSEMENT": 4 };
         const pA = p[a.type] || 3;
@@ -265,44 +403,24 @@ function SessionsContent() {
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(aoaData);
-      
-      // Fusion et Centrage du Titre (A1:G2)
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }
-      ];
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
 
-      // Styles de base pour le titre fusionné (via l'objet cell si supporté, sinon via formatage simple)
-      const titleCell = ws[XLSX.utils.encode_cell({ r: 0, c: 0 })];
-      if (titleCell) {
-        titleCell.s = {
-          alignment: { horizontal: "center", vertical: "center" },
-          font: { bold: true, sz: 14 }
-        };
-      }
-
-      // Formatage des cellules MAD
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = 0; C <= range.e.c; ++C) {
           const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-          if (cell && cell.t === 'n') {
-            cell.z = '#,##0.00 "MAD"';
-          }
+          if (cell && cell.t === 'n') cell.z = '#,##0.00 "MAD"';
         }
       }
 
-      // Calcul des largeurs de colonnes "Sur Mesure" (Auto-fit)
       const colWidths = aoaData.reduce((acc, row) => {
         row.forEach((cell, i) => {
           const length = cell ? cell.toString().length : 0;
-          if (!acc[i] || length > acc[i]) {
-            acc[i] = length;
-          }
+          if (!acc[i] || length > acc[i]) acc[i] = length;
         });
         return acc;
       }, [] as number[]);
-
-      ws['!cols'] = colWidths.map(w => ({ wch: w + 5 })); // +5 pour un peu d'espace de respiration
+      ws['!cols'] = colWidths.map(w => ({ wch: w + 5 }));
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Journal");
