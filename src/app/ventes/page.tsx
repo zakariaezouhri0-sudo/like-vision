@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import Link from "next/link";
+import Link from "link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
@@ -33,6 +33,7 @@ function SalesHistoryContent() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState("TOUS");
   const [role, setRole] = useState<string>("");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
   
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -47,12 +48,14 @@ function SalesHistoryContent() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
-    setRole(savedRole.toUpperCase());
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
+    
+    setRole(savedRole);
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsReady(true);
   }, []);
 
-  const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -164,24 +167,24 @@ function SalesHistoryContent() {
 
   const handleOpenPayment = (sale: any) => {
     if (isTodayClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Caisse Clôturée", description: "Impossible d'enregistrer un règlement sur une session fermée." });
+      toast({ variant: "destructive", title: "Caisse Clôturée", description: "L'enregistrement est verrouillé sur une session fermée." });
       return;
     }
     setPaymentSale(sale);
-    setPaymentAmount(formatCurrency(sale.reste));
+    setPaymentAmount(formatCurrency(sale.reste || 0));
   };
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
 
-    if (isReadOnly) {
-      toast({ variant: "destructive", title: "Caisse Fermée", description: "L'enregistrement est verrouillé." });
-      return;
-    }
-
     const amount = parseAmount(paymentAmount);
     if (amount <= 0) return;
+
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Action Impossible", description: "La caisse est clôturée." });
+      return;
+    }
 
     setIsProcessingPayment(true);
     const currentUserName = user?.displayName || "Inconnu";
@@ -197,15 +200,17 @@ function SalesHistoryContent() {
 
         const saleRef = doc(db, "sales", paymentSale.id);
         const saleSnap = await transaction.get(saleRef);
-        if (!saleSnap.exists()) throw new Error("Vente inexistante.");
+        if (!saleSnap.exists()) throw new Error("Vente introuvable.");
 
         const currentData = saleSnap.data();
-        const totalNet = currentData.total - (currentData.remise || 0);
-        const newAvance = (currentData.avance || 0) + amount;
-        const newReste = Math.max(0, totalNet - newAvance);
+        const totalNet = roundAmount((currentData.total || 0) - (currentData.remise || 0));
+        const currentAvance = roundAmount(currentData.avance || 0);
+        
+        const newAvance = roundAmount(currentAvance + amount);
+        const newReste = roundAmount(Math.max(0, totalNet - newAvance));
         const isFullyPaid = newReste <= 0;
         
-        let finalInvoiceId = currentData.invoiceId;
+        let finalInvoiceId = currentData.invoiceId || "---";
         if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
@@ -228,7 +233,7 @@ function SalesHistoryContent() {
         transaction.set(transRef, {
           type: "VENTE",
           label: `VENTE ${finalInvoiceId}`,
-          clientName: currentData.clientName,
+          clientName: currentData.clientName || "---",
           category: "Optique", 
           montant: amount, 
           relatedId: finalInvoiceId,
@@ -243,10 +248,11 @@ function SalesHistoryContent() {
       toast({ variant: "success", title: "Paiement validé" });
       setPaymentSale(null);
     } catch (err: any) {
+      console.error("Erreur paiement:", err);
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée." });
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "L'accès est bloqué car la caisse est close." });
       } else {
-        toast({ variant: "destructive", title: "Erreur lors du paiement" });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Échec de l'encaissement." });
       }
     } finally {
       setIsProcessingPayment(false);
@@ -293,7 +299,7 @@ function SalesHistoryContent() {
                       <TableCell className="px-6 py-4 text-xs font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
                       <TableCell className="px-6 py-4 text-xs font-black text-primary whitespace-nowrap">{sale.invoiceId}</TableCell>
                       <TableCell className="px-6 py-4 text-xs font-bold uppercase">{sale.clientName}</TableCell>
-                      <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency(sale.total - (sale.remise || 0))}</TableCell>
+                      <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
                       <TableCell className="text-center px-6 py-4">
                         <div className="flex items-center justify-center gap-2">

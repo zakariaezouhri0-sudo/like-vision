@@ -28,15 +28,18 @@ export default function UnpaidSalesPage() {
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [role, setRole] = useState<string>("");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
-    setRole(savedRole.toUpperCase());
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
+    
+    setRole(savedRole);
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsReady(true);
   }, []);
 
-  const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -65,7 +68,7 @@ export default function UnpaidSalesPage() {
         const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
         if (!matchesMode) return false;
 
-        const hasReste = (sale.reste || 0) > 0;
+        const hasReste = roundAmount(sale.reste || 0) > 0;
         if (!hasReste) return false;
 
         const search = searchTerm.toLowerCase().trim();
@@ -80,31 +83,31 @@ export default function UnpaidSalesPage() {
 
   const handleOpenPayment = (sale: any) => {
     if (isTodayClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Caisse Clôturée", description: "Impossible d'enregistrer un règlement sur une session fermée." });
+      toast({ variant: "destructive", title: "Caisse Clôturée", description: "L'enregistrement est verrouillé sur une session fermée." });
       return;
     }
     setSelectedSale(sale);
-    setPaymentAmount(formatCurrency(sale.reste));
+    setPaymentAmount(formatCurrency(sale.reste || 0));
   };
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedSale || !paymentAmount) return;
 
-    if (sessionLoading) return;
-    if (isReadOnly) {
-      toast({ variant: "destructive", title: "Caisse Fermée", description: "L'enregistrement est verrouillé." });
-      return;
-    }
-
     const amount = parseAmount(paymentAmount);
     if (amount <= 0) return;
+
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Action Interdite", description: "La caisse est clôturée." });
+      return;
+    }
 
     setIsProcessing(true);
     const currentUserName = user?.displayName || "Inconnu";
 
     try {
       await runTransaction(db, async (transaction) => {
+        // Sécurité : Vérification de la clôture
         if (sessionRef && !isAdminOrPrepa) {
           const sSnap = await transaction.get(sessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") {
@@ -114,20 +117,23 @@ export default function UnpaidSalesPage() {
 
         const saleRef = doc(db, "sales", selectedSale.id);
         const saleSnap = await transaction.get(saleRef);
-        if (!saleSnap.exists()) throw new Error("Vente inexistante.");
+        if (!saleSnap.exists()) throw new Error("Vente introuvable.");
 
         const currentData = saleSnap.data();
-        const totalNet = currentData.total - (currentData.remise || 0);
-        const newAvance = (currentData.avance || 0) + amount;
-        const newReste = Math.max(0, totalNet - newAvance);
+        const totalNet = roundAmount((currentData.total || 0) - (currentData.remise || 0));
+        const currentAvance = roundAmount(currentData.avance || 0);
+        
+        const newAvance = roundAmount(currentAvance + amount);
+        const newReste = roundAmount(Math.max(0, totalNet - newAvance));
         const isFullyPaid = newReste <= 0;
         
-        let finalInvoiceId = currentData.invoiceId;
+        let finalInvoiceId = currentData.invoiceId || "---";
 
         if (isFullyPaid && finalInvoiceId.startsWith("RC-")) {
           finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
         }
 
+        // Mise à jour de la vente
         transaction.update(saleRef, { 
           invoiceId: finalInvoiceId,
           avance: newAvance, 
@@ -142,11 +148,12 @@ export default function UnpaidSalesPage() {
           updatedAt: serverTimestamp() 
         });
 
+        // Création de la transaction de caisse
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
           label: `VENTE ${finalInvoiceId}`,
-          clientName: currentData.clientName,
+          clientName: currentData.clientName || "---",
           category: "Optique", 
           montant: amount, 
           relatedId: finalInvoiceId,
@@ -158,13 +165,14 @@ export default function UnpaidSalesPage() {
         });
       });
 
-      toast({ variant: "success", title: "Paiement validé" });
+      toast({ variant: "success", title: "Paiement validé", description: "Le montant a été ajouté à la caisse." });
       setSelectedSale(null);
     } catch (err: any) {
+      console.error("Erreur paiement:", err);
       if (err.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Caisse Fermée", description: "La caisse a été clôturée." });
+        toast({ variant: "destructive", title: "Caisse Fermée", description: "La session a été clôturée entre temps." });
       } else {
-        toast({ variant: "destructive", title: "Erreur lors du paiement" });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible de valider le règlement." });
       }
     } finally {
       setIsProcessing(false);
@@ -222,7 +230,7 @@ export default function UnpaidSalesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="text-[10px] font-black text-primary tabular-nums tracking-tighter">{sale.invoiceId}</span></TableCell>
-                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency(sale.total - (sale.remise || 0))}</span></TableCell>
+                        <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-slate-900">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</span></TableCell>
                         <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-green-600">{formatCurrency(sale.avance || 0)}</span></TableCell>
                         <TableCell className="text-right px-2 md:px-6 py-4 md:py-5 whitespace-nowrap"><span className="font-black text-[11px] md:text-sm tabular-nums text-destructive">{formatCurrency(sale.reste || 0)}</span></TableCell>
                         <TableCell className="text-right px-3 md:px-6 py-4 md:py-5">
