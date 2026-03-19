@@ -20,7 +20,6 @@ import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { roundAmount, cn } from "@/lib/utils";
-import { startOfDay } from "date-fns";
 import { useTheme } from "next-themes";
 
 const THEMES_CONFIG = [
@@ -71,7 +70,6 @@ export default function SettingsPage() {
     setLoadingRole(false);
   }, []);
   
-  const isPrepaMode = role === 'PREPA';
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: fetchLoading } = useDoc(settingsRef);
 
@@ -137,12 +135,13 @@ export default function SettingsPage() {
   const handleRecalculateBCPrices = async () => {
     setIsMigrating(true);
     try {
-      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
+      const isDraft = role === 'PREPA';
+      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", isDraft));
       const salesSnap = await getDocs(salesQuery);
       const resetBatch = writeBatch(db);
       salesSnap.docs.forEach(d => resetBatch.update(d.ref, { purchasePriceFrame: 0, purchasePriceLenses: 0 }));
       await resetBatch.commit();
-      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", isPrepaMode));
+      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", isDraft));
       const transSnap = await getDocs(transQuery);
       const pendingUpdates: Record<string, { frame: number, lenses: number }> = {};
       transSnap.docs.forEach(tDoc => {
@@ -219,7 +218,7 @@ export default function SettingsPage() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsResetting(false); }
   };
 
-  if (loadingRole || fetchLoading) return null;
+  if (loadingRole || fetchLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   return (
     <AppShell>
