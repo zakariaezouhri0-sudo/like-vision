@@ -111,25 +111,21 @@ function SessionsContent() {
       
       toast({ title: "Export en cours", description: `Récupération des données pour ${monthName}...` });
 
-      // Fetch all transactions for the month without filtering isDraft in query to avoid index error
       const transQ = query(
         collection(db, "transactions"),
         where("createdAt", ">=", Timestamp.fromDate(startDate)),
         where("createdAt", "<=", Timestamp.fromDate(endDate))
       );
       const transSnap = await getDocs(transQ);
-      // Filter isDraft in memory
       const allMonthTrans = transSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as any))
         .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
-      // Fetch all sales for matching
       const salesQ = query(collection(db, "sales"));
       const salesSnap = await getDocs(salesQ);
       const salesMap: Record<string, any> = {};
       salesSnap.docs.forEach(doc => {
         const d = doc.data();
-        // Match mode
         if (isPrepaMode === (d.isDraft === true)) {
           if (d.invoiceId) salesMap[d.invoiceId] = d;
         }
@@ -137,7 +133,6 @@ function SessionsContent() {
 
       const wb = XLSX.utils.book_new();
 
-      // Stats Mensuelles
       let totalVentesAmt = 0;
       let countVentes = 0;
       let totalVerresAmt = 0;
@@ -145,7 +140,6 @@ function SessionsContent() {
       let totalDepensesAmt = 0;
       let totalVersementsAmt = 0;
 
-      // Group sessions by date ascending for sheet order
       const sortedSessions = [...sessionsOfMonth].sort((a, b) => a.date.localeCompare(b.date));
 
       for (const session of sortedSessions) {
@@ -165,7 +159,6 @@ function SessionsContent() {
         const dayDecaissements = dayTrans.filter(t => t.type !== "VENTE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
         const finalBalance = initialBalance + dayEncaissements - dayDecaissements;
 
-        // Update Monthly Stats
         totalVentesAmt += dayEncaissements;
         countVentes += dayTrans.filter(t => t.type === "VENTE" && !t.isBalancePayment).length;
         totalVerresAmt += dayTrans.filter(t => t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(t.montant), 0);
@@ -229,7 +222,6 @@ function SessionsContent() {
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
         ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
         
-        // Auto-fit columns
         const colWidths = aoaData.reduce((acc, row) => {
           row.forEach((cell, i) => {
             const length = cell ? cell.toString().length : 0;
@@ -239,7 +231,6 @@ function SessionsContent() {
         }, [] as number[]);
         ws['!cols'] = colWidths.map(w => ({ wch: w + 5 }));
 
-        // Format Currency
         const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
         for (let R = range.s.r; R <= range.e.r; ++R) {
           for (let C = 0; C <= range.e.c; ++C) {
@@ -262,7 +253,8 @@ function SessionsContent() {
         ["TOTAL DÉPENSES (Général)", totalDepensesAmt],
         ["TOTAL VERSEMENTS", totalVersementsAmt],
         ["", ""],
-        ["FLUX NET DU MOIS", totalVentesAmt - totalVerresAmt - totalMonturesAmt - totalDepensesAmt - totalVersementsAmt]
+        // FLUX NET: On ne soustrait plus les versements car cet argent reste la propriété du magasin (juste transféré en banque)
+        ["FLUX NET DU MOIS", totalVentesAmt - totalVerresAmt - totalMonturesAmt - totalDepensesAmt]
       ];
 
       const wsRecap = XLSX.utils.aoa_to_sheet(recapAoa);
