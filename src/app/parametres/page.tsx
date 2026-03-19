@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -386,33 +387,19 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="whatsapp" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
-                <CardHeader className="bg-slate-50/50 border-b p-8 flex flex-row items-center gap-3">
-                  <Smartphone className="h-5 w-5 text-primary/40" />
-                  <div>
-                    <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Message Darija</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8 space-y-4">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Template Darija</Label>
-                  <Textarea className="min-h-[200px] rounded-2xl bg-slate-50 border-none font-bold text-sm" value={settings.whatsappDarija} onChange={(e) => setSettings({...settings, whatsappDarija: e.target.value})} />
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
-                <CardHeader className="bg-slate-50/50 border-b p-8 flex flex-row items-center gap-3">
-                  <MessageSquare className="h-5 w-5 text-primary/40" />
-                  <div>
-                    <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Message Français</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8 space-y-4">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Template Français</Label>
-                  <Textarea className="min-h-[200px] rounded-2xl bg-slate-50 border-none font-bold text-sm" value={settings.whatsappFrench} onChange={(e) => setSettings({...settings, whatsappFrench: e.target.value})} />
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white max-w-2xl mx-auto">
+              <CardHeader className="bg-slate-50/50 border-b p-8 flex flex-row items-center gap-3">
+                <MessageSquare className="h-5 w-5 text-primary/40" />
+                <div>
+                  <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Message Automatique (Bilingue)</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-4">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Template de Bienvenue</Label>
+                <Textarea className="min-h-[300px] rounded-2xl bg-slate-50 border-none font-bold text-sm" value={settings.whatsappDarija} onChange={(e) => setSettings({...settings, whatsappDarija: e.target.value})} />
+                <p className="text-[9px] font-bold text-slate-400 italic">Note : Utilisez [Nom] pour insérer automatiquement le nom du client.</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

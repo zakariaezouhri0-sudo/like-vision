@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -30,7 +31,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
-  const [isClientReady, setIsClientReady] = useState(false);
+  const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
@@ -65,7 +66,6 @@ function NewSaleForm() {
   const [bonError, setBonError] = useState(false);
   const [fromDoctor, setFromDoctor] = useState(searchParams.get("fromDoctor") === "true");
   const [editableInvoiceId, setEditableInvoiceId] = useState(searchParams.get("invoiceId") || "");
-  const [waLang, setWaLang] = useState<'darija' | 'french'>('darija');
 
   const [isFamilyMode, setIsFamilyMode] = useState(false);
 
@@ -440,7 +440,7 @@ function NewSaleForm() {
 
       if (cleanedPhone && !activeEditId) {
         setTimeout(async () => {
-          const template = waLang === 'darija' ? settings?.whatsappDarija : settings?.whatsappFrench;
+          const template = settings?.whatsappDarija;
           const finalMessage = (template || "").replace(/\[Nom\]/gi, clientName.trim().toUpperCase());
           await sendWhatsApp(cleanedPhone, finalMessage);
           toast({ variant: "success", title: "\u2705 Message copié !", description: "Collez le message (Ctrl+V) dans WhatsApp." });
@@ -613,21 +613,6 @@ function NewSaleForm() {
                       <Input className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "cursor-not-allowed")} placeholder="Précisez la mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   ) : <div />}
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase ml-1">Langue WhatsApp</Label>
-                    <Select value={waLang} onValueChange={(v: any) => setWaLang(v)} disabled={isReadOnly}>
-                      <SelectTrigger className={cn("h-12 rounded-xl bg-slate-50 border-none shadow-inner font-bold", isReadOnly && "opacity-50")}>
-                        <div className="flex items-center gap-2">
-                          <Smartphone className="h-3.5 w-3.5 text-primary/40" />
-                          <SelectValue />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="darija" className="font-bold">Darija</SelectItem>
-                        <SelectItem value="french" className="font-bold">Français</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 {isAdminOrPrepa && (
