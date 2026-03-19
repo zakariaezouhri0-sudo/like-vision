@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -261,10 +260,10 @@ function SalesHistoryContent() {
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Date</TableHead>
                   <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Document</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Client</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Client</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Total Net</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Avance</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Reste</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Reste</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Statut</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Actions</TableHead>
                 </TableRow>
@@ -279,11 +278,11 @@ function SalesHistoryContent() {
                     <TableRow key={sale.id} className="hover:bg-slate-50">
                       <TableCell className="px-6 py-4 text-xs font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
                       <TableCell className="px-6 py-4 text-xs font-black text-primary whitespace-nowrap">{sale.invoiceId}</TableCell>
-                      <TableCell className="px-6 py-4 text-xs font-bold uppercase">{sale.clientName}</TableCell>
+                      <TableCell className="px-6 py-4 text-xs font-bold uppercase text-center">{sale.clientName}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency(sale.total - (sale.remise || 0))}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
-                      <TableCell className="text-right px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="text-center px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
                           <span className="text-xs font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
                           {(sale.reste || 0) > 0 && (
                             <Button 
