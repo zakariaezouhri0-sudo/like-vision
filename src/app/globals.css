@@ -29,25 +29,74 @@
     --sidebar-border: 208 20% 88%;
   }
 
+  /* THEME: ELEGANCE (GREEN) */
   .elegance {
-    --background: 77 33% 95%; /* #f4f7ed */
-    --foreground: 184 9% 19%; /* #2d3436 */
+    --background: 77 33% 95%; 
+    --foreground: 184 9% 19%;
     --card: 0 0% 100%;
     --card-foreground: 184 9% 19%;
-    --primary: 78 42% 46%; /* #89a644 */
+    --primary: 78 42% 46%; 
     --primary-foreground: 0 0% 100%;
-    --secondary: 79 31% 85%; /* #dce4cd */
+    --secondary: 79 31% 85%; 
     --secondary-foreground: 78 42% 46%;
     --muted: 79 31% 92%;
     --muted-foreground: 78 20% 45%;
-    --accent: 78 42% 39%; /* #768e3a */
+    --accent: 78 42% 39%; 
     --accent-foreground: 0 0% 100%;
-    --border: 79 31% 85%; /* #dce4cd */
+    --border: 79 31% 85%;
     --input: 79 31% 85%;
     --ring: 78 42% 46%;
-    --sidebar-bg: 78 42% 46%; /* #89a644 */
-    --sidebar-fg: 0 0% 100%; /* #ffffff */
-    --sidebar-border: 78 42% 39%; /* #768e3a */
+    --sidebar-bg: 78 42% 46%;
+    --sidebar-fg: 0 0% 100%;
+    --sidebar-border: 78 42% 39%;
+  }
+
+  /* THEME: OLIVE PRO */
+  .olive-pro {
+    --background: 69 31% 96%; /* #F7F8F2 */
+    --foreground: 210 24% 16%; /* #1F2933 */
+    --card: 0 0% 100%;
+    --card-foreground: 210 24% 16%;
+    --primary: 65 42% 48%; /* #A7AF47 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 64 51% 90%; 
+    --secondary-foreground: 65 42% 48%;
+    --muted: 64 51% 94%;
+    --muted-foreground: 65 20% 45%;
+    --accent: 71 45% 38%; /* #7F8F36 */
+    --accent-foreground: 0 0% 100%;
+    --border: 64 51% 85%;
+    --input: 64 51% 85%;
+    --ring: 65 42% 48%;
+    --sidebar-bg: 87 30% 17%; /* #2E3A1F */
+    --sidebar-fg: 0 0% 100%;
+    --sidebar-border: 87 30% 12%;
+  }
+
+  /* THEME: DARK VISION */
+  .dark-vision {
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 11%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 210 40% 61%;
+    --primary-foreground: 222 47% 11.2%;
+    --secondary: 222 47% 18%;
+    --secondary-foreground: 210 40% 61%;
+    --muted: 223 47% 18%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-bg: 222 47% 8%;
+    --sidebar-fg: 213 31% 91%;
+    --sidebar-border: 216 34% 12%;
   }
 }
 
@@ -57,12 +106,10 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased transition-colors duration-300;
-    /* Custom Scrollbar for Firefox */
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--primary)) transparent;
   }
   
-  /* Custom Scrollbar for Chrome, Safari and Edge */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
