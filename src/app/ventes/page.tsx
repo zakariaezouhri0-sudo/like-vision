@@ -278,7 +278,7 @@ function SalesHistoryContent() {
                     <TableRow key={sale.id} className="hover:bg-slate-50">
                       <TableCell className="px-6 py-4 text-xs font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
                       <TableCell className="px-6 py-4 text-xs font-black text-primary whitespace-nowrap">{sale.invoiceId}</TableCell>
-                      <TableCell className="px-6 py-4 text-xs font-bold uppercase text-center">{sale.clientName}</TableCell>
+                      <TableCell className="px-6 py-4 text-xs font-bold uppercase">{sale.clientName}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency(sale.total - (sale.remise || 0))}</TableCell>
                       <TableCell className="text-right px-6 py-4 text-xs font-black text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
                       <TableCell className="text-center px-6 py-4">
