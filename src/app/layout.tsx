@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={inter.variable} suppressHydrationWarning>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" themes={['light', 'elegance', 'olive-pro', 'dark-vision']}>
+        <ThemeProvider attribute="class" defaultTheme="light" themes={['light', 'luxury-gold', 'elegance', 'olive-pro', 'dark-vision']}>
           <FirebaseClientProvider>
             <GlobalThemeSync />
             <FirebaseErrorListener />

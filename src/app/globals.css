@@ -4,99 +4,72 @@
 
 @layer base {
   :root {
-    --background: 210 17% 98%; /* #F8F9FA */
-    --foreground: 210 53% 11%; /* Navy #0D1B2A */
+    --background: 210 17% 98%; /* #F8F9FA (Off-white) */
+    --foreground: 210 53% 11%; /* #0D1B2A (Navy) */
     --card: 0 0% 100%;
     --card-foreground: 210 53% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 53% 11%;
-    --primary: 46 65% 52%; /* Gold #D4AF37 */
-    --primary-foreground: 210 53% 11%; /* Navy */
+    --primary: 46 65% 52%; /* #D4AF37 (Gold) */
+    --primary-foreground: 210 53% 11%;
     --secondary: 210 53% 11%; /* Navy */
     --secondary-foreground: 46 65% 52%; /* Gold */
     --muted: 210 17% 94%;
     --muted-foreground: 210 20% 45%;
     --accent: 46 65% 52%; /* Gold */
-    --accent-foreground: 210 53% 11%; /* Navy */
+    --accent-foreground: 210 53% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 210 20% 88%;
     --input: 210 20% 88%;
     --ring: 46 65% 52%;
     --radius: 3.75rem; /* 60px */
-    --sidebar-bg: 210 53% 11%; /* Navy */
-    --sidebar-fg: 46 65% 52%; /* Gold */
+    --sidebar-bg: 210 53% 11%;
+    --sidebar-fg: 46 65% 52%;
     --sidebar-border: 210 53% 8%;
   }
 
-  /* THEME: ELEGANCE (GREEN) */
+  .luxury-gold {
+    --background: 210 17% 98%;
+    --foreground: 210 53% 11%;
+    --primary: 46 65% 52%;
+    --primary-foreground: 210 53% 11%;
+    --secondary: 210 53% 11%;
+    --secondary-foreground: 46 65% 52%;
+    --accent: 46 65% 52%;
+    --accent-foreground: 210 53% 11%;
+    --sidebar-bg: 210 53% 11%;
+    --sidebar-fg: 46 65% 52%;
+  }
+
   .elegance {
-    --background: 77 33% 95%; 
+    --background: 77 33% 95%;
     --foreground: 184 9% 19%;
-    --card: 0 0% 100%;
-    --card-foreground: 184 9% 19%;
-    --primary: 78 42% 46%; 
+    --primary: 78 42% 46%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 79 31% 85%; 
+    --secondary: 79 31% 85%;
     --secondary-foreground: 78 42% 46%;
-    --muted: 79 31% 92%;
-    --muted-foreground: 78 20% 45%;
-    --accent: 78 42% 39%; 
-    --accent-foreground: 0 0% 100%;
-    --border: 79 31% 85%;
-    --input: 79 31% 85%;
-    --ring: 78 42% 46%;
     --sidebar-bg: 78 42% 46%;
     --sidebar-fg: 0 0% 100%;
-    --sidebar-border: 78 42% 39%;
   }
 
-  /* THEME: OLIVE PRO */
   .olive-pro {
-    --background: 69 31% 96%; /* #F7F8F2 */
-    --foreground: 210 24% 16%; /* #1F2933 */
-    --card: 0 0% 100%;
-    --card-foreground: 210 24% 16%;
-    --primary: 65 42% 48%; /* #A7AF47 */
+    --background: 69 31% 96%;
+    --foreground: 210 24% 16%;
+    --primary: 65 42% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 64 51% 90%; 
-    --secondary-foreground: 65 42% 48%;
-    --muted: 64 51% 94%;
-    --muted-foreground: 65 20% 45%;
-    --accent: 71 45% 38%; /* #7F8F36 */
-    --accent-foreground: 0 0% 100%;
-    --border: 64 51% 85%;
-    --input: 64 51% 85%;
-    --ring: 65 42% 48%;
-    --sidebar-bg: 87 30% 17%; /* #2E3A1F */
+    --secondary: 64 51% 90%;
+    --sidebar-bg: 87 30% 17%;
     --sidebar-fg: 0 0% 100%;
-    --sidebar-border: 87 30% 12%;
   }
 
-  /* THEME: DARK VISION */
   .dark-vision {
     --background: 222 47% 11%;
     --foreground: 213 31% 91%;
-    --card: 222 47% 11%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 213 31% 91%;
     --primary: 210 40% 61%;
     --primary-foreground: 222 47% 11.2%;
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 210 40% 61%;
-    --muted: 223 47% 18%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 212.7 26.8% 83.9%;
     --sidebar-bg: 222 47% 8%;
     --sidebar-fg: 213 31% 91%;
-    --sidebar-border: 216 34% 12%;
   }
 }
 
@@ -106,31 +79,6 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased transition-colors duration-300;
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary)) transparent;
-  }
-  
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.3);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary));
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
   }
 
   input, select, textarea {
@@ -138,69 +86,17 @@
   }
 
   .card-style {
-    @apply rounded-xl border border-border bg-card shadow-sm;
-  }
-
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  input[type=number] {
-    -moz-appearance: textfield;
+    @apply rounded-[60px] border border-border bg-card shadow-xl shadow-slate-200/50;
   }
 }
 
 @media print {
-  @page {
-    size: auto;
-    margin: 0 !important;
-  }
-  body {
-    background: white !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .no-print {
-    display: none !important;
-  }
-  .print-only {
-    display: block !important;
-  }
+  @page { size: auto; margin: 0 !important; }
+  body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
 }
 
-.print-only {
-  display: none;
-}
-
-.pdf-a4-landscape {
-  width: 297mm;
-  height: 210mm;
-  margin: 0 auto;
-  background: white;
-  display: flex;
-}
-
-.pdf-a5-portrait {
-  width: 148.5mm;
-  height: 210mm;
-  padding: 8mm 10mm;
-  background: white;
-}
-
-.cutting-line-vertical {
-  border-left: 1px dashed #cbd5e1;
-  height: 100%;
-  width: 1px;
-}
-
-.pdf-a4-portrait {
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  background: white;
-  padding: 15mm;
-}
+.pdf-a4-landscape { width: 297mm; height: 210mm; margin: 0 auto; background: white; display: flex; }
+.pdf-a5-portrait { width: 148.5mm; height: 210mm; padding: 8mm 10mm; background: white; }
+.pdf-a4-portrait { width: 210mm; min-height: 297mm; margin: 0 auto; background: white; padding: 15mm; }

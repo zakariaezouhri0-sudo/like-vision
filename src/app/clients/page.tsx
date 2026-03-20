@@ -29,26 +29,19 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role');
-    if (savedRole) {
-      setRole(savedRole.toUpperCase());
-    } else {
-      router.push('/login');
-    }
+    if (savedRole) setRole(savedRole.toUpperCase());
+    else router.push('/login');
     setIsHydrated(true);
   }, [router]);
 
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
   const isPrepaMode = role === "PREPA";
-  
-  const clientsQuery = useMemoFirebase(() => {
-    return query(collection(db, "clients"), orderBy("createdAt", "desc"), limit(200));
-  }, [db]);
 
+  const clientsQuery = useMemoFirebase(() => query(collection(db, "clients"), orderBy("createdAt", "desc"), limit(500)), [db]);
   const { data: allClients, isLoading: loading } = useCollection(clientsQuery);
-  
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "", mutuelle: "Aucun" });
-
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
 
@@ -66,47 +59,19 @@ export default function ClientsPage() {
   const handleCreateClient = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newClient.name) return;
-    const clientData = {
-      name: newClient.name.toUpperCase(),
-      phone: newClient.phone.replace(/\s/g, ''),
-      mutuelle: newClient.mutuelle,
-      lastVisit: new Date().toLocaleDateString("fr-FR"),
-      ordersCount: 0,
-      isDraft: isPrepaMode,
-      createdAt: serverTimestamp(),
-    };
-    setIsCreateOpen(false);
-    setNewClient({ name: "", phone: "", mutuelle: "Aucun" });
-    addDoc(collection(db, "clients"), clientData).then(() => toast({ variant: "success", title: "Client créé" }));
+    addDoc(collection(db, "clients"), { name: newClient.name.toUpperCase(), phone: newClient.phone.replace(/\s/g, ''), mutuelle: newClient.mutuelle, isDraft: isPrepaMode, createdAt: serverTimestamp() })
+      .then(() => { toast({ variant: "success", title: "Client créé" }); setIsCreateOpen(false); setNewClient({ name: "", phone: "", mutuelle: "Aucun" }); });
   };
 
   const handleUpdateClient = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!editingClient || !editingClient.name) return;
-
-    const clientRef = doc(db, "clients", editingClient.id);
-    const updateData = {
-      name: editingClient.name.toUpperCase(),
-      phone: editingClient.phone.replace(/\s/g, ''),
-      mutuelle: editingClient.mutuelle,
-      updatedAt: serverTimestamp()
-    };
-
-    updateDoc(clientRef, updateData)
-      .then(() => {
-        toast({ variant: "success", title: "Client mis à jour" });
-        setIsEditOpen(false);
-        setEditingClient(null);
-      })
-      .catch(() => toast({ variant: "destructive", title: "Erreur lors de la mise à jour" }));
+    if (!editingClient?.name) return;
+    updateDoc(doc(db, "clients", editingClient.id), { name: editingClient.name.toUpperCase(), phone: editingClient.phone.replace(/\s/g, ''), mutuelle: editingClient.mutuelle, updatedAt: serverTimestamp() })
+      .then(() => { toast({ variant: "success", title: "Client mis à jour" }); setIsEditOpen(false); });
   };
 
   const handleDeleteClient = (client: any) => {
-    if (!confirm(`Supprimer définitivement le client "${client.name}" ?`)) return;
-    
-    deleteDoc(doc(db, "clients", client.id))
-      .then(() => toast({ variant: "success", title: "Client supprimé" }))
-      .catch(() => toast({ variant: "destructive", title: "Erreur lors de la suppression" }));
+    if (confirm(`Supprimer définitivement "${client.name}" ?`)) deleteDoc(doc(db, "clients", client.id)).then(() => toast({ variant: "success", title: "Client supprimé" }));
   };
 
   if (!isClientReady || role === null) return null;
@@ -117,26 +82,13 @@ export default function ClientsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">Fichier Clients</h1>
-            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion de la base de données clientèle.</p>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion luxury de la base clientèle.</p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild><Button className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button></DialogTrigger>
-            <DialogContent className="max-w-md rounded-[40px] p-10">
-              <form onSubmit={handleCreateClient}>
-                <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Nouveau Dossier</DialogTitle></DialogHeader>
-                <div className="space-y-6 py-8">
-                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} autoFocus /></div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={formatPhoneNumber(newClient.phone)} onChange={e => setNewClient({...newClient, phone: e.target.value})} /></div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Mutuelle</Label><Select value={newClient.mutuelle} onValueChange={v => setNewClient({...newClient, mutuelle: v})}><SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
-                </div>
-                <DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest">ENREGISTRER</Button></DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setIsCreateOpen(true)} className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button>
         </div>
 
         <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
-          <CardHeader className="p-10 border-b bg-slate-50/50">
+          <CardHeader className="p-10 border-b bg-slate-50">
             <div className="relative max-w-md">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
               <input placeholder="Chercher un client..." className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -157,10 +109,10 @@ export default function ClientsPage() {
                   {loading ? (
                     <TableRow><TableCell colSpan={4} className="text-center py-24"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : filteredClients.map((c: any) => (
-                    <TableRow key={c.id} className="hover:bg-slate-50 transition-all group">
+                    <TableRow key={c.id} className="hover:bg-slate-50 transition-all border-b last:border-0">
                       <TableCell className="px-10 py-6 font-black text-sm uppercase text-[#0D1B2A]">{c.name}</TableCell>
                       <TableCell className="px-10 py-6 font-bold text-xs tabular-nums text-slate-500">{formatPhoneNumber(c.phone)}</TableCell>
-                      <TableCell className="px-10 py-6"><Badge className="text-[9px] font-black uppercase bg-[#0D1B2A]/5 text-[#0D1B2A] border-[#0D1B2A]/10 rounded-full py-1 px-3" variant="outline">{c.mutuelle}</Badge></TableCell>
+                      <TableCell className="px-10 py-6"><Badge className="text-[9px] font-black uppercase bg-[#0D1B2A]/5 text-[#0D1B2A] rounded-full py-1 px-3 border-none" variant="outline">{c.mutuelle}</Badge></TableCell>
                       <TableCell className="text-right px-10 py-6">
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
@@ -168,18 +120,8 @@ export default function ClientsPage() {
                             <DropdownMenuItem onClick={() => router.push(`/ventes?search=${encodeURIComponent(c.name)}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><History className="mr-3 h-4 w-4 text-[#D4AF37]" /> Historique</DropdownMenuItem>
                             {isAdminOrPrepa && (
                               <>
-                                <DropdownMenuItem 
-                                  onClick={() => { setEditingClient({ ...c }); setIsEditOpen(true); }} 
-                                  className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"
-                                >
-                                  <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteClient(c)} 
-                                  className="py-3 font-black text-[10px] uppercase cursor-pointer text-destructive rounded-xl"
-                                >
-                                  <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setEditingClient({ ...c }); setIsEditOpen(true); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteClient(c)} className="py-3 font-black text-[10px] uppercase cursor-pointer text-destructive rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>
                               </>
                             )}
                           </DropdownMenuContent>
@@ -194,30 +136,33 @@ export default function ClientsPage() {
         </Card>
       </div>
 
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}><DialogContent className="max-w-md rounded-[60px] p-10"><form onSubmit={handleCreateClient}><DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Nouveau Dossier</DialogTitle></DialogHeader><div className="space-y-6 py-8"><div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} /></div><div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} /></div></div><DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest bg-[#D4AF37] text-[#0D1B2A]">ENREGISTRER</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md rounded-[40px] p-10">
+        <DialogContent className="max-w-md rounded-[60px] p-10">
           <form onSubmit={handleUpdateClient}>
-            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Modifier Client</DialogTitle></DialogHeader>
-            {editingClient && (
-              <div className="space-y-6 py-8">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label>
-                  <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label>
-                  <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black ml-2">Mutuelle</Label>
-                  <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
-                    <SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+            <DialogHeader>
+              <DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Modifier Client</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-8">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label>
+                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={editingClient?.name || ''} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
               </div>
-            )}
-            <DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest">METTRE À JOUR</Button></DialogFooter>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label>
+                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={editingClient?.phone || ''} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black ml-2">Mutuelle</Label>
+                <Select value={editingClient?.mutuelle || "Aucun"} onValueChange={value => setEditingClient({...editingClient, mutuelle: value})}>
+                  <SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-[32px]">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black text-[10px] uppercase">{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest bg-[#D4AF37] text-[#0D1B2A]">METTRE À JOUR</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

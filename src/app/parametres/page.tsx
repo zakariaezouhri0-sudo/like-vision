@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -8,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2, 
+import {
+  Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2,
   Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,29 +23,29 @@ import { roundAmount, cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 
 const THEMES_CONFIG = [
-  { 
-    id: "light", 
-    name: "Style Classique", 
-    description: "Le design original bleu professionnel.",
-    colors: ["bg-[#1e3a5f]", "bg-[#f4f7fa]", "bg-[#0ea5e9]"] 
+  {
+    id: "light",
+    name: "Standard Pro",
+    description: "Le design équilibré et sobre.",
+    colors: ["bg-[#1e3a5f]", "bg-[#f4f7fa]", "bg-[#0ea5e9]"]
   },
-  { 
-    id: "elegance", 
-    name: "Elegance Green", 
+  {
+    id: "luxury-gold",
+    name: "Luxury Navy & Gold",
+    description: "Identité prestige, arrondis Pill et dorures.",
+    colors: ["bg-[#0D1B2A]", "bg-[#F8F9FA]", "bg-[#D4AF37]"]
+  },
+  {
+    id: "elegance",
+    name: "Elegance Green",
     description: "Une ambiance naturelle et apaisante.",
-    colors: ["bg-[#6a8036]", "bg-[#f4f7ed]", "bg-[#89a644]"] 
+    colors: ["bg-[#6a8036]", "bg-[#f4f7ed]", "bg-[#89a644]"]
   },
-  { 
-    id: "olive-pro", 
-    name: "Olive Pro", 
+  {
+    id: "olive-pro",
+    name: "Olive Pro",
     description: "Palette premium, moderne et contrastée.",
-    colors: ["bg-[#A7AF47]", "bg-[#F7F8F2]", "bg-[#2E3A1F]"] 
-  },
-  { 
-    id: "dark-vision", 
-    name: "Dark Vision", 
-    description: "Mode sombre intégral pour le confort.",
-    colors: ["bg-[#1e293b]", "bg-[#0f172a]", "bg-[#38bdf8]"] 
+    colors: ["bg-[#A7AF47]", "bg-[#F7F8F2]", "bg-[#2E3A1F]"]
   }
 ];
 
@@ -56,7 +55,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -70,7 +69,7 @@ export default function SettingsPage() {
     setRole(savedRole);
     setLoadingRole(false);
   }, []);
-  
+
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: fetchLoading } = useDoc(settingsRef);
 
@@ -244,7 +243,7 @@ export default function SettingsPage() {
           <TabsContent value="general" className="mt-6 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-1 space-y-6">
-                <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
+                <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-white">
                   <CardHeader className="bg-slate-50/50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Logo</CardTitle></CardHeader>
                   <CardContent className="flex flex-col items-center gap-6 p-8">
                     <div className="relative h-48 w-48 border-2 border-dashed border-primary/10 rounded-[32px] overflow-hidden bg-slate-50 flex items-center justify-center">
@@ -262,7 +261,7 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-emerald-50 border-emerald-100">
+                <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-emerald-50 border-emerald-100">
                   <CardHeader className="bg-emerald-100/50 border-b p-6">
                     <CardTitle className="text-[11px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
                       <Calculator className="h-4 w-4" /> Analyse des Coûts
@@ -279,7 +278,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="md:col-span-2 space-y-6">
-                <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white">
+                <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-white">
                   <CardHeader className="bg-slate-50/50 border-b p-8"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary/60">Informations Générales</CardTitle></CardHeader>
                   <CardContent className="space-y-8 p-8">
                     <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Nom Commercial</Label><Input className="h-14 rounded-2xl font-black bg-slate-50 border-none" value={settings.name} onChange={(e) => setSettings({...settings, name: e.target.value})} /></div>
@@ -291,7 +290,7 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-red-50 border-red-100">
+                <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-red-50 border-red-100">
                   <CardHeader className="bg-red-100/50 border-b p-6"><CardTitle className="text-[11px] font-black uppercase tracking-widest text-red-700 flex items-center gap-2"><Database className="h-4 w-4" /> Zone de Danger</CardTitle></CardHeader>
                   <CardContent className="p-6 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -339,10 +338,10 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {THEMES_CONFIG.map((t) => (
-                <Card 
-                  key={t.id} 
+                <Card
+                  key={t.id}
                   className={cn(
-                    "rounded-[32px] border-2 transition-all cursor-pointer group overflow-hidden",
+                    "rounded-[40px] border-2 transition-all cursor-pointer group overflow-hidden",
                     previewTheme === t.id ? "border-primary ring-4 ring-primary/10 scale-[1.02]" : "border-transparent hover:border-slate-200"
                   )}
                   onClick={() => handlePreviewTheme(t.id)}
@@ -359,16 +358,16 @@ export default function SettingsPage() {
                         {settings.theme === t.id && <CheckCircle2 className="h-4 w-4 text-green-500" />}
                       </div>
                       <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">{t.description}</p>
-                      
+
                       <div className="pt-4 flex gap-2">
-                        <Button 
+                        <Button
                           onClick={(e) => { e.stopPropagation(); handlePreviewTheme(t.id); }}
-                          variant="ghost" 
+                          variant="ghost"
                           className="flex-1 h-9 rounded-xl font-black text-[9px] uppercase hover:bg-slate-100"
                         >
                           Aperçu
                         </Button>
-                        <Button 
+                        <Button
                           onClick={(e) => { e.stopPropagation(); handleApplyTheme(t.id); }}
                           disabled={settings.theme === t.id || loading}
                           className={cn(
@@ -387,7 +386,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="whatsapp" className="mt-6">
-            <Card className="rounded-[32px] overflow-hidden border-none shadow-lg bg-white max-w-2xl mx-auto">
+            <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-white max-w-2xl mx-auto">
               <CardHeader className="bg-slate-50/50 border-b p-8 flex flex-row items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-primary/40" />
                 <div>
