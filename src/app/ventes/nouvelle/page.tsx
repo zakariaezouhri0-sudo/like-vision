@@ -40,7 +40,7 @@ function NewSaleForm() {
 
   useEffect(() => {
     const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role')?.toUpperCase() : null;
-    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('work_mode');
+    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('work_mode') : null;
 
     if (savedRole) {
       setRole(savedRole);
