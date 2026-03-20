@@ -64,17 +64,17 @@ export function AppShell({ children }: AppShellProps) {
             className="h-full w-full object-contain p-1" 
           />
         ) : (
-          <Logo variant="icon" className={size === "large" ? "w-10" : "w-7"} />
+          <Logo variant="icon" color="#D4AF37" className={size === "large" ? "w-10" : "w-7"} />
         )}
       </div>
       <div className="flex flex-col justify-center min-w-0 pr-2">
         <span className={cn(
-          "font-black tracking-tighter text-[hsl(var(--sidebar-fg))] leading-tight uppercase block whitespace-nowrap transition-colors",
+          "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-colors",
           size === "large" ? "text-sm lg:text-base" : "text-xs"
         )}>
           {settingsLoading ? <div className="h-4 w-24 bg-slate-100/20 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
         </span>
-        <span className="text-[7px] font-black text-[hsl(var(--sidebar-fg))]/40 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
+        <span className="text-[7px] font-black text-[#D4AF37]/60 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
           Optique Pro
         </span>
       </div>
@@ -84,10 +84,10 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className="w-72 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-bg))] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
+      <aside className="w-72 border-r border-[#0D1B2A] bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
         <Link 
           href={isOpticienne ? "/caisse" : "/dashboard"} 
-          className="h-24 border-b border-[hsl(var(--sidebar-border))] flex items-center px-6 hover:bg-black/5 transition-all"
+          className="h-24 border-b border-white/5 flex items-center px-6 hover:bg-white/5 transition-all"
         >
           <LogoContainer size="large" />
         </Link>
@@ -96,10 +96,10 @@ export function AppShell({ children }: AppShellProps) {
           <SidebarNav role={role} />
         </div>
 
-        <div className="p-4 border-t border-[hsl(var(--sidebar-border))] bg-black/5 space-y-3">
+        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
           <div className={cn(
-            "px-4 py-2 rounded-xl border flex items-center gap-2 shadow-sm transition-all",
-            isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/10 text-white border-white/10"
+            "px-4 py-2 rounded-full border flex items-center gap-2 shadow-sm transition-all",
+            isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/5 text-white border-white/5"
           )}>
             <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
             <span className="text-[9px] font-black uppercase tracking-widest">
@@ -107,13 +107,13 @@ export function AppShell({ children }: AppShellProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-2xl border border-white/10 shadow-sm transition-all">
-            <Avatar className="h-10 w-10 border-2 border-white/20 shadow-inner">
-              <AvatarFallback className="bg-white text-primary text-xs font-black">{userInitials}</AvatarFallback>
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-3xl border border-white/5 shadow-sm transition-all">
+            <Avatar className="h-10 w-10 border-2 border-[#D4AF37]/20 shadow-inner">
+              <AvatarFallback className="bg-[#D4AF37] text-[#0D1B2A] text-xs font-black">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate capitalize text-white">{userName}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">
                 {role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")}
               </span>
             </div>
@@ -135,11 +135,11 @@ export function AppShell({ children }: AppShellProps) {
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 hover:bg-primary/5 rounded-xl border border-border shadow-sm">
-                  <Menu className="h-6 w-6 text-primary" />
+                  <Menu className="h-6 w-6 text-[#0D1B2A]" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-80 bg-[hsl(var(--sidebar-bg))] border-none">
-                <SheetHeader className="p-6 border-b border-[hsl(var(--sidebar-border))] text-left">
+              <SheetContent side="left" className="p-0 w-80 bg-[#0D1B2A] border-none">
+                <SheetHeader className="p-6 border-b border-white/5 text-left">
                   <SheetTitle>
                     <LogoContainer size="large" />
                   </SheetTitle>
@@ -156,14 +156,14 @@ export function AppShell({ children }: AppShellProps) {
 
             <div className="hidden md:flex items-center gap-4">
               <div>
-                <h2 className="text-[9px] font-black text-primary/40 uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
-                <p className="text-xl font-black text-foreground tracking-tighter">Gestion Optique</p>
+                <h2 className="text-[9px] font-black text-[#D4AF37] uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
+                <p className="text-xl font-black text-[#0D1B2A] tracking-tighter">Gestion Optique</p>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-xl transition-all" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-11 px-5 rounded-full transition-all" onClick={handleLogout}>
               <Link href="/login">
                 <LogOut className="h-4 w-4 md:mr-3" />
                 <span className="hidden md:inline text-[10px] font-black uppercase tracking-[0.2em]">Déconnexion</span>
@@ -172,7 +172,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-background transition-colors">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA] transition-colors">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

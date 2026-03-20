@@ -4,29 +4,29 @@
 
 @layer base {
   :root {
-    --background: 208 21% 94%;
-    --foreground: 209 43% 15%;
+    --background: 210 17% 98%; /* #F8F9FA */
+    --foreground: 210 53% 11%; /* Navy #0D1B2A */
     --card: 0 0% 100%;
-    --card-foreground: 209 43% 15%;
+    --card-foreground: 210 53% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 209 43% 15%;
-    --primary: 209 43% 34%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 192 70% 95%;
-    --secondary-foreground: 209 43% 34%;
-    --muted: 208 21% 90%;
-    --muted-foreground: 209 20% 45%;
-    --accent: 192 70% 53%;
-    --accent-foreground: 0 0% 100%;
+    --popover-foreground: 210 53% 11%;
+    --primary: 46 65% 52%; /* Gold #D4AF37 */
+    --primary-foreground: 210 53% 11%; /* Navy */
+    --secondary: 210 53% 11%; /* Navy */
+    --secondary-foreground: 46 65% 52%; /* Gold */
+    --muted: 210 17% 94%;
+    --muted-foreground: 210 20% 45%;
+    --accent: 46 65% 52%; /* Gold */
+    --accent-foreground: 210 53% 11%; /* Navy */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 208 20% 88%;
-    --input: 208 20% 88%;
-    --ring: 192 70% 53%;
-    --radius: 0.75rem;
-    --sidebar-bg: 0 0% 100%;
-    --sidebar-fg: 209 43% 34%;
-    --sidebar-border: 208 20% 88%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 46 65% 52%;
+    --radius: 3.75rem; /* 60px */
+    --sidebar-bg: 210 53% 11%; /* Navy */
+    --sidebar-fg: 46 65% 52%; /* Gold */
+    --sidebar-border: 210 53% 8%;
   }
 
   /* THEME: ELEGANCE (GREEN) */

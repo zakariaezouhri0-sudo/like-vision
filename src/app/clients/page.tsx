@@ -113,66 +113,72 @@ export default function ClientsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-black text-primary uppercase">Fichier Clients</h1>
+          <div>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">Fichier Clients</h1>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion de la base de données clientèle.</p>
+          </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild><Button className="h-12 px-8 font-black rounded-xl shadow-lg"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button></DialogTrigger>
-            <DialogContent className="max-w-md rounded-2xl">
+            <DialogTrigger asChild><Button className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button></DialogTrigger>
+            <DialogContent className="max-w-md rounded-[40px] p-10">
               <form onSubmit={handleCreateClient}>
-                <DialogHeader><DialogTitle className="font-black uppercase text-primary">Nouveau Dossier</DialogTitle></DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Nom Complet</Label><Input value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} autoFocus /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Téléphone</Label><Input value={formatPhoneNumber(newClient.phone)} onChange={e => setNewClient({...newClient, phone: e.target.value})} /></div>
-                  <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Mutuelle</Label><Select value={newClient.mutuelle} onValueChange={v => setNewClient({...newClient, mutuelle: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{MUTUELLES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
+                <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Nouveau Dossier</DialogTitle></DialogHeader>
+                <div className="space-y-6 py-8">
+                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} autoFocus /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label><Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={formatPhoneNumber(newClient.phone)} onChange={e => setNewClient({...newClient, phone: e.target.value})} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Mutuelle</Label><Select value={newClient.mutuelle} onValueChange={v => setNewClient({...newClient, mutuelle: v})}><SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold"><SelectValue /></SelectTrigger><SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent></Select></div>
                 </div>
-                <DialogFooter><Button type="submit" className="w-full font-black rounded-xl">ENREGISTRER</Button></DialogFooter>
+                <DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest">ENREGISTRER</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        <Card className="shadow-sm rounded-[24px] bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b bg-slate-50/50">
-            <div className="relative max-w-md"><Search className="absolute left-4 top-3 h-4 w-4 text-primary/40" /><input placeholder="Chercher un client..." className="w-full pl-11 h-10 text-sm font-bold rounded-xl border-none shadow-inner outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+        <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
+          <CardHeader className="p-10 border-b bg-slate-50/50">
+            <div className="relative max-w-md">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
+              <input placeholder="Chercher un client..." className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-[#6a8036]">
+                <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-white">Client</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-white">Téléphone</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-white">Mutuelle</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-8 py-4 text-white">Actions</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Téléphone</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Mutuelle</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-20"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center py-24"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : filteredClients.map((c: any) => (
-                    <TableRow key={c.id} className="hover:bg-slate-50">
-                      <TableCell className="px-8 py-4 font-bold text-xs uppercase">{c.name}</TableCell>
-                      <TableCell className="px-8 py-4 font-bold text-xs tabular-nums">{formatPhoneNumber(c.phone)}</TableCell>
-                      <TableCell className="px-8 py-4"><Badge className="text-[8px] font-black uppercase bg-blue-50 text-blue-700 border-blue-100" variant="outline">{c.mutuelle}</Badge></TableCell>
-                      <TableCell className="text-right px-8 py-4">
+                    <TableRow key={c.id} className="hover:bg-slate-50 transition-all group">
+                      <TableCell className="px-10 py-6 font-black text-sm uppercase text-[#0D1B2A]">{c.name}</TableCell>
+                      <TableCell className="px-10 py-6 font-bold text-xs tabular-nums text-slate-500">{formatPhoneNumber(c.phone)}</TableCell>
+                      <TableCell className="px-10 py-6"><Badge className="text-[9px] font-black uppercase bg-[#0D1B2A]/5 text-[#0D1B2A] border-[#0D1B2A]/10 rounded-full py-1 px-3" variant="outline">{c.mutuelle}</Badge></TableCell>
+                      <TableCell className="text-right px-10 py-6">
                         <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => router.push(`/ventes?search=${encodeURIComponent(c.name)}`)} className="py-2.5 font-bold text-xs cursor-pointer"><History className="mr-2 h-4 w-4" /> Historique</DropdownMenuItem>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-[24px] p-2 min-w-[180px] shadow-2xl">
+                            <DropdownMenuItem onClick={() => router.push(`/ventes?search=${encodeURIComponent(c.name)}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><History className="mr-3 h-4 w-4 text-[#D4AF37]" /> Historique</DropdownMenuItem>
                             {isAdminOrPrepa && (
                               <>
                                 <DropdownMenuItem 
                                   onClick={() => { setEditingClient({ ...c }); setIsEditOpen(true); }} 
-                                  className="py-2.5 font-bold text-xs cursor-pointer"
+                                  className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"
                                 >
-                                  <Edit2 className="mr-2 h-4 w-4" /> Modifier
+                                  <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleDeleteClient(c)} 
-                                  className="py-2.5 font-bold text-xs cursor-pointer text-destructive"
+                                  className="py-3 font-black text-[10px] uppercase cursor-pointer text-destructive rounded-xl"
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                                  <Trash2 className="mr-3 h-4 w-4" /> Supprimer
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -189,29 +195,29 @@ export default function ClientsPage() {
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-[40px] p-10">
           <form onSubmit={handleUpdateClient}>
-            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Modifier Client</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] text-center tracking-widest">Modifier Client</DialogTitle></DialogHeader>
             {editingClient && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black">Nom Complet</Label>
-                  <Input value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
+              <div className="space-y-6 py-8">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black ml-2">Nom Complet</Label>
+                  <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={editingClient.name} onChange={e => setEditingClient({...editingClient, name: e.target.value})} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black">Téléphone</Label>
-                  <Input value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black ml-2">Téléphone</Label>
+                  <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={formatPhoneNumber(editingClient.phone)} onChange={e => setEditingClient({...editingClient, phone: e.target.value})} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-black">Mutuelle</Label>
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black ml-2">Mutuelle</Label>
                   <Select value={editingClient.mutuelle} onValueChange={v => setEditingClient({...editingClient, mutuelle: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{MUTUELLES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-bold">{m}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
             )}
-            <DialogFooter><Button type="submit" className="w-full font-black rounded-xl">METTRE À JOUR</Button></DialogFooter>
+            <DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full shadow-xl tracking-widest">METTRE À JOUR</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

@@ -260,80 +260,96 @@ function SalesHistoryContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-2xl font-black text-primary uppercase">Historique Ventes</h1></div>
-        <Button asChild className="h-12 font-black rounded-xl px-8 shadow-lg"><Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link></Button>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">Historique Ventes</h1>
+          <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre complet des transactions optiques.</p>
+        </div>
+        <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
+          <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>
+        </Button>
       </div>
 
-      <Card className="shadow-sm rounded-[24px] bg-white">
-        <CardHeader className="p-6 border-b bg-slate-50/50">
-          <div className="flex flex-col lg:flex-row items-end gap-4">
-            <div className="flex-1 space-y-1.5 w-full"><Label className="text-[10px] font-black uppercase text-muted-foreground">Recherche (Depuis le 01/01/2026)</Label><div className="relative"><Search className="absolute left-4 top-3 h-4 w-4 text-primary/40" /><input placeholder="Client ou Document..." className="w-full pl-11 h-10 text-sm font-bold rounded-xl border-none shadow-inner outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
-            <div className="w-full lg:w-48 space-y-1.5"><Label className="text-[10px] font-black uppercase text-muted-foreground">Statut</Label><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10 rounded-xl font-bold"><SelectValue /></SelectTrigger><SelectContent className="rounded-xl"><SelectItem value="TOUS">Tous</SelectItem><SelectItem value="Payé">Payé</SelectItem><SelectItem value="Partiel">Partiel</SelectItem><SelectItem value="En attente">En attente</SelectItem></SelectContent></Select></div>
+      <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
+        <CardHeader className="p-10 border-b bg-slate-50">
+          <div className="flex flex-col lg:flex-row items-end gap-6">
+            <div className="flex-1 space-y-2 w-full">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2 tracking-widest">Recherche (Depuis le 01/01/2026)</Label>
+              <div className="relative">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
+                <input placeholder="Client ou Document..." className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+            </div>
+            <div className="w-full lg:w-64 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2 tracking-widest">Statut</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-12 rounded-2xl font-black border-none shadow-inner bg-white"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-[32px]">{["TOUS", "Payé", "Partiel", "En attente"].map(s => <SelectItem key={s} value={s} className="font-black text-[10px] uppercase">{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-[#6a8036]">
+              <TableHeader className="bg-[#0D1B2A]">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-6 py-4 text-white">Document</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Total Net</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Avance</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Reste</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-6 py-4 text-white">Statut</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-6 py-4 text-white">Actions</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Document</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Total Net</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Avance</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Reste</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Statut</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                 ) : filteredSales.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-20 text-[10px] font-black uppercase opacity-20">Aucune vente enregistrée depuis le 01/01/2026.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-24 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune vente enregistrée depuis le 01/01/2026.</TableCell></TableRow>
                 ) : (
                   filteredSales.map((sale: any) => (
-                    <TableRow key={sale.id} className="hover:bg-slate-50">
-                      <TableCell className="px-6 py-4 text-xs font-bold">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
-                      <TableCell className="px-6 py-4 text-xs font-black text-primary whitespace-nowrap">{sale.invoiceId}</TableCell>
-                      <TableCell className="px-6 py-4 text-xs font-bold uppercase">{sale.clientName}</TableCell>
-                      <TableCell className="text-right px-6 py-4 text-xs font-black">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</TableCell>
-                      <TableCell className="text-right px-6 py-4 text-xs font-black text-green-600">{formatCurrency(sale.avance || 0)}</TableCell>
-                      <TableCell className="text-center px-6 py-4">
+                    <TableRow key={sale.id} className="hover:bg-slate-50 transition-all group">
+                      <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
+                      <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] whitespace-nowrap tracking-tight">{sale.invoiceId}</TableCell>
+                      <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A]">{sale.clientName}</TableCell>
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</TableCell>
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-green-600 tabular-nums">{formatCurrency(sale.avance || 0)}</TableCell>
+                      <TableCell className="text-center px-10 py-6">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
+                          <span className="text-sm font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
                           {(sale.reste || 0) > 0 && (
                             <Button 
                               size="icon" 
                               variant="ghost" 
                               disabled={isReadOnly}
                               className={cn(
-                                "h-7 w-7 rounded-lg transition-all",
-                                isReadOnly ? "opacity-30 grayscale cursor-not-allowed bg-slate-50" : "text-red-500 hover:text-red-700 hover:bg-red-50"
+                                "h-8 w-8 rounded-full transition-all shadow-sm",
+                                isReadOnly ? "opacity-30 grayscale cursor-not-allowed bg-slate-50" : "text-red-500 hover:text-white hover:bg-red-500"
                               )}
                               onClick={() => handleOpenPayment(sale)}
-                              title="Régler le reste"
                             >
                               <HandCoins className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center px-6 py-4"><Badge className={cn("text-[8px] font-black uppercase", sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
-                      <TableCell className="text-right px-6 py-4">
+                      <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full", sale.statut === "Payé" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
+                      <TableCell className="text-right px-10 py-6">
                         <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-                            <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-2.5 font-bold text-xs cursor-pointer"><FileText className="mr-2 h-4 w-4" /> Imprimer</DropdownMenuItem>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-[24px] p-2 min-w-[180px] shadow-2xl">
+                            <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Imprimer</DropdownMenuItem>
                             {isAdminOrPrepa && (
-                              <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-2.5 font-bold text-xs cursor-pointer">
-                                <Edit2 className="mr-2 h-4 w-4" /> Modifier
+                              <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-2.5 font-bold text-xs cursor-pointer"><Tag className="mr-2 h-4 w-4" /> Coûts d'Achat</DropdownMenuItem>
-                            {isAdminOrPrepa && (<DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-2.5 font-bold text-xs cursor-pointer"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</DropdownMenuItem>)}
+                            <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-orange-500" /> Coûts d'Achat</DropdownMenuItem>
+                            {isAdminOrPrepa && (<DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>)}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -347,53 +363,53 @@ function SalesHistoryContent() {
       </Card>
 
       <Dialog open={!!costDialogSale} onOpenChange={(o) => !o && setCostDialogSale(null)}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-[40px] p-10">
           <form onSubmit={handleUpdateCosts}>
-            <DialogHeader><DialogTitle className="font-black uppercase text-primary">Coûts d'Achat</DialogTitle></DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Monture (DH)</Label><Input type="text" className="font-bold" value={purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} onBlur={() => setPurchaseCosts({...purchaseCosts, frame: formatCurrency(parseAmount(purchaseCosts.frame))})} /></div>
-                <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Verres (DH)</Label><Input type="text" className="font-bold" value={purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} onBlur={() => setPurchaseCosts({...purchaseCosts, lenses: formatCurrency(parseAmount(purchaseCosts.lenses))})} /></div>
+            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center">Gestion des Coûts</DialogTitle></DialogHeader>
+            <div className="py-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Monture (DH)</Label><Input type="text" className="h-12 rounded-2xl font-black bg-slate-50 border-none px-4" value={purchaseCosts.frame} onChange={(e) => setPurchaseCosts({...purchaseCosts, frame: e.target.value})} onBlur={() => setPurchaseCosts({...purchaseCosts, frame: formatCurrency(parseAmount(purchaseCosts.frame))})} /></div>
+                <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Verres (DH)</Label><Input type="text" className="h-12 rounded-2xl font-black bg-slate-50 border-none px-4" value={purchaseCosts.lenses} onChange={(e) => setPurchaseCosts({...purchaseCosts, lenses: e.target.value})} onBlur={() => setPurchaseCosts({...purchaseCosts, lenses: formatCurrency(parseAmount(purchaseCosts.lenses))})} /></div>
               </div>
-              <div className="space-y-1.5"><Label className="text-[10px] uppercase font-black">Désignation Achat</Label><Input placeholder="Ex: Verres Nikon..." value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Désignation Achat</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="Ex: Verres Nikon..." value={purchaseCosts.label} onChange={(e) => setPurchaseCosts({...purchaseCosts, label: e.target.value})} /></div>
             </div>
-            <DialogFooter><Button type="submit" className="w-full font-black rounded-xl" disabled={isSavingCosts}>ENREGISTRER</Button></DialogFooter>
+            <DialogFooter><Button type="submit" className="w-full h-14 font-black rounded-full tracking-widest shadow-xl" disabled={isSavingCosts}>ENREGISTRER</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!paymentSale} onOpenChange={(open) => !open && setPaymentSale(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[32px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-[60px] p-0 overflow-hidden border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleValidatePayment(e)}>
           <form onSubmit={handleValidatePayment}>
-            <DialogHeader className={cn("p-6 md:p-8 text-white", isReadOnly ? "bg-destructive" : "bg-primary")}>
-              <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3">
-                {isReadOnly ? <XCircle className="h-6 w-6 md:h-7 md:w-7" /> : <HandCoins className="h-6 w-6 md:h-7 md:w-7" />}
+            <DialogHeader className={cn("p-10 text-white", isReadOnly ? "bg-destructive" : "bg-[#0D1B2A]")}>
+              <DialogTitle className="text-2xl font-black uppercase flex items-center justify-center gap-4 tracking-tighter">
+                {isReadOnly ? <XCircle className="h-8 w-8" /> : <HandCoins className="h-8 w-8 text-[#D4AF37]" />}
                 {isReadOnly ? "Action Impossible" : "Encaisser Vente"}
               </DialogTitle>
-              <p className="text-[10px] md:text-sm font-bold opacity-60 mt-1 uppercase tracking-widest">
+              <p className="text-[10px] font-black opacity-60 mt-3 uppercase tracking-[0.3em] text-center">
                 {isReadOnly ? "La caisse d'aujourd'hui est clôturée" : `Document ${paymentSale?.invoiceId}`}
               </p>
             </DialogHeader>
 
             {isTodayClosed && (
-              <div className={cn("p-4 border-b flex items-center gap-3", isAdminOrPrepa ? "bg-orange-50 border-orange-100 text-orange-700" : "bg-red-50 border-red-100 text-red-700")}>
-                {isAdminOrPrepa ? <AlertTriangle className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-                <p className="text-[10px] font-black uppercase">
+              <div className={cn("p-6 border-b flex items-center gap-4", isAdminOrPrepa ? "bg-orange-50 text-orange-700" : "bg-red-50 text-red-700")}>
+                {isAdminOrPrepa ? <AlertTriangle className="h-6 w-6" /> : <Lock className="h-6 w-6" />}
+                <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
                   {isAdminOrPrepa ? "Mode Correction : Modification autorisée sur caisse close." : "Accès Refusé : La caisse est clôturée."}
                 </p>
               </div>
             )}
 
-            <div className={cn("p-6 md:p-8 space-y-6 transition-all", isReadOnly && "grayscale brightness-95 opacity-80 pointer-events-none")}>
-              <div className="bg-slate-50 p-4 md:p-6 rounded-2xl border space-y-3">
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Client :</span><span className="text-slate-900 font-bold uppercase">{paymentSale?.clientName}</span></div>
-                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 whitespace-nowrap"><span>Reste à verser :</span><span className="text-destructive font-black text-sm tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
+            <div className={cn("p-10 space-y-8 transition-all", isReadOnly && "grayscale brightness-95 opacity-80 pointer-events-none")}>
+              <div className="bg-slate-50 p-8 rounded-[32px] space-y-4 shadow-inner">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-widest"><span>Client :</span><span className="text-[#0D1B2A] font-black text-xs">{paymentSale?.clientName}</span></div>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-widest"><span>Reste à verser :</span><span className="text-red-600 font-black text-lg tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</span></div>
               </div>
               <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-primary ml-1 tracking-widest">Montant Encaissé (DH)</Label>
+                <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-4 tracking-[0.3em]">Montant Encaissé (DH)</Label>
                 <input 
                   type="text" 
-                  className={cn("w-full h-16 md:h-20 text-3xl md:text-4xl font-black text-center rounded-2xl bg-slate-50 border-2 border-primary/10 outline-none focus:border-primary/30 tabular-nums", isReadOnly && "cursor-not-allowed")} 
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] bg-slate-50 border-2 border-[#0D1B2A]/5 outline-none focus:border-[#D4AF37]/30 tabular-nums transition-all", isReadOnly && "cursor-not-allowed")} 
                   value={paymentAmount} 
                   placeholder="0,00"
                   onChange={(e) => !isReadOnly && setPaymentAmount(e.target.value)} 
@@ -403,11 +419,11 @@ function SalesHistoryContent() {
                 />
               </div>
             </div>
-            <DialogFooter className="p-6 md:p-8 pt-0 flex flex-col sm:flex-row gap-3">
-              <Button variant="ghost" className="w-full h-12 md:h-14 font-black uppercase text-[10px]" type="button" onClick={() => setPaymentSale(null)}>Annuler</Button>
+            <DialogFooter className="p-10 pt-0 flex flex-col sm:flex-row gap-4">
+              <Button variant="ghost" className="w-full h-14 font-black uppercase text-[10px] rounded-full tracking-widest hover:bg-slate-100" type="button" onClick={() => setPaymentSale(null)}>Annuler</Button>
               {!isReadOnly && (
-                <Button type="submit" className="w-full h-12 md:h-14 font-black uppercase shadow-xl text-[10px] text-white" disabled={isProcessingPayment || sessionLoading}>
-                  {isProcessingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}
+                <Button type="submit" className="w-full h-14 font-black uppercase shadow-2xl text-[10px] tracking-widest rounded-full bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" disabled={isProcessingPayment || sessionLoading}>
+                  {isProcessingPayment ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "VALIDER LE PAIEMENT"}
                 </Button>
               )}
             </DialogFooter>
