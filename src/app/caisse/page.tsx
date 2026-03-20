@@ -223,7 +223,10 @@ function CaisseContent() {
     if (e) e.preventDefault();
     try {
       setOpLoading(true);
-      const openedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 10)) : serverTimestamp();
+      const openedAt = isAdminOrPrepa 
+        ? Timestamp.fromDate(setHours(selectedDate, 9)) 
+        : serverTimestamp();
+
       await setDoc(sessionRef, { 
         openingBalance: parseAmount(openingVal) || 0, 
         status: "OPEN", 
@@ -264,8 +267,7 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!newOp.montant) return;
     
-    // SÉCURITÉ STRICTE
-    if (session?.status === "CLOSED") {
+    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Ré-ouvrez la caisse pour ajouter une opération." });
       return;
     }
@@ -275,10 +277,15 @@ function CaisseContent() {
     const finalAmount = (newOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
     const finalLabel = newOp.label || (newOp.type === "VERSEMENT" ? "BANQUE" : newOp.type);
     
+    const now = new Date();
+    const operationDate = new Date(selectedDate);
+    operationDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+    const finalCreatedAt = isAdminOrPrepa ? Timestamp.fromDate(operationDate) : serverTimestamp();
+
     try {
       await runTransaction(db, async (transaction) => {
         const sSnap = await transaction.get(sessionRef);
-        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+        if (sSnap.exists() && sSnap.data().status === "CLOSED" && !isAdminOrPrepa) {
           throw new Error("SESSION_CLOSED");
         }
 
@@ -291,7 +298,7 @@ function CaisseContent() {
           montant: finalAmount, 
           userName: user?.displayName || "---", 
           isDraft: isPrepaMode, 
-          createdAt: serverTimestamp() 
+          createdAt: finalCreatedAt 
         });
       });
 
@@ -315,7 +322,7 @@ function CaisseContent() {
   };
 
   const handleOpenEdit = (t: any) => {
-    if (session?.status === "CLOSED") {
+    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour modifier une opération." });
       return;
     }
@@ -337,7 +344,7 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!selectedTrans || !editOp.montant) return;
 
-    if (session?.status === "CLOSED") {
+    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       return;
     }
@@ -350,7 +357,7 @@ function CaisseContent() {
     try {
       await runTransaction(db, async (transaction) => {
         const sSnap = await transaction.get(sessionRef);
-        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+        if (sSnap.exists() && sSnap.data().status === "CLOSED" && !isAdminOrPrepa) {
           throw new Error("SESSION_CLOSED");
         }
 
@@ -377,7 +384,7 @@ function CaisseContent() {
   };
 
   const handleDeleteOp = async (t: any) => {
-    if (session?.status === "CLOSED") {
+    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour supprimer une opération." });
       return;
     }
@@ -390,7 +397,7 @@ function CaisseContent() {
     try {
       await runTransaction(db, async (transaction) => {
         const sSnap = await transaction.get(sessionRef);
-        if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+        if (sSnap.exists() && sSnap.data().status === "CLOSED" && !isAdminOrPrepa) {
           throw new Error("SESSION_CLOSED");
         }
         transaction.delete(doc(db, "transactions", t.id));
@@ -442,7 +449,7 @@ function CaisseContent() {
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
-            {isPrepaMode && (
+            {isAdminOrPrepa && (
               <Popover>
                 <PopoverTrigger asChild><Button variant="outline" className="h-12 px-8 rounded-xl font-black text-xs uppercase shadow-lg border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-500 hover:text-white transition-all"><CalendarIcon className="mr-2 h-4 w-4" /> CHOISIR UNE AUTRE DATE</Button></PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus /></PopoverContent>
@@ -547,7 +554,7 @@ function CaisseContent() {
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-6 py-4">
-                      {!isClosed && (
+                      {(!isClosed || isAdminOrPrepa) && (
                         <div className="flex items-center justify-end gap-2">
                           <Button 
                             variant="outline" 
@@ -616,13 +623,33 @@ function CaisseContent() {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {isClosed && role === 'ADMIN' && (
-            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm"><RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdminOrPrepa && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-12 px-5 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm">
+                  <CalendarIcon className="mr-2 h-4 w-4" /> CHANGER DATE
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus />
+              </PopoverContent>
+            </Popover>
           )}
-          {!isClosed && (
+          
+          {isClosed && role === 'ADMIN' && (
+            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-12 px-5 rounded-xl font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm">
+              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
+            </Button>
+          )}
+          
+          {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
-              <DialogTrigger asChild><Button className="h-12 px-6 rounded-xl font-black text-[10px] uppercase flex-1 sm:flex-none"><PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="h-12 px-5 rounded-xl font-black text-[10px] uppercase shadow-sm">
+                  <PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION
+                </Button>
+              </DialogTrigger>
               <DialogContent className="max-w-md rounded-3xl" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
                 <form onSubmit={handleAddOperation}>
                   <DialogHeader><DialogTitle className="font-black uppercase text-primary">Mouvement de Caisse</DialogTitle></DialogHeader>
@@ -647,10 +674,18 @@ function CaisseContent() {
               </DialogContent>
             </Dialog>
           )}
-          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary flex-1 sm:flex-none shadow-sm"><FileText className="mr-2 h-4 w-4" /> RAPPORT</Button>
+          
+          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-12 px-5 rounded-xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm">
+            <FileText className="mr-2 h-4 w-4" /> RAPPORT
+          </Button>
+          
           {!isClosed && (
             <Dialog>
-              <DialogTrigger asChild><Button variant="outline" className="h-12 px-6 rounded-xl font-black text-[10px] uppercase border-red-50 text-red-500 flex-1 shadow-sm"><LogOut className="mr-2 h-4 w-4" /> CLÔTURE</Button></DialogTrigger>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="h-12 px-5 rounded-xl font-black text-[10px] uppercase border-red-50 text-red-500 shadow-sm">
+                  <LogOut className="mr-2 h-4 w-4" /> CLÔTURE
+                </Button>
+              </DialogTrigger>
               <DialogContent className="max-w-3xl rounded-[32px] p-8 border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleFinalizeClosure()}>
                 <DialogHeader><DialogTitle className="font-black uppercase tracking-widest text-center">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">

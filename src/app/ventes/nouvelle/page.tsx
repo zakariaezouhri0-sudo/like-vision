@@ -31,6 +31,7 @@ function NewSaleForm() {
   const db = useFirestore();
   
   const [role, setRole] = useState<string | null>(null);
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isClientReady, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
@@ -39,16 +40,18 @@ function NewSaleForm() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role')?.toUpperCase() : null;
+    const savedMode = typeof window !== 'undefined' ? localStorage.getItem('work_mode') : null;
+    
     if (savedRole) {
-      setRole(savedRole.toUpperCase());
+      setRole(savedRole);
+      setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
       setIsHydrated(true);
     } else {
       router.push('/login');
     }
   }, [router]);
 
-  const isPrepaMode = role === "PREPA";
   const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
 
   const [saleDate, setSaleDate] = useState<Date>(() => {
@@ -164,7 +167,7 @@ function NewSaleForm() {
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const nameSearch = (clientName || "").trim().toUpperCase();
-    const currentIsDraft = role === "PREPA";
+    const currentIsDraft = isPrepaMode;
 
     if (cleanedPhone.length >= 8) {
       return query(
@@ -186,7 +189,7 @@ function NewSaleForm() {
     }
 
     return null;
-  }, [db, clientPhone, clientName, role]);
+  }, [db, clientPhone, clientName, isPrepaMode]);
 
   const { data: matchedClients } = useCollection(clientsQuery);
 
@@ -283,7 +286,7 @@ function NewSaleForm() {
     if (!bonNumber && !activeEditId) { toast({ variant: "destructive", title: "Erreur", description: "N° BON obligatoire." }); return; }
     
     setLoading(true);
-    const currentIsDraft = role === "PREPA";
+    const currentIsDraft = isPrepaMode;
     
     try {
       // VÉRIFICATION DOUBLON BON (Requête simplifiée sans index composite)
@@ -294,9 +297,11 @@ function NewSaleForm() {
       const bonCheckSnap = await getDocs(bonCheckQuery);
       
       // Filtrage isDraft en mémoire pour éviter le besoin d'index composite
+      // IMPORTANT : On ignore le document en cours de modification
       const isDuplicate = bonCheckSnap.docs.some(d => {
+        if (activeEditId && d.id === activeEditId) return false;
         const data = d.data();
-        return d.id !== activeEditId && (data.isDraft === currentIsDraft);
+        return data.isDraft === currentIsDraft;
       });
 
       if (isDuplicate) {
@@ -325,7 +330,6 @@ function NewSaleForm() {
           where("name", "==", clientName.trim().toUpperCase())
         );
         const snapC = await getDocs(qC);
-        // Filtrage isDraft et phone en mémoire
         const foundClient = snapC.docs.find(d => {
           const data = d.data();
           return data.isDraft === currentIsDraft && (data.phone === cleanedPhone || !cleanedPhone);
@@ -450,7 +454,7 @@ function NewSaleForm() {
       if (err.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse a été clôturée entre temps." });
       } else {
-        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer. Vérifiez votre connexion ou contactez le support." });
+        toast({ variant: "destructive", title: "Erreur Technique", description: "Impossible d'enregistrer." });
       }
     } finally { 
       setLoading(false); 

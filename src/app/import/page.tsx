@@ -72,7 +72,6 @@ export default function ImportPage() {
   const [importMode, setImportMode] = useState<'FULL' | 'SINGLE'>('SINGLE');
   const [targetDate, setTargetDate] = useState<Date>(new Date());
 
-  // Récupération automatique du solde précédent sans erreur d'index
   useEffect(() => {
     const fetchPreviousBalance = async () => {
       if (!role) return;
@@ -81,7 +80,6 @@ export default function ImportPage() {
         const currentIsDraft = role === 'PREPA';
         const dateStr = format(targetDate, "yyyy-MM-dd");
         
-        // Simplification de la requête pour éviter les index composites
         const q = query(
           collection(db, "cash_sessions"),
           where("isDraft", "==", currentIsDraft),
@@ -90,7 +88,6 @@ export default function ImportPage() {
         
         const snap = await getDocs(q);
         if (!snap.empty) {
-          // Filtrage et tri en mémoire pour éviter le besoin d'index complexe
           const closedSessions = snap.docs
             .map(d => d.data())
             .filter(s => s.date < dateStr)
@@ -145,6 +142,14 @@ export default function ImportPage() {
       };
       reader.readAsBinaryString(selectedFile);
     }
+  };
+
+  const handleDownloadTemplate = () => {
+    const headerRow = GLOBAL_FIELDS.map(f => f.label);
+    const ws = XLSX.utils.aoa_to_sheet([headerRow]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modele");
+    XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
   };
 
   const cleanNum = (val: any): number => {
@@ -360,7 +365,7 @@ export default function ImportPage() {
             <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie</h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Correction et importation massive.</p>
           </div>
-          <Button variant="outline" onClick={() => XLSX.writeFile(XLSX.utils.book_new(), "Modele.xlsx")} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm"><Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL</Button>
+          <Button variant="outline" onClick={handleDownloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm"><Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL</Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
