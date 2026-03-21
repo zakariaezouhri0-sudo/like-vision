@@ -112,12 +112,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FA] px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D1B2A] px-4 py-8">
       <div className="w-full max-w-xl space-y-8 flex flex-col items-center">
         {/* Logo Section */}
         <div className="w-full flex flex-col items-center text-center pb-2">
           {settingsLoading ? (
-            <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
+            <Loader2 className="h-12 w-12 animate-spin text-[#D4AF37] opacity-20" />
           ) : (
             <div className="flex flex-col items-center">
               {settings?.logoUrl ? (
@@ -127,14 +127,14 @@ export default function LoginPage() {
               ) : (
                 <div className="mb-4">
                   <div className="relative">
-                    <Glasses className="h-20 w-20 text-[#0D1B2A]" />
-                    <ThumbsUp className="h-8 w-8 absolute -top-2 -right-2 text-[#D4AF37] bg-white p-1 rounded-full shadow-lg" />
+                    <Glasses className="h-20 w-20 text-[#D4AF37]" />
+                    <ThumbsUp className="h-8 w-8 absolute -top-2 -right-2 text-[#0D1B2A] bg-[#D4AF37] p-1 rounded-full shadow-lg" />
                   </div>
                 </div>
               )}
               
               <div className="flex flex-col items-center space-y-2">
-                <h1 className="text-3xl md:text-5xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                <h1 className="text-3xl md:text-5xl font-black text-[#D4AF37] uppercase tracking-tighter leading-none">
                   {settings?.name || "LIKE VISION OPTIQUE"}
                 </h1>
                 <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] text-[#D4AF37] whitespace-nowrap opacity-80">
@@ -146,7 +146,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <Card className="border-none shadow-2xl shadow-slate-200/60 bg-[#0D1B2A] rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
+        <Card className="border-none shadow-2xl shadow-black/40 bg-[#0D1B2A] rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#D4AF37]" />
           <CardHeader className="space-y-2 pt-12 text-center border-b border-white/5 pb-8">
             <CardTitle className="text-2xl font-black text-[#D4AF37] uppercase tracking-widest">Connexion</CardTitle>
@@ -192,7 +192,7 @@ export default function LoginPage() {
           </form>
         </Card>
         
-        <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mt-4">
+        <p className="text-[9px] font-black text-[#D4AF37]/40 uppercase tracking-[0.5em] mt-4">
           Powered by Like Vision System
         </p>
       </div>
