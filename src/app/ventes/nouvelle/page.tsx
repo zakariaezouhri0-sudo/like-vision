@@ -466,7 +466,7 @@ function NewSaleForm() {
                 <FileText className="h-8 w-8 text-[#D4AF37]" />
                 <CardTitle className="text-xl uppercase font-black text-[#D4AF37] tracking-widest">Prescription</CardTitle>
               </CardHeader>
-              <CardContent className="p-10">
+              <CardContent className="p-10 bg-[#D4AF37]">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
               </CardContent>
             </Card>

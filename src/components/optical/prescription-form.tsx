@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -17,47 +16,27 @@ interface PrescriptionFieldProps {
 
 function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
   return (
-    <div className="space-y-2 p-3 border rounded-md bg-card shadow-sm">
-      <h3 className="text-xs font-black text-primary border-b pb-1 mb-2 uppercase tracking-wider">
+    <div className="space-y-4 p-6 rounded-[32px] bg-[#0D1B2A]/10 border border-[#0D1B2A]/10 shadow-inner">
+      <h3 className="text-sm font-black text-[#0D1B2A] border-b border-[#0D1B2A]/10 pb-2 mb-4 uppercase tracking-widest">
         {side === "OD" ? "Oeil Droit (OD)" : "Oeil Gauche (OG)"}
       </h3>
-      <div className="grid grid-cols-4 gap-2">
-        <div className="space-y-1">
-          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Sphère</Label>
-          <Input 
-            placeholder="+0.00" 
-            className="h-8 text-xs px-2"
-            value={values.sph} 
-            onChange={(e) => onChange(side, "sph", e.target.value)} 
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Cylindre</Label>
-          <Input 
-            placeholder="-0.00" 
-            className="h-8 text-xs px-2"
-            value={values.cyl} 
-            onChange={(e) => onChange(side, "cyl", e.target.value)} 
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Axe</Label>
-          <Input 
-            placeholder="0°" 
-            className="h-8 text-xs px-2"
-            value={values.axe} 
-            onChange={(e) => onChange(side, "axe", e.target.value)} 
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] uppercase font-bold text-muted-foreground">ADD</Label>
-          <Input 
-            placeholder="+0.00" 
-            className="h-8 text-xs px-2"
-            value={values.add} 
-            onChange={(e) => onChange(side, "add", e.target.value)} 
-          />
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Sphère", field: "sph", placeholder: "+0.00" },
+          { label: "Cylindre", field: "cyl", placeholder: "-0.00" },
+          { label: "Axe", field: "axe", placeholder: "0°" },
+          { label: "ADD", field: "add", placeholder: "+0.00" },
+        ].map((item) => (
+          <div key={item.field} className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">{item.label}</Label>
+            <Input 
+              placeholder={item.placeholder}
+              className="h-10 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] placeholder:text-[#D4AF37]/20"
+              value={(values as any)[item.field]} 
+              onChange={(e) => onChange(side, item.field, e.target.value)} 
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -73,7 +52,7 @@ export function PrescriptionForm({
   onChange: (side: "OD" | "OG", field: string, value: string) => void 
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-6">
       <PrescriptionSide side="OD" values={od} onChange={onChange} />
       <PrescriptionSide side="OG" values={og} onChange={onChange} />
     </div>
