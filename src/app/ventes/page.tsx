@@ -262,7 +262,7 @@ function SalesHistoryContent() {
                     <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] whitespace-nowrap tracking-tight">{sale.invoiceId}</TableCell>
                     <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A]">{sale.clientName}</TableCell>
                     <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</TableCell>
-                    <TableCell className="text-right px-10 py-6 text-sm font-black text-[#D4AF37] tabular-nums">{formatCurrency(sale.avance || 0)}</TableCell>
+                    <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">{formatCurrency(sale.avance || 0)}</TableCell>
                     <TableCell className="text-center px-10 py-6">
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-sm font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
@@ -271,7 +271,7 @@ function SalesHistoryContent() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", sale.statut === "Payé" ? "bg-[#D4AF37]/10 text-[#D4AF37]" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
+                    <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", sale.statut === "Payé" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
                     <TableCell className="text-right px-10 py-6">
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
@@ -301,11 +301,11 @@ function SalesHistoryContent() {
             <div className="p-10 space-y-6">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Monture (DH)</Label>
-                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.frame} onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(prev.frame)) }))} />
+                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.frame} onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Verres (DH)</Label>
-                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.lenses} onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(prev.lenses)) }))} />
+                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.lenses} onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Libellé (Optionnel)</Label>
