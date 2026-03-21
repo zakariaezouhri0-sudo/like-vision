@@ -17,7 +17,7 @@ interface PrescriptionFieldProps {
 function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
   return (
     <div className="space-y-4 p-6 rounded-[32px] bg-[#0D1B2A]/10 border border-[#0D1B2A]/10 shadow-inner">
-      <h3 className="text-sm font-black text-[#0D1B2A] border-b border-[#0D1B2A]/10 pb-2 mb-4 uppercase tracking-widest">
+      <h3 className="text-sm font-black text-[#0D1B2A] border-b border-[#0D1B2A]/10 pb-2 mb-4 uppercase tracking-widest text-center">
         {side === "OD" ? "Oeil Droit (OD)" : "Oeil Gauche (OG)"}
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -53,10 +53,8 @@ export function PrescriptionForm({
 }) {
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <PrescriptionSide side="OD" values={od} onChange={onChange} />
-        <PrescriptionSide side="OG" values={og} onChange={onChange} />
-      </div>
+      <PrescriptionSide side="OD" values={od} onChange={onChange} />
+      <PrescriptionSide side="OG" values={og} onChange={onChange} />
     </div>
   );
 }

@@ -9,19 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon, XCircle, Calculator } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Lock, Calculator, HandCoins, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
 import { format, isValid } from "date-fns";
-import { fr } from "date-fns/locale";
 import { MUTUELLES } from "@/lib/constants";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -83,8 +79,6 @@ function NewSaleForm() {
     return "";
   });
 
-  const [monture, setMonture] = useState(searchParams.get("monture") || "");
-  const [verres, setVerres] = useState(searchParams.get("verres") || "");
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   const [total, setTotal] = useState<string>(searchParams.get("total") ? formatCurrency(searchParams.get("total")!) : "");
 
@@ -112,8 +106,6 @@ function NewSaleForm() {
       setBonNumber(existingSale.bonNumber || "");
       setFromDoctor(!!existingSale.fromDoctor);
       setEditableInvoiceId(existingSale.invoiceId || "");
-      setMonture(existingSale.monture || "");
-      setVerres(existingSale.verres || "");
       setNotes(existingSale.notes || "");
       setTotal(formatCurrency(existingSale.total || 0));
       setDiscountType(existingSale.discountType || 'fixed');
@@ -198,9 +190,7 @@ function NewSaleForm() {
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
-
     setIsFamilyMode(!!client.parentPhone);
-
     if (client.mutuelle) {
       if (MUTUELLES.filter(m => m !== 'Autre').includes(client.mutuelle)) {
         setMutuelle(client.mutuelle);
@@ -212,28 +202,6 @@ function NewSaleForm() {
     }
     setIsNameFocused(false);
   };
-
-  useEffect(() => {
-    if (activeEditId || !isClientReady || !matchedClients) return;
-
-    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
-    if (cleanedPhone.length >= 8 && matchedClients.length > 0 && !isFamilyMode) {
-      if (matchedClients.length === 1 && !clientName) {
-        const found = matchedClients[0];
-        setClientName(found.name || "");
-        setSelectedClientId(found.id);
-        if (found.mutuelle) {
-          if (MUTUELLES.filter(m => m !== 'Autre').includes(found.mutuelle)) {
-            setMutuelle(found.mutuelle);
-            setCustomMutuelle("");
-          } else {
-            setMutuelle("Autre");
-            setCustomMutuelle(found.mutuelle);
-          }
-        }
-      }
-    }
-  }, [matchedClients, activeEditId, isClientReady, clientName, clientPhone, isFamilyMode]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -263,21 +231,16 @@ function NewSaleForm() {
     if (checked) {
       setSelectedClientId(null);
       setClientName("");
-      toast({
-        title: "Mode Parrainage Activé",
-        description: "Saisissez le nom du nouveau membre pour ce numéro."
-      });
+      toast({ title: "Mode Parrainage Activé" });
     }
   };
 
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading || saleDataLoading) return;
-
     if (isSessionClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "ACTION BLOQUÉE", description: "La caisse est clôturée." });
       return;
     }
-
     if (!clientName) { toast({ variant: "destructive", title: "Erreur", description: "Nom client obligatoire." }); return; }
     if (!bonNumber && !activeEditId) { toast({ variant: "destructive", title: "Erreur", description: "N° BON obligatoire." }); return; }
 
@@ -287,10 +250,7 @@ function NewSaleForm() {
     try {
       const bonCheckQuery = query(collection(db, "sales"), where("bonNumber", "==", bonNumber.trim()));
       const bonCheckSnap = await getDocs(bonCheckQuery);
-      const isDuplicate = bonCheckSnap.docs.some(d => {
-        if (activeEditId && d.id === activeEditId) return false;
-        return d.data().isDraft === currentIsDraft;
-      });
+      const isDuplicate = bonCheckSnap.docs.some(d => (activeEditId ? d.id !== activeEditId : true) && d.data().isDraft === currentIsDraft);
 
       if (isDuplicate) {
         setBonError(true);
@@ -303,7 +263,6 @@ function NewSaleForm() {
       const currentUserName = user?.displayName || "Inconnu";
       const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
       const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
-      let finalInvoiceIdForURL = "";
 
       await runTransaction(db, async (transaction) => {
         if (sessionRef && !isAdminOrPrepa) {
@@ -325,7 +284,7 @@ function NewSaleForm() {
 
         const saleData: any = {
           invoiceId, bonNumber, fromDoctor, clientName: clientName.toUpperCase(), clientPhone: cleanedPhone,
-          mutuelle: finalMutuelle, monture, verres, notes, total: nTotal, remise: calculatedRemise,
+          mutuelle: finalMutuelle, notes, total: nTotal, remise: calculatedRemise,
           discountType, discountValue: nDiscountVal, avance: nAvance, reste: resteAPayerValue,
           statut, prescription, isDraft: currentIsDraft, updatedAt: serverTimestamp(), createdAt: Timestamp.fromDate(saleDate)
         };
@@ -336,7 +295,6 @@ function NewSaleForm() {
         }
 
         transaction.set(saleRef, saleData, { merge: true });
-        finalInvoiceIdForURL = invoiceId;
 
         const clientRef = selectedClientId ? doc(db, "clients", selectedClientId) : doc(collection(db, "clients"));
         transaction.set(clientRef, {
@@ -420,13 +378,11 @@ function NewSaleForm() {
                     )}
                   </div>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">N° BON</Label>
                     <Input className={cn("h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-xl text-[#D4AF37]", bonError && "ring-2 ring-red-500")} value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
                   </div>
-                  
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
@@ -435,7 +391,6 @@ function NewSaleForm() {
                     </Select>
                   </div>
                 </div>
-
                 <div className="flex flex-wrap items-center gap-4 px-2 mt-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-5 w-5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
@@ -445,15 +400,8 @@ function NewSaleForm() {
                     <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-5 w-5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="fromDoctor" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
                   </div>
-                  
                   {mutuelle === "Autre" && (
-                    <Input 
-                      className="h-9 w-40 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37]" 
-                      placeholder="Préciser..."
-                      value={customMutuelle} 
-                      onChange={e => setCustomMutuelle(e.target.value)} 
-                      readOnly={isReadOnly} 
-                    />
+                    <Input className="h-9 w-40 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37]" placeholder="Préciser..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                   )}
                 </div>
               </CardContent>
@@ -466,7 +414,6 @@ function NewSaleForm() {
               </CardHeader>
               <CardContent className="p-10 bg-[#D4AF37] space-y-8">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
-                
                 <div className="space-y-3 pt-8 border-t border-[#0D1B2A]/10">
                   <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé</Label>
                   <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} placeholder="DÉSIGNATION DE LA COMMANDE..." />
@@ -485,67 +432,29 @@ function NewSaleForm() {
                 <div className="bg-white/5 p-8 rounded-[40px] space-y-6">
                   <div className="flex justify-between items-center">
                     <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
-                    <input 
-                      type="text" 
-                      className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums" 
-                      value={total} 
-                      onChange={e => setTotal(e.target.value)} 
-                      onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
-                    />
+                    <input type="text" className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} />
                   </div>
-                  
                   <div className="space-y-4 pt-4 border-t border-white/5">
                     <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Type Remise</Label>
                       <div className="flex bg-white/10 p-1 rounded-full">
-                        <button 
-                          onClick={() => setDiscountType('fixed')} 
-                          className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
-                        >
-                          DH
-                        </button>
-                        <button 
-                          onClick={() => setDiscountType('percent')} 
-                          className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
-                        >
-                          %
-                        </button>
+                        <button onClick={() => setDiscountType('fixed')} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
+                        <button onClick={() => setDiscountType('percent')} className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
-                      <input 
-                        type="text" 
-                        className="bg-transparent text-right font-black text-base text-white outline-none w-24 tabular-nums" 
-                        value={discountValue} 
-                        onChange={e => setDiscountValue(e.target.value)} 
-                      />
+                      <input type="text" className="bg-transparent text-right font-black text-base text-white outline-none w-24 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white/5 p-8 rounded-[40px] space-y-6">
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <HandCoins className="h-5 w-5 text-[#D4AF37]" />
-                      <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
-                    </div>
-                    <input 
-                      type="text" 
-                      className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
-                      value={avance} 
-                      onChange={e => setAvance(e.target.value)} 
-                      onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
-                    />
+                    <div className="flex items-center gap-3"><HandCoins className="h-5 w-5 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div>
+                    <input type="text" className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} />
                   </div>
                 </div>
-
-                <div className={cn(
-                  "p-8 rounded-[40px] text-center shadow-inner border-2 transition-all", 
-                  resteAPayerValue > 0 
-                    ? "bg-red-500/10 border-red-500/20 text-red-400" 
-                    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                )}>
+                <div className={cn("p-8 rounded-[40px] text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
                   <p className="text-xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
