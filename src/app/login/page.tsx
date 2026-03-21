@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User as UserIcon, Loader2 } from "lucide-react";
+import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp } from "lucide-react";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
+import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -113,29 +113,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7ed] px-4 py-8">
-      <div className="w-full max-w-xl space-y-6 flex flex-col items-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FA] px-4 py-8">
+      <div className="w-full max-w-xl space-y-8 flex flex-col items-center">
         {/* Logo Section */}
         <div className="w-full flex flex-col items-center text-center pb-2">
           {settingsLoading ? (
-            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground/20" />
+            <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
           ) : (
             <div className="flex flex-col items-center">
               {settings?.logoUrl ? (
-                <div className="w-32 h-32 mb-4">
+                <div className="w-32 h-32 mb-6 p-2 rounded-3xl bg-white shadow-xl shadow-slate-200/50">
                   <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               ) : (
-                <div className="mb-2">
-                  <Logo variant="icon" color="hsl(var(--muted-foreground))" className="w-48 h-20" />
+                <div className="mb-4">
+                  <div className="relative">
+                    <Glasses className="h-20 w-20 text-[#0D1B2A]" />
+                    <ThumbsUp className="h-8 w-8 absolute -top-2 -right-2 text-[#D4AF37] bg-white p-1 rounded-full shadow-lg" />
+                  </div>
                 </div>
               )}
               
-              <div className="flex flex-col items-center space-y-1">
-                <h1 className="text-3xl md:text-4xl font-black text-muted-foreground uppercase tracking-tighter leading-none">
-                  LIKE VISION OPTIQUE
+              <div className="flex flex-col items-center space-y-2">
+                <h1 className="text-3xl md:text-5xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                  {settings?.name || "LIKE VISION OPTIQUE"}
                 </h1>
-                <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground whitespace-nowrap">
+                <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] text-[#D4AF37] whitespace-nowrap opacity-80">
                   GESTION OPTIQUE PROFESSIONNELLE
                 </p>
               </div>
@@ -144,36 +147,37 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <Card className="border-none shadow-2xl bg-white rounded-[40px] overflow-hidden max-w-md mx-auto w-full">
-          <CardHeader className="space-y-1 pt-8 text-center border-b bg-slate-50/50 pb-6">
-            <CardTitle className="text-2xl font-black text-muted-foreground uppercase tracking-tight">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em]">
-              Saisissez vos identifiants
+        <Card className="border-none shadow-2xl shadow-slate-200/60 bg-white rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
+          <div className="absolute top-0 left-0 w-full h-2 bg-[#D4AF37]" />
+          <CardHeader className="space-y-2 pt-12 text-center border-b border-slate-50 pb-8">
+            <CardTitle className="text-2xl font-black text-[#0D1B2A] uppercase tracking-widest">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">
+              Registre de Prestige
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
-            <CardContent className="space-y-6 pt-10">
-              <div className="space-y-2.5">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Identifiant</Label>
+            <CardContent className="space-y-8 pt-12 px-10">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-[0.2em] opacity-60">Identifiant</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-5 top-4 h-5 w-5 text-muted-foreground" />
+                  <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
                   <Input 
                     placeholder="ex: admin" 
-                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 text-muted-foreground focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-slate-50 text-[#0D1B2A] focus:bg-white shadow-inner transition-all" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
                   />
                 </div>
               </div>
-              <div className="space-y-2.5">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest">Mot de passe</Label>
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-[0.2em] opacity-60">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-5 top-4 h-5 w-5 text-muted-foreground" />
+                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
                   <Input 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-14 h-14 text-base font-bold rounded-2xl border-slate-100 bg-slate-50 text-muted-foreground focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all" 
+                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-slate-50 text-[#0D1B2A] focus:bg-white shadow-inner transition-all" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
@@ -181,13 +185,17 @@ export default function LoginPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pb-12 pt-6">
-              <Button className="w-full h-16 text-base font-black shadow-xl rounded-2xl bg-primary hover:scale-[1.02] active:scale-95 transition-all" disabled={loading}>
+            <CardFooter className="pb-16 pt-8 px-10">
+              <Button className="w-full h-16 text-base font-black shadow-xl rounded-full bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all transform active:scale-95 uppercase tracking-widest" disabled={loading}>
                 {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>
           </form>
         </Card>
+        
+        <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.5em] mt-4">
+          Powered by Like Vision System
+        </p>
       </div>
     </div>
   );
