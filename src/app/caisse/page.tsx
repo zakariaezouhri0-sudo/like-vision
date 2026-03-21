@@ -470,7 +470,7 @@ function CaisseContent() {
               <div className="relative">
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-[#D4AF37]/20 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]")}
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]", isAutoReport ? "text-slate-500 cursor-not-allowed" : "text-[#0D1B2A]")}
                   value={isAutoReport ? formatCurrency(openingVal) : openingVal} 
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
