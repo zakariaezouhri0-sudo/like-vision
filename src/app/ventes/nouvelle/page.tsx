@@ -464,7 +464,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-base text-white outline-none w-48 tabular-nums" 
+                      className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
                       value={total} 
                       onChange={e => setTotal(e.target.value)} 
                       onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
@@ -493,7 +493,7 @@ function NewSaleForm() {
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
                       <input 
                         type="text" 
-                        className="bg-transparent text-right font-black text-sm text-white outline-none w-48 tabular-nums" 
+                        className="bg-transparent text-right font-black text-base text-white outline-none w-32 tabular-nums" 
                         value={discountValue} 
                         onChange={e => setDiscountValue(e.target.value)} 
                       />
@@ -509,7 +509,7 @@ function NewSaleForm() {
                     </div>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-base text-white outline-none w-48 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                      className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
                       value={avance} 
                       onChange={e => setAvance(e.target.value)} 
                       onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
