@@ -32,6 +32,7 @@ function NewSaleForm() {
   const [activeEditId] = useState<string | null>(searchParams.get("editId"));
 
   const [isNameFocused, setIsNameFocused] = useState(false);
+  const [isPhoneFocused, setIsPhoneFocused] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ function NewSaleForm() {
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>(
     (searchParams.get("discountType") as 'fixed' | 'percent') || 'fixed'
   );
-  const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") ? formatCurrency(searchParams.get("discountValue")!) : "");
+  const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") ? (searchParams.get("discountType") === 'percent' ? searchParams.get("discountValue")! : formatCurrency(searchParams.get("discountValue")!)) : "");
   const [avance, setAvance] = useState<string>(searchParams.get("avance") ? formatCurrency(searchParams.get("avance")!) : "");
 
   const [prescription, setPrescription] = useState({
@@ -200,6 +201,7 @@ function NewSaleForm() {
       }
     }
     setIsNameFocused(false);
+    setIsPhoneFocused(false);
   };
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
@@ -229,8 +231,8 @@ function NewSaleForm() {
     setIsFamilyMode(checked);
     if (checked) {
       setSelectedClientId(null);
-      setClientName("");
-      toast({ title: "Mode Parrainage Activé" });
+      setClientName(""); // Clear name for new family member
+      toast({ title: "Mode Parrainage Activé", description: "Saisissez le nom du nouveau membre." });
     }
   };
 
@@ -384,21 +386,46 @@ function NewSaleForm() {
               </CardHeader>
               <CardContent className="p-6 space-y-3 bg-[#D4AF37]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-3 h-3 w-3 text-[#0D1B2A]/40" />
-                      <Input className="h-10 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
+                      <Input 
+                        className="h-10 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" 
+                        value={formatPhoneNumber(clientPhone)} 
+                        onChange={e => handlePhoneChange(e.target.value)} 
+                        onFocus={() => setIsPhoneFocused(true)}
+                        onBlur={() => setTimeout(() => setIsPhoneFocused(false), 200)}
+                        readOnly={isReadOnly} 
+                      />
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
-                    <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => setClientName(e.target.value)} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
-                    {matchedClients?.length > 0 && isNameFocused && (
-                      <div className="absolute z-50 w-full max-w-xs mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+                    {matchedClients?.length > 0 && isPhoneFocused && (
+                      <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
                         {matchedClients.map(c => (
-                          <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors border-b last:border-0">
-                            <p className="text-[10px] font-black uppercase text-[#0D1B2A]">{c.name}</p>
+                          <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
+                            <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
+                            <p className="text-[9px] font-bold text-slate-400">{formatPhoneNumber(c.phone)}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1 relative">
+                    <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
+                    <Input 
+                      className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" 
+                      value={clientName} 
+                      onChange={e => setClientName(e.target.value)} 
+                      onFocus={() => setIsNameFocused(true)} 
+                      onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} 
+                      readOnly={isReadOnly} 
+                    />
+                    {matchedClients?.length > 0 && isNameFocused && (
+                      <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+                        {matchedClients.map(c => (
+                          <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
+                            <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
                             <p className="text-[9px] font-bold text-slate-400">{formatPhoneNumber(c.phone)}</p>
                           </button>
                         ))}
@@ -419,8 +446,8 @@ function NewSaleForm() {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
+                  <div className="flex items-center gap-2 shrink-0">
                     <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
                       <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
                       <label htmlFor="familyMode" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
@@ -431,7 +458,9 @@ function NewSaleForm() {
                     </div>
                   </div>
                   {mutuelle === "Autre" && (
-                    <Input className="h-8 flex-1 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37] px-3 placeholder:text-[#D4AF37]/20" placeholder="Préciser mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                    <div className="flex-1">
+                      <Input className="h-8 w-full rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37] px-3 placeholder:text-[#D4AF37]/20" placeholder="Préciser mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                    </div>
                   )}
                 </div>
               </CardContent>
