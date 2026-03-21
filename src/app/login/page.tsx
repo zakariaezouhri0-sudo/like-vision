@@ -121,7 +121,7 @@ export default function LoginPage() {
           ) : (
             <div className="flex flex-col items-center">
               {settings?.logoUrl ? (
-                <div className="w-32 h-32 mb-6 p-2 rounded-3xl bg-white shadow-xl shadow-slate-200/50">
+                <div className="w-32 h-32 mb-6 p-2 rounded-3xl bg-[#0D1B2A] shadow-2xl border border-white/5 shadow-black/40">
                   <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               ) : (
