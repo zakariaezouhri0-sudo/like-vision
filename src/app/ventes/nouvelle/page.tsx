@@ -208,11 +208,11 @@ function NewSaleForm() {
       const nameInInput = clientName.trim().toUpperCase();
       const nameInResult = (matchedClients[0].name || "").toUpperCase();
       
-      // Auto-fill si c'est une recherche par téléphone ou si le nom saisi correspond au début du résultat
       const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
-      const isNameSearchMatch = nameInInput.length >= 3 && nameInResult.startsWith(nameInInput);
+      const isNameExactMatch = nameInInput.length >= 3 && nameInResult === nameInInput;
+      const isNamePrefixMatch = nameInInput.length >= 3 && nameInResult.startsWith(nameInInput);
       
-      if (isPhoneSearch || isNameSearchMatch) {
+      if (isPhoneSearch || isNameExactMatch || isNamePrefixMatch) {
         handleSelectMember(matchedClients[0]);
       }
     }
@@ -385,7 +385,7 @@ function NewSaleForm() {
                   </div>
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
-                    <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
+                    <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} autoComplete="off" />
                     {matchedClients && matchedClients.length > 1 && isNameFocused && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                         <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
@@ -406,6 +406,11 @@ function NewSaleForm() {
                       <SelectTrigger className="h-10 rounded-2xl bg-[#0D1B2A] border-none font-black text-[#D4AF37] text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[10px]">{m}</SelectItem>)}</SelectContent>
                     </Select>
+                    {mutuelle === "Autre" && (
+                      <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                        <Input className="h-10 w-full rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] px-4 placeholder:text-[#D4AF37]/20" placeholder="Libellé mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">N° BON</Label>
@@ -421,11 +426,6 @@ function NewSaleForm() {
                     <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="fromDoctor" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-widest">MÉDECIN</label>
                   </div>
-                  {mutuelle === "Autre" && (
-                    <div className="flex-[2]">
-                      <Input className="h-10 w-full rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] px-4 placeholder:text-[#D4AF37]/20" placeholder="Libellé mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
