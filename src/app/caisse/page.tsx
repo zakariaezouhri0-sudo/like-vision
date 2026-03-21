@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -442,7 +443,6 @@ function CaisseContent() {
         </div>
         <div className="space-y-4">
           <h1 className="text-4xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center justify-center gap-4">
-            <Wallet className="h-10 w-10 text-[#D4AF37]" />
             Ouverture {isPrepaMode ? "Historique" : "Caisse"}
           </h1>
           <div className="flex flex-col items-center gap-4">
