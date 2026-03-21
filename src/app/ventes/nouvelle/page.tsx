@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -437,7 +436,7 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-10 px-2 mt-4">
+                <div className="flex flex-wrap items-center gap-10 px-2 mt-4">
                   <div className="flex items-center space-x-3">
                     <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
                     <label htmlFor="familyMode" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
@@ -446,14 +445,20 @@ function NewSaleForm() {
                     <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="fromDoctor" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
                   </div>
+                  
+                  {mutuelle === "Autre" && (
+                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+                      <Label className="text-[10px] font-black uppercase text-[#0D1B2A] whitespace-nowrap">Libellé :</Label>
+                      <Input 
+                        className="h-10 w-48 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37]" 
+                        placeholder="Préciser..."
+                        value={customMutuelle} 
+                        onChange={e => setCustomMutuelle(e.target.value)} 
+                        readOnly={isReadOnly} 
+                      />
+                    </div>
+                  )}
                 </div>
-                
-                {mutuelle === "Autre" && (
-                  <div className="space-y-3 mt-4">
-                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé Mutuelle</Label>
-                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-[#D4AF37]" value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
-                  </div>
-                )}
               </CardContent>
             </Card>
 
