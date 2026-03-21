@@ -442,7 +442,7 @@ function CaisseContent() {
         <div className="space-y-4">
           <h1 className="text-4xl font-black text-[#0D1B2A] uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
           <div className="flex flex-col items-center gap-4">
-            <div className="bg-white px-6 py-3 rounded-full border-2 border-primary/10 shadow-sm">
+            <div className="bg-white px-6 py-3 rounded-full border-2 border-[#D4AF37] shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
               <p className="text-xl font-black text-[#D4AF37] uppercase">
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
@@ -470,7 +470,7 @@ function CaisseContent() {
               <div className="relative">
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-[#D4AF37]/20 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-[#D4AF37]/20 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]")}
                   value={isAutoReport ? formatCurrency(openingVal) : openingVal} 
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
