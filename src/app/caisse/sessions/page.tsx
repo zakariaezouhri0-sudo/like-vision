@@ -222,7 +222,6 @@ function SessionsContent() {
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
         ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
         
-        // Calcul automatique des largeurs de colonnes
         const colWidths = aoaData.reduce((acc, row) => {
           row.forEach((cell, i) => {
             let length = 0;
@@ -406,7 +405,6 @@ function SessionsContent() {
       const ws = XLSX.utils.aoa_to_sheet(aoaData);
       ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 1, c: 6 } }];
 
-      // Calcul automatique des largeurs
       const colWidths = aoaData.reduce((acc, row) => {
         row.forEach((cell, i) => {
           let length = 0;
@@ -470,14 +468,14 @@ function SessionsContent() {
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
-                <div className="bg-[#0D1B2A] rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-white/5 transition-all duration-500">
+                <div className="bg-[#D4AF37] rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-[#0D1B2A]/5 transition-all duration-500">
                   <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-4">
                     <div className="flex justify-start">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-6 group">
-                        <div className="h-9 w-9 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-[#D4AF37]/20 transition-all duration-300 shadow-inner">
-                          <ChevronRight className="h-4 w-4 text-[#D4AF37] transition-transform duration-500 group-data-[state=open]:rotate-90" />
+                        <div className="h-9 w-9 rounded-xl bg-[#0D1B2A]/10 flex items-center justify-center group-hover:bg-[#0D1B2A]/20 transition-all duration-300 shadow-inner">
+                          <ChevronRight className="h-4 w-4 text-[#0D1B2A] transition-transform duration-500 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-[13px] font-black text-[#D4AF37] tracking-[0.2em] uppercase">
+                        <span className="text-[13px] font-black text-[#0D1B2A] tracking-[0.2em] uppercase">
                           {monthName}
                         </span>
                       </AccordionTrigger>
@@ -485,17 +483,17 @@ function SessionsContent() {
 
                     <div className="flex justify-center my-2 md:my-0">
                       {role === 'OPTICIENNE' ? (
-                        <div className="h-px w-8 bg-white/10" />
+                        <div className="h-px w-8 bg-[#0D1B2A]/10" />
                       ) : (
-                        <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/10 shadow-inner flex flex-col items-center min-w-[180px]">
-                          <span className="text-[7px] font-black text-[#D4AF37] uppercase tracking-[0.4em] mb-1">
+                        <div className="bg-[#0D1B2A]/5 px-6 py-2 rounded-2xl border border-[#0D1B2A]/10 shadow-inner flex flex-col items-center min-w-[180px]">
+                          <span className="text-[7px] font-black text-[#0D1B2A] uppercase tracking-[0.4em] mb-1">
                             FLUX NET MENSUEL
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-white tracking-tighter tabular-nums leading-none">
+                            <span className="text-xl font-black text-[#0D1B2A] tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-white/40 uppercase">DH</span>
+                            <span className="text-[9px] font-black text-[#0D1B2A]/60 uppercase">DH</span>
                           </div>
                         </div>
                       )}
@@ -505,7 +503,7 @@ function SessionsContent() {
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
                         variant="outline"
-                        className="h-10 px-6 rounded-xl font-black text-[9px] uppercase border-[#D4AF37]/30 bg-[#D4AF37] text-[#0D1B2A] shadow-lg transition-all hover:scale-105 active:scale-95 group"
+                        className="h-10 px-6 rounded-xl font-black text-[9px] uppercase border-[#0D1B2A]/20 bg-[#0D1B2A] text-[#D4AF37] shadow-lg transition-all hover:scale-105 active:scale-95 group"
                       >
                         <Download className="h-3.5 w-3.5 mr-2" />
                         EXCEL {month.toString().padStart(2, '0')}
