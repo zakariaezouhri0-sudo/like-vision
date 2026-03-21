@@ -470,14 +470,14 @@ function SessionsContent() {
 
             return (
               <AccordionItem key={monthKey} value={monthKey} className="border-none">
-                <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-slate-50 transition-all duration-500 hover:border-primary/10">
-                  <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-2">
+                <div className="bg-[#0D1B2A] rounded-[40px] shadow-2xl shadow-slate-200/60 overflow-hidden border border-white/5 transition-all duration-500">
+                  <div className="grid grid-cols-1 md:grid-cols-3 items-center px-8 md:px-12 py-4">
                     <div className="flex justify-start">
                       <AccordionTrigger className="p-0 hover:no-underline flex items-center gap-6 group">
-                        <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 transition-all duration-300 shadow-inner">
-                          <ChevronRight className="h-4 w-4 text-primary/60 transition-transform duration-500 group-data-[state=open]:rotate-90" />
+                        <div className="h-9 w-9 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-[#D4AF37]/20 transition-all duration-300 shadow-inner">
+                          <ChevronRight className="h-4 w-4 text-[#D4AF37] transition-transform duration-500 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-[13px] font-black text-slate-800 tracking-[0.2em] uppercase">
+                        <span className="text-[13px] font-black text-[#D4AF37] tracking-[0.2em] uppercase">
                           {monthName}
                         </span>
                       </AccordionTrigger>
@@ -485,17 +485,17 @@ function SessionsContent() {
 
                     <div className="flex justify-center my-2 md:my-0">
                       {role === 'OPTICIENNE' ? (
-                        <div className="h-px w-8 bg-slate-100 opacity-50" />
+                        <div className="h-px w-8 bg-white/10" />
                       ) : (
-                        <div className="bg-slate-50/80 px-6 py-1.5 rounded-2xl border border-slate-100/50 shadow-inner flex flex-col items-center min-w-[180px]">
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-[0.4em] mb-0.5">
+                        <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/10 shadow-inner flex flex-col items-center min-w-[180px]">
+                          <span className="text-[7px] font-black text-[#D4AF37] uppercase tracking-[0.4em] mb-1">
                             FLUX NET MENSUEL
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-[#D4AF37] tracking-tighter tabular-nums leading-none">
+                            <span className="text-xl font-black text-white tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-[#D4AF37]/30 uppercase">DH</span>
+                            <span className="text-[9px] font-black text-white/40 uppercase">DH</span>
                           </div>
                         </div>
                       )}
@@ -505,16 +505,16 @@ function SessionsContent() {
                       <Button 
                         onClick={(e) => { e.stopPropagation(); handleExportMonthExcel(monthKey, monthSessions); }}
                         variant="outline"
-                        className="h-9 px-6 rounded-xl font-black text-[9px] uppercase border-slate-100 bg-white text-slate-500 shadow-sm transition-all hover:bg-primary hover:text-white hover:border-primary group"
+                        className="h-10 px-6 rounded-xl font-black text-[9px] uppercase border-[#D4AF37]/30 bg-[#D4AF37] text-[#0D1B2A] shadow-lg transition-all hover:scale-105 active:scale-95 group"
                       >
-                        <Download className="h-3.5 w-3.5 mr-2 transition-transform group-hover:-translate-y-0.5" />
+                        <Download className="h-3.5 w-3.5 mr-2" />
                         EXCEL {month.toString().padStart(2, '0')}
                       </Button>
                     </div>
                   </div>
 
                   <AccordionContent className="px-6 md:px-10 pb-10 pt-0">
-                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-inner">
+                    <div className="overflow-hidden rounded-[32px] border border-white/5 bg-white shadow-inner">
                       <Table>
                         <TableHeader className="bg-slate-50/80">
                           <TableRow className="hover:bg-transparent border-b border-slate-100">
