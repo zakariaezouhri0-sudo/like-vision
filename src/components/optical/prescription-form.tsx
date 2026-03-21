@@ -22,16 +22,16 @@ function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Sphère", field: "sph", placeholder: "+0.00" },
-          { label: "Cylindre", field: "cyl", placeholder: "-0.00" },
+          { label: "Sphère", field: "sph", placeholder: "0.00" },
+          { label: "Cylindre", field: "cyl", placeholder: "0.00" },
           { label: "Axe", field: "axe", placeholder: "0°" },
-          { label: "ADD", field: "add", placeholder: "+0.00" },
+          { label: "ADD", field: "add", placeholder: "0.00" },
         ].map((item) => (
           <div key={item.field} className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">{item.label}</Label>
+            <Label className="text-[10px] font-black uppercase text-[#0D1B2A] tracking-widest text-center block w-full">{item.label}</Label>
             <Input 
               placeholder={item.placeholder}
-              className="h-10 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] placeholder:text-[#D4AF37]/20"
+              className="h-10 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] placeholder:text-[#D4AF37]/20 text-center"
               value={(values as any)[item.field]} 
               onChange={(e) => onChange(side, item.field, e.target.value)} 
             />
@@ -53,8 +53,10 @@ export function PrescriptionForm({
 }) {
   return (
     <div className="grid grid-cols-1 gap-6">
-      <PrescriptionSide side="OD" values={od} onChange={onChange} />
-      <PrescriptionSide side="OG" values={og} onChange={onChange} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <PrescriptionSide side="OD" values={od} onChange={onChange} />
+        <PrescriptionSide side="OG" values={og} onChange={onChange} />
+      </div>
     </div>
   );
 }

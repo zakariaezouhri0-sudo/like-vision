@@ -467,15 +467,9 @@ function NewSaleForm() {
               <CardContent className="p-10 bg-[#D4AF37] space-y-8">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-[#0D1B2A]/10">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Monture</Label>
-                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} />
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Verres</Label>
-                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} />
-                  </div>
+                <div className="space-y-3 pt-8 border-t border-[#0D1B2A]/10">
+                  <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé</Label>
+                  <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} placeholder="DÉSIGNATION DE LA COMMANDE..." />
                 </div>
               </CardContent>
             </Card>
@@ -493,7 +487,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums" 
+                      className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums" 
                       value={total} 
                       onChange={e => setTotal(e.target.value)} 
                       onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
@@ -503,16 +497,16 @@ function NewSaleForm() {
                   <div className="space-y-4 pt-4 border-t border-white/5">
                     <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Type Remise</Label>
-                      <div className="flex bg-white/10 p-1.5 rounded-full">
+                      <div className="flex bg-white/10 p-1 rounded-full">
                         <button 
                           onClick={() => setDiscountType('fixed')} 
-                          className={cn("px-6 py-2 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
+                          className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
                         >
                           DH
                         </button>
                         <button 
                           onClick={() => setDiscountType('percent')} 
-                          className={cn("px-6 py-2 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
+                          className={cn("px-4 py-1.5 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
                         >
                           %
                         </button>
@@ -522,7 +516,7 @@ function NewSaleForm() {
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
                       <input 
                         type="text" 
-                        className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
+                        className="bg-transparent text-right font-black text-base text-white outline-none w-24 tabular-nums" 
                         value={discountValue} 
                         onChange={e => setDiscountValue(e.target.value)} 
                       />
@@ -538,7 +532,7 @@ function NewSaleForm() {
                     </div>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                      className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
                       value={avance} 
                       onChange={e => setAvance(e.target.value)} 
                       onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
@@ -547,13 +541,13 @@ function NewSaleForm() {
                 </div>
 
                 <div className={cn(
-                  "p-10 rounded-[40px] text-center shadow-inner border-2 transition-all", 
+                  "p-8 rounded-[40px] text-center shadow-inner border-2 transition-all", 
                   resteAPayerValue > 0 
                     ? "bg-red-500/10 border-red-500/20 text-red-400" 
                     : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 )}>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
-                  <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
+                  <p className="text-xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
               </CardContent>
             </Card>
