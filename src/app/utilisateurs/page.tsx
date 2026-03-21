@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2, Loader2 } from "lucide-react";
+import { UserPlus, Shield, User, MoreVertical, Edit2, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { useToast } from "@/hooks/use-toast";
@@ -103,8 +103,11 @@ export default function UsersPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D1B2A]">Gestion des Utilisateurs</h1>
-            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider opacity-60">Accès et sécurité du magasin.</p>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+              <ShieldCheck className="h-8 w-8 text-[#D4AF37]/40" />
+              Gestion des Utilisateurs
+            </h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Accès et sécurité du magasin.</p>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

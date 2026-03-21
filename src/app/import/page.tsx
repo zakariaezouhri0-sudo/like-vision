@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw, FileUp } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc, orderBy, limit } from "firebase/firestore";
@@ -362,7 +361,10 @@ export default function ImportPage() {
       <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Automate de Saisie</h1>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter flex items-center gap-4">
+              <FileUp className="h-8 w-8 text-[#D4AF37]/40" />
+              Automate de Saisie
+            </h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Correction et importation massive.</p>
           </div>
           <Button variant="outline" onClick={handleDownloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm"><Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL</Button>

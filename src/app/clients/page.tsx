@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, History, User, Loader2, MoreVertical, Edit2, Trash2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { MUTUELLES } from "@/lib/constants";
@@ -81,7 +81,10 @@ export default function ClientsPage() {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">Fichier Clients</h1>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+              <Users className="h-8 w-8 text-[#D4AF37]/40" />
+              Fichier Clients
+            </h1>
             <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion luxury de la base clientèle.</p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)} className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button>

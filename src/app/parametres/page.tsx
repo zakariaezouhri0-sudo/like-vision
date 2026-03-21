@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2,
-  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor
+  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor, Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -225,7 +225,10 @@ export default function SettingsPage() {
       <div className="space-y-8 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter">Configuration</h1>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+              <Settings className="h-8 w-8 text-[#D4AF37]/40" />
+              Configuration
+            </h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Gérez votre identité et l'apparence du système.</p>
           </div>
           <Button onClick={handleSave} disabled={loading} className="bg-primary h-14 px-10 rounded-2xl font-black text-sm shadow-xl shadow-primary/20">

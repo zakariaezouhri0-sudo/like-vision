@@ -24,7 +24,8 @@ import {
   TrendingDown,
   Coins,
   RotateCcw,
-  Layers
+  Layers,
+  Wallet
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -440,7 +441,10 @@ function CaisseContent() {
           <CalendarCheck className="h-12 w-12" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-4xl font-black text-[#0D1B2A] uppercase tracking-tighter">Ouverture {isPrepaMode ? "Historique" : "Caisse"}</h1>
+          <h1 className="text-4xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center justify-center gap-4">
+            <Wallet className="h-10 w-10 text-[#D4AF37]" />
+            Ouverture {isPrepaMode ? "Historique" : "Caisse"}
+          </h1>
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-full border-2 border-[#D4AF37] shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
@@ -624,7 +628,10 @@ function CaisseContent() {
             {isClosed ? <Lock className="h-8 w-8" /> : <div className="h-4 w-4 bg-[#D4AF37] rounded-full animate-pulse" />}
           </div>
           <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">{isClosed ? "Session Clôturée" : "Caisse Ouverte"}</h1>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+              <Wallet className="h-8 w-8 text-[#D4AF37]/40" />
+              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
+            </h1>
             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border shadow-sm mt-3 w-fit">
               <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
               <span className="text-xs text-[#0D1B2A] font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>

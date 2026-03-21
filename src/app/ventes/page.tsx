@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle, XCircle } from "lucide-react";
+import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle, XCircle, History } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -211,7 +211,10 @@ function SalesHistoryContent() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">Historique Ventes</h1>
+          <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+            <History className="h-8 w-8 text-[#D4AF37]/40" />
+            Historique Ventes
+          </h1>
           <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre de prestige.</p>
         </div>
         <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
@@ -271,7 +274,7 @@ function SalesHistoryContent() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", sale.statut === "Payé" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
+                    <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
                     <TableCell className="text-right px-10 py-6">
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
