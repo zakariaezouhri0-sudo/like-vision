@@ -448,7 +448,6 @@ function NewSaleForm() {
                   
                   {mutuelle === "Autre" && (
                     <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 ml-4">
-                      <Label className="text-[10px] font-black uppercase text-[#0D1B2A] whitespace-nowrap">Libellé :</Label>
                       <Input 
                         className="h-10 w-48 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37]" 
                         placeholder="Préciser..."
