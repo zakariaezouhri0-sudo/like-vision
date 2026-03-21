@@ -461,7 +461,7 @@ function NewSaleForm() {
               <CardContent className="p-10 space-y-8">
                 <div className="bg-white/5 p-8 rounded-[40px] space-y-6">
                   <div className="flex justify-between items-center">
-                    <Label className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                     <input 
                       type="text" 
                       className="bg-transparent text-right font-black text-base text-white outline-none w-48 tabular-nums" 
@@ -473,7 +473,7 @@ function NewSaleForm() {
                   
                   <div className="space-y-4 pt-4 border-t border-white/5">
                     <div className="flex justify-between items-center">
-                      <Label className="text-xs font-black uppercase text-white/40 tracking-widest">Type Remise</Label>
+                      <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Type Remise</Label>
                       <div className="flex bg-white/10 p-1.5 rounded-full">
                         <button 
                           onClick={() => setDiscountType('fixed')} 
@@ -490,7 +490,7 @@ function NewSaleForm() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <Label className="text-xs font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
+                      <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
                       <input 
                         type="text" 
                         className="bg-transparent text-right font-black text-sm text-white outline-none w-48 tabular-nums" 
@@ -505,7 +505,7 @@ function NewSaleForm() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <HandCoins className="h-5 w-5 text-[#D4AF37]" />
-                      <Label className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
+                      <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
                     </div>
                     <input 
                       type="text" 
@@ -523,7 +523,7 @@ function NewSaleForm() {
                     ? "bg-red-500/10 border-red-500/20 text-red-400" 
                     : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 )}>
-                  <p className="text-xs font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
                   <p className="text-xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
               </CardContent>
