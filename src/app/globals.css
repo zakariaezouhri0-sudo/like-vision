@@ -90,6 +90,20 @@
   }
 }
 
+/* Custom Scrollbar for Sidebar */
+aside .overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+aside .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+aside .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #D4AF37; /* Gold */
+  border-radius: 10px;
+}
+
 @media print {
   @page { size: auto; margin: 0 !important; }
   body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
