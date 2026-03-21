@@ -203,12 +203,17 @@ function NewSaleForm() {
     setIsNameFocused(false);
   };
 
-  // Logic: If exactly 1 client found by phone, auto-fill.
+  // Logic: Auto-fill if exactly 1 client found by phone or by name
   useEffect(() => {
-    if (!activeEditId && matchedClients && matchedClients.length === 1 && clientPhone.replace(/\s/g, "").length >= 8 && !selectedClientId && !isFamilyMode) {
-      handleSelectMember(matchedClients[0]);
+    if (!activeEditId && matchedClients && matchedClients.length === 1 && !selectedClientId && !isFamilyMode) {
+      const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
+      const isNameSearch = clientName.trim().length >= 3;
+      
+      if (isPhoneSearch || isNameSearch) {
+        handleSelectMember(matchedClients[0]);
+      }
     }
-  }, [matchedClients, clientPhone, selectedClientId, isFamilyMode, activeEditId]);
+  }, [matchedClients, clientPhone, clientName, selectedClientId, isFamilyMode, activeEditId]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -383,9 +388,9 @@ function NewSaleForm() {
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
                     <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
-                    {matchedClients?.length > 0 && isNameFocused && (
+                    {matchedClients?.length > 1 && isNameFocused && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
-                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sélectionner un membre</p></div>
+                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
                         {matchedClients.map(c => (
                           <button key={c.id} onMouseDown={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
                             <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
