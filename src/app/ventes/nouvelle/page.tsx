@@ -398,16 +398,12 @@ function NewSaleForm() {
                 <CardTitle className="text-xl uppercase font-black text-[#D4AF37] tracking-widest">Dossier Client</CardTitle>
               </CardHeader>
               <CardContent className="p-10 space-y-8 bg-[#D4AF37]">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-5 top-4 h-4 w-4 text-[#D4AF37]/60" />
                       <Input className="h-14 pl-12 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
-                    </div>
-                    <div className="flex items-center space-x-2 mt-2 px-2">
-                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
-                      <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer">PARRAINAGE / FAMILLE</label>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -424,21 +420,12 @@ function NewSaleForm() {
                       </div>
                     )}
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">N° BON</Label>
                     <Input className={cn("h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-xl text-[#D4AF37]", bonError && "ring-2 ring-red-500")} value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">ORDO. MÉDECIN</Label>
-                    <div className="h-14 flex items-center bg-[#0D1B2A]/5 px-6 rounded-[24px] border-2 border-[#0D1B2A]/10">
-                      <div className="flex items-center gap-3">
-                        <Switch id="fromDoctor" checked={fromDoctor} onCheckedChange={setFromDoctor} className="data-[state=checked]:bg-[#0D1B2A]" disabled={isReadOnly} />
-                        <span className="text-[10px] font-black uppercase text-[#0D1B2A]">{fromDoctor ? "OUI" : "NON"}</span>
-                      </div>
-                    </div>
                   </div>
                   
                   <div className="space-y-3">
@@ -448,14 +435,25 @@ function NewSaleForm() {
                       <SelectContent className="rounded-[32px]">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[10px]">{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  
-                  {mutuelle === "Autre" && (
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé Mutuelle</Label>
-                      <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none font-black text-[#D4AF37]" value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
-                    </div>
-                  )}
                 </div>
+
+                <div className="flex flex-wrap gap-10 px-2 mt-4">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                    <label htmlFor="familyMode" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                    <label htmlFor="fromDoctor" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                  </div>
+                </div>
+                
+                {mutuelle === "Autre" && (
+                  <div className="space-y-3 mt-4">
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé Mutuelle</Label>
+                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-[#D4AF37]" value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
