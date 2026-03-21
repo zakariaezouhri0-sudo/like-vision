@@ -476,7 +476,13 @@ function CaisseContent() {
                 />
               </div>
             </div>
-            <Button type="submit" disabled={opLoading} className={cn("w-full h-16 rounded-full font-black text-lg shadow-xl uppercase")}>VALIDER L'OUVERTURE</Button>
+            <Button 
+              type="submit" 
+              disabled={opLoading} 
+              className={cn("w-full h-16 rounded-full font-black text-lg shadow-xl uppercase bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all")}
+            >
+              VALIDER L'OUVERTURE
+            </Button>
           </form>
         </Card>
       </div>
