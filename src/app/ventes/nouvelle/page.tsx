@@ -436,7 +436,7 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-10 px-2 mt-4">
+                <div className="flex flex-wrap items-center gap-6 px-2 mt-4">
                   <div className="flex items-center space-x-3">
                     <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
                     <label htmlFor="familyMode" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
@@ -447,7 +447,7 @@ function NewSaleForm() {
                   </div>
                   
                   {mutuelle === "Autre" && (
-                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 ml-4">
                       <Label className="text-[10px] font-black uppercase text-[#0D1B2A] whitespace-nowrap">Libellé :</Label>
                       <Input 
                         className="h-10 w-48 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37]" 
