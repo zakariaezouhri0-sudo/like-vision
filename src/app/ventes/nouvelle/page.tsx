@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -332,10 +333,6 @@ function NewSaleForm() {
               {activeEditId ? "Modification" : "Nouvelle Vente"}
             </h1>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSave(true)} className="h-10 rounded-full font-black text-[9px] px-6 border-[#0D1B2A]/10 text-[#0D1B2A]" disabled={loading || isReadOnly}><Printer className="mr-2 h-4 w-4 text-[#D4AF37]" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-10 rounded-full font-black text-[9px] px-8 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin" /> : <Save className="mr-2 h-4 w-4" /> } ENREGISTRER</Button>
-          </div>
         </div>
 
         {isSessionClosed && (
@@ -357,7 +354,7 @@ function NewSaleForm() {
                   <div className="space-y-1.5">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Téléphone</Label>
                     <div className="relative">
-                      <Phone className="absolute left-4 top-3.5 h-3.5 w-3.5 text-[#D4AF37]/60" />
+                      <Phone className="absolute left-4 top-3.5 h-3.5 w-3.5 text-[#0D1B2A]/40" />
                       <Input className="h-11 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-base text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                   </div>
@@ -384,24 +381,24 @@ function NewSaleForm() {
                   <div className="space-y-1.5">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
-                      <SelectTrigger className="h-11 rounded-2xl bg-[#0D1B2A] border-none font-black text-[#D4AF37]"><SelectValue /></SelectTrigger>
-                      <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[9px]">{m}</SelectItem>)}</SelectContent>
+                      <SelectTrigger className="h-11 rounded-2xl bg-[#0D1B2A] border-none font-black text-[#D4AF37] text-base"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[10px]">{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-4 px-1 w-full">
+                <div className="flex items-center gap-4 px-1 w-full justify-between">
                   <div className="flex items-center gap-6">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
-                      <label htmlFor="familyMode" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
+                      <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
-                      <label htmlFor="fromDoctor" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                      <label htmlFor="fromDoctor" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
                     </div>
                   </div>
                   {mutuelle === "Autre" && (
-                    <Input className="h-8 flex-1 max-w-[200px] rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[9px] text-[#D4AF37] px-3" placeholder="Préciser mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                    <Input className="h-9 flex-1 max-w-[200px] rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[11px] text-[#D4AF37] px-3 placeholder:text-[#D4AF37]/20" placeholder="Préciser..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                   )}
                 </div>
               </CardContent>
@@ -414,52 +411,92 @@ function NewSaleForm() {
               </CardHeader>
               <CardContent className="p-6 bg-[#D4AF37] space-y-4">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
-                <div className="space-y-1.5 pt-4 border-t border-[#0D1B2A]/10">
-                  <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Libellé</Label>
-                  <Input className="h-11 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-base text-[#D4AF37] uppercase" value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} placeholder="DÉSIGNATION DE LA COMMANDE..." />
+                <div className="space-y-1.5 pt-2 border-t border-[#0D1B2A]/10">
+                  <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Libellé (Désignation)</Label>
+                  <Input className="h-11 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-base text-[#D4AF37] uppercase placeholder:text-[#D4AF37]/20" value={notes} onChange={e => setNotes(e.target.value)} readOnly={isReadOnly} placeholder="DÉSIGNATION DE LA COMMANDE..." />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="lg:col-span-5 space-y-4">
-            <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden sticky top-24">
-              <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3">
-                <Calculator className="h-5 w-5 text-[#D4AF37]" />
-                <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="bg-white/5 p-4 rounded-3xl space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
-                    <input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} />
-                  </div>
-                  <div className="space-y-3 pt-3 border-t border-white/5">
+          <div className="lg:col-span-5">
+            <div className="sticky top-24 space-y-4">
+              <div className="flex gap-3 px-1">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleSave(true)} 
+                  className="flex-1 h-14 rounded-3xl font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50 transition-all" 
+                  disabled={loading || isReadOnly}
+                >
+                  <Printer className="mr-2 h-5 w-5 text-[#D4AF37]" /> IMPRIMER
+                </Button>
+                <Button 
+                  onClick={() => handleSave(false)} 
+                  className="flex-[2] h-14 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" 
+                  disabled={loading || isReadOnly}
+                >
+                  {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER
+                </Button>
+              </div>
+
+              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none">
+                <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3">
+                  <Calculator className="h-5 w-5 text-[#D4AF37]" />
+                  <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="bg-white/5 p-4 rounded-3xl space-y-3">
                     <div className="flex justify-between items-center">
-                      <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
-                      <div className="flex bg-white/10 p-0.5 rounded-full">
-                        <button onClick={() => setDiscountType('fixed')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
-                        <button onClick={() => setDiscountType('percent')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
+                      <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
+                      <input 
+                        type="text" 
+                        className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
+                        value={total} 
+                        onChange={e => setTotal(e.target.value)} 
+                        onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
+                      />
+                    </div>
+                    <div className="space-y-3 pt-3 border-t border-white/5">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
+                        <div className="flex bg-white/10 p-0.5 rounded-full">
+                          <button onClick={() => setDiscountType('fixed')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
+                          <button onClick={() => setDiscountType('percent')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label>
+                        <input 
+                          type="text" 
+                          className="bg-transparent text-right font-black text-lg text-white outline-none w-32 tabular-nums" 
+                          value={discountValue} 
+                          onChange={e => setDiscountValue(e.target.value)} 
+                        />
                       </div>
                     </div>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-3xl">
                     <div className="flex justify-between items-center">
-                      <Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label>
-                      <input type="text" className="bg-transparent text-right font-black text-base text-white outline-none w-32 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
+                      <div className="flex items-center gap-2">
+                        <HandCoins className="h-4 w-4 text-[#D4AF37]" />
+                        <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
+                      </div>
+                      <input 
+                        type="text" 
+                        className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                        value={avance} 
+                        onChange={e => setAvance(e.target.value)} 
+                        onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
+                      />
                     </div>
                   </div>
-                </div>
-                <div className="bg-white/5 p-4 rounded-3xl">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div>
-                    <input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} />
+                  <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p>
+                    <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                   </div>
-                </div>
-                <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p>
-                  <p className="text-2xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
