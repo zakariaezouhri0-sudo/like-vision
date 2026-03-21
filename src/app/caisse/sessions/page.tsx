@@ -549,13 +549,13 @@ function SessionsContent() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
-                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 font-black text-[10px] tabular-nums border border-emerald-100 shadow-sm">
+                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/5 text-[#D4AF37] font-black text-[10px] tabular-nums border border-[#D4AF37]/10 shadow-sm">
                                     <Clock className="h-3 w-3" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-5 font-black text-xs text-emerald-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-[#D4AF37] tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-orange-500 tabular-nums">

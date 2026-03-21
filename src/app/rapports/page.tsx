@@ -77,7 +77,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[ { l: "CA Encaissé", v: stats.ca, c: "text-green-600" }, { l: "Marge Brute", v: stats.marge, c: "text-[#D4AF37]" }, { l: "Dépenses", v: -stats.expenses, c: "text-red-500" }, { l: "Résultat Net", v: stats.ca - stats.expenses, c: "text-blue-600" } ].map((item, i) => (
+          {[ { l: "CA Encaissé", v: stats.ca, c: "text-[#D4AF37]" }, { l: "Marge Brute", v: stats.marge, c: "text-[#D4AF37]" }, { l: "Dépenses", v: -stats.expenses, c: "text-red-500" }, { l: "Résultat Net", v: stats.ca - stats.expenses, c: "text-blue-600" } ].map((item, i) => (
             <Card key={i} className="p-8 rounded-[60px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden">
               <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">{item.l}</p>
               <p className={cn("text-2xl font-black tabular-nums tracking-tighter", item.c)}>{formatCurrency(item.v)}</p>
@@ -91,7 +91,7 @@ export default function ReportsPage() {
             <Card className="rounded-[60px] shadow-xl border-none overflow-hidden bg-white">
               <Table>
                 <TableHeader className="bg-[#0D1B2A]"><TableRow><TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead><TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Opération</TableHead><TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Montant</TableHead></TableRow></TableHeader>
-                <TableBody>{stats.filteredTrans.map(t => (<TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0"><TableCell className="px-10 py-6 font-bold text-[11px] text-slate-400">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell><TableCell className="px-10 py-6 font-black uppercase text-xs text-[#0D1B2A]">{t.label}</TableCell><TableCell className={cn("text-right px-10 py-6 font-black text-sm", t.montant >= 0 ? "text-green-600" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell></TableRow>))}</TableBody>
+                <TableBody>{stats.filteredTrans.map(t => (<TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0"><TableCell className="px-10 py-6 font-bold text-[11px] text-slate-400">{format(t.createdAt.toDate(), "dd/MM HH:mm")}</TableCell><TableCell className="px-10 py-6 font-black uppercase text-xs text-[#0D1B2A]">{t.label}</TableCell><TableCell className={cn("text-right px-10 py-6 font-black text-sm", t.montant >= 0 ? "text-[#D4AF37]" : "text-red-500")}>{formatCurrency(t.montant)}</TableCell></TableRow>))}</TableBody>
               </Table>
             </Card>
           </TabsContent>
