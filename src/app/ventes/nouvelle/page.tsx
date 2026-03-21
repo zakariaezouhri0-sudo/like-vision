@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -420,14 +419,16 @@ function NewSaleForm() {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 pt-1 border-t border-[#0D1B2A]/5">
-                  <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
-                    <label htmlFor="familyMode" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
-                  </div>
-                  <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
-                    <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
-                    <label htmlFor="fromDoctor" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
+                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                      <label htmlFor="familyMode" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
+                    </div>
+                    <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
+                      <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                      <label htmlFor="fromDoctor" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                    </div>
                   </div>
                   {mutuelle === "Autre" && (
                     <Input className="h-8 flex-1 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37] px-3 placeholder:text-[#D4AF37]/20" placeholder="Préciser mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
@@ -458,8 +459,8 @@ function NewSaleForm() {
                   <Calculator className="h-5 w-5 text-[#D4AF37]" />
                   <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="bg-white/5 p-4 rounded-3xl space-y-2">
+                <CardContent className="p-8 space-y-6">
+                  <div className="bg-white/5 p-5 rounded-3xl space-y-3">
                     <div className="flex justify-between items-center">
                       <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                       <input 
@@ -470,7 +471,7 @@ function NewSaleForm() {
                         onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
                       />
                     </div>
-                    <div className="space-y-2 pt-2 border-t border-white/5">
+                    <div className="space-y-3 pt-3 border-t border-white/5">
                       <div className="flex justify-between items-center">
                         <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
                         <div className="flex bg-white/10 p-0.5 rounded-full">
@@ -489,7 +490,7 @@ function NewSaleForm() {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-3xl">
+                  <div className="bg-white/5 p-5 rounded-3xl">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <HandCoins className="h-4 w-4 text-[#D4AF37]" />
@@ -504,16 +505,16 @@ function NewSaleForm() {
                       />
                     </div>
                   </div>
-                  <div className={cn("p-5 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
+                  <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p>
                     <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                   </div>
                   <Button 
                     onClick={() => handleSave(true)} 
-                    className="w-full h-14 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-2" 
+                    className="w-full h-16 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-2" 
                     disabled={loading || isReadOnly}
                   >
-                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER
+                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER
                   </Button>
                 </CardContent>
               </Card>
