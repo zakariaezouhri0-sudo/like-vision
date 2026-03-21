@@ -463,7 +463,7 @@ function NewSaleForm() {
                     <Label className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-4xl text-white outline-none w-48 tabular-nums" 
+                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-48 tabular-nums" 
                       value={total} 
                       onChange={e => setTotal(e.target.value)} 
                       onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
@@ -476,13 +476,13 @@ function NewSaleForm() {
                       <div className="flex bg-white/10 p-1.5 rounded-full">
                         <button 
                           onClick={() => setDiscountType('fixed')} 
-                          className={cn("px-6 py-2 rounded-full text-xs font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
+                          className={cn("px-6 py-2 rounded-full text-[10px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
                         >
                           DH
                         </button>
                         <button 
                           onClick={() => setDiscountType('percent')} 
-                          className={cn("px-6 py-2 rounded-full text-xs font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
+                          className={cn("px-6 py-2 rounded-full text-[10px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}
                         >
                           %
                         </button>
@@ -492,7 +492,7 @@ function NewSaleForm() {
                       <Label className="text-xs font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
                       <input 
                         type="text" 
-                        className="bg-transparent text-right font-black text-3xl text-white outline-none w-48 tabular-nums" 
+                        className="bg-transparent text-right font-black text-xl text-white outline-none w-48 tabular-nums" 
                         value={discountValue} 
                         onChange={e => setDiscountValue(e.target.value)} 
                       />
@@ -500,20 +500,15 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="bg-[#D4AF37] p-10 rounded-[40px] text-[#0D1B2A] text-center shadow-2xl transform hover:scale-[1.02] transition-all">
-                  <p className="text-xs font-black uppercase tracking-[0.3em] mb-3 opacity-60">Total Net à Payer</p>
-                  <p className="text-5xl font-black tabular-nums tracking-tighter">{formatCurrency(totalNetValue)}</p>
-                </div>
-
                 <div className="bg-white/5 p-8 rounded-[40px] space-y-6">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <HandCoins className="h-5 w-5 text-[#D4AF37]" />
-                      <Label className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">Versé ce jour</Label>
+                      <Label className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
                     </div>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-3xl text-white outline-none w-48 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-48 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
                       value={avance} 
                       onChange={e => setAvance(e.target.value)} 
                       onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
@@ -528,7 +523,7 @@ function NewSaleForm() {
                     : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 )}>
                   <p className="text-xs font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
-                  <p className="text-4xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
+                  <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
               </CardContent>
             </Card>
