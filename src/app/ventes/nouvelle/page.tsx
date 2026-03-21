@@ -436,26 +436,24 @@ function NewSaleForm() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-6 px-2 mt-4">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
-                    <label htmlFor="familyMode" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
+                <div className="flex flex-wrap items-center gap-4 px-2 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-5 w-5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                    <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-6 w-6 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
-                    <label htmlFor="fromDoctor" className="text-[11px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-5 w-5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                    <label htmlFor="fromDoctor" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
                   </div>
                   
                   {mutuelle === "Autre" && (
-                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 ml-4">
-                      <Input 
-                        className="h-10 w-48 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37]" 
-                        placeholder="Préciser..."
-                        value={customMutuelle} 
-                        onChange={e => setCustomMutuelle(e.target.value)} 
-                        readOnly={isReadOnly} 
-                      />
-                    </div>
+                    <Input 
+                      className="h-9 w-40 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[10px] text-[#D4AF37]" 
+                      placeholder="Préciser..."
+                      value={customMutuelle} 
+                      onChange={e => setCustomMutuelle(e.target.value)} 
+                      readOnly={isReadOnly} 
+                    />
                   )}
                 </div>
               </CardContent>
@@ -466,8 +464,19 @@ function NewSaleForm() {
                 <FileText className="h-8 w-8 text-[#D4AF37]" />
                 <CardTitle className="text-xl uppercase font-black text-[#D4AF37] tracking-widest">Prescription</CardTitle>
               </CardHeader>
-              <CardContent className="p-10 bg-[#D4AF37]">
+              <CardContent className="p-10 bg-[#D4AF37] space-y-8">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}))} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-[#0D1B2A]/10">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Monture</Label>
+                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={monture} onChange={e => setMonture(e.target.value)} readOnly={isReadOnly} />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Verres</Label>
+                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] uppercase" value={verres} onChange={e => setVerres(e.target.value)} readOnly={isReadOnly} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
