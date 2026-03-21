@@ -368,9 +368,12 @@ function NewSaleForm() {
     <AppShell>
       <div className="space-y-6 max-w-6xl mx-auto pb-24">
         <div className="flex justify-between items-center bg-white p-8 rounded-[60px] border shadow-xl shadow-slate-200/50">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-3xl flex items-center justify-center bg-[#0D1B2A] text-[#D4AF37] shadow-lg"><ShoppingBag className="h-7 w-7" /></div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter">{activeEditId ? "Modification" : "Nouvelle Vente"}</h1>
+          <div>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
+              <ShoppingBag className="h-8 w-8 text-[#D4AF37]/40" />
+              {activeEditId ? "Modification" : "Nouvelle Vente"}
+            </h1>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Enregistrement de commande luxury.</p>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => handleSave(true)} className="h-12 rounded-full font-black text-[10px] px-8 border-[#0D1B2A]/10 text-[#0D1B2A]" disabled={loading || isReadOnly}><Printer className="mr-2 h-4 w-4 text-[#D4AF37]" /> IMPRIMER</Button>
