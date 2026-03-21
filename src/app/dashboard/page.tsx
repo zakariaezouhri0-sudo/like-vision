@@ -216,19 +216,19 @@ export default function DashboardPage() {
           <Link href="/caisse">
             <div className={cn(
               "border rounded-full px-8 py-4 flex items-center justify-center md:justify-start gap-4 shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer",
-              isSessionOpen ? "bg-green-50 border-green-100" : 
+              isSessionOpen ? "bg-[#D4AF37]/5 border-[#D4AF37]/20" : 
               isSessionClosed ? "bg-red-50 border-red-100" : 
               "bg-orange-50 border-orange-100"
             )}>
               <div className={cn(
                 "h-3 w-3 rounded-full",
-                isSessionOpen ? "bg-green-600 animate-pulse" : 
+                isSessionOpen ? "bg-[#D4AF37] animate-pulse" : 
                 isSessionClosed ? "bg-red-400" : 
                 "bg-orange-500 animate-bounce"
               )} />
               <span className={cn(
                 "text-[10px] font-black uppercase tracking-[0.3em]",
-                isSessionOpen ? "text-green-700" : 
+                isSessionOpen ? "text-[#D4AF37]" : 
                 isSessionClosed ? "text-red-700" : 
                 "text-orange-700"
               )}>
@@ -285,8 +285,8 @@ export default function DashboardPage() {
               <BarChart data={weeklyData}>
                 <defs>
                   <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0D1B2A" stopOpacity={1}/>
-                    <stop offset="100%" stopColor="#1B263B" stopOpacity={0.8}/>
+                    <stop offset="0%" stopColor="#D4AF37" stopOpacity={1}/>
+                    <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.6}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                         <Badge 
                           className={cn(
                             "text-[9px] px-4 py-1.5 font-black rounded-full uppercase tracking-widest shadow-sm whitespace-nowrap border-none",
-                            sale.statut === "Payé" ? "bg-green-100 text-green-700" : 
+                            sale.statut === "Payé" ? "bg-[#D4AF37]/10 text-[#D4AF37]" : 
                             sale.statut === "En attente" ? "bg-red-100 text-red-700" : 
                             "bg-blue-100 text-blue-700"
                           )}

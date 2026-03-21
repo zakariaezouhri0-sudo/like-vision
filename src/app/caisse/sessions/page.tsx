@@ -426,7 +426,7 @@ function SessionsContent() {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G1');
       for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = 0; C <= range.e.c; ++C) {
-          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+          const cell = ws[XLSX.utils.encode_cell({ r: R, C: C })];
           if (cell && cell.t === 'n') cell.z = '#,##0.00 "MAD"';
         }
       }
@@ -492,10 +492,10 @@ function SessionsContent() {
                             FLUX NET MENSUEL
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-black text-green-600 tracking-tighter tabular-nums leading-none">
+                            <span className="text-lg font-black text-[#D4AF37] tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-green-600/30 uppercase">DH</span>
+                            <span className="text-[9px] font-black text-[#D4AF37]/30 uppercase">DH</span>
                           </div>
                         </div>
                       )}
@@ -543,21 +543,21 @@ function SessionsContent() {
                                       {isValid(d) ? format(d, "dd MMMM yyyy", { locale: fr }) : s.date}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                      <div className={cn("h-1.5 w-1.5 rounded-full", isClosed ? "bg-slate-300" : "bg-green-500 animate-pulse")} />
-                                      <span className={cn("text-[8px] font-black uppercase tracking-widest", isClosed ? "text-slate-400" : "text-green-600")}>
+                                      <div className={cn("h-1.5 w-1.5 rounded-full", isClosed ? "bg-slate-300" : "bg-[#D4AF37] animate-pulse")} />
+                                      <span className={cn("text-[8px] font-black uppercase tracking-widest", isClosed ? "text-slate-400" : "text-[#D4AF37]")}>
                                         {isClosed ? "CLÔTURÉE" : "EN COURS"}
                                       </span>
                                     </div>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
-                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-600 font-black text-[10px] tabular-nums border border-green-100/50 shadow-sm">
+                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-slate-600 font-black text-[10px] tabular-nums border border-slate-100 shadow-sm">
                                     <Clock className="h-3 w-3" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-5 font-black text-xs text-green-600 tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-[#D4AF37] tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-orange-500 tabular-nums">
@@ -585,7 +585,7 @@ function SessionsContent() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-slate-100 min-w-[180px]">
                                       <DropdownMenuItem onClick={() => handleExportDayExcel(s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                        <FileText className="mr-3 h-4 w-4 text-green-600" /> Détails (Excel)
+                                        <FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Détails (Excel)
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
                                         <ArrowRight className="mr-3 h-4 w-4 text-primary" /> Voir la session

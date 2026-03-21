@@ -212,7 +212,7 @@ function OperationsReportContent() {
     if (data.length === 0) return null;
     return (
       <>
-        <tr className="bg-slate-50"><td colSpan={7} className="p-2 text-center text-[10px] font-black uppercase text-primary border-y-2 border-slate-950">{title}</td></tr>
+        <tr className="bg-slate-50"><td colSpan={7} className="p-2 text-center text-[10px] font-black uppercase text-[#D4AF37] border-y-2 border-slate-950"> {title} </td></tr>
         {data.map((t: any) => {
           let invoiceId = t.relatedId || "";
           if (!invoiceId && t.label?.includes('VENTE')) {
@@ -241,7 +241,7 @@ function OperationsReportContent() {
 
           return (
             <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-              <td className="p-3 text-[11px] font-black text-primary border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
+              <td className="p-3 text-[11px] font-black text-[#D4AF37] border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
               <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----"}</td>
               <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
                 <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ function OperationsReportContent() {
               </td>
               <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
               <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">{isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}</td>
-              <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">{isVente ? (<span className="text-green-600">+{formatCurrency(movement, false)}</span>) : ""}</td>
+              <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">{isVente ? (<span className="text-[#D4AF37]">+{formatCurrency(movement, false)}</span>) : ""}</td>
               <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">{!isVente ? `-${formatCurrency(movement, false)}` : ""}</td>
             </tr>
           );
@@ -271,11 +271,11 @@ function OperationsReportContent() {
           <Link href="/caisse/sessions"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR SESSIONS</Link>
         </Button>
         <div className="flex items-center gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-green-200 text-green-600 h-11 px-6 rounded-xl shadow-sm font-black text-xs hover:bg-green-50">
+          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-[#D4AF37]/20 text-[#D4AF37] h-11 px-6 rounded-xl shadow-sm font-black text-xs hover:bg-[#D4AF37]/5">
             <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER EXCEL
           </Button>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-2.5 rounded-full border shadow-sm">Format Paysage A4</span>
-          <Button onClick={() => window.print()} className="bg-primary shadow-xl hover:bg-primary/90 h-11 px-10 rounded-xl font-black text-sm text-white">
+          <Button onClick={() => window.print()} className="bg-[#0D1B2A] shadow-xl hover:bg-[#0D1B2A]/90 h-11 px-10 rounded-xl font-black text-sm text-white">
             <Printer className="mr-2 h-4 w-4" /> IMPRIMER LA LISTE
           </Button>
         </div>
@@ -285,7 +285,7 @@ function OperationsReportContent() {
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
           <div className="flex items-center gap-6">
             <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
-              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-primary"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-primary" /></div>)}
+              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-[#0D1B2A]"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-[#0D1B2A]" /></div>)}
             </div>
             <div>
               <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
@@ -299,7 +299,7 @@ function OperationsReportContent() {
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-end gap-2 text-lg font-black text-slate-900 uppercase">
-                <Calendar className="h-5 w-5 text-primary" />
+                <Calendar className="h-5 w-5 text-[#D4AF37]" />
                 <span>{format(selectedDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span>
               </div>
               <div className="flex items-center justify-end gap-2 text-[9px] font-bold text-slate-400 italic">
@@ -312,7 +312,7 @@ function OperationsReportContent() {
 
         <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
           <table className="w-full border-collapse">
-            <thead className="bg-[#6a8036] text-white border-b-2 border-slate-950">
+            <thead className="bg-[#0D1B2A] text-[#D4AF37] border-b-2 border-slate-950">
               <tr>
                 <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
                 <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Date</th>

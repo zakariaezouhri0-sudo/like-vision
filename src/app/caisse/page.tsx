@@ -461,12 +461,12 @@ function CaisseContent() {
             <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Solde Initial (DH)</Label>
-                {isAutoReport && <Badge variant="outline" className="text-[8px] font-black text-green-600 uppercase bg-green-50 px-2 py-1 rounded-md border-green-100">Report auto</Badge>}
+                {isAutoReport && <Badge variant="outline" className="text-[8px] font-black text-[#D4AF37] uppercase bg-slate-50 px-2 py-1 rounded-md border-[#D4AF37]/20">Report auto</Badge>}
               </div>
               <div className="relative">
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-green-200 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", isAutoReport ? "bg-slate-50 border-[#D4AF37]/20 text-slate-500 cursor-not-allowed" : "bg-slate-50 border-primary/5 focus:border-primary/20")}
                   value={isAutoReport ? formatCurrency(openingVal) : openingVal} 
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
@@ -549,7 +549,7 @@ function CaisseContent() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className={cn("text-right px-10 py-5 font-black text-sm tabular-nums", t.montant >= 0 ? "text-green-600" : (t.type === "VERSEMENT" ? "text-orange-600" : "text-red-500"))}>
+                    <TableCell className={cn("text-right px-10 py-5 font-black text-sm tabular-nums", t.montant >= 0 ? "text-[#D4AF37]" : (t.type === "VERSEMENT" ? "text-orange-600" : "text-red-500"))}>
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
@@ -705,7 +705,7 @@ function CaisseContent() {
                   <div className="space-y-6 bg-slate-50 p-10 rounded-[40px] border border-slate-100 shadow-inner flex flex-col justify-center">
                     <div className="space-y-4">
                       <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-green-600 tracking-widest"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-[#D4AF37] tracking-widest"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
                       <div className="flex justify-between text-[10px] font-black uppercase text-red-500 tracking-widest"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
                       <div className="flex justify-between text-[10px] font-black uppercase text-orange-600 tracking-widest"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
                     </div>
@@ -713,7 +713,7 @@ function CaisseContent() {
                       <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0D1B2A]">Total Compté</span>
                       <span className="text-3xl font-black text-[#D4AF37] tabular-nums tracking-tighter">{formatCurrency(soldeReel)}</span>
                     </div>
-                    <div className={cn("p-6 rounded-3xl text-center shadow-sm", Math.abs(ecart) < 0.01 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                    <div className={cn("p-6 rounded-3xl text-center shadow-sm", Math.abs(ecart) < 0.01 ? "bg-[#D4AF37]/10 text-[#D4AF37]" : "bg-red-100 text-red-700")}>
                       <p className="text-[10px] font-black uppercase mb-1 tracking-widest">Écart Final</p>
                       <p className="text-2xl font-black tabular-nums">{formatCurrency(ecart)}</p>
                     </div>
@@ -733,9 +733,9 @@ function CaisseContent() {
           <p className="text-2xl font-black text-[#0D1B2A] tabular-nums tracking-tighter">{formatCurrency(initialBalance)}</p>
         </Card>
         <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 h-1 w-full bg-green-500 opacity-20" />
+          <div className="absolute top-0 right-0 h-1 w-full bg-[#D4AF37] opacity-20" />
           <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Ventes</p>
-          <p className="text-2xl font-black text-green-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
+          <p className="text-2xl font-black text-[#D4AF37] tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
         </Card>
         <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 h-1 w-full bg-red-500 opacity-20" />
@@ -754,7 +754,7 @@ function CaisseContent() {
         </Card>
       </div>
 
-      {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-5 w-5 text-green-500" />, "bg-green-100 text-green-700")}
+      {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-5 w-5 text-[#D4AF37]" />, "bg-[#D4AF37]/10 text-[#D4AF37]")}
       {renderTransactionTable("Sorties (Charges & Versements)", expenseTransactions, <TrendingDown className="h-5 w-5 text-red-500" />, "bg-red-100 text-red-700")}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
