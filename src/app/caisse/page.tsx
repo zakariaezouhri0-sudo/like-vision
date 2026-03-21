@@ -436,7 +436,7 @@ function CaisseContent() {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-lg mx-auto text-center space-y-8">
-        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl transform rotate-3", isPrepaMode ? "bg-[#D4AF37]" : "bg-[#0D1B2A]")}>
+        <div className={cn("h-24 w-24 rounded-[32px] flex items-center justify-center shadow-2xl transform rotate-3", isPrepaMode ? "bg-[#D4AF37] text-[#0D1B2A]" : "bg-[#0D1B2A] text-[#D4AF37]")}>
           <CalendarCheck className="h-12 w-12" />
         </div>
         <div className="space-y-4">
