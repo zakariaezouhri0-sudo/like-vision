@@ -166,22 +166,22 @@ function NewSaleForm() {
         collection(db, "clients"),
         where("isDraft", "==", currentIsDraft),
         where("phone", "==", cleanedPhone),
-        limit(10)
+        limit(20)
       );
     }
 
-    if (nameSearch.length >= 3 && !selectedClientId) {
+    if (nameSearch.length >= 3 && !selectedClientId && !isFamilyMode) {
       return query(
         collection(db, "clients"),
         where("isDraft", "==", currentIsDraft),
         where("name", ">=", nameSearch),
         where("name", "<=", nameSearch + "\uf8ff"),
-        limit(10)
+        limit(20)
       );
     }
 
     return null;
-  }, [db, clientPhone, clientName, isPrepaMode, selectedClientId]);
+  }, [db, clientPhone, clientName, isPrepaMode, selectedClientId, isFamilyMode]);
 
   const { data: matchedClients } = useCollection(clientsQuery);
 
@@ -205,10 +205,14 @@ function NewSaleForm() {
 
   useEffect(() => {
     if (!activeEditId && matchedClients && matchedClients.length === 1 && !selectedClientId && !isFamilyMode) {
-      const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
-      const isNameSearch = clientName.trim().length >= 3;
+      const nameInInput = clientName.trim().toUpperCase();
+      const nameInResult = (matchedClients[0].name || "").toUpperCase();
       
-      if (isPhoneSearch || isNameSearch) {
+      // Auto-fill si c'est une recherche par téléphone ou si le nom saisi correspond au début du résultat
+      const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
+      const isNameSearchMatch = nameInInput.length >= 3 && nameInResult.startsWith(nameInInput);
+      
+      if (isPhoneSearch || isNameSearchMatch) {
         handleSelectMember(matchedClients[0]);
       }
     }
@@ -225,11 +229,6 @@ function NewSaleForm() {
     const raw = val.replace(/\D/g, '');
     if (raw === "") {
       setClientPhone("");
-      if (!isFamilyMode) {
-        setClientName("");
-        setMutuelle("Aucun");
-        setCustomMutuelle("");
-      }
       setSelectedClientId(null);
       return;
     }
@@ -356,7 +355,7 @@ function NewSaleForm() {
 
   return (
     <AppShell>
-      <div className="space-y-2 max-w-7xl mx-auto pb-6">
+      <div className="space-y-4 max-w-7xl mx-auto pb-6">
         <div className="flex justify-between items-center px-2">
           <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-3">
             <ShoppingBag className="h-6 w-6 text-[#D4AF37]/40" />
@@ -375,8 +374,8 @@ function NewSaleForm() {
                 <User className="h-5 w-5 text-[#D4AF37]" />
                 <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Dossier Client</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-3 bg-[#D4AF37]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <CardContent className="p-6 space-y-4 bg-[#D4AF37]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Téléphone</Label>
                     <div className="relative">
@@ -387,7 +386,7 @@ function NewSaleForm() {
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
                     <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
-                    {matchedClients?.length > 1 && isNameFocused && (
+                    {matchedClients && matchedClients.length > 1 && isNameFocused && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                         <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
                         {matchedClients.map(c => (
@@ -400,7 +399,7 @@ function NewSaleForm() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
@@ -436,7 +435,7 @@ function NewSaleForm() {
                 <FileText className="h-5 w-5 text-[#D4AF37]" />
                 <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Prescription</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 bg-[#D4AF37] space-y-3">
+              <CardContent className="p-6 bg-[#D4AF37] space-y-4">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => {
                   setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}));
                   setSelectedClientId(null);
@@ -451,16 +450,18 @@ function NewSaleForm() {
 
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
-              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none">
+              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none h-full">
                 <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3"><Calculator className="h-5 w-5 text-[#D4AF37]" /><CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle></CardHeader>
-                <CardContent className="p-8 space-y-6">
-                  <div className="bg-white/5 p-5 rounded-3xl space-y-3">
-                    <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label><input type="text" className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} /></div>
-                    <div className="space-y-3 pt-3 border-t border-white/5"><div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label><div className="flex bg-white/10 p-0.5 rounded-full"><button onClick={() => setDiscountType('fixed')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button><button onClick={() => setDiscountType('percent')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button></div></div><div className="flex justify-between items-center"><Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} /></div></div>
+                <CardContent className="p-8 space-y-8 h-full flex flex-col justify-between">
+                  <div className="space-y-6">
+                    <div className="bg-white/5 p-6 rounded-3xl space-y-4">
+                      <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label><input type="text" className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} /></div>
+                      <div className="space-y-4 pt-4 border-t border-white/5"><div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label><div className="flex bg-white/10 p-0.5 rounded-full"><button onClick={() => setDiscountType('fixed')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button><button onClick={() => setDiscountType('percent')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button></div></div><div className="flex justify-between items-center"><Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} /></div></div>
+                    </div>
+                    <div className="bg-white/5 p-6 rounded-3xl"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div><input type="text" className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} /></div></div>
+                    <div className={cn("p-8 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}><p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p><p className="text-4xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p></div>
                   </div>
-                  <div className="bg-white/5 p-5 rounded-3xl"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div><input type="text" className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} /></div></div>
-                  <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}><p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p><p className="text-4xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p></div>
-                  <Button onClick={() => handleSave(true)} className="w-full h-16 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-2" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER</Button>
+                  <Button onClick={() => handleSave(true)} className="w-full h-16 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-4" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER</Button>
                 </CardContent>
               </Card>
             </div>
