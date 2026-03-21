@@ -170,7 +170,7 @@ function NewSaleForm() {
       );
     }
 
-    if (nameSearch.length >= 3) {
+    if (nameSearch.length >= 3 && !selectedClientId) {
       return query(
         collection(db, "clients"),
         where("isDraft", "==", currentIsDraft),
@@ -181,7 +181,7 @@ function NewSaleForm() {
     }
 
     return null;
-  }, [db, clientPhone, clientName, isPrepaMode]);
+  }, [db, clientPhone, clientName, isPrepaMode, selectedClientId]);
 
   const { data: matchedClients } = useCollection(clientsQuery);
 
@@ -190,7 +190,7 @@ function NewSaleForm() {
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
-    setIsFamilyMode(!!client.parentPhone);
+    setIsFamilyMode(false); // Reset parrainage switch on pick
     if (client.mutuelle) {
       if (MUTUELLES.filter(m => m !== 'Autre').includes(client.mutuelle)) {
         setMutuelle(client.mutuelle);
@@ -225,6 +225,7 @@ function NewSaleForm() {
     if (raw.length >= 1 && raw[0] !== '0') return;
     if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
     setClientPhone(raw);
+    setSelectedClientId(null); // Clear ID when phone changes to trigger search
   };
 
   const handleToggleFamilyMode = (checked: boolean) => {
@@ -232,7 +233,7 @@ function NewSaleForm() {
     if (checked) {
       setSelectedClientId(null);
       setClientName(""); // Clear name for new family member
-      toast({ title: "Mode Parrainage Activé", description: "Saisissez le nom du nouveau membre." });
+      toast({ title: "Mode Parrainage Activé", description: "Vous pouvez maintenant ajouter un nouveau membre sur ce numéro." });
     }
   };
 
@@ -297,9 +298,10 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
+        // Link client
         const clientRef = selectedClientId ? doc(db, "clients", selectedClientId) : doc(collection(db, "clients"));
         transaction.set(clientRef, {
-          name: clientName.toUpperCase(), phone: cleanedPhone, parentPhone: isFamilyMode ? cleanedPhone : "",
+          name: clientName.toUpperCase(), phone: cleanedPhone,
           mutuelle: finalMutuelle, lastVisit: format(new Date(), "dd/MM/yyyy"), isDraft: currentIsDraft, updatedAt: serverTimestamp()
         }, { merge: true });
 
@@ -345,28 +347,13 @@ function NewSaleForm() {
     <AppShell>
       <div className="space-y-4 max-w-7xl mx-auto pb-10">
         <div className="flex justify-between items-center px-2">
-          <div>
-            <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-3">
-              <ShoppingBag className="h-6 w-6 text-[#D4AF37]/40" />
-              {activeEditId ? "Modification" : "Nouvelle Vente"}
-            </h1>
-          </div>
+          <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-3">
+            <ShoppingBag className="h-6 w-6 text-[#D4AF37]/40" />
+            {activeEditId ? "Modification" : "Nouvelle Vente"}
+          </h1>
           <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => handleSave(true)} 
-              className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50 transition-all" 
-              disabled={loading || isReadOnly}
-            >
-              <Printer className="mr-2 h-4 w-4 text-[#D4AF37]" /> IMPRIMER
-            </Button>
-            <Button 
-              onClick={() => handleSave(false)} 
-              className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" 
-              disabled={loading || isReadOnly}
-            >
-              {loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER
-            </Button>
+            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50 transition-all" disabled={loading || isReadOnly}><Printer className="mr-2 h-4 w-4 text-[#D4AF37]" /> IMPRIMER</Button>
+            <Button onClick={() => handleSave(false)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
           </div>
         </div>
 
@@ -390,18 +377,11 @@ function NewSaleForm() {
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Téléphone</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-3 h-3 w-3 text-[#0D1B2A]/40" />
-                      <Input 
-                        className="h-10 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" 
-                        value={formatPhoneNumber(clientPhone)} 
-                        onChange={e => handlePhoneChange(e.target.value)} 
-                        onFocus={() => setIsPhoneFocused(true)}
-                        onBlur={() => setTimeout(() => setIsPhoneFocused(false), 200)}
-                        readOnly={isReadOnly} 
-                      />
+                      <Input className="h-10 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} onFocus={() => setIsPhoneFocused(true)} onBlur={() => setTimeout(() => setIsPhoneFocused(false), 200)} readOnly={isReadOnly} />
                     </div>
                     {matchedClients?.length > 0 && isPhoneFocused && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
+                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Clients trouvés</p></div>
                         {matchedClients.map(c => (
                           <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
                             <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
@@ -413,14 +393,7 @@ function NewSaleForm() {
                   </div>
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
-                    <Input 
-                      className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" 
-                      value={clientName} 
-                      onChange={e => setClientName(e.target.value)} 
-                      onFocus={() => setIsNameFocused(true)} 
-                      onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} 
-                      readOnly={isReadOnly} 
-                    />
+                    <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
                     {matchedClients?.length > 0 && isNameFocused && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
                         {matchedClients.map(c => (
@@ -446,8 +419,8 @@ function NewSaleForm() {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#0D1B2A]/5 w-full">
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-3 py-1.5 rounded-full">
                       <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-3.5 w-3.5 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
                       <label htmlFor="familyMode" className="text-[8px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
@@ -484,67 +457,15 @@ function NewSaleForm() {
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
               <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none">
-                <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3">
-                  <Calculator className="h-5 w-5 text-[#D4AF37]" />
-                  <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>
-                </CardHeader>
+                <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3"><Calculator className="h-5 w-5 text-[#D4AF37]" /><CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle></CardHeader>
                 <CardContent className="p-8 space-y-6">
                   <div className="bg-white/5 p-5 rounded-3xl space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
-                      <input 
-                        type="text" 
-                        className="bg-transparent text-right font-black text-xl text-white outline-none w-24 tabular-nums" 
-                        value={total} 
-                        onChange={e => setTotal(e.target.value)} 
-                        onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
-                      />
-                    </div>
-                    <div className="space-y-3 pt-3 border-t border-white/5">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
-                        <div className="flex bg-white/10 p-0.5 rounded-full">
-                          <button onClick={() => setDiscountType('fixed')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
-                          <button onClick={() => setDiscountType('percent')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label>
-                        <input 
-                          type="text" 
-                          className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums" 
-                          value={discountValue} 
-                          onChange={e => setDiscountValue(e.target.value)} 
-                        />
-                      </div>
-                    </div>
+                    <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-24 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} /></div>
+                    <div className="space-y-3 pt-3 border-t border-white/5"><div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label><div className="flex bg-white/10 p-0.5 rounded-full"><button onClick={() => setDiscountType('fixed')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button><button onClick={() => setDiscountType('percent')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button></div></div><div className="flex justify-between items-center"><Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label><input type="text" className="bg-transparent text-right font-black text-lg text-white outline-none w-24 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} /></div></div>
                   </div>
-                  <div className="bg-white/5 p-5 rounded-3xl">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <HandCoins className="h-4 w-4 text-[#D4AF37]" />
-                        <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
-                      </div>
-                      <input 
-                        type="text" 
-                        className="bg-transparent text-right font-black text-xl text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
-                        value={avance} 
-                        onChange={e => setAvance(e.target.value)} 
-                        onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
-                      />
-                    </div>
-                  </div>
-                  <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p>
-                    <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
-                  </div>
-                  <Button 
-                    onClick={() => handleSave(true)} 
-                    className="w-full h-16 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-2" 
-                    disabled={loading || isReadOnly}
-                  >
-                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER
-                  </Button>
+                  <div className="bg-white/5 p-5 rounded-3xl"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} /></div></div>
+                  <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}><p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p><p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p></div>
+                  <Button onClick={() => handleSave(true)} className="w-full h-16 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-2" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER</Button>
                 </CardContent>
               </Card>
             </div>
