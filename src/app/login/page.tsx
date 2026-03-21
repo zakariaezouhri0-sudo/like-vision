@@ -11,7 +11,6 @@ import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc } from "firebase/firestore";
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -147,23 +146,23 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <Card className="border-none shadow-2xl shadow-slate-200/60 bg-white rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
+        <Card className="border-none shadow-2xl shadow-slate-200/60 bg-[#0D1B2A] rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#D4AF37]" />
-          <CardHeader className="space-y-2 pt-12 text-center border-b border-slate-50 pb-8">
-            <CardTitle className="text-2xl font-black text-[#0D1B2A] uppercase tracking-widest">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">
+          <CardHeader className="space-y-2 pt-12 text-center border-b border-white/5 pb-8">
+            <CardTitle className="text-2xl font-black text-[#D4AF37] uppercase tracking-widest">Connexion</CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase text-[#D4AF37]/60 tracking-[0.3em]">
               Registre de Prestige
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-8 pt-12 px-10">
               <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-[0.2em] opacity-60">Identifiant</Label>
+                <Label className="text-[10px] font-black uppercase text-[#D4AF37] ml-2 tracking-[0.2em]">Identifiant</Label>
                 <div className="relative">
-                  <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
+                  <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D1B2A] z-10" />
                   <Input 
                     placeholder="ex: admin" 
-                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-slate-50 text-[#0D1B2A] focus:bg-white shadow-inner transition-all" 
+                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-[#D4AF37] text-[#0D1B2A] placeholder:text-[#0D1B2A]/40 focus:ring-2 focus:ring-white/20 transition-all shadow-inner" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
@@ -171,13 +170,13 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-[0.2em] opacity-60">Mot de passe</Label>
+                <Label className="text-[10px] font-black uppercase text-[#D4AF37] ml-2 tracking-[0.2em]">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
+                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D1B2A] z-10" />
                   <Input 
                     type="password" 
                     placeholder="••••••••"
-                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-slate-50 text-[#0D1B2A] focus:bg-white shadow-inner transition-all" 
+                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-[#D4AF37] text-[#0D1B2A] placeholder:text-[#0D1B2A]/40 focus:ring-2 focus:ring-white/20 transition-all shadow-inner" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
@@ -186,7 +185,7 @@ export default function LoginPage() {
               </div>
             </CardContent>
             <CardFooter className="pb-16 pt-8 px-10">
-              <Button className="w-full h-16 text-base font-black shadow-xl rounded-full bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all transform active:scale-95 uppercase tracking-widest" disabled={loading}>
+              <Button className="w-full h-16 text-base font-black shadow-xl rounded-full bg-white text-[#0D1B2A] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95 uppercase tracking-widest" disabled={loading}>
                 {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
               </Button>
             </CardFooter>
