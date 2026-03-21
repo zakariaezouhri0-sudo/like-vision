@@ -367,7 +367,7 @@ function NewSaleForm() {
   return (
     <AppShell>
       <div className="space-y-6 max-w-6xl mx-auto pb-24">
-        <div className="flex justify-between items-center bg-white p-8 rounded-[60px] border shadow-xl shadow-slate-200/50">
+        <div className="flex justify-between items-center px-2">
           <div>
             <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
               <ShoppingBag className="h-8 w-8 text-[#D4AF37]/40" />
