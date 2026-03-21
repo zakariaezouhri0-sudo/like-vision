@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
 import { ShoppingBag, Save, Loader2, User, Phone, ShieldCheck, FileText, Glasses, Printer, Percent, Lock, ClipboardList, Stethoscope, HandCoins, Users, AlertTriangle, Calendar as CalendarIcon, XCircle, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -391,32 +392,32 @@ function NewSaleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-7 space-y-8">
-            <Card className="rounded-[60px] bg-white border-none shadow-xl shadow-slate-200/50 overflow-hidden">
+            <Card className="rounded-[60px] border-none shadow-xl shadow-slate-200/50 overflow-hidden">
               <CardHeader className="py-8 px-10 bg-[#0D1B2A] flex flex-row items-center gap-4">
                 <User className="h-8 w-8 text-[#D4AF37]" />
                 <CardTitle className="text-xl uppercase font-black text-[#D4AF37] tracking-widest">Dossier Client</CardTitle>
               </CardHeader>
-              <CardContent className="p-10 space-y-8">
+              <CardContent className="p-10 space-y-8 bg-[#D4AF37]">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Téléphone</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Téléphone</Label>
                     <div className="relative">
-                      <Phone className="absolute left-5 top-4 h-4 w-4 text-[#D4AF37]" />
-                      <Input className="h-14 pl-12 rounded-[24px] bg-slate-50 border-none shadow-inner font-black text-lg" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
+                      <Phone className="absolute left-5 top-4 h-4 w-4 text-[#D4AF37]/60" />
+                      <Input className="h-14 pl-12 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
                     </div>
                     <div className="flex items-center space-x-2 mt-2 px-2">
-                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} />
-                      <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-orange-600 cursor-pointer">PARRAINAGE / FAMILLE</label>
+                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                      <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer">PARRAINAGE / FAMILLE</label>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Nom Complet</Label>
-                    <Input className="h-14 rounded-[24px] bg-slate-50 border-none shadow-inner font-black text-lg uppercase" value={clientName} onChange={e => setClientName(e.target.value)} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Nom Complet</Label>
+                    <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-lg uppercase text-[#D4AF37]" value={clientName} onChange={e => setClientName(e.target.value)} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} />
                     {matchedClients?.length > 0 && isNameFocused && (
                       <div className="absolute z-50 w-full max-w-xs mt-2 bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden">
                         {matchedClients.map(c => (
                           <button key={c.id} onClick={() => handleSelectMember(c)} className="w-full text-left px-6 py-4 hover:bg-slate-50 transition-colors border-b last:border-0">
-                            <p className="text-xs font-black uppercase">{c.name}</p>
+                            <p className="text-xs font-black uppercase text-[#0D1B2A]">{c.name}</p>
                             <p className="text-[10px] font-bold text-slate-400">{formatPhoneNumber(c.phone)}</p>
                           </button>
                         ))}
@@ -424,19 +425,36 @@ function NewSaleForm() {
                     )}
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">N° BON</Label>
-                    <Input className={cn("h-14 rounded-[24px] bg-slate-50 border-none shadow-inner font-black text-xl text-[#0D1B2A]", bonError && "ring-2 ring-red-500")} value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">N° BON</Label>
+                    <Input className={cn("h-14 rounded-[24px] bg-[#0D1B2A] border-none shadow-inner font-black text-xl text-[#D4AF37]", bonError && "ring-2 ring-red-500")} value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Mutuelle</Label>
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">ORDO. MÉDECIN</Label>
+                    <div className="h-14 flex items-center bg-[#0D1B2A]/5 px-6 rounded-[24px] border-2 border-[#0D1B2A]/10">
+                      <div className="flex items-center gap-3">
+                        <Switch id="fromDoctor" checked={fromDoctor} onCheckedChange={setFromDoctor} className="data-[state=checked]:bg-[#0D1B2A]" disabled={isReadOnly} />
+                        <span className="text-[10px] font-black uppercase text-[#0D1B2A]">{fromDoctor ? "OUI" : "NON"}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Mutuelle</Label>
                     <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
-                      <SelectTrigger className="h-14 rounded-[24px] bg-slate-50 border-none font-black"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-14 rounded-[24px] bg-[#0D1B2A] border-none font-black text-[#D4AF37]"><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-[32px]">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[10px]">{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  {mutuelle === "Autre" && <div className="space-y-3"><Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Libellé Mutuelle</Label><Input className="h-14 rounded-[24px] bg-slate-50 border-none font-black" value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} /></div>}
+                  
+                  {mutuelle === "Autre" && (
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-[#0D1B2A] ml-2 tracking-widest">Libellé Mutuelle</Label>
+                      <Input className="h-14 rounded-[24px] bg-[#0D1B2A] border-none font-black text-[#D4AF37]" value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -464,7 +482,7 @@ function NewSaleForm() {
                     <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
+                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums" 
                       value={total} 
                       onChange={e => setTotal(e.target.value)} 
                       onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
@@ -493,7 +511,7 @@ function NewSaleForm() {
                       <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Valeur Remise</Label>
                       <input 
                         type="text" 
-                        className="bg-transparent text-right font-black text-base text-white outline-none w-32 tabular-nums" 
+                        className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
                         value={discountValue} 
                         onChange={e => setDiscountValue(e.target.value)} 
                       />
@@ -509,7 +527,7 @@ function NewSaleForm() {
                     </div>
                     <input 
                       type="text" 
-                      className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                      className="bg-transparent text-right font-black text-2xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
                       value={avance} 
                       onChange={e => setAvance(e.target.value)} 
                       onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
@@ -524,7 +542,7 @@ function NewSaleForm() {
                     : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 )}>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2">Reste à Régler</p>
-                  <p className="text-xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
+                  <p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
               </CardContent>
             </Card>
