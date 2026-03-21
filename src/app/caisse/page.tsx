@@ -444,7 +444,7 @@ function CaisseContent() {
           <div className="flex flex-col items-center gap-4">
             <div className="bg-white px-6 py-3 rounded-full border-2 border-primary/10 shadow-sm">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Date sélectionnée</p>
-              <p className="text-xl font-black text-primary uppercase">
+              <p className="text-xl font-black text-[#D4AF37] uppercase">
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
