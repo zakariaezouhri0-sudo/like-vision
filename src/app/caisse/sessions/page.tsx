@@ -514,16 +514,16 @@ function SessionsContent() {
                   <AccordionContent className="px-6 md:px-10 pb-10 pt-0">
                     <div className="overflow-hidden rounded-[32px] border border-white/5 bg-white shadow-inner">
                       <Table>
-                        <TableHeader className="bg-[#0D1B2A]">
-                          <TableRow className="hover:bg-transparent border-b border-white/5">
-                            <TableHead className="text-[9px] uppercase font-black px-8 py-5 text-[#D4AF37] tracking-widest">Date & Statut</TableHead>
-                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Ouverture</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Initial</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Flux (Net)</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Versements</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Final</TableHead>
-                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-[#D4AF37] tracking-widest">Clôture</TableHead>
-                            <TableHead className="text-right text-[9px] uppercase font-black px-8 py-5 text-[#D4AF37] tracking-widest w-20">Actions</TableHead>
+                        <TableHeader className="bg-[#D4AF37]">
+                          <TableRow className="hover:bg-transparent border-b border-black/5">
+                            <TableHead className="text-[9px] uppercase font-black px-8 py-5 text-[#0D1B2A] tracking-widest">Date & Statut</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Ouverture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Initial</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Flux (Net)</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Versements</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Final</TableHead>
+                            <TableHead className="text-center text-[9px] uppercase font-black px-2 py-5 text-[#0D1B2A] tracking-widest">Clôture</TableHead>
+                            <TableHead className="text-right text-[9px] uppercase font-black px-8 py-5 text-[#0D1B2A] tracking-widest w-20">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
