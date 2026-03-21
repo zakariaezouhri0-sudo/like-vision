@@ -450,7 +450,11 @@ function CaisseContent() {
             </div>
             {isAdminOrPrepa && (
               <Popover>
-                <PopoverTrigger asChild><Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-primary text-primary hover:bg-[#0D1B2A] hover:text-white transition-all"><CalendarIcon className="mr-2 h-4 w-4" /> CHOISIR UNE AUTRE DATE</Button></PopoverTrigger>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all">
+                    <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /> CHOISIR UNE AUTRE DATE
+                  </Button>
+                </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus /></PopoverContent>
               </Popover>
             )}
