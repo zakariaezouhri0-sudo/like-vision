@@ -389,17 +389,19 @@ function NewSaleForm() {
                     </Select>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 px-1">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
-                    <label htmlFor="familyMode" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
-                    <label htmlFor="fromDoctor" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                <div className="flex items-center justify-between gap-4 px-1 w-full">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                      <label htmlFor="familyMode" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">PARRAINAGE</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="fromDoctor" checked={fromDoctor} onCheckedChange={(v) => setFromDoctor(!!v)} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                      <label htmlFor="fromDoctor" className="text-[9px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-wider">MÉDECIN</label>
+                    </div>
                   </div>
                   {mutuelle === "Autre" && (
-                    <Input className="h-8 w-32 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[9px] text-[#D4AF37] px-3" placeholder="Préciser..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                    <Input className="h-8 flex-1 max-w-[200px] rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-[9px] text-[#D4AF37] px-3" placeholder="Préciser mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
                   )}
                 </div>
               </CardContent>
@@ -430,7 +432,7 @@ function NewSaleForm() {
                 <div className="bg-white/5 p-4 rounded-3xl space-y-3">
                   <div className="flex justify-between items-center">
                     <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
-                    <input type="text" className="bg-transparent text-right font-black text-base text-white outline-none w-20 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} />
+                    <input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} />
                   </div>
                   <div className="space-y-3 pt-3 border-t border-white/5">
                     <div className="flex justify-between items-center">
@@ -442,19 +444,19 @@ function NewSaleForm() {
                     </div>
                     <div className="flex justify-between items-center">
                       <Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label>
-                      <input type="text" className="bg-transparent text-right font-black text-sm text-white outline-none w-20 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
+                      <input type="text" className="bg-transparent text-right font-black text-base text-white outline-none w-32 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
                     </div>
                   </div>
                 </div>
                 <div className="bg-white/5 p-4 rounded-3xl">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div>
-                    <input type="text" className="bg-transparent text-right font-black text-base text-white outline-none w-24 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} />
+                    <input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} />
                   </div>
                 </div>
                 <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
                   <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p>
-                  <p className="text-lg font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
+                  <p className="text-2xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p>
                 </div>
               </CardContent>
             </Card>
