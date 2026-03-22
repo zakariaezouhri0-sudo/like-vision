@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -162,7 +162,6 @@ function NewSaleForm() {
     const nameSearch = (clientName || "").trim().toUpperCase();
     const currentIsDraft = isPrepaMode;
 
-    // Recherche par téléphone (prioritaire)
     if (cleanedPhone.length >= 8) {
       return query(
         collection(db, "clients"),
@@ -172,7 +171,6 @@ function NewSaleForm() {
       );
     }
 
-    // Recherche par nom
     if (nameSearch.length >= 3 && !isFamilyMode) {
       return query(
         collection(db, "clients"),
@@ -206,17 +204,20 @@ function NewSaleForm() {
     setIsNameFocused(false);
   };
 
-  // AUTO-REMPLISSAGE SI UNIQUE
+  // AUTO-REMPLISSAGE INTELLIGENT (uniquement si champ vide pour éviter boucle de suppression)
   useEffect(() => {
     if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode) {
       const client = matchedClients[0];
-      // Si on a déjà sélectionné ce client, on ne fait rien pour éviter les boucles
       if (selectedClientId === client.id) return;
 
-      const isPhoneMatch = clientPhone.replace(/\s/g, "") === client.phone;
+      const cleanedPhone = clientPhone.replace(/\s/g, "");
+      const isPhoneMatch = cleanedPhone === client.phone;
       const isNameExactMatch = clientName.trim().toUpperCase() === client.name.toUpperCase();
       
-      if (isPhoneMatch || isNameExactMatch) {
+      // On ne remplit que si l'un des deux est déjà plein et l'autre est vide ou partiel
+      if (isPhoneMatch && !clientName) {
+        handleSelectMember(client);
+      } else if (isNameExactMatch && !clientPhone) {
         handleSelectMember(client);
       }
     }
@@ -241,6 +242,15 @@ function NewSaleForm() {
     if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
     setClientPhone(raw);
     setSelectedClientId(null);
+  };
+
+  const handleResetSearch = () => {
+    setClientName("");
+    setClientPhone("");
+    setSelectedClientId(null);
+    setMutuelle("Aucun");
+    setCustomMutuelle("");
+    setIsFamilyMode(false);
   };
 
   const handleToggleFamilyMode = (checked: boolean) => {
@@ -382,14 +392,45 @@ function NewSaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Téléphone</Label>
-                    <div className="relative">
+                    <div className="relative group">
                       <Phone className="absolute left-4 top-3 h-3 w-3 text-[#0D1B2A]/40" />
-                      <Input className="h-10 pl-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" value={formatPhoneNumber(clientPhone)} onChange={e => handlePhoneChange(e.target.value)} readOnly={isReadOnly} />
+                      <Input 
+                        className="h-10 pl-10 pr-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37] placeholder:text-[#D4AF37]/20" 
+                        value={formatPhoneNumber(clientPhone)} 
+                        onChange={e => handlePhoneChange(e.target.value)} 
+                        readOnly={isReadOnly} 
+                      />
+                      {clientPhone && !isReadOnly && (
+                        <button 
+                          onClick={() => { setClientPhone(""); setSelectedClientId(null); }}
+                          className="absolute right-3 top-2.5 h-4 w-4 text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
-                    <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} autoComplete="off" />
+                    <div className="relative group">
+                      <Input 
+                        className="h-10 pr-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" 
+                        value={clientName} 
+                        onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} 
+                        onFocus={() => setIsNameFocused(true)} 
+                        onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} 
+                        readOnly={isReadOnly} 
+                        autoComplete="off" 
+                      />
+                      {clientName && !isReadOnly && (
+                        <button 
+                          onClick={() => { setClientName(""); setSelectedClientId(null); }}
+                          className="absolute right-3 top-2.5 h-4 w-4 text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                     {matchedClients && matchedClients.length > 1 && isNameFocused && !selectedClientId && !isFamilyMode && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                         <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membre(s) trouvé(s)</p></div>
