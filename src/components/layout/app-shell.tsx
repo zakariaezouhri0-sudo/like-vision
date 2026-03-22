@@ -5,7 +5,7 @@ import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu, AlertTriangle, Loader2 } from "lucide-react";
-import Link from "link";
+import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -174,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA]">
-          <div className="max-w-7xl mx-auto opacity-0 animate-[fadeIn_0.4s_ease-out_forwards]">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
