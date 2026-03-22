@@ -156,7 +156,15 @@ function NewSaleForm() {
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
 
-  // RECHERCHE CLIENTS
+  const handleResetSearch = () => {
+    setClientName("");
+    setClientPhone("");
+    setSelectedClientId(null);
+    setMutuelle("Aucun");
+    setCustomMutuelle("");
+    setIsFamilyMode(false);
+  };
+
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const nameSearch = (clientName || "").trim().toUpperCase();
@@ -204,7 +212,6 @@ function NewSaleForm() {
     setIsNameFocused(false);
   };
 
-  // AUTO-REMPLISSAGE INTELLIGENT (uniquement si champ vide pour éviter boucle de suppression)
   useEffect(() => {
     if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode) {
       const client = matchedClients[0];
@@ -214,7 +221,6 @@ function NewSaleForm() {
       const isPhoneMatch = cleanedPhone === client.phone;
       const isNameExactMatch = clientName.trim().toUpperCase() === client.name.toUpperCase();
       
-      // On ne remplit que si l'un des deux est déjà plein et l'autre est vide ou partiel
       if (isPhoneMatch && !clientName) {
         handleSelectMember(client);
       } else if (isNameExactMatch && !clientPhone) {
@@ -242,15 +248,6 @@ function NewSaleForm() {
     if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
     setClientPhone(raw);
     setSelectedClientId(null);
-  };
-
-  const handleResetSearch = () => {
-    setClientName("");
-    setClientPhone("");
-    setSelectedClientId(null);
-    setMutuelle("Aucun");
-    setCustomMutuelle("");
-    setIsFamilyMode(false);
   };
 
   const handleToggleFamilyMode = (checked: boolean) => {
@@ -402,7 +399,7 @@ function NewSaleForm() {
                       />
                       {clientPhone && !isReadOnly && (
                         <button 
-                          onClick={() => { setClientPhone(""); setSelectedClientId(null); }}
+                          onClick={handleResetSearch}
                           className="absolute right-3 top-2.5 h-4 w-4 text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors"
                         >
                           <X className="h-4 w-4" />
@@ -424,7 +421,7 @@ function NewSaleForm() {
                       />
                       {clientName && !isReadOnly && (
                         <button 
-                          onClick={() => { setClientName(""); setSelectedClientId(null); }}
+                          onClick={handleResetSearch}
                           className="absolute right-3 top-2.5 h-4 w-4 text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors"
                         >
                           <X className="h-4 w-4" />
@@ -496,18 +493,70 @@ function NewSaleForm() {
 
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
-              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none min-h-[450px]">
-                <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3"><Calculator className="h-5 w-5 text-[#D4AF37]" /><CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle></CardHeader>
-                <CardContent className="p-8 space-y-8 flex flex-col justify-between h-[calc(450px-64px)]">
+              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none min-h-[500px] flex flex-col">
+                <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3 shrink-0">
+                  <Calculator className="h-5 w-5 text-[#D4AF37]" />
+                  <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>
+                </CardHeader>
+                <CardContent className="p-8 flex-1 flex flex-col justify-between">
                   <div className="space-y-6">
-                    <div className="bg-white/5 p-6 rounded-3xl space-y-4">
-                      <div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" value={total} onChange={e => setTotal(e.target.value)} onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} /></div>
-                      <div className="space-y-4 pt-4 border-t border-white/5"><div className="flex justify-between items-center"><Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label><div className="flex bg-white/10 p-0.5 rounded-full"><button onClick={() => setDiscountType('fixed')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button><button onClick={() => setDiscountType('percent')} className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button></div></div><div className="flex justify-between items-center"><Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label><input type="text" className="bg-transparent text-right font-black text-lg text-white outline-none w-32 tabular-nums" value={discountValue} onChange={e => setDiscountValue(e.target.value)} /></div></div>
+                    <div className="bg-white/5 p-6 rounded-3xl space-y-4 shadow-inner">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">Prix Brut</Label>
+                        <input 
+                          type="text" 
+                          className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums" 
+                          value={total} 
+                          onChange={e => setTotal(e.target.value)} 
+                          onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
+                        />
+                      </div>
+                      <div className="space-y-4 pt-4 border-t border-white/10">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
+                          <div className="flex bg-white/10 p-0.5 rounded-full">
+                            <button onClick={() => setDiscountType('fixed')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
+                            <button onClick={() => setDiscountType('percent')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <Label className="text-[9px] font-black uppercase text-white/20 tracking-widest">Valeur</Label>
+                          <input 
+                            type="text" 
+                            className="bg-transparent text-right font-black text-xl text-white outline-none w-40 tabular-nums" 
+                            value={discountValue} 
+                            onChange={e => setDiscountValue(e.target.value)} 
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-white/5 p-6 rounded-3xl"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><HandCoins className="h-4 w-4 text-[#D4AF37]" /><Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label></div><input type="text" className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" value={avance} onChange={e => setAvance(e.target.value)} onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} /></div></div>
-                    <div className={cn("p-6 rounded-3xl text-center shadow-inner border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}><p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Reste à Régler</p><p className="text-3xl font-black tabular-nums">{formatCurrency(resteAPayerValue)}</p></div>
+                    <div className="bg-white/5 p-6 rounded-3xl shadow-inner border border-white/5">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <HandCoins className="h-4 w-4 text-[#D4AF37]" />
+                          <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
+                        </div>
+                        <input 
+                          type="text" 
+                          className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                          value={avance} 
+                          onChange={e => setAvance(e.target.value)} 
+                          onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
+                        />
+                      </div>
+                    </div>
+                    <div className={cn("p-6 rounded-3xl text-center shadow-2xl border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1">Reste à Régler</p>
+                      <p className="text-4xl font-black tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>
+                    </div>
                   </div>
-                  <Button onClick={() => handleSave(true)} className="w-full h-14 rounded-3xl font-black text-sm uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all mt-4" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER & IMPRIMER</Button>
+                  <Button 
+                    onClick={() => handleSave(true)} 
+                    className="w-full h-16 rounded-3xl font-black text-base uppercase shadow-2xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all transform active:scale-95 mt-8" 
+                    disabled={loading || isReadOnly}
+                  >
+                    {loading ? <Loader2 className="animate-spin h-6 w-6" /> : <div className="flex items-center gap-3"><Save className="h-6 w-6" /><span>ENREGISTRER & IMPRIMER</span></div>}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
