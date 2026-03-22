@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -33,10 +33,18 @@ const NAV_ITEMS = [
 export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const activeRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-scroll vers l'élément actif pour éviter que la sidebar ne remonte en haut
+  useEffect(() => {
+    if (mounted && activeRef.current) {
+      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [mounted, pathname]);
   
   const currentRole = (role || "OPTICIENNE").toUpperCase();
   const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
@@ -46,20 +54,14 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        const isExact = pathname === item.href;
-        const isSubPath = pathname ? pathname.startsWith(item.href + "/") : false;
-        const hasBetterMatch = pathname ? NAV_ITEMS.some(other => 
-          other.href !== item.href && 
-          other.href.length > item.href.length && 
-          pathname.startsWith(other.href)
-        ) : false;
-
-        const isActive = mounted && (isExact || (isSubPath && !hasBetterMatch));
+        // Logique de sélection robuste
+        const isActive = pathname === item.href || (pathname !== "/" && item.href !== "/" && pathname.startsWith(item.href));
 
         return (
           <Link
             key={item.href}
             href={item.href}
+            ref={isActive ? activeRef : null}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-full transition-all text-sm font-bold group",
               isActive 
