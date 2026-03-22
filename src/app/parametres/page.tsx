@@ -231,8 +231,12 @@ export default function SettingsPage() {
             </h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Gérez votre identité et l'apparence du système.</p>
           </div>
-          <Button onClick={handleSave} disabled={loading} className="bg-primary h-14 px-10 rounded-2xl font-black text-sm shadow-xl shadow-primary/20">
-            {loading ? <Loader2 className="animate-spin" /> : "ENREGISTRER TOUT"}
+          <Button 
+            onClick={handleSave} 
+            disabled={loading} 
+            className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs"
+          >
+            {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "ENREGISTRER TOUT"}
           </Button>
         </div>
 

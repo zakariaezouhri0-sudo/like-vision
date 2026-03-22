@@ -367,7 +367,13 @@ export default function ImportPage() {
             </h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Correction et importation massive.</p>
           </div>
-          <Button variant="outline" onClick={handleDownloadTemplate} className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase border-primary/20 bg-white text-primary shadow-sm"><Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL</Button>
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadTemplate} 
+            className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs"
+          >
+            <Download className="mr-2 h-5 w-5" /> MODÈLE EXCEL
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

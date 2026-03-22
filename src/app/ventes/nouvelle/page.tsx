@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -244,8 +243,6 @@ function NewSaleForm() {
       return;
     }
     if (raw.length > 10) return;
-    if (raw.length >= 1 && raw[0] !== '0') return;
-    if (raw.length >= 2 && !['6', '7', '8'].includes(raw[1])) return;
     setClientPhone(raw);
     setSelectedClientId(null);
   };
@@ -373,8 +370,21 @@ function NewSaleForm() {
             {activeEditId ? "Modification" : "Nouvelle Vente"}
           </h1>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSave(true)} className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50 transition-all" disabled={loading || isReadOnly}><Printer className="mr-2 h-4 w-4 text-[#D4AF37]" /> IMPRIMER</Button>
-            <Button onClick={() => handleSave(false)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all" disabled={loading || isReadOnly}>{loading ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} ENREGISTRER</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleSave(true)} 
+              className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs" 
+              disabled={loading || isReadOnly}
+            >
+              <Printer className="mr-2 h-5 w-5" /> IMPRIMER
+            </Button>
+            <Button 
+              onClick={() => handleSave(false)} 
+              className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs" 
+              disabled={loading || isReadOnly}
+            >
+              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER
+            </Button>
           </div>
         </div>
 
@@ -442,7 +452,7 @@ function NewSaleForm() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <div className="space-y-1">
                       <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Mutuelle</Label>
                       <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
@@ -492,8 +502,8 @@ function NewSaleForm() {
           </div>
 
           <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-4">
-              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none min-h-[500px] flex flex-col">
+            <div className="sticky top-24">
+              <Card className="bg-[#0D1B2A] text-white rounded-[40px] shadow-2xl overflow-hidden border-none flex flex-col min-h-[500px]">
                 <CardHeader className="py-4 px-6 border-b border-white/5 flex flex-row items-center gap-3 shrink-0">
                   <Calculator className="h-5 w-5 text-[#D4AF37]" />
                   <CardTitle className="text-sm uppercase font-black text-[#D4AF37] tracking-widest">Calcul Financier</CardTitle>

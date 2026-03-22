@@ -87,7 +87,12 @@ export default function ClientsPage() {
             </h1>
             <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion luxury de la base clientèle.</p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)} className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]"><Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT</Button>
+          <Button 
+            onClick={() => setIsCreateOpen(true)} 
+            className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs"
+          >
+            <Plus className="mr-2 h-5 w-5" />NOUVEAU CLIENT
+          </Button>
         </div>
 
         <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">

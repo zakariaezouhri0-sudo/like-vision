@@ -112,7 +112,7 @@ export default function UsersPage() {
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white w-full sm:w-auto h-11 font-black shadow-lg uppercase text-[10px] tracking-widest rounded-full px-8">
+              <Button className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
                 <UserPlus className="mr-2 h-5 w-5" /> NOUVEL UTILISATEUR
               </Button>
             </DialogTrigger>
