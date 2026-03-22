@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, AlertTriangle, Calculator, HandCoins } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -205,15 +205,15 @@ function NewSaleForm() {
 
   useEffect(() => {
     if (!activeEditId && matchedClients && matchedClients.length === 1 && !selectedClientId && !isFamilyMode) {
+      const client = matchedClients[0];
       const nameInInput = clientName.trim().toUpperCase();
-      const nameInResult = (matchedClients[0].name || "").toUpperCase();
+      const nameInResult = (client.name || "").trim().toUpperCase();
       
       const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
       const isNameExactMatch = nameInInput.length >= 3 && nameInResult === nameInInput;
-      const isNamePrefixMatch = nameInInput.length >= 3 && nameInResult.startsWith(nameInInput);
       
-      if (isPhoneSearch || isNameExactMatch || isNamePrefixMatch) {
-        handleSelectMember(matchedClients[0]);
+      if (isPhoneSearch || isNameExactMatch) {
+        handleSelectMember(client);
       }
     }
   }, [matchedClients, clientPhone, clientName, selectedClientId, isFamilyMode, activeEditId]);
@@ -386,9 +386,9 @@ function NewSaleForm() {
                   <div className="space-y-1 relative">
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
                     <Input className="h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" value={clientName} onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} onFocus={() => setIsNameFocused(true)} onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} readOnly={isReadOnly} autoComplete="off" />
-                    {matchedClients && matchedClients.length > 1 && isNameFocused && (
+                    {matchedClients && matchedClients.length >= 1 && isNameFocused && !selectedClientId && !isFamilyMode && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
-                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membres trouvés</p></div>
+                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Client(s) trouvé(s)</p></div>
                         {matchedClients.map(c => (
                           <button key={c.id} onMouseDown={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
                             <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
@@ -438,7 +438,6 @@ function NewSaleForm() {
               <CardContent className="p-6 bg-[#D4AF37] space-y-4">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => {
                   setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}));
-                  setSelectedClientId(null);
                 }} />
                 <div className="space-y-1 pt-2 border-t border-[#0D1B2A]/10">
                   <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Libellé (Désignation)</Label>
