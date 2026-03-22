@@ -5,7 +5,7 @@ import { APP_NAME } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu, AlertTriangle, Loader2 } from "lucide-react";
-import Link from "next/link";
+import Link from "link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -86,12 +86,12 @@ export function AppShell({ children }: AppShellProps) {
     <div className="flex min-h-screen bg-background text-foreground font-body overflow-hidden">
       {/* Sidebar - Desktop */}
       <aside className="w-72 border-r border-[#0D1B2A] bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
-        <Link 
-          href={isOpticienne ? "/caisse" : "/dashboard"} 
-          className="h-24 border-b border-white/5 flex items-center px-6 hover:bg-white/5 transition-all"
+        <div 
+          className="h-24 border-b border-white/5 flex items-center px-6 cursor-pointer"
+          onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}
         >
           <LogoContainer size="large" />
-        </Link>
+        </div>
         
         <div className="flex-1 py-4 overflow-y-auto px-2 mt-4">
           <SidebarNav role={role} />
@@ -151,9 +151,9 @@ export function AppShell({ children }: AppShellProps) {
               </SheetContent>
             </Sheet>
 
-            <Link href={isOpticienne ? "/caisse" : "/dashboard"} className="md:hidden">
+            <div className="md:hidden cursor-pointer" onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}>
               <LogoContainer size="small" />
-            </Link>
+            </div>
 
             <div className="hidden md:flex items-center gap-4">
               <div>
@@ -174,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA]">
-          <div key={pathname} className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-forwards">
+          <div className="max-w-7xl mx-auto opacity-0 animate-[fadeIn_0.4s_ease-out_forwards]">
             {children}
           </div>
         </main>

@@ -39,12 +39,11 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
     setMounted(true);
   }, []);
 
-  // Auto-scroll doux vers l'élément actif uniquement au chargement initial ou changement de page majeur
   useEffect(() => {
     if (mounted && activeRef.current) {
       activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [mounted]);
+  }, [mounted, pathname]); // Re-run scroll when pathname changes
   
   const currentRole = (role || "OPTICIENNE").toUpperCase();
   const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
@@ -54,22 +53,28 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        const isActive = pathname === item.href || (pathname !== "/" && item.href !== "/" && pathname.startsWith(item.href));
+        // Match exact path for specific items to avoid double highlight
+        // or match subpaths for items like /ventes/facture/...
+        const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/ventes" && pathname.startsWith(item.href + "/"));
+        
+        // Special case for Historique vs Nouvelle to prevent overlap
+        const isHistoriqueActive = item.href === "/ventes" && (pathname === "/ventes" || pathname.startsWith("/ventes/facture") || pathname.startsWith("/ventes/recu"));
+        const isFinalActive = item.href === "/ventes" ? isHistoriqueActive : isActive;
 
         return (
           <Link
             key={item.href}
             href={item.href}
-            ref={isActive ? activeRef : null}
+            ref={isFinalActive ? activeRef : null}
             prefetch={true}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-full transition-all text-sm font-bold group",
-              isActive 
+              isFinalActive 
                 ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg scale-[1.02]" 
                 : "text-white/70 hover:bg-white/10 hover:text-[#D4AF37]"
             )}
           >
-            <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", isActive ? "text-[#0D1B2A]" : "text-[#D4AF37]/40 group-hover:text-[#D4AF37]")} />
+            <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", isFinalActive ? "text-[#0D1B2A]" : "text-[#D4AF37]/40 group-hover:text-[#D4AF37]")} />
             <span className="tracking-tight">{item.label}</span>
           </Link>
         );
