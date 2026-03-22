@@ -174,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA]">
-          <div className="max-w-7xl mx-auto">
+          <div key={pathname} className="max-w-7xl mx-auto animate-page">
             {children}
           </div>
         </main>

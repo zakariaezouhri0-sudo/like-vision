@@ -90,6 +90,22 @@
   }
 }
 
+/* Page Transition Animation */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page {
+  animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Custom Scrollbar for Sidebar */
 aside .overflow-y-auto::-webkit-scrollbar {
   width: 4px;

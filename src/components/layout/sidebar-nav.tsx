@@ -43,7 +43,7 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
     if (mounted && activeRef.current) {
       activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [mounted, pathname]); // Re-run scroll when pathname changes
+  }, [mounted, pathname]);
   
   const currentRole = (role || "OPTICIENNE").toUpperCase();
   const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
@@ -53,13 +53,21 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        // Match exact path for specific items to avoid double highlight
-        // or match subpaths for items like /ventes/facture/...
-        const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/ventes" && pathname.startsWith(item.href + "/"));
+        // Match logic to avoid overlapping highlights
+        const isExactMatch = pathname === item.href;
+        const isSubPathMatch = item.href !== "/" && 
+                              item.href !== "/ventes" && 
+                              item.href !== "/caisse" && 
+                              pathname.startsWith(item.href + "/");
         
-        // Special case for Historique vs Nouvelle to prevent overlap
-        const isHistoriqueActive = item.href === "/ventes" && (pathname === "/ventes" || pathname.startsWith("/ventes/facture") || pathname.startsWith("/ventes/recu"));
-        const isFinalActive = item.href === "/ventes" ? isHistoriqueActive : isActive;
+        // Special logic for Historique vs Nouvelle
+        const isHistoriqueActive = item.href === "/ventes" && (
+          pathname === "/ventes" || 
+          pathname.startsWith("/ventes/facture") || 
+          pathname.startsWith("/ventes/recu")
+        );
+
+        const isFinalActive = item.href === "/ventes" ? isHistoriqueActive : (isExactMatch || isSubPathMatch);
 
         return (
           <Link
