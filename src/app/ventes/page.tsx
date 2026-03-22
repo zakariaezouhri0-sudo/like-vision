@@ -56,11 +56,9 @@ function SalesHistoryContent() {
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Filtres de date
   const [dateFrom, setDateFrom] = useState<Date | undefined>(startOfMonth(new Date()));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
-  // Dialogues
   const [costDialogSale, setCostDialogSale] = useState<any>(null);
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
@@ -80,7 +78,6 @@ function SalesHistoryContent() {
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  // Sécurité Caisse
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
@@ -88,7 +85,6 @@ function SalesHistoryContent() {
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isTodayClosed && !isAdminOrPrepa;
 
-  // Query Firestore
   const salesQuery = useMemoFirebase(() => {
     const startLimit = new Date(2026, 0, 1);
     return query(
@@ -100,7 +96,6 @@ function SalesHistoryContent() {
   }, [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
-  // Filtrage local pour réactivité
   const filteredSales = useMemo(() => {
     if (!rawSales || !isReady) return [];
 
@@ -109,7 +104,6 @@ function SalesHistoryContent() {
         const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
         if (!matchesMode) return false;
 
-        // Filtre Date
         const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
         if (dateFrom && dateTo && saleDate) {
           const start = startOfDay(dateFrom);
@@ -117,21 +111,18 @@ function SalesHistoryContent() {
           if (!isWithinInterval(saleDate, { start, end })) return false;
         }
 
-        // Filtre Texte
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || 
           (sale.clientName || "").toLowerCase().includes(search) || 
           (sale.invoiceId || "").toLowerCase().includes(search) ||
           (sale.bonNumber || "").toLowerCase().includes(search);
 
-        // Filtre Statut
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
 
         return matchesSearch && matchesStatus;
       });
   }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
 
-  // Actions
   const handleDelete = async (sale: any) => {
     if (!isAdminOrPrepa) return;
     if (!confirm(`Supprimer la vente ${sale.invoiceId} ? Les transactions de caisse liées seront aussi supprimées.`)) return;
@@ -195,7 +186,6 @@ function SalesHistoryContent() {
         updatedAt: serverTimestamp() 
       });
 
-      // Génération automatique des transactions de sortie
       if (frameCost > 0) {
         await addDoc(collection(db, "transactions"), { 
           type: "ACHAT MONTURE", 
@@ -299,7 +289,6 @@ function SalesHistoryContent() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
@@ -313,7 +302,6 @@ function SalesHistoryContent() {
         </Button>
       </div>
 
-      {/* Filtres Card */}
       <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
         <CardHeader className="p-10 border-b bg-slate-50">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
@@ -369,16 +357,15 @@ function SalesHistoryContent() {
           </div>
         </CardHeader>
 
-        {/* Tableau */}
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-[#0D1B2A]">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Facture / BC</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">N° Facture</TableHead>
                   <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Total Net</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-32">Total Net</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Avancé</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Reste</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Statut</TableHead>
@@ -396,27 +383,24 @@ function SalesHistoryContent() {
                   
                   return (
                     <TableRow key={sale.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
-                      <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">
+                      <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums whitespace-nowrap">
                         {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
                       </TableCell>
-                      <TableCell className="px-10 py-6">
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-black text-[#0D1B2A] tracking-tight">{sale.invoiceId}</span>
-                          <span className="text-[9px] font-black text-[#D4AF37] uppercase tracking-widest">BC: {sale.bonNumber || "---"}</span>
-                        </div>
+                      <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] tracking-tight whitespace-nowrap uppercase">
+                        {sale.invoiceId}
                       </TableCell>
                       <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A] max-w-[200px] truncate">
                         {sale.clientName}
                       </TableCell>
-                      <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums whitespace-nowrap">
                         {formatCurrency(totalNet)}
                       </TableCell>
-                      <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums whitespace-nowrap">
                         {formatCurrency(sale.avance || 0)}
                       </TableCell>
                       <TableCell className="text-center px-10 py-6">
                         <div className="flex items-center justify-center gap-3">
-                          <span className={cn("text-sm font-black tabular-nums", reste > 0 ? "text-red-500" : "text-slate-300")}>
+                          <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", reste > 0 ? "text-red-500" : "text-slate-300")}>
                             {formatCurrency(reste)}
                           </span>
                           {reste > 0 && (
@@ -436,7 +420,7 @@ function SalesHistoryContent() {
                       </TableCell>
                       <TableCell className="text-center px-10 py-6">
                         <Badge className={cn(
-                          "text-[9px] font-black uppercase py-1 px-3 rounded-full border-none shadow-sm", 
+                          "text-[9px] font-black uppercase py-1 px-3 rounded-full border-none shadow-sm whitespace-nowrap", 
                           (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
                         )} variant="outline">
                           {sale.statut}
@@ -485,7 +469,6 @@ function SalesHistoryContent() {
         </CardContent>
       </Card>
 
-      {/* Dialogue Règlement Rapide */}
       <Dialog open={!!paymentSale} onOpenChange={setPaymentSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
           <form onSubmit={handleValidatePayment}>
@@ -521,7 +504,6 @@ function SalesHistoryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialogue Coûts d'Achat (Admin) */}
       <Dialog open={!!costDialogSale} onOpenChange={setCostDialogSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
           <form onSubmit={handleUpdateCosts}>
