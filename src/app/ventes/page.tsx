@@ -362,14 +362,14 @@ function SalesHistoryContent() {
             <Table>
               <TableHeader className="bg-[#0D1B2A]">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">N° Facture</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-32">Total Net</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Avancé</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Reste</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Statut</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-24">Actions</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Date</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">N° Facture</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Client</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Total Net</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Avancé</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Reste</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Statut</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-24 whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -389,7 +389,7 @@ function SalesHistoryContent() {
                       <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] tracking-tight whitespace-nowrap uppercase">
                         {sale.invoiceId}
                       </TableCell>
-                      <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A] max-w-[200px] truncate">
+                      <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A] max-w-[200px] truncate whitespace-nowrap">
                         {sale.clientName}
                       </TableCell>
                       <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums whitespace-nowrap">
@@ -547,7 +547,7 @@ function SalesHistoryContent() {
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
                 <TrendingUp className="h-5 w-5 text-blue-600 shrink-0" />
                 <p className="text-[9px] font-bold text-blue-700 leading-tight">
-                  Enregistrer ces coûts créera automatiquement deux transactions de sortie dans le journal de caisse pour refléter vos dépenses réelles.
+                  Enregistrer ces coûts créera automatiquement deux transactions de sortie dans le journal de caisse pour refléter vos d'épenses réelles.
                 </p>
               </div>
             </div>
