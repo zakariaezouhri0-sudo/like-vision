@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 
 interface AppShellProps {
@@ -24,6 +24,7 @@ export function AppShell({ children }: AppShellProps) {
   const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase();
@@ -124,7 +125,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen">
         {isPrepa && (
-          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0 animate-in slide-in-from-top-full duration-500">
+          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0">
             <AlertTriangle className="h-4 w-4" />
             Compte de Préparation : Vos saisies sont isolées (Brouillon).
           </div>
@@ -172,8 +173,8 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA] transition-colors">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[#F8F9FA]">
+          <div key={pathname} className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-forwards">
             {children}
           </div>
         </main>

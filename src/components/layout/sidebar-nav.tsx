@@ -39,12 +39,12 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
     setMounted(true);
   }, []);
 
-  // Auto-scroll vers l'élément actif pour éviter que la sidebar ne remonte en haut
+  // Auto-scroll doux vers l'élément actif uniquement au chargement initial ou changement de page majeur
   useEffect(() => {
     if (mounted && activeRef.current) {
       activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [mounted, pathname]);
+  }, [mounted]);
   
   const currentRole = (role || "OPTICIENNE").toUpperCase();
   const effectiveRole = (currentRole === "ADMIN" || currentRole === "PREPA") ? "ADMIN" : "OPTICIENNE";
@@ -54,7 +54,6 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        // Logique de sélection robuste
         const isActive = pathname === item.href || (pathname !== "/" && item.href !== "/" && pathname.startsWith(item.href));
 
         return (
@@ -62,6 +61,7 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
             key={item.href}
             href={item.href}
             ref={isActive ? activeRef : null}
+            prefetch={true}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-full transition-all text-sm font-bold group",
               isActive 
