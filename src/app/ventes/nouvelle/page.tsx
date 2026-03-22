@@ -156,11 +156,13 @@ function NewSaleForm() {
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
 
+  // RECHERCHE CLIENTS
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const nameSearch = (clientName || "").trim().toUpperCase();
     const currentIsDraft = isPrepaMode;
 
+    // Recherche par téléphone (prioritaire)
     if (cleanedPhone.length >= 8) {
       return query(
         collection(db, "clients"),
@@ -170,7 +172,8 @@ function NewSaleForm() {
       );
     }
 
-    if (nameSearch.length >= 3 && !selectedClientId && !isFamilyMode) {
+    // Recherche par nom
+    if (nameSearch.length >= 3 && !isFamilyMode) {
       return query(
         collection(db, "clients"),
         where("isDraft", "==", currentIsDraft),
@@ -181,7 +184,7 @@ function NewSaleForm() {
     }
 
     return null;
-  }, [db, clientPhone, clientName, isPrepaMode, selectedClientId, isFamilyMode]);
+  }, [db, clientPhone, clientName, isPrepaMode, isFamilyMode]);
 
   const { data: matchedClients } = useCollection(clientsQuery);
 
@@ -203,17 +206,21 @@ function NewSaleForm() {
     setIsNameFocused(false);
   };
 
+  // AUTO-REMPLISSAGE SI UNIQUE
   useEffect(() => {
-    if (!activeEditId && matchedClients && matchedClients.length === 1 && !selectedClientId && !isFamilyMode) {
+    if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode) {
       const client = matchedClients[0];
-      const isPhoneSearch = clientPhone.replace(/\s/g, "").length >= 8;
-      const isNameSearch = clientName.trim().length >= 3;
+      // Si on a déjà sélectionné ce client, on ne fait rien pour éviter les boucles
+      if (selectedClientId === client.id) return;
+
+      const isPhoneMatch = clientPhone.replace(/\s/g, "") === client.phone;
+      const isNameExactMatch = clientName.trim().toUpperCase() === client.name.toUpperCase();
       
-      if (isPhoneSearch || isNameSearch) {
+      if (isPhoneMatch || isNameExactMatch) {
         handleSelectMember(client);
       }
     }
-  }, [matchedClients, clientPhone, clientName, selectedClientId, isFamilyMode, activeEditId]);
+  }, [matchedClients, clientPhone, clientName, isFamilyMode, activeEditId, selectedClientId]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -397,7 +404,7 @@ function NewSaleForm() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div className="space-y-1">
                       <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Mutuelle</Label>
                       <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
