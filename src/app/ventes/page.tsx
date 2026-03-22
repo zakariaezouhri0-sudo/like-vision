@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -7,7 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Printer, Plus, MoreVertical, Edit2, Loader2, Trash2, Calendar as CalendarIcon, FileText, Tag, Save, History as HistoryIcon, HandCoins, Lock, AlertTriangle, XCircle, History } from "lucide-react";
+import { 
+  Search, 
+  Printer, 
+  Plus, 
+  MoreVertical, 
+  Edit2, 
+  Loader2, 
+  Trash2, 
+  Calendar as CalendarIcon, 
+  FileText, 
+  Tag, 
+  Save, 
+  History as HistoryIcon, 
+  HandCoins, 
+  Lock, 
+  AlertTriangle, 
+  XCircle, 
+  History,
+  TrendingUp,
+  Wallet
+} from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
@@ -212,12 +233,12 @@ function SalesHistoryContent() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-            <History className="h-8 w-8 text-[#D4AF37]/40" />
+            <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40" />
             Historique Ventes
           </h1>
           <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre de prestige.</p>
         </div>
-        <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
+        <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
           <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>
         </Button>
       </div>
@@ -229,14 +250,25 @@ function SalesHistoryContent() {
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Recherche</Label>
               <div className="relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
-                <input placeholder="Client ou Document..." className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <input 
+                  placeholder="Client ou Document..." 
+                  className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
               </div>
             </div>
             <div className="w-full lg:w-64 space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Statut</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-12 rounded-2xl font-black border-none shadow-inner bg-white"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-[32px]">{["TOUS", "Payé", "Partiel", "En attente"].map(s => <SelectItem key={s} value={s} className="font-black text-[10px] uppercase">{s}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="h-12 rounded-2xl font-black border-none shadow-inner bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-[32px]">
+                  {["TOUS", "Payé", "Partiel", "En attente"].map(s => (
+                    <SelectItem key={s} value={s} className="font-black text-[10px] uppercase">{s}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -258,33 +290,95 @@ function SalesHistoryContent() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={8} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-24 text-center">
+                      <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredSales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">
+                      Aucun résultat trouvé.
+                    </TableCell>
+                  </TableRow>
                 ) : filteredSales.map((sale: any) => (
                   <TableRow key={sale.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
-                    <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">{sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}</TableCell>
-                    <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] whitespace-nowrap tracking-tight">{sale.invoiceId}</TableCell>
-                    <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A]">{sale.clientName}</TableCell>
-                    <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">{formatCurrency((sale.total || 0) - (sale.remise || 0))}</TableCell>
-                    <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">{formatCurrency(sale.avance || 0)}</TableCell>
+                    <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">
+                      {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
+                    </TableCell>
+                    <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] whitespace-nowrap tracking-tight">
+                      {sale.invoiceId}
+                    </TableCell>
+                    <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A]">
+                      {sale.clientName}
+                    </TableCell>
+                    <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">
+                      {formatCurrency((sale.total || 0) - (sale.remise || 0))}
+                    </TableCell>
+                    <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">
+                      {formatCurrency(sale.avance || 0)}
+                    </TableCell>
                     <TableCell className="text-center px-10 py-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-sm font-black text-red-500 tabular-nums">{formatCurrency(sale.reste || 0)}</span>
+                      <div className="flex items-center justify-center gap-3">
+                        <span className={cn("text-sm font-black tabular-nums", (sale.reste || 0) > 0 ? "text-red-500" : "text-slate-300")}>
+                          {formatCurrency(sale.reste || 0)}
+                        </span>
                         {(sale.reste || 0) > 0 && (
-                          <Button size="icon" variant="ghost" disabled={isReadOnly} className={cn("h-8 w-8 rounded-full", isReadOnly ? "opacity-30" : "text-red-500 hover:bg-red-50")} onClick={() => handleOpenPayment(sale)}><HandCoins className="h-4 w-4" /></Button>
+                          <button 
+                            disabled={isReadOnly} 
+                            className={cn(
+                              "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm",
+                              isReadOnly ? "bg-slate-100 text-slate-300" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
+                            )} 
+                            onClick={() => handleOpenPayment(sale)}
+                            title="Régler le reste"
+                          >
+                            <HandCoins className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center px-10 py-6"><Badge className={cn("text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")} variant="outline">{sale.statut}</Badge></TableCell>
+                    <TableCell className="text-center px-10 py-6">
+                      <Badge className={cn(
+                        "text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", 
+                        (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
+                      )} variant="outline">
+                        {sale.statut}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right px-10 py-6">
                       <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100">
+                            <MoreVertical className="h-5 w-5 text-slate-400" />
+                          </Button>
+                        </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-[24px] p-2 min-w-[180px] shadow-2xl">
-                          <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Imprimer</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                            <FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Imprimer
+                          </DropdownMenuItem>
                           {isAdminOrPrepa && (
-                            <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
+                            </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => { setCostDialogSale(sale); setPurchaseCosts({ frame: formatCurrency(sale.purchasePriceFrame || 0), lenses: formatCurrency(sale.purchasePriceLenses || 0), label: "" }); }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Tag className="mr-3 h-4 w-4 text-orange-500" /> Coûts d'Achat</DropdownMenuItem>
-                          {isAdminOrPrepa && (<DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl"><Trash2 className="mr-3 h-4 w-4" /> Supprimer</DropdownMenuItem>)}
+                          {isAdminOrPrepa && (
+                            <DropdownMenuItem onClick={() => { 
+                              setCostDialogSale(sale); 
+                              setPurchaseCosts({ 
+                                frame: formatCurrency(sale.purchasePriceFrame || 0), 
+                                lenses: formatCurrency(sale.purchasePriceLenses || 0), 
+                                label: "" 
+                              }); 
+                            }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Tag className="mr-3 h-4 w-4 text-orange-500" /> Coûts d'Achat
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminOrPrepa && (
+                            <DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -295,50 +389,94 @@ function SalesHistoryContent() {
           </div>
         </CardContent>
       </Card>
-      <Dialog open={!!costDialogSale} onOpenChange={setCostDialogSale}>
+
+      {/* Dialogue Règlement */}
+      <Dialog open={!!paymentSale} onOpenChange={setPaymentSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
-          <form onSubmit={handleUpdateCosts}>
+          <form onSubmit={handleValidatePayment}>
             <div className="bg-[#0D1B2A] p-10 text-center">
-              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Coûts d'Achat</DialogTitle>
+              <div className="h-16 w-16 bg-[#D4AF37]/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <HandCoins className="h-8 w-8 text-[#D4AF37]" />
+              </div>
+              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Encaisser Reste</DialogTitle>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-2">Document : {paymentSale?.invoiceId}</p>
             </div>
             <div className="p-10 space-y-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Monture (DH)</Label>
-                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.frame} onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} />
+              <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center mb-1">Reste dû par le client</p>
+                <p className="text-3xl font-black text-red-600 text-center tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Verres (DH)</Label>
-                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.lenses} onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Libellé (Optionnel)</Label>
-                <Input className="h-12 rounded-2xl bg-slate-50 border-none font-bold" value={purchaseCosts.label} onChange={e => setPurchaseCosts(prev => ({ ...prev, label: e.target.value }))} />
+                <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Montant Versé (DH)</Label>
+                <Input 
+                  className="h-16 rounded-full text-center text-2xl font-black border-2 border-slate-100 bg-slate-50 focus:border-[#D4AF37] transition-all tabular-nums" 
+                  value={paymentAmount} 
+                  onChange={e => setPaymentAmount(e.target.value)} 
+                  onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} 
+                  autoFocus
+                />
               </div>
             </div>
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isSavingCosts} className="w-full h-14 rounded-full font-black bg-[#D4AF37] text-[#0D1B2A]">
-                {isSavingCosts ? <Loader2 className="animate-spin" /> : "ENREGISTRER LES COÛTS"}
+              <Button type="submit" disabled={isProcessingPayment} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+                {isProcessingPayment ? <Loader2 className="animate-spin h-6 w-6" /> : "VALIDER LE PAIEMENT"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={!!paymentSale} onOpenChange={setPaymentSale}>
+
+      {/* Dialogue Coûts d'Achat */}
+      <Dialog open={!!costDialogSale} onOpenChange={setCostDialogSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
-          <form onSubmit={handleValidatePayment}>
+          <form onSubmit={handleUpdateCosts}>
             <div className="bg-[#0D1B2A] p-10 text-center">
-              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Encaisser Reste</DialogTitle>
+              <div className="h-16 w-16 bg-[#D4AF37]/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <Tag className="h-8 w-8 text-[#D4AF37]" />
+              </div>
+              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Coûts d'Achat</DialogTitle>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-2">Calcul de Marge Brute</p>
             </div>
             <div className="p-10 space-y-6">
-              <div className="bg-slate-50 p-6 rounded-[32px]">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Reste à verser</p>
-                <p className="text-3xl font-black text-red-600 text-center tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Monture (DH)</Label>
+                  <Input 
+                    className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
+                    value={purchaseCosts.frame} 
+                    onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} 
+                    onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Verres (DH)</Label>
+                  <Input 
+                    className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
+                    value={purchaseCosts.lenses} 
+                    onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} 
+                    onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} 
+                  />
+                </div>
               </div>
-              <Input className="h-16 rounded-full text-center text-2xl font-black" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} />
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Libellé Transaction (Ex: Nom Fournisseur)</Label>
+                <Input 
+                  className="h-12 rounded-2xl bg-slate-50 border-none font-bold text-sm px-4" 
+                  placeholder="Optionnel..." 
+                  value={purchaseCosts.label} 
+                  onChange={e => setPurchaseCosts(prev => ({ ...prev, label: e.target.value }))} 
+                />
+              </div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                <TrendingUp className="h-5 w-5 text-blue-600 shrink-0" />
+                <p className="text-[9px] font-bold text-blue-700 leading-tight">
+                  La saisie de ces coûts générera automatiquement deux transactions de sortie en caisse pour le suivi financier.
+                </p>
+              </div>
             </div>
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isProcessingPayment} className="w-full h-14 rounded-full font-black bg-[#D4AF37] text-[#0D1B2A]">
-                {isProcessingPayment ? <Loader2 className="animate-spin" /> : "VALIDER LE PAIEMENT"}
+              <Button type="submit" disabled={isSavingCosts} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+                {isSavingCosts ? <Loader2 className="animate-spin h-6 w-6" /> : "ENREGISTRER LES COÛTS"}
               </Button>
             </DialogFooter>
           </form>
