@@ -25,9 +25,8 @@ import {
   Lock, 
   AlertTriangle, 
   XCircle, 
-  History,
   TrendingUp,
-  Wallet
+  ChevronDown
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -36,10 +35,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, formatPhoneNumber, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, Timestamp, where, runTransaction, arrayUnion, getDoc, limit, getDocs, writeBatch } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, Timestamp, where, runTransaction, arrayUnion, limit, getDocs, writeBatch } from "firebase/firestore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { format, isWithinInterval, startOfDay, endOfDay, isValid } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay, isValid, startOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -57,9 +56,11 @@ function SalesHistoryContent() {
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  // Filtres de date
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
+  // Dialogues
   const [costDialogSale, setCostDialogSale] = useState<any>(null);
   const [purchaseCosts, setPurchaseCosts] = useState({ frame: "", lenses: "", label: "" });
   const [isSavingCosts, setIsSavingCosts] = useState(false);
@@ -79,6 +80,7 @@ function SalesHistoryContent() {
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
+  // Sécurité Caisse
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
@@ -86,17 +88,19 @@ function SalesHistoryContent() {
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isTodayClosed && !isAdminOrPrepa;
 
+  // Query Firestore
   const salesQuery = useMemoFirebase(() => {
-    const startOfYear = new Date(2026, 0, 1);
+    const startLimit = new Date(2026, 0, 1);
     return query(
       collection(db, "sales"),
-      where("createdAt", ">=", Timestamp.fromDate(startOfYear)),
+      where("createdAt", ">=", Timestamp.fromDate(startLimit)),
       orderBy("createdAt", "desc"),
-      limit(5000)
+      limit(2000)
     );
   }, [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
 
+  // Filtrage local pour réactivité
   const filteredSales = useMemo(() => {
     if (!rawSales || !isReady) return [];
 
@@ -105,38 +109,46 @@ function SalesHistoryContent() {
         const matchesMode = isPrepaMode ? sale.isDraft === true : (sale.isDraft !== true);
         if (!matchesMode) return false;
 
+        // Filtre Date
         const saleDate = sale.createdAt?.toDate ? sale.createdAt.toDate() : null;
-        let matchesDate = true;
-        if (dateFrom) {
-          if (!saleDate) {
-            matchesDate = false;
-          } else {
-            const start = startOfDay(dateFrom);
-            const end = endOfDay(dateTo || dateFrom);
-            matchesDate = isWithinInterval(saleDate, { start: start < end ? start : end, end: start < end ? end : start });
-          }
+        if (dateFrom && dateTo && saleDate) {
+          const start = startOfDay(dateFrom);
+          const end = endOfDay(dateTo);
+          if (!isWithinInterval(saleDate, { start, end })) return false;
         }
 
+        // Filtre Texte
         const search = searchTerm.toLowerCase().trim();
-        const matchesSearch = !search || (sale.clientName || "").toLowerCase().includes(search) || (sale.invoiceId || "").toLowerCase().includes(search);
+        const matchesSearch = !search || 
+          (sale.clientName || "").toLowerCase().includes(search) || 
+          (sale.invoiceId || "").toLowerCase().includes(search) ||
+          (sale.bonNumber || "").toLowerCase().includes(search);
+
+        // Filtre Statut
         const matchesStatus = statusFilter === "TOUS" || sale.statut === statusFilter;
-        return matchesDate && matchesSearch && matchesStatus;
+
+        return matchesSearch && matchesStatus;
       });
   }, [rawSales, searchTerm, statusFilter, dateFrom, dateTo, isPrepaMode, isReady]);
 
+  // Actions
   const handleDelete = async (sale: any) => {
     if (!isAdminOrPrepa) return;
-    if (!confirm("Êtes-vous sûr ? Cette action supprimera également le montant de la caisse.")) return;
+    if (!confirm(`Supprimer la vente ${sale.invoiceId} ? Les transactions de caisse liées seront aussi supprimées.`)) return;
 
     try {
-      const transQuery = query(collection(db, "transactions"), where("saleId", "==", sale.id));
+      const transQuery = query(collection(db, "transactions"), where("relatedId", "==", sale.invoiceId));
       const transSnap = await getDocs(transQuery);
+      
       const batch = writeBatch(db);
       transSnap.docs.forEach(tDoc => batch.delete(tDoc.ref));
       batch.delete(doc(db, "sales", sale.id));
+      
       await batch.commit();
-      toast({ variant: "success", title: "Vente supprimée" });
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); }
+      toast({ variant: "success", title: "Vente et transactions supprimées" });
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" }); 
+    }
   };
 
   const handlePrint = (sale: any) => {
@@ -148,13 +160,21 @@ function SalesHistoryContent() {
     } catch (e) {}
 
     const params = new URLSearchParams({
-      client: sale.clientName || "---", phone: sale.clientPhone || "", mutuelle: sale.mutuelle || "---",
-      total: (sale.total || 0).toString(), remise: (sale.remise || 0).toString(),
-      avance: (sale.avance || 0).toString(), od_sph: sale.prescription?.od?.sph || "---", od_cyl: sale.prescription?.od?.cyl || "---",
-      od_axe: sale.prescription?.od?.axe || "---", od_add: sale.prescription?.od?.add || "---",
-      og_sph: sale.prescription?.og?.sph || "---", og_cyl: sale.prescription?.og?.cyl || "---",
-      og_axe: sale.prescription?.og?.axe || "---", og_add: sale.prescription?.og?.add || "---",
-      monture: sale.monture || "---", verres: sale.verres || "---", date: formattedDate
+      client: sale.clientName || "---", 
+      phone: sale.clientPhone || "", 
+      mutuelle: sale.mutuelle || "---",
+      total: (sale.total || 0).toString(), 
+      remise: (sale.remise || 0).toString(),
+      avance: (sale.avance || 0).toString(), 
+      od_sph: sale.prescription?.od?.sph || "---", 
+      od_cyl: sale.prescription?.od?.cyl || "---",
+      od_axe: sale.prescription?.od?.axe || "---", 
+      od_add: sale.prescription?.od?.add || "---",
+      og_sph: sale.prescription?.og?.sph || "---", 
+      og_cyl: sale.prescription?.og?.cyl || "---",
+      og_axe: sale.prescription?.og?.axe || "---", 
+      og_add: sale.prescription?.og?.add || "---",
+      date: formattedDate
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
   };
@@ -163,21 +183,54 @@ function SalesHistoryContent() {
     if (e) e.preventDefault();
     if (!costDialogSale) return;
     setIsSavingCosts(true);
+    
     const frameCost = parseAmount(purchaseCosts.frame);
     const lensesCost = parseAmount(purchaseCosts.lenses);
-    const labelSuffix = purchaseCosts.label || costDialogSale.invoiceId;
+    const labelSuffix = purchaseCosts.label || costDialogSale.clientName || costDialogSale.invoiceId;
+
     try {
-      await updateDoc(doc(db, "sales", costDialogSale.id), { purchasePriceFrame: frameCost, purchasePriceLenses: lensesCost, updatedAt: serverTimestamp() });
-      if (frameCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT MONTURE - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(frameCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
-      if (lensesCost > 0) await addDoc(collection(db, "transactions"), { type: "DEPENSE", label: `ACHAT VERRES - ${labelSuffix}`, clientName: costDialogSale.clientName || "---", category: "Achats", montant: -Math.abs(lensesCost), relatedId: costDialogSale.invoiceId, userName: user?.displayName || "---", isDraft: isPrepaMode, createdAt: serverTimestamp() });
-      toast({ variant: "success", title: "Coûts enregistrés" });
+      await updateDoc(doc(db, "sales", costDialogSale.id), { 
+        purchasePriceFrame: frameCost, 
+        purchasePriceLenses: lensesCost, 
+        updatedAt: serverTimestamp() 
+      });
+
+      // Génération automatique des transactions de sortie
+      if (frameCost > 0) {
+        await addDoc(collection(db, "transactions"), { 
+          type: "ACHAT MONTURE", 
+          label: `COÛT MONTURE | ${labelSuffix}`, 
+          clientName: `BC : ${costDialogSale.bonNumber || costDialogSale.invoiceId.slice(-4)}`,
+          montant: -Math.abs(frameCost), 
+          isDraft: isPrepaMode, 
+          userName: user?.displayName || "---",
+          createdAt: serverTimestamp() 
+        });
+      }
+      if (lensesCost > 0) {
+        await addDoc(collection(db, "transactions"), { 
+          type: "ACHAT VERRES", 
+          label: `COÛT VERRES | ${labelSuffix}`, 
+          clientName: `BC : ${costDialogSale.bonNumber || costDialogSale.invoiceId.slice(-4)}`,
+          montant: -Math.abs(lensesCost), 
+          isDraft: isPrepaMode, 
+          userName: user?.displayName || "---",
+          createdAt: serverTimestamp() 
+        });
+      }
+
+      toast({ variant: "success", title: "Coûts affectés et sorties de caisse créées" });
       setCostDialogSale(null);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsSavingCosts(false); }
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur technique" }); 
+    } finally { 
+      setIsSavingCosts(false); 
+    }
   };
 
   const handleOpenPayment = (sale: any) => {
     if (isTodayClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Caisse Clôturée", description: "L'enregistrement est verrouillé." });
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       return;
     }
     setPaymentSale(sale);
@@ -191,7 +244,7 @@ function SalesHistoryContent() {
     if (amount <= 0 || isReadOnly) return;
 
     setIsProcessingPayment(true);
-    const currentUserName = user?.displayName || "Inconnu";
+    const userName = user?.displayName || "Personnel";
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -202,195 +255,237 @@ function SalesHistoryContent() {
 
         const saleRef = doc(db, "sales", paymentSale.id);
         const saleSnap = await transaction.get(saleRef);
-        const currentData = saleSnap.data();
-        const totalNet = roundAmount((currentData.total || 0) - (currentData.remise || 0));
-        const newAvance = roundAmount((currentData.avance || 0) + amount);
+        const data = saleSnap.data()!;
+        
+        const totalNet = roundAmount((data.total || 0) - (data.remise || 0));
+        const newAvance = roundAmount((data.avance || 0) + amount);
         const newReste = roundAmount(Math.max(0, totalNet - newAvance));
-        const isFullyPaid = newReste <= 0;
+        const isPaid = newReste <= 0;
 
-        let finalInvoiceId = currentData.invoiceId || "---";
-        if (isFullyPaid && finalInvoiceId.startsWith("RC-")) finalInvoiceId = finalInvoiceId.replace("RC-", "FC-");
+        let invId = data.invoiceId || "---";
+        if (isPaid && invId.startsWith("RC-")) invId = invId.replace("RC-", "FC-");
 
         transaction.update(saleRef, {
-          invoiceId: finalInvoiceId, avance: newAvance, reste: newReste, statut: isFullyPaid ? "Payé" : "Partiel",
-          payments: arrayUnion({ amount, date: new Date().toISOString(), userName: currentUserName, note: "Règlement" }),
+          invoiceId: invId,
+          avance: newAvance,
+          reste: newReste,
+          statut: isPaid ? "Payé" : "Partiel",
+          payments: arrayUnion({ amount, date: new Date().toISOString(), userName, note: "Règlement" }),
           updatedAt: serverTimestamp()
         });
 
         transaction.set(doc(collection(db, "transactions")), {
-          type: "VENTE", label: `VENTE ${finalInvoiceId}`, clientName: currentData.clientName || "---",
-          montant: amount, relatedId: finalInvoiceId, saleId: paymentSale.id, userName: currentUserName,
-          isDraft: isPrepaMode, isBalancePayment: true, createdAt: serverTimestamp()
+          type: "VENTE",
+          label: `VENTE ${invId}`,
+          clientName: data.clientName || "---",
+          montant: amount,
+          relatedId: invId,
+          saleId: paymentSale.id,
+          userName,
+          isDraft: isPrepaMode,
+          isBalancePayment: true,
+          createdAt: serverTimestamp()
         });
       });
-      toast({ variant: "success", title: "Paiement validé" });
+
+      toast({ variant: "success", title: "Règlement enregistré avec succès" });
       setPaymentSale(null);
-    } catch (err: any) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsProcessingPayment(false); }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erreur", description: err.message === "SESSION_CLOSED" ? "Caisse clôturée." : "Erreur lors du paiement." });
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+    <div className="space-y-8 pb-10">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
             <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40" />
-            Historique Ventes
+            Historique de Prestige
           </h1>
-          <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre de prestige.</p>
+          <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre central des ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}.</p>
         </div>
         <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
           <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>
         </Button>
       </div>
 
+      {/* Filtres Card */}
       <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
         <CardHeader className="p-10 border-b bg-slate-50">
-          <div className="flex flex-col lg:flex-row items-end gap-6">
-            <div className="flex-1 space-y-2 w-full">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Recherche</Label>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-4 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Recherche Rapide</Label>
               <div className="relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#D4AF37]" />
                 <input 
-                  placeholder="Client ou Document..." 
+                  placeholder="Client, Facture ou BC..." 
                   className="w-full pl-14 h-12 text-sm font-bold rounded-2xl border-none shadow-inner outline-none bg-white" 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
                 />
               </div>
             </div>
-            <div className="w-full lg:w-64 space-y-2">
+            
+            <div className="lg:col-span-2 space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Statut</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-12 rounded-2xl font-black border-none shadow-inner bg-white">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="h-12 rounded-2xl font-black border-none shadow-inner bg-white"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-[32px]">
-                  {["TOUS", "Payé", "Partiel", "En attente"].map(s => (
-                    <SelectItem key={s} value={s} className="font-black text-[10px] uppercase">{s}</SelectItem>
-                  ))}
+                  {["TOUS", "Payé", "Partiel", "En attente"].map(s => <SelectItem key={s} value={s} className="font-black text-[10px] uppercase">{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="lg:col-span-6 space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Période du Rapport</Label>
+              <div className="flex items-center gap-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[10px] uppercase bg-white border-none shadow-inner justify-between px-6">
+                      <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+                      <span>{dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Début"}</span>
+                      <ChevronDown className="h-3 w-3 opacity-20" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus /></PopoverContent>
+                </Popover>
+                <div className="h-px w-4 bg-slate-200" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[10px] uppercase bg-white border-none shadow-inner justify-between px-6">
+                      <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+                      <span>{dateTo ? format(dateTo, "dd/MM/yyyy") : "Fin"}</span>
+                      <ChevronDown className="h-3 w-3 opacity-20" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus /></PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </div>
         </CardHeader>
+
+        {/* Tableau */}
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-[#0D1B2A]">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Document</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Facture / BC</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Total Net</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Avance</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Avancé</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Reste</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Statut</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-24 text-center">
-                      <Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" />
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                 ) : filteredSales.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">
-                      Aucun résultat trouvé.
-                    </TableCell>
-                  </TableRow>
-                ) : filteredSales.map((sale: any) => (
-                  <TableRow key={sale.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
-                    <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">
-                      {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
-                    </TableCell>
-                    <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] whitespace-nowrap tracking-tight">
-                      {sale.invoiceId}
-                    </TableCell>
-                    <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A]">
-                      {sale.clientName}
-                    </TableCell>
-                    <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">
-                      {formatCurrency((sale.total || 0) - (sale.remise || 0))}
-                    </TableCell>
-                    <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">
-                      {formatCurrency(sale.avance || 0)}
-                    </TableCell>
-                    <TableCell className="text-center px-10 py-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className={cn("text-sm font-black tabular-nums", (sale.reste || 0) > 0 ? "text-red-500" : "text-slate-300")}>
-                          {formatCurrency(sale.reste || 0)}
-                        </span>
-                        {(sale.reste || 0) > 0 && (
-                          <button 
-                            disabled={isReadOnly} 
-                            className={cn(
-                              "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm",
-                              isReadOnly ? "bg-slate-100 text-slate-300" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
-                            )} 
-                            onClick={() => handleOpenPayment(sale)}
-                            title="Régler le reste"
-                          >
-                            <HandCoins className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center px-10 py-6">
-                      <Badge className={cn(
-                        "text-[9px] font-black uppercase py-1 px-3 rounded-full border-none", 
-                        (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
-                      )} variant="outline">
-                        {sale.statut}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right px-10 py-6">
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100">
-                            <MoreVertical className="h-5 w-5 text-slate-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-[24px] p-2 min-w-[180px] shadow-2xl">
-                          <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                            <FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Imprimer
-                          </DropdownMenuItem>
-                          {isAdminOrPrepa && (
-                            <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
-                            </DropdownMenuItem>
+                  <TableRow><TableCell colSpan={8} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucune vente trouvée.</TableCell></TableRow>
+                ) : filteredSales.map((sale: any) => {
+                  const totalNet = (sale.total || 0) - (sale.remise || 0);
+                  const reste = sale.reste || 0;
+                  
+                  return (
+                    <TableRow key={sale.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
+                      <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums">
+                        {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
+                      </TableCell>
+                      <TableCell className="px-10 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-[#0D1B2A] tracking-tight">{sale.invoiceId}</span>
+                          <span className="text-[9px] font-black text-[#D4AF37] uppercase tracking-widest">BC: {sale.bonNumber || "---"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A] max-w-[200px] truncate">
+                        {sale.clientName}
+                      </TableCell>
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums">
+                        {formatCurrency(totalNet)}
+                      </TableCell>
+                      <TableCell className="text-right px-10 py-6 text-sm font-black text-emerald-600 tabular-nums">
+                        {formatCurrency(sale.avance || 0)}
+                      </TableCell>
+                      <TableCell className="text-center px-10 py-6">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className={cn("text-sm font-black tabular-nums", reste > 0 ? "text-red-500" : "text-slate-300")}>
+                            {formatCurrency(reste)}
+                          </span>
+                          {reste > 0 && (
+                            <button 
+                              disabled={isReadOnly} 
+                              onClick={() => handleOpenPayment(sale)}
+                              className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm",
+                                isReadOnly ? "bg-slate-100 text-slate-300" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
+                              )} 
+                              title="Régler le reste"
+                            >
+                              <HandCoins className="h-4 w-4" />
+                            </button>
                           )}
-                          {isAdminOrPrepa && (
-                            <DropdownMenuItem onClick={() => { 
-                              setCostDialogSale(sale); 
-                              setPurchaseCosts({ 
-                                frame: formatCurrency(sale.purchasePriceFrame || 0), 
-                                lenses: formatCurrency(sale.purchasePriceLenses || 0), 
-                                label: "" 
-                              }); 
-                            }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Tag className="mr-3 h-4 w-4 text-orange-500" /> Coûts d'Achat
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center px-10 py-6">
+                        <Badge className={cn(
+                          "text-[9px] font-black uppercase py-1 px-3 rounded-full border-none shadow-sm", 
+                          (sale.statut === "Payé" || sale.statut === "Payer") ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
+                        )} variant="outline">
+                          {sale.statut}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right px-10 py-6">
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100"><MoreVertical className="h-5 w-5 text-slate-400" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-[24px] p-2 min-w-[180px] shadow-2xl">
+                            <DropdownMenuItem onClick={() => handlePrint(sale)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                              <Printer className="mr-3 h-4 w-4 text-[#D4AF37]" /> Réimprimer
                             </DropdownMenuItem>
-                          )}
-                          {isAdminOrPrepa && (
-                            <DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                              <Trash2 className="mr-3 h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                            {isAdminOrPrepa && (
+                              <DropdownMenuItem onClick={() => router.push(`/ventes/nouvelle?editId=${sale.id}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Edit2 className="mr-3 h-4 w-4 text-blue-600" /> Modifier
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminOrPrepa && (
+                              <DropdownMenuItem onClick={() => { 
+                                setCostDialogSale(sale); 
+                                setPurchaseCosts({ 
+                                  frame: formatCurrency(sale.purchasePriceFrame || 0), 
+                                  lenses: formatCurrency(sale.purchasePriceLenses || 0), 
+                                  label: "" 
+                                }); 
+                              }} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Tag className="mr-3 h-4 w-4 text-orange-500" /> Coûts d'Achat
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminOrPrepa && (
+                              <DropdownMenuItem onClick={() => handleDelete(sale)} className="text-destructive py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                <Trash2 className="mr-3 h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Dialogue Règlement */}
+      {/* Dialogue Règlement Rapide */}
       <Dialog open={!!paymentSale} onOpenChange={setPaymentSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
           <form onSubmit={handleValidatePayment}>
@@ -426,7 +521,7 @@ function SalesHistoryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialogue Coûts d'Achat */}
+      {/* Dialogue Coûts d'Achat (Admin) */}
       <Dialog open={!!costDialogSale} onOpenChange={setCostDialogSale}>
         <DialogContent className="max-w-md rounded-[60px] p-0 overflow-hidden shadow-2xl border-none">
           <form onSubmit={handleUpdateCosts}>
@@ -434,13 +529,13 @@ function SalesHistoryContent() {
               <div className="h-16 w-16 bg-[#D4AF37]/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
                 <Tag className="h-8 w-8 text-[#D4AF37]" />
               </div>
-              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Coûts d'Achat</DialogTitle>
+              <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Affectation des Coûts</DialogTitle>
               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-2">Calcul de Marge Brute</p>
             </div>
             <div className="p-10 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Monture (DH)</Label>
+                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Coût Monture (DH)</Label>
                   <Input 
                     className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
                     value={purchaseCosts.frame} 
@@ -449,7 +544,7 @@ function SalesHistoryContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Verres (DH)</Label>
+                  <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Coût Verres (DH)</Label>
                   <Input 
                     className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
                     value={purchaseCosts.lenses} 
@@ -459,10 +554,10 @@ function SalesHistoryContent() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Libellé Transaction (Ex: Nom Fournisseur)</Label>
+                <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Référence Fournisseur / Note</Label>
                 <Input 
                   className="h-12 rounded-2xl bg-slate-50 border-none font-bold text-sm px-4" 
-                  placeholder="Optionnel..." 
+                  placeholder="Ex: Vision Optic ou Stock..." 
                   value={purchaseCosts.label} 
                   onChange={e => setPurchaseCosts(prev => ({ ...prev, label: e.target.value }))} 
                 />
@@ -470,7 +565,7 @@ function SalesHistoryContent() {
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
                 <TrendingUp className="h-5 w-5 text-blue-600 shrink-0" />
                 <p className="text-[9px] font-bold text-blue-700 leading-tight">
-                  La saisie de ces coûts générera automatiquement deux transactions de sortie en caisse pour le suivi financier.
+                  Enregistrer ces coûts créera automatiquement deux transactions de sortie dans le journal de caisse pour refléter vos dépenses réelles.
                 </p>
               </div>
             </div>
