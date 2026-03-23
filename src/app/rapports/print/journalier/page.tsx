@@ -73,34 +73,59 @@ function DailyCashReportContent() {
   const [salesDetails, setSalesDetails] = useState<Record<string, any>>({});
   const [loadingSales, setLoadingSales] = useState(false);
 
+  // Correction: Fetch sales based on transaction invoice IDs to ensure old sales details are loaded
   useEffect(() => {
-    const fetchSalesOfDay = async () => {
-      if (!selectedDate) return;
+    const fetchSalesForTransactions = async () => {
+      if (!rawTransactions || rawTransactions.length === 0) return;
       setLoadingSales(true);
       try {
-        const start = startOfDay(selectedDate);
-        const end = endOfDay(selectedDate);
-        const q = query(
-          collection(db, "sales"),
-          where("createdAt", ">=", Timestamp.fromDate(start)),
-          where("createdAt", "<=", Timestamp.fromDate(end)),
-          where("isDraft", "==", isPrepaMode)
-        );
-        const snap = await getDocs(q);
-        const details: Record<string, any> = {};
-        snap.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.invoiceId) details[data.invoiceId] = data;
+        const ids = new Set<string>();
+        rawTransactions.forEach((t: any) => {
+          if (t.type === "VENTE") {
+            let invoiceId = t.relatedId || "";
+            if (!invoiceId && t.label?.includes('VENTE')) {
+              invoiceId = t.label.replace('VENTE ', '').trim();
+            }
+            if (invoiceId) ids.add(invoiceId);
+          }
         });
+
+        if (ids.size === 0) {
+          setSalesDetails({});
+          return;
+        }
+
+        const idList = Array.from(ids);
+        const details: Record<string, any> = {};
+        
+        // Firestore 'in' query limit chunking
+        const chunks = [];
+        for (let i = 0; i < idList.length; i += 10) {
+          chunks.push(idList.slice(i, i + 10));
+        }
+
+        for (const chunk of chunks) {
+          const q = query(
+            collection(db, "sales"),
+            where("invoiceId", "in", chunk),
+            where("isDraft", "==", isPrepaMode)
+          );
+          const snap = await getDocs(q);
+          snap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.invoiceId) details[data.invoiceId] = data;
+          });
+        }
+        
         setSalesDetails(details);
       } catch (e) {
-        console.error("Erreur chargement ventes jour:", e);
+        console.error("Erreur chargement ventes report:", e);
       } finally {
         setLoadingSales(false);
       }
     };
-    fetchSalesOfDay();
-  }, [db, selectedDate, isPrepaMode]);
+    fetchSalesForTransactions();
+  }, [db, rawTransactions, isPrepaMode]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -201,15 +226,15 @@ function DailyCashReportContent() {
 
         <div className="grid grid-cols-4 gap-2.5 mb-4">
           <div className="p-2.5 rounded-lg border border-slate-300 bg-slate-50/30 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p><p className="text-lg font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial, false)}</p></div>
-          <div className="p-2.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/5 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37] mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-[#D4AF37]" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp, false)}</p></div>
+          <div className="p-2.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/5 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37] mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-emerald-600" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp, false)}</p></div>
           <div className="p-2.5 rounded-lg border border-orange-300 bg-orange-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Versements</p><p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements, false)}</p></div>
           <div className="p-2.5 rounded-lg border-2 border-slate-900 bg-white text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Solde Clôture</p><p className="text-lg font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final, false)}</p></div>
         </div>
 
         <div className="space-y-4 flex-1">
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-[#D4AF37]" />Encaissements</h3><span className="text-[10px] font-black text-[#D4AF37] uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
-            <div className="overflow-hidden border border-slate-200 rounded-lg">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-emerald-600" />Encaissements</h3><span className="text-[10px] font-black text-emerald-600 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
+            <div className="overflow-hidden border border-slate-200 rounded-md">
               <table className="w-full border-collapse">
                 <thead className="bg-[#0D1B2A] text-[#D4AF37]">
                   <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-[#D4AF37]/70 w-20">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
@@ -236,9 +261,9 @@ function DailyCashReportContent() {
                           </div>
                         </td>
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet, false) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-[#D4AF37] tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-destructive tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
-                        <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-[#D4AF37]/10 text-[#D4AF37]" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
+                        <td className="p-2 text-center font-bold text-emerald-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-red-500 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
+                        <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant), false)}</td>
                       </tr>
                     );
@@ -251,7 +276,7 @@ function DailyCashReportContent() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)), false)}</span></div>
-              <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
+              <div className="overflow-hidden border border-slate-200 rounded-md bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-[#0D1B2A] text-[#D4AF37]">
                     <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
@@ -293,7 +318,7 @@ function DailyCashReportContent() {
             {reportData.versements.length > 0 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements), false)}</span></div>
-                <div className="overflow-hidden border border-slate-200 rounded-lg bg-white">
+                <div className="overflow-hidden border border-slate-200 rounded-md bg-white">
                   <table className="w-full border-collapse">
                     <thead className="bg-[#0D1B2A] text-[#D4AF37]">
                       <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest">Montant</th></tr>

@@ -733,7 +733,7 @@ function CaisseContent() {
         <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 h-1 w-full bg-[#D4AF37] opacity-20" />
           <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Ventes</p>
-          <p className="text-2xl font-black text-[#D4AF37] tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
+          <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
         </Card>
         <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 h-1 w-full bg-red-500 opacity-20" />
@@ -752,7 +752,7 @@ function CaisseContent() {
         </Card>
       </div>
 
-      {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-5 w-5 text-[#D4AF37]" />, "bg-[#D4AF37]/10 text-[#D4AF37]")}
+      {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-5 w-5 text-emerald-600" />, "bg-emerald-50 text-emerald-700")}
       {renderTransactionTable("Sorties (Charges & Versements)", expenseTransactions, <TrendingDown className="h-5 w-5 text-red-500" />, "bg-red-100 text-red-700")}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
