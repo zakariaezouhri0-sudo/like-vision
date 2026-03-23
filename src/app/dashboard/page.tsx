@@ -183,7 +183,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10 md:space-y-12 pb-10">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 bg-white p-8 md:p-10 rounded-[60px] border-none shadow-xl shadow-slate-200/50">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 bg-white p-8 md:p-10 rounded-[60px] border-none shadow-xl shadow-slate-200/50 animate-subtle">
         <div className="flex items-center gap-8 min-w-0">
           <div className="h-20 w-20 bg-transparent flex items-center justify-center shrink-0 overflow-hidden group">
             {settingsLoading ? (
@@ -242,7 +242,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        <Card className="bg-[#0D1B2A] text-white border-none shadow-2xl p-10 rounded-[60px] relative overflow-hidden group flex flex-col items-center text-center">
+        <Card className="bg-[#0D1B2A] text-white border-none shadow-2xl p-10 rounded-[60px] relative overflow-hidden group flex flex-col items-center text-center animate-subtle [animation-delay:100ms]">
           <Wallet className="absolute -right-8 -top-8 h-48 w-48 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-[#D4AF37] mb-4 tracking-[0.3em] opacity-80">Encaissé (Récent)</p>
           <div className="flex flex-col items-center">
@@ -251,13 +251,13 @@ export default function DashboardPage() {
           </div>
         </Card>
         
-        <Card className="bg-[#D4AF37] text-[#0D1B2A] border-none shadow-2xl p-10 rounded-[60px] relative overflow-hidden group flex flex-col items-center text-center">
+        <Card className="bg-[#D4AF37] text-[#0D1B2A] border-none shadow-2xl p-10 rounded-[60px] relative overflow-hidden group flex flex-col items-center text-center animate-subtle [animation-delay:200ms]">
           <ShoppingCart className="absolute -right-8 -top-8 h-48 w-48 opacity-20 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black opacity-60 mb-4 tracking-[0.3em]">Ventes (Récent)</p>
           <p className="text-4xl md:text-5xl font-black tracking-tighter">{stats.count}</p>
         </Card>
         
-        <Card className="bg-white border-none shadow-xl shadow-slate-200/50 p-10 rounded-[60px] relative overflow-hidden group border-l-[16px] border-l-red-500 flex flex-col items-center text-center">
+        <Card className="bg-white border-none shadow-xl shadow-slate-200/50 p-10 rounded-[60px] relative overflow-hidden group border-l-[16px] border-l-red-500 flex flex-col items-center text-center animate-subtle [animation-delay:300ms]">
           <AlertCircle className="absolute -right-8 -top-8 h-48 w-48 text-red-500 opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-4 tracking-[0.3em]">Reste à Recouvrer</p>
           <div className="flex items-baseline">
@@ -265,7 +265,7 @@ export default function DashboardPage() {
           </div>
         </Card>
         
-        <Card className="bg-white border-none shadow-xl shadow-slate-200/50 p-10 rounded-[60px] relative overflow-hidden group border-l-[16px] border-l-[#D4AF37] flex flex-col items-center text-center">
+        <Card className="bg-white border-none shadow-xl shadow-slate-200/50 p-10 rounded-[60px] relative overflow-hidden group border-l-[16px] border-l-[#D4AF37] flex flex-col items-center text-center animate-subtle [animation-delay:400ms]">
           <Users className="absolute -right-8 -top-8 h-48 w-48 text-[#D4AF37] opacity-5 group-hover:scale-110 transition-transform duration-500" />
           <p className="text-[11px] uppercase font-black text-muted-foreground mb-4 tracking-[0.3em]">Dossiers Clients</p>
           <p className="text-4xl md:text-5xl font-black text-[#0D1B2A] tracking-tighter">{stats.newClients}</p>
@@ -273,7 +273,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-8">
-        <Card className="lg:col-span-4 shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white">
+        <Card className="lg:col-span-4 shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white animate-subtle">
           <CardHeader className="p-10 border-b bg-slate-50/50">
             <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-[#0D1B2A] flex items-center gap-4">
               <TrendingUp className="h-6 w-6 text-[#D4AF37]" />
@@ -303,13 +303,13 @@ export default function DashboardPage() {
                     backgroundColor: '#ffffff'
                   }} 
                 />
-                <Bar dataKey="total" fill="url(#barGradient)" radius={[12, 12, 0, 0]} barSize={40} />
+                <Bar dataKey="total" fill="url(#barGradient)" radius={[12, 12, 0, 0]} barSize={40} animationDuration={1000} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white">
+        <Card className="lg:col-span-3 shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white animate-subtle">
           <CardHeader className="p-10 border-b bg-slate-50/50">
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-[#0D1B2A]">PARTS DE MUTUELLE</CardTitle>
           </CardHeader>
@@ -317,7 +317,15 @@ export default function DashboardPage() {
              <div className="w-full h-[250px]">
                <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={mutuelleData} innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
+                  <Pie 
+                    data={mutuelleData} 
+                    innerRadius={70} 
+                    outerRadius={100} 
+                    paddingAngle={8} 
+                    dataKey="value"
+                    animationBegin={200}
+                    animationDuration={1200}
+                  >
                     {mutuelleData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
                   </Pie>
                   <Tooltip 
@@ -346,7 +354,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white">
+      <Card className="shadow-xl shadow-slate-200/50 border-none overflow-hidden rounded-[60px] bg-white animate-subtle">
         <CardHeader className="flex flex-row items-center justify-between p-10 border-b bg-slate-50/50">
           <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-[#0D1B2A]">Dernières Factures {isPrepaMode ? "(Brouillon)" : "Réelles"}</CardTitle>
           <Button variant="outline" size="sm" asChild className="h-10 px-6 font-black bg-white rounded-full shadow-md border-[#0D1B2A]/10 hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-[10px]">

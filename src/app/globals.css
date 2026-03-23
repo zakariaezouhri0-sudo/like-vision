@@ -41,36 +41,6 @@
     --sidebar-bg: 210 53% 11%;
     --sidebar-fg: 46 65% 52%;
   }
-
-  .elegance {
-    --background: 77 33% 95%;
-    --foreground: 184 9% 19%;
-    --primary: 78 42% 46%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 79 31% 85%;
-    --secondary-foreground: 78 42% 46%;
-    --sidebar-bg: 78 42% 46%;
-    --sidebar-fg: 0 0% 100%;
-  }
-
-  .olive-pro {
-    --background: 69 31% 96%;
-    --foreground: 210 24% 16%;
-    --primary: 65 42% 48%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 64 51% 90%;
-    --sidebar-bg: 87 30% 17%;
-    --sidebar-fg: 0 0% 100%;
-  }
-
-  .dark-vision {
-    --background: 222 47% 11%;
-    --foreground: 213 31% 91%;
-    --primary: 210 40% 61%;
-    --primary-foreground: 222 47% 11.2%;
-    --sidebar-bg: 222 47% 8%;
-    --sidebar-fg: 213 31% 91%;
-  }
 }
 
 @layer base {
@@ -78,9 +48,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased transition-colors duration-300;
-    /* Eviter le flash blanc au chargement */
-    background-color: #0D1B2A; 
+    @apply bg-[#0D1B2A] text-foreground font-body antialiased transition-colors duration-300;
   }
 
   #root, body > div:first-child {
@@ -92,7 +60,7 @@
   }
 
   .card-style {
-    @apply rounded-[60px] border border-border bg-card shadow-xl shadow-slate-200/50;
+    @apply rounded-[60px] border border-border bg-card shadow-xl shadow-slate-200/50 transition-all duration-300;
   }
 }
 
@@ -109,8 +77,18 @@
 }
 
 .animate-page {
-  animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
+}
+
+/* Subtle Content Entry */
+@keyframes subtleFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-subtle {
+  animation: subtleFadeIn 0.3s ease-out forwards;
 }
 
 /* Custom Scrollbar for Sidebar */
@@ -123,7 +101,7 @@ aside .overflow-y-auto::-webkit-scrollbar-track {
 }
 
 aside .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #D4AF37; /* Gold */
+  background: #D4AF37;
   border-radius: 10px;
 }
 
