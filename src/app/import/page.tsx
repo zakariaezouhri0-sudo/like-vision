@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw, FileUp } from "lucide-react";
+import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw, FileUp, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc, orderBy, limit } from "firebase/firestore";
@@ -354,21 +354,27 @@ export default function ImportPage() {
     } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'importation" }); } finally { setIsProcessing(false); }
   };
 
+  const handleResetFile = () => {
+    setFile(null);
+    setWorkbook(null);
+    setHeaders([]);
+    setMapping({});
+  };
+
   if (loadingRole) return null;
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-5xl mx-auto pb-10">
+      <div className="space-y-8 max-w-5xl mx-auto pb-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-primary uppercase tracking-tighter flex items-center gap-4">
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
               <FileUp className="h-8 w-8 text-[#D4AF37]/40" />
               Automate de Saisie
             </h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Correction et importation massive.</p>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Correction et importation massive.</p>
           </div>
           <Button 
-            variant="outline" 
             onClick={handleDownloadTemplate} 
             className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs"
           >
@@ -377,34 +383,37 @@ export default function ImportPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-[32px] bg-white shadow-lg border-none overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
-              <Layers className="h-4 w-4 text-primary/40" />
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60">1. Mode Import</CardTitle>
+          <Card className="rounded-[40px] bg-white shadow-xl border-none overflow-hidden">
+            <CardHeader className="bg-[#0D1B2A] border-b p-6 flex flex-row items-center gap-3">
+              <Layers className="h-5 w-5 text-[#D4AF37]" />
+              <CardTitle className="text-[11px] font-black uppercase text-[#D4AF37] tracking-widest">1. Mode Import</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-2xl">
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-2xl border shadow-inner">
                 <button 
                   onClick={() => setImportMode('FULL')} 
-                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'FULL' ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:bg-slate-100")}
+                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'FULL' ? "bg-[#0D1B2A] text-[#D4AF37] shadow-lg" : "text-slate-400 hover:bg-slate-100")}
                 >TOUT LE FICHIER</button>
                 <button 
                   onClick={() => setImportMode('SINGLE')} 
-                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'SINGLE' ? "bg-orange-500 text-white shadow-lg" : "text-slate-400 hover:bg-slate-100")}
+                  className={cn("h-12 rounded-xl text-[10px] font-black uppercase transition-all", importMode === 'SINGLE' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-slate-400 hover:bg-slate-100")}
                 >JOURNÉE SEULE</button>
               </div>
               
               {importMode === 'SINGLE' && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Date ciblée</Label>
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Date ciblée</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-start px-4">
-                        <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
-                        {format(targetDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}
+                      <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-none font-bold text-xs justify-between px-4 shadow-inner">
+                        <div className="flex items-center">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" />
+                          <span className="uppercase">{format(targetDate, "dd MMMM yyyy", { locale: fr })}</span>
+                        </div>
+                        <RefreshCw className="h-3 w-3 opacity-20" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl">
+                    <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl">
                       <Calendar mode="single" selected={targetDate} onSelect={(d) => d && setTargetDate(d)} locale={fr} initialFocus />
                     </PopoverContent>
                   </Popover>
@@ -413,45 +422,58 @@ export default function ImportPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[32px] bg-white shadow-lg border-none overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
-              <Target className="h-4 w-4 text-primary/40" />
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60">
-                Solde Initial Auto
+          <Card className="rounded-[40px] bg-white shadow-xl border-none overflow-hidden">
+            <CardHeader className="bg-[#0D1B2A] border-b p-6 flex flex-row items-center gap-3">
+              <Target className="h-5 w-5 text-[#D4AF37]" />
+              <CardTitle className="text-[11px] font-black uppercase text-[#D4AF37] tracking-widest">
+                2. Solde Initial
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 relative">
-              <Input 
-                type="number" 
-                className="h-14 rounded-2xl font-black text-xl text-center bg-slate-50 border-none tabular-nums" 
-                placeholder="DH" 
-                value={startingBalance} 
-                onChange={e => setStartingBalance(e.target.value)} 
-              />
-              {isLoadingBalance && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[32px]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
-              <p className="text-[8px] font-black text-center text-muted-foreground uppercase mt-3 tracking-widest">Récupéré de la veille</p>
+            <CardContent className="p-6 relative flex flex-col justify-center min-h-[140px]">
+              <div className="relative">
+                <Input 
+                  type="text" 
+                  className="h-16 rounded-2xl font-black text-2xl text-center bg-slate-50 border-none shadow-inner tabular-nums text-[#0D1B2A]" 
+                  placeholder="0,00" 
+                  value={startingBalance} 
+                  onChange={e => setStartingBalance(e.target.value)} 
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#D4AF37]">DH</div>
+              </div>
+              {isLoadingBalance && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[32px]"><Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" /></div>}
+              <p className="text-[8px] font-black text-center text-slate-400 uppercase mt-4 tracking-[0.2em]">Reporté de la session précédente</p>
             </CardContent>
           </Card>
 
           <Card 
-            className={cn("rounded-[32px] bg-white shadow-lg border-none overflow-hidden cursor-pointer transition-all hover:scale-[1.02]", file ? "border-2 border-green-500" : "")} 
-            onClick={() => fileInputRef.current?.click()}
+            className={cn("rounded-[40px] bg-white shadow-xl border-none overflow-hidden cursor-pointer transition-all hover:scale-[1.02] relative group", file ? "ring-2 ring-[#D4AF37]" : "")} 
+            onClick={() => !file && fileInputRef.current?.click()}
           >
-            <CardHeader className="bg-slate-50 border-b p-6 flex flex-row items-center gap-2">
-              <FileSpreadsheet className="h-4 w-4 text-primary/40" />
-              <CardTitle className="text-[11px] font-black uppercase text-primary/60">3. Fichier Excel</CardTitle>
+            <CardHeader className="bg-[#0D1B2A] border-b p-6 flex flex-row items-center gap-3">
+              <FileSpreadsheet className="h-5 w-5 text-[#D4AF37]" />
+              <CardTitle className="text-[11px] font-black uppercase text-[#D4AF37] tracking-widest">3. Fichier Excel</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 flex flex-col items-center justify-center min-h-[80px]">
+            <CardContent className="p-6 flex flex-col items-center justify-center min-h-[140px]">
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
               {file ? (
-                <div className="flex flex-col items-center text-center gap-1">
-                  <CheckCircle2 className="h-8 w-8 text-green-500 mb-1" />
-                  <span className="text-[10px] font-black uppercase text-slate-800 truncate max-w-[150px]">{file.name}</span>
+                <div className="flex flex-col items-center text-center gap-2">
+                  <div className="h-14 w-14 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center relative">
+                    <CheckCircle2 className="h-8 w-8 text-[#D4AF37]" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleResetFile(); }}
+                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-[#0D1B2A] truncate max-w-[180px] mt-1 tracking-tight">{file.name}</span>
                 </div>
               ) : (
-                <div className="flex flex-col items-center text-slate-300 gap-1">
-                  <FileSpreadsheet className="h-8 w-8" />
-                  <span className="text-[10px] font-black uppercase">Sélectionner</span>
+                <div className="flex flex-col items-center text-slate-300 gap-3 group-hover:text-[#D4AF37] transition-colors">
+                  <div className="h-14 w-14 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center group-hover:border-[#D4AF37]/40 transition-colors">
+                    <FileUp className="h-8 w-8" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Sélectionner</span>
                 </div>
               )}
             </CardContent>
@@ -460,44 +482,49 @@ export default function ImportPage() {
 
         {importMode === 'SINGLE' && (
           <div className={cn(
-            "border p-4 rounded-2xl flex items-center gap-4 animate-in fade-in zoom-in-95",
-            isSameDay(targetDate, new Date()) ? "bg-blue-50 border-blue-100 text-blue-700" : "bg-orange-50 border-orange-100 text-orange-700"
+            "p-6 rounded-[32px] flex items-center gap-6 animate-in fade-in zoom-in-95 shadow-xl border-none",
+            isSameDay(targetDate, new Date()) ? "bg-[#D4AF37]/10 text-[#0D1B2A] border-[#D4AF37]/20" : "bg-[#0D1B2A] text-[#D4AF37]"
           )}>
-            {isSameDay(targetDate, new Date()) ? <RefreshCw className="h-6 w-6 shrink-0" /> : <AlertTriangle className="h-6 w-6 shrink-0" />}
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shrink-0", isSameDay(targetDate, new Date()) ? "bg-[#D4AF37] text-[#0D1B2A]" : "bg-white/5")}>
+              {isSameDay(targetDate, new Date()) ? <RefreshCw className="h-6 w-6" /> : <AlertTriangle className="h-6 w-6" />}
+            </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] mb-1">
                 {isSameDay(targetDate, new Date()) ? "Mode Saisie du Jour" : "Mode Correction"}
               </p>
-              <p className="text-xs font-bold">
+              <p className="text-xs font-bold opacity-80 leading-relaxed">
                 {isSameDay(targetDate, new Date()) 
                   ? "La caisse restera OUVERTE pour vous permettre de finir la journée et clôturer manuellement." 
-                  : `La caisse du ${format(targetDate, "dd MMMM", { locale: fr })} sera écrasée et FERMÉE automatiquement.`}
+                  : `La caisse du ${format(targetDate, "dd MMMM", { locale: fr }).toUpperCase()} sera écrasée et FERMÉE automatiquement.`}
               </p>
             </div>
           </div>
         )}
 
         {workbook && (
-          <Card className="rounded-[32px] bg-white shadow-2xl border-none overflow-hidden">
-            <CardHeader className="bg-primary text-white p-8">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl font-black uppercase">Configuration des Champs</CardTitle>
-                  <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Reliez les colonnes de votre Excel au système.</p>
-                </div>
-                {isProcessing && <div className="bg-white/20 px-4 py-2 rounded-full font-black text-xs uppercase animate-pulse">{currentDayLabel} : {progress}%</div>}
+          <Card className="rounded-[60px] bg-white shadow-2xl border-none overflow-hidden">
+            <CardHeader className="bg-[#0D1B2A] text-[#D4AF37] p-8 flex flex-row items-center justify-between border-b border-white/5">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-black uppercase tracking-tighter">Configuration des Champs</CardTitle>
+                <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">Reliez les colonnes de votre Excel au système.</p>
               </div>
+              {isProcessing && (
+                <div className="bg-[#D4AF37] text-[#0D1B2A] px-6 py-2.5 rounded-full font-black text-xs uppercase shadow-lg flex items-center gap-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {currentDayLabel} : {progress}%
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <CardContent className="p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                 {GLOBAL_FIELDS.map(f => (
-                  <div key={f.key} className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase ml-1 text-slate-400">{f.label}</Label>
+                  <div key={f.key} className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">{f.label}</Label>
                     <Select value={mapping[f.key] || ""} onValueChange={v => setMapping({...mapping, [f.key]: v})}>
-                      <SelectTrigger className="h-11 rounded-xl font-bold bg-slate-50 border-none shadow-inner">
-                        <SelectValue placeholder="Choisir..." />
+                      <SelectTrigger className="h-12 rounded-2xl font-black text-xs bg-slate-50 border-none shadow-inner text-[#0D1B2A]">
+                        <SelectValue placeholder="Choisir une colonne..." />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-2xl">
                         {headers.map(h => <SelectItem key={h} value={h} className="font-bold text-xs">{h}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -507,15 +534,21 @@ export default function ImportPage() {
               <Button 
                 onClick={handleImportGlobal} 
                 disabled={isProcessing || !file || startingBalance === ""} 
-                className={cn("w-full h-16 rounded-2xl font-black text-lg shadow-xl", isSameDay(targetDate, new Date()) ? "bg-blue-600 hover:bg-blue-700" : "bg-orange-500 hover:bg-orange-600")}
+                className={cn(
+                  "w-full h-20 rounded-full font-black text-xl shadow-2xl uppercase tracking-widest transition-all transform active:scale-95",
+                  isSameDay(targetDate, new Date()) ? "bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37]" : "bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A]"
+                )}
               >
                 {isProcessing ? (
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin" />
                     <span>TRAITEMENT EN COURS...</span>
                   </div>
                 ) : (
-                  isSameDay(targetDate, new Date()) ? "LANCER LA SAISIE DU JOUR" : `CORRIGER LA JOURNÉE DU ${format(targetDate, "dd/MM")}`
+                  <div className="flex items-center gap-4">
+                    <FileUp className="h-8 w-8" />
+                    <span>{isSameDay(targetDate, new Date()) ? "LANCER LA SAISIE DU JOUR" : `CORRIGER LA JOURNÉE DU ${format(targetDate, "dd/MM")}`}</span>
+                  </div>
                 )}
               </Button>
             </CardContent>
