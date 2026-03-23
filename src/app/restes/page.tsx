@@ -132,40 +132,34 @@ export default function OrderTrackingPage() {
               <Table>
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Contact</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
-                    <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
+                    <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={5} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : filteredSales.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest">Aucune commande à suivre.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest">Aucune commande à suivre.</TableCell></TableRow>
                   ) : filteredSales.map(sale => {
                     const currentStatusObj = DELIVERY_STATUSES.find(s => s.value === (sale.deliveryStatus || "En préparation"));
                     
                     return (
                       <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group animate-subtle">
-                        <TableCell className="px-10 py-6">
+                        <TableCell className="px-6 py-6">
                           <div className="flex flex-col">
                             <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap">{sale.clientName}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-10 py-6">
-                          <span className="text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-[#0D1B2A]/60 tabular-nums">
-                            {formatPhoneNumber(sale.clientPhone)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right px-10 py-6">
+                        <TableCell className="text-right px-6 py-6">
                           <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
                             {formatCurrency(sale.reste || 0)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center px-10 py-6">
+                        <TableCell className="text-center px-6 py-6">
                           <Select 
                             value={sale.deliveryStatus || "En préparation"} 
                             onValueChange={(val) => handleUpdateDeliveryStatus(sale.id, val)}
@@ -188,7 +182,7 @@ export default function OrderTrackingPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="text-right px-10 py-6">
+                        <TableCell className="text-right px-6 py-6">
                           <div className="flex items-center justify-end gap-2">
                             <Button 
                               onClick={() => handleNotifyClient(sale)}
