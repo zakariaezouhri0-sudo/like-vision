@@ -443,12 +443,16 @@ function SessionsContent() {
   return (
     <div className="space-y-10 pb-20 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-2">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-primary/40" />
-            Journal des Sessions
-          </h1>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-11">Historique complet et analyses mensuelles.</p>
+        <div className="flex items-center gap-4">
+          <Calendar className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+          <div>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+              Journal des Sessions
+            </h1>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+              Historique complet et analyses mensuelles.
+            </p>
+          </div>
         </div>
         <Button onClick={() => router.push('/caisse')} variant="outline" className="h-12 px-8 rounded-2xl font-black text-[10px] uppercase border-slate-200 bg-white text-slate-600 shadow-xl shadow-slate-200/50 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all">
           <RotateCcw className="mr-3 h-4 w-4" /> RETOUR CAISSE

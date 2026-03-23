@@ -102,12 +102,16 @@ export default function UsersPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-              <ShieldCheck className="h-8 w-8 text-[#D4AF37]/40" />
-              Gestion des Utilisateurs
-            </h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 mt-1">Accès et sécurité du magasin.</p>
+          <div className="flex items-center gap-4">
+            <ShieldCheck className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+            <div>
+              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                Gestion des Utilisateurs
+              </h1>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+                Accès et sécurité du magasin.
+              </p>
+            </div>
           </div>
           
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -69,12 +69,16 @@ export default function ReportsPage() {
     <AppShell>
       <div className="space-y-8 pb-10">
         <div className="bg-white p-8 rounded-[60px] border shadow-xl shadow-slate-200/50 flex flex-col lg:flex-row justify-between items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-              <TrendingUp className="h-8 w-8 text-[#D4AF37]/40" />
-              Rapports d'Activité
-            </h1>
-            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Analyses Luxury & Exports.</p>
+          <div className="flex items-center gap-4">
+            <TrendingUp className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+            <div>
+              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                Rapports d'Activité
+              </h1>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+                Analyses Luxury & Exports.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-full border shadow-inner">
             <Popover><PopoverTrigger asChild><Button variant="ghost" className="h-12 px-6 rounded-full font-black text-[10px] uppercase bg-white border min-w-[220px] justify-between shadow-sm"><CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /><span>{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span><ChevronDown className="h-3 w-3" /></Button></PopoverTrigger><PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden"><Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} locale={fr} /></PopoverContent></Popover>

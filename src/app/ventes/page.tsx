@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -17,14 +16,9 @@ import {
   Loader2, 
   Trash2, 
   Calendar as CalendarIcon, 
-  FileText, 
   Tag, 
-  Save, 
   History as HistoryIcon, 
   HandCoins, 
-  Lock, 
-  AlertTriangle, 
-  XCircle, 
   TrendingUp,
   ChevronDown
 } from "lucide-react";
@@ -290,12 +284,16 @@ function SalesHistoryContent() {
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-            <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40" />
-            Historique de Prestige
-          </h1>
-          <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Registre central des ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}.</p>
+        <div className="flex items-center gap-4">
+          <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+          <div>
+            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+              Historique de Prestige
+            </h1>
+            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+              Registre central des ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}.
+            </p>
+          </div>
         </div>
         <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
           <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>

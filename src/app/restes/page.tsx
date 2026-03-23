@@ -94,12 +94,16 @@ export default function UnpaidSalesPage() {
     <AppShell>
       <div className="space-y-10 pb-10">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-              <HandCoins className="h-8 w-8 text-[#D4AF37]/40" />
-              Restes à Régler
-            </h1>
-            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Suivi Luxury des créances.</p>
+          <div className="flex items-center gap-4">
+            <HandCoins className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+            <div>
+              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                Restes à Régler
+              </h1>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+                Suivi Luxury des créances.
+              </p>
+            </div>
           </div>
         </div>
 

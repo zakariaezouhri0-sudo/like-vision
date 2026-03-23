@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -628,13 +627,17 @@ function CaisseContent() {
             {isClosed ? <Lock className="h-8 w-8" /> : <div className="h-4 w-4 bg-[#D4AF37] rounded-full animate-pulse" />}
           </div>
           <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-              <Wallet className="h-8 w-8 text-[#D4AF37]/40" />
-              {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
-            </h1>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border shadow-sm mt-3 w-fit">
-              <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
-              <span className="text-xs text-[#0D1B2A] font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+            <div className="flex items-center gap-4">
+              <Wallet className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+              <div>
+                <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                  {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
+                </h1>
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border shadow-sm mt-3 w-fit">
+                  <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
+                  <span className="text-xs text-[#0D1B2A] font-black tracking-widest uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

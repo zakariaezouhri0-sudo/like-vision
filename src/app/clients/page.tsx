@@ -80,12 +80,16 @@ export default function ClientsPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-4">
-              <Users className="h-8 w-8 text-[#D4AF37]/40" />
-              Fichier Clients
-            </h1>
-            <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Gestion luxury de la base clientèle.</p>
+          <div className="flex items-center gap-4">
+            <Users className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+            <div>
+              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
+                Fichier Clients
+              </h1>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+                Gestion luxury de la base clientèle.
+              </p>
+            </div>
           </div>
           <Button 
             onClick={() => setIsCreateOpen(true)} 
