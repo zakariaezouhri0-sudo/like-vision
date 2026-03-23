@@ -445,7 +445,7 @@ function SessionsContent() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-2">
         <div className="flex items-center gap-4">
           <Calendar className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
-          <div>
+          <div className="flex flex-col">
             <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
               Journal des Sessions
             </h1>
@@ -490,14 +490,14 @@ function SessionsContent() {
                         <div className="h-px w-8 bg-white/10" />
                       ) : (
                         <div className="bg-white/5 px-6 py-2 rounded-2xl border border-white/10 shadow-inner flex flex-col items-center min-w-[180px]">
-                          <span className="text-[7px] font-black text-[#D4AF37] uppercase tracking-[0.4em] mb-1">
+                          <span className="text-[7px] font-black text-emerald-500 uppercase tracking-[0.4em] mb-1">
                             FLUX NET MENSUEL
                           </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-white tracking-tighter tabular-nums leading-none">
+                            <span className="text-xl font-black text-emerald-500 tracking-tighter tabular-nums leading-none">
                               {formatCurrency(totalFluxNet)}
                             </span>
-                            <span className="text-[9px] font-black text-[#D4AF37]/60 uppercase">DH</span>
+                            <span className="text-[9px] font-black text-emerald-500/60 uppercase">DH</span>
                           </div>
                         </div>
                       )}
@@ -553,13 +553,13 @@ function SessionsContent() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
-                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/5 text-[#D4AF37] font-black text-[10px] tabular-nums border border-[#D4AF37]/10 shadow-sm">
+                                  <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 font-black text-[10px] tabular-nums border border-emerald-100 shadow-sm">
                                     <Clock className="h-3 w-3" />
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">{formatCurrency(s.openingBalance || 0)}</TableCell>
-                                <TableCell className="text-right px-2 py-5 font-black text-xs text-[#D4AF37] tabular-nums">
+                                <TableCell className="text-right px-2 py-5 font-black text-xs text-emerald-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-orange-500 tabular-nums">

@@ -286,12 +286,12 @@ function SalesHistoryContent() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
-          <div>
+          <div className="flex flex-col">
             <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
-              Historique de Prestige
+              HISTORIQUE DE VENTES
             </h1>
             <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
-              Registre central des ventes {isPrepaMode ? "(Brouillon)" : "Réelles"}.
+              Registre central des ventes {isPrepaMode ? "Réelles" : "Réelles"}.
             </p>
           </div>
         </div>
@@ -484,8 +484,8 @@ function SalesHistoryContent() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Montant Versé (DH)</Label>
-                <Input 
-                  className="h-16 rounded-full text-center text-2xl font-black border-2 border-slate-100 bg-slate-50 focus:border-[#D4AF37] transition-all tabular-nums" 
+                <input 
+                  className="h-16 w-full rounded-full text-center text-2xl font-black border-2 border-slate-100 bg-slate-50 focus:border-[#D4AF37] outline-none transition-all tabular-nums" 
                   value={paymentAmount} 
                   onChange={e => setPaymentAmount(e.target.value)} 
                   onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} 
@@ -516,8 +516,8 @@ function SalesHistoryContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Coût Monture (DH)</Label>
-                  <Input 
-                    className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
+                  <input 
+                    className="h-12 w-full rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums outline-none focus:ring-2 focus:ring-[#D4AF37]/20" 
                     value={purchaseCosts.frame} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} 
                     onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} 
@@ -525,8 +525,8 @@ function SalesHistoryContent() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase ml-2 text-slate-400 tracking-widest">Coût Verres (DH)</Label>
-                  <Input 
-                    className="h-12 rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums" 
+                  <input 
+                    className="h-12 w-full rounded-2xl bg-slate-50 border-none font-black text-lg text-center tabular-nums outline-none focus:ring-2 focus:ring-[#D4AF37]/20" 
                     value={purchaseCosts.lenses} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} 
                     onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} 
