@@ -45,7 +45,6 @@ export default function OrderTrackingPage() {
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
-    const savedMode = localStorage.getItem('work_mode');
     setRole(savedRole);
     setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsReady(true);
@@ -104,7 +103,7 @@ export default function OrderTrackingPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
           <div className="flex items-center gap-4">
             <PackageCheck className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
-            <div className="flex flex-col">
+            <div className="flex flex-col text-left">
               <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
                 Order Tracking (Follow-up)
               </h1>
@@ -132,7 +131,7 @@ export default function OrderTrackingPage() {
               <Table>
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-80">Client</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
                     <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
