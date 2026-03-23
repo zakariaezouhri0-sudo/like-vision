@@ -261,7 +261,7 @@ function DailyCashReportContent() {
                         <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(totalNet, false) : "---"}</td>
                         <td className="p-2 text-center font-bold text-emerald-600 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
                         <td className="p-2 text-center font-bold text-red-500 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
-                        <td className="p-2 text-center border-r border-slate-100"><span className={cn("text-[7px] px-1 py-0.5 rounded font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
+                        <td className="p-2 text-center border-r border-slate-100"><span className={cn("text-[7px] px-1 py-0.5 rounded-sm font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant), false)}</td>
                       </tr>
                     );

@@ -108,7 +108,7 @@ function CashClosurePrintContent() {
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-base font-black uppercase tracking-widest text-center leading-none border-2 border-slate-900 px-4 py-2 rounded-lg mb-2">Clôture de Caisse</h2>
+            <h2 className="text-base font-black uppercase tracking-widest text-center leading-none border-2 border-slate-900 px-4 py-2 rounded-sm mb-2">Clôture de Caisse</h2>
             <div className="space-y-1">
               <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600 uppercase">
                 <Calendar className="h-3 w-3 text-slate-400" />
@@ -127,7 +127,7 @@ function CashClosurePrintContent() {
             <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-100 pb-2 tracking-[0.2em] flex items-center gap-2">
               <FileText className="h-3.5 w-3.5" /> Analyse des Flux
             </h3>
-            <div className="space-y-3 bg-slate-50/30 p-6 rounded-2xl border border-slate-100">
+            <div className="space-y-3 bg-slate-50/30 p-6 rounded-sm border border-slate-100">
               <div className="flex justify-between text-xs font-bold text-slate-600">
                 <span>Solde Initial :</span>
                 <span>{formatCurrency(initial)}</span>
@@ -150,7 +150,7 @@ function CashClosurePrintContent() {
               </div>
             </div>
 
-            <div className={`p-6 rounded-2xl border-2 text-center ${Math.abs(ecart) < 0.01 ? 'border-green-100 bg-green-50/50' : 'border-destructive/10 bg-destructive/5'}`}>
+            <div className={`p-6 rounded-sm border-2 text-center ${Math.abs(ecart) < 0.01 ? 'border-green-100 bg-green-50/50' : 'border-destructive/10 bg-destructive/5'}`}>
               <p className="text-[8px] font-black uppercase text-slate-400 mb-1 tracking-[0.2em]">Écart Final</p>
               <p className={`text-2xl font-black tracking-tighter ${ecart >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                 {ecart >= 0 ? '+' : ''}{formatCurrency(ecart)}
@@ -158,7 +158,7 @@ function CashClosurePrintContent() {
             </div>
           </div>
 
-          <div className="bg-slate-50/50 p-8 rounded-2xl border border-slate-100 space-y-6">
+          <div className="bg-slate-50/50 p-8 rounded-sm border border-slate-100 space-y-6">
             <h3 className="text-[9px] font-black uppercase text-slate-400 border-b border-slate-200/50 pb-3 flex items-center gap-2 tracking-[0.2em]">
               <Coins className="h-3.5 w-3.5 text-primary" /> Détail du Comptage
             </h3>
@@ -195,7 +195,7 @@ function CashClosurePrintContent() {
           </div>
           <div className="space-y-16 text-right flex flex-col items-end">
             <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Cachet du Magasin</p>
-            <div className="w-[60mm] h-[35mm] border border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-50/30 relative">
+            <div className="w-[60mm] h-[35mm] border border-dashed border-slate-200 rounded-sm flex items-center justify-center bg-slate-50/30 relative">
               <span className="text-[8px] text-slate-300 font-black rotate-[-10deg] uppercase tracking-[0.3em] opacity-40 text-center leading-loose select-none">
                 Espace Réservé
               </span>
