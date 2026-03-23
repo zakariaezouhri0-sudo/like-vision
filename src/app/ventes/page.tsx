@@ -254,6 +254,7 @@ function SalesHistoryContent() {
           avance: newAvance,
           reste: newReste,
           statut: isPaid ? "Payé" : "Partiel",
+          deliveryStatus: isPaid ? "Livrée" : (data.deliveryStatus || "En préparation"),
           payments: arrayUnion({ amount, date: new Date().toISOString(), userName, note: "Règlement" }),
           updatedAt: serverTimestamp()
         });
@@ -291,7 +292,7 @@ function SalesHistoryContent() {
               HISTORIQUE DE VENTES
             </h1>
             <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
-              Registre central des ventes {isPrepaMode ? "Réelles" : "Réelles"}.
+              Registre central des ventes Réelles.
             </p>
           </div>
         </div>
