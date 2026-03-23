@@ -475,7 +475,7 @@ function SessionsContent() {
                         <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all duration-300 shadow-inner">
                           <ChevronRight className="h-4 w-4 text-[#D4AF37] transition-transform duration-500 group-data-[state=open]:rotate-90" />
                         </div>
-                        <span className="text-[13px] font-black text-[#D4AF37] tracking-[0.2em] uppercase">
+                        <span className="text-[18px] font-black text-[#D4AF37] tracking-[0.2em] uppercase">
                           {monthName}
                         </span>
                       </AccordionTrigger>
