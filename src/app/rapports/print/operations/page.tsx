@@ -244,7 +244,7 @@ function OperationsReportContent() {
               <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
                 <div className="flex items-center gap-2">
                   {displayLabel}
-                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase rounded-sm">Σ {t.childCount}</Badge>}
+                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase rounded-[2px]">Σ {t.childCount}</Badge>}
                 </div>
               </td>
               <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
@@ -265,24 +265,24 @@ function OperationsReportContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-4 pb-10 print:pt-0 print:pb-0 print:bg-white">
       <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-6 px-4">
-        <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-11 px-6 rounded-xl shadow-sm font-black text-xs hover:bg-slate-50">
+        <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-11 px-6 rounded-[8px] shadow-sm font-black text-xs hover:bg-slate-50">
           <Link href="/caisse/sessions"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR SESSIONS</Link>
         </Button>
         <div className="flex items-center gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-[#D4AF37]/20 text-[#D4AF37] h-11 px-6 rounded-xl shadow-sm font-black text-xs hover:bg-[#D4AF37]/5">
+          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-[#D4AF37]/20 text-[#D4AF37] h-11 px-6 rounded-[8px] shadow-sm font-black text-xs hover:bg-[#D4AF37]/5">
             <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER EXCEL
           </Button>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-2.5 rounded-full border shadow-sm">Format Paysage A4</span>
-          <Button onClick={() => window.print()} className="bg-[#0D1B2A] shadow-xl hover:bg-[#0D1B2A]/90 h-11 px-10 rounded-xl font-black text-sm text-white">
+          <Button onClick={() => window.print()} className="bg-[#0D1B2A] shadow-xl hover:bg-[#0D1B2A]/90 h-11 px-10 rounded-[8px] font-black text-sm text-white">
             <Printer className="mr-2 h-4 w-4" /> IMPRIMER LA LISTE
           </Button>
         </div>
       </div>
 
-      <div className="pdf-a4-landscape shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[10mm] flex flex-col min-h-[210mm] w-[297mm]">
+      <div className="pdf-a4-landscape shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-none p-[10mm] flex flex-col min-h-[210mm] w-[297mm]">
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
           <div className="flex items-center gap-6">
-            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-sm bg-white shadow-sm">
+            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-[4px] bg-white shadow-sm">
               {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-[#0D1B2A]"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-[#0D1B2A]" /></div>)}
             </div>
             <div>
@@ -292,7 +292,7 @@ function OperationsReportContent() {
             </div>
           </div>
           <div className="text-right">
-            <div className="bg-slate-900 text-white px-5 py-2 rounded-sm inline-block mb-2 shadow-lg">
+            <div className="bg-slate-900 text-white px-5 py-2 rounded-[2px] inline-block mb-2 shadow-lg">
               <h2 className="text-base font-black uppercase tracking-[0.2em] leading-none">Détail des Opérations</h2>
             </div>
             <div className="space-y-1">
@@ -308,7 +308,7 @@ function OperationsReportContent() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-sm bg-white shadow-sm">
+        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-[4px] bg-white shadow-sm">
           <table className="w-full border-collapse">
             <thead className="bg-[#0D1B2A] text-[#D4AF37] border-b-2 border-slate-950">
               <tr>
@@ -340,7 +340,7 @@ function OperationsReportContent() {
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Cachet Magasin</p>
-              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-sm flex items-center justify-center bg-slate-50/50">
+              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-[4px] flex items-center justify-center bg-slate-50/50">
                 <span className="text-[8px] text-slate-200 font-black rotate-[-12deg] uppercase opacity-40">Authentification</span>
               </div>
             </div>
