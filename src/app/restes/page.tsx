@@ -151,15 +151,15 @@ export default function OrderTrackingPage() {
                       <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group">
                         <TableCell className="px-10 py-6">
                           <div className="flex flex-col">
-                            <span className="font-black text-sm uppercase text-[#0D1B2A]">{sale.clientName}</span>
+                            <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap">{sale.clientName}</span>
                             <span className="text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="px-10 py-6">
-                          <span className="text-[11px] font-black uppercase tracking-tight">{sale.invoiceId}</span>
+                          <span className="text-[11px] font-black uppercase tracking-tight whitespace-nowrap">{sale.invoiceId}</span>
                         </TableCell>
                         <TableCell className="text-right px-10 py-6">
-                          <span className={cn("text-sm font-black tabular-nums", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
+                          <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
                             {formatCurrency(sale.reste || 0)}
                           </span>
                         </TableCell>
