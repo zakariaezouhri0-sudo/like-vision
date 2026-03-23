@@ -133,7 +133,7 @@ export default function OrderTrackingPage() {
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
                     <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Client</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Document</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Contact</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
                     <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
@@ -148,15 +148,17 @@ export default function OrderTrackingPage() {
                     const currentStatusObj = DELIVERY_STATUSES.find(s => s.value === (sale.deliveryStatus || "En préparation"));
                     
                     return (
-                      <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group">
+                      <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group animate-subtle">
                         <TableCell className="px-10 py-6">
                           <div className="flex flex-col">
                             <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap">{sale.clientName}</span>
-                            <span className="text-[10px] font-bold text-slate-400">{formatPhoneNumber(sale.clientPhone)}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
                         <TableCell className="px-10 py-6">
-                          <span className="text-[11px] font-black uppercase tracking-tight whitespace-nowrap">{sale.invoiceId}</span>
+                          <span className="text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-[#0D1B2A]/60 tabular-nums">
+                            {formatPhoneNumber(sale.clientPhone)}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right px-10 py-6">
                           <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
@@ -179,7 +181,7 @@ export default function OrderTrackingPage() {
                                 <SelectItem key={status.value} value={status.value} className={cn("font-black text-[10px] uppercase", status.color)}>
                                   <div className="flex items-center gap-2">
                                     <status.icon className="h-3 w-3" />
-                                    {status.label}
+                                    <span className="whitespace-nowrap">{status.label}</span>
                                   </div>
                                 </SelectItem>
                               ))}
