@@ -223,21 +223,21 @@ function DailyCashReportContent() {
         </div>
 
         <div className="grid grid-cols-4 gap-2.5 mb-4">
-          <div className="p-2.5 rounded-[4px] border border-slate-300 bg-slate-50/30 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p><p className="text-lg font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial, false)}</p></div>
-          <div className="p-2.5 rounded-[4px] border border-[#D4AF37]/30 bg-[#D4AF37]/5 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37] mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-emerald-600" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp, false)}</p></div>
-          <div className="p-2.5 rounded-[4px] border border-orange-300 bg-orange-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Versements</p><p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements, false)}</p></div>
-          <div className="p-2.5 rounded-[4px] border-2 border-slate-900 bg-white text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Solde Clôture</p><p className="text-lg font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final, false)}</p></div>
+          <div className="p-2.5 rounded-2xl border border-slate-300 bg-slate-50/30 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Ouverture</p><p className="text-lg font-black text-slate-900 tabular-nums">{formatCurrency(reportData.initial, false)}</p></div>
+          <div className="p-2.5 rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/5 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37] mb-0.5">Flux (Op)</p><p className={cn("text-lg font-black tabular-nums", reportData.fluxOp >= 0 ? "text-emerald-600" : "text-red-700")}>{reportData.fluxOp > 0 ? "+" : ""}{formatCurrency(reportData.fluxOp, false)}</p></div>
+          <div className="p-2.5 rounded-2xl border border-orange-300 bg-orange-50/20 text-center"><p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Versements</p><p className="text-lg font-black text-orange-700 tabular-nums">{formatCurrency(reportData.totalVersements, false)}</p></div>
+          <div className="p-2.5 rounded-2xl border-2 border-slate-900 bg-white text-center"><p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Solde Clôture</p><p className="text-lg font-black text-slate-950 tabular-nums">{formatCurrency(reportData.final, false)}</p></div>
         </div>
 
         <div className="space-y-4 flex-1">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><TrendingUp className="h-3.5 w-3.5 text-emerald-600" />Encaissements</h3><span className="text-[10px] font-black text-emerald-600 uppercase">+{formatCurrency(reportData.sales.reduce((a, b) => a + Math.abs(b.montant || 0), 0), false)}</span></div>
-            <div className="overflow-hidden border border-slate-200 rounded-[4px]">
+            <div className="overflow-hidden border border-slate-200 rounded-xl">
               <table className="w-full border-collapse">
                 <thead className="bg-[#0D1B2A] text-[#D4AF37]">
-                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%] border-r border-slate-800">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20 border-r border-slate-800">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-[#D4AF37]/70 w-20 border-r border-slate-800">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-20 border-r border-slate-800">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16 border-r border-slate-800">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
+                  <tr><th className="p-2 text-left text-[10px] font-black uppercase tracking-widest w-[55%]">Document / Client</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-20">Net</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-[#D4AF37]/70 w-20">Versé</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-red-400 w-20">Reste</th><th className="p-2 text-center text-[10px] font-black uppercase tracking-widest w-16">Statut</th><th className="p-2 text-right text-[10px] font-black uppercase tracking-widest w-24">Acompte</th></tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {reportData.sales.length > 0 ? reportData.sales.map((t: any) => {
                     let invoiceId = t.relatedId || "";
                     if (!invoiceId && t.label?.includes('VENTE')) {
@@ -247,8 +247,8 @@ function DailyCashReportContent() {
                     const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : 0;
                     
                     return (
-                      <tr key={t.id} className="hover:bg-slate-50">
-                        <td className="p-2 align-middle border-r border-slate-100">
+                      <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-2 align-middle">
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
                               {t.label || `VENTE ${t.relatedId || "---"}`} {t.isGrouped && " (Σ)"}
@@ -258,10 +258,10 @@ function DailyCashReportContent() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(totalNet, false) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-emerald-600 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
-                        <td className="p-2 text-center font-bold text-red-500 tabular-nums text-[10px] whitespace-nowrap border-r border-slate-100">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
-                        <td className="p-2 text-center border-r border-slate-100"><span className={cn("text-[7px] px-1 py-0.5 rounded-[2px] font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
+                        <td className="p-2 text-center font-bold text-slate-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(totalNet, false) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-emerald-600 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.avance || 0, false) : "---"}</td>
+                        <td className="p-2 text-center font-bold text-red-500 tabular-nums text-[10px] whitespace-nowrap">{sale ? formatCurrency(sale.reste || 0, false) : "---"}</td>
+                        <td className="p-2 text-center"><span className={cn("text-[7px] px-1 py-0.5 rounded-[2px] font-black uppercase leading-none inline-block whitespace-nowrap", (sale?.statut === "Payé" || sale?.statut === "Payer") ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700")}>{sale?.statut || "---"}</span></td>
                         <td className="p-2 text-right font-black text-slate-950 tabular-nums text-[11px] whitespace-nowrap">+{formatCurrency(Math.abs(t.montant), false)}</td>
                       </tr>
                     );
@@ -274,12 +274,12 @@ function DailyCashReportContent() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><FileText className="h-3.5 w-3.5 text-red-600" />Sorties de Caisse</h3><span className="text-[11px] font-black text-red-700 uppercase">-{formatCurrency(Math.abs(reportData.expenses.reduce((a, b) => a + Math.abs(b.montant || 0), 0)), false)}</span></div>
-              <div className="overflow-hidden border border-slate-200 rounded-[4px] bg-white">
+              <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-[#0D1B2A] text-[#D4AF37]">
-                    <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%] border-r border-slate-800">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
+                    <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest w-[40%]">Nature | Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest w-36">Montant</th></tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
                     {reportData.expenses.length > 0 ? reportData.expenses.map((e: any) => {
                       const labelPart = e.label || "";
                       const typeStr = e.type || "";
@@ -293,8 +293,8 @@ function DailyCashReportContent() {
                       const displayLabel = `${typeStr} | ${cleanedLabel || "---"} ${e.isGrouped ? " (Σ)" : ""}`;
 
                       return (
-                        <tr key={e.id} className="hover:bg-slate-50">
-                          <td className="p-1.5 border-r border-slate-100">
+                        <tr key={e.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-1.5">
                             <div className="flex flex-col">
                               <span className="text-[11px] font-black text-slate-800 uppercase leading-tight">
                                 {displayLabel}
@@ -316,15 +316,15 @@ function DailyCashReportContent() {
             {reportData.versements.length > 0 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between border-b border-slate-900 pb-1 px-1"><h3 className="text-[11px] font-black uppercase text-slate-900 flex items-center gap-2 tracking-widest"><Landmark className="h-3.5 w-3.5 text-orange-600" />Versements</h3><span className="text-[11px] font-black text-orange-700 uppercase">-{formatCurrency(Math.abs(reportData.totalVersements), false)}</span></div>
-                <div className="overflow-hidden border border-slate-200 rounded-[4px] bg-white">
+                <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
                   <table className="w-full border-collapse">
                     <thead className="bg-[#0D1B2A] text-[#D4AF37]">
-                      <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest border-r border-slate-800">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest">Montant</th></tr>
+                      <tr><th className="p-1.5 text-left text-[10px] font-black uppercase tracking-widest">Détails</th><th className="p-1.5 text-right text-[10px] font-black uppercase tracking-widest">Montant</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody>
                       {reportData.versements.map((v: any) => (
-                        <tr key={v.id} className="hover:bg-slate-50">
-                          <td className="p-1.5 text-[11px] font-bold text-slate-900 uppercase border-r border-slate-100">
+                        <tr key={v.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-1.5 text-[11px] font-bold text-slate-900 uppercase">
                             VERSEMENT | {v.label && !v.label.includes('VERSEMENT') ? v.label : "BANQUE"}
                           </td>
                           <td className="p-1.5 text-right font-black text-slate-950 tabular-nums text-[12px]">-{formatCurrency(Math.abs(v.montant), false)}</td>
