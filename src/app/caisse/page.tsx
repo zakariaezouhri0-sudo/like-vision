@@ -606,7 +606,6 @@ function CaisseContent() {
           </div>
           <div>
             <div className="flex items-center gap-4">
-              <Wallet className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
               <div>
                 <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
                   {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
