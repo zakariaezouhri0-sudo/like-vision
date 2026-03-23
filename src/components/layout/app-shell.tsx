@@ -20,17 +20,19 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string>("");
   const { user } = useUser();
   const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase();
     if (savedRole) {
       setRole(savedRole);
     }
+    setIsHydrated(true);
   }, []);
 
   const isPrepa = role === "PREPA";
@@ -47,45 +49,49 @@ export function AppShell({ children }: AppShellProps) {
     localStorage.removeItem('work_mode');
   };
 
-  const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => (
-    <div className="flex items-center gap-3 min-w-0">
-      <div className={cn(
-        "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl",
-        size === "large" ? "h-14 w-14" : "h-10 w-10",
-        "bg-transparent"
-      )}>
-        {settingsLoading ? (
-          <div className="h-full w-full bg-slate-50 flex items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin text-primary/20" />
-          </div>
-        ) : settings?.logoUrl ? (
-          <img 
-            src={settings.logoUrl} 
-            alt="Logo" 
-            className="h-full w-full object-contain p-1" 
-          />
-        ) : (
-          <Logo variant="icon" color="#D4AF37" className={size === "large" ? "w-10" : "w-7"} />
-        )}
-      </div>
-      <div className="flex flex-col justify-center min-w-0 pr-2">
-        <span className={cn(
-          "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-colors",
-          size === "large" ? "text-sm lg:text-base" : "text-xs"
+  const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => {
+    const showPlaceholder = settingsLoading && !settings;
+    
+    return (
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={cn(
+          "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl transition-all duration-300",
+          size === "large" ? "h-14 w-14" : "h-10 w-10",
+          "bg-transparent"
         )}>
-          {settingsLoading ? <div className="h-4 w-24 bg-slate-100/20 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
-        </span>
-        <span className="text-[7px] font-black text-[#D4AF37]/60 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
-          Optique Pro
-        </span>
+          {showPlaceholder ? (
+            <div className="h-full w-full flex items-center justify-center">
+              <Logo variant="icon" color="#D4AF37" className={cn("transition-opacity duration-500", size === "large" ? "w-10 opacity-20" : "w-7 opacity-20")} />
+            </div>
+          ) : settings?.logoUrl ? (
+            <img 
+              src={settings.logoUrl} 
+              alt="Logo" 
+              className="h-full w-full object-contain p-1 animate-in fade-in duration-500" 
+            />
+          ) : (
+            <Logo variant="icon" color="#D4AF37" className={size === "large" ? "w-10" : "w-7"} />
+          )}
+        </div>
+        <div className="flex flex-col justify-center min-w-0 pr-2">
+          <span className={cn(
+            "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-colors",
+            size === "large" ? "text-sm lg:text-base" : "text-xs"
+          )}>
+            {showPlaceholder ? <div className="h-4 w-24 bg-white/5 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
+          </span>
+          <span className="text-[7px] font-black text-[#D4AF37]/60 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
+            Optique Pro
+          </span>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground font-body overflow-hidden">
+    <div className="flex min-h-screen bg-[#0D1B2A] text-white font-body overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className="w-72 border-r border-[#0D1B2A] bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
+      <aside className="w-72 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
         <div 
           className="h-24 border-b border-white/5 flex items-center px-6 cursor-pointer"
           onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}
@@ -123,7 +129,7 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen">
+      <div className="flex-1 flex flex-col min-w-0 h-screen bg-[#F8F9FA]">
         {isPrepa && (
           <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0">
             <AlertTriangle className="h-4 w-4" />
@@ -131,7 +137,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
         
-        <header className="h-20 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
+        <header className="h-20 border-b border-border/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
           <div className="flex items-center gap-4">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -156,9 +162,9 @@ export function AppShell({ children }: AppShellProps) {
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              <div>
+              <div className="flex flex-col">
                 <h2 className="text-[9px] font-black text-[#D4AF37] uppercase tracking-[0.4em] mb-0.5">Like Vision</h2>
-                <p className="text-xl font-black text-[#0D1B2A] tracking-tighter">Gestion Optique</p>
+                <p className="text-xl font-black text-[#0D1B2A] tracking-tighter leading-none">Gestion Optique</p>
               </div>
             </div>
           </div>
