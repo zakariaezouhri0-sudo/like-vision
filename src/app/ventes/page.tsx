@@ -20,7 +20,9 @@ import {
   History as HistoryIcon, 
   HandCoins, 
   TrendingUp,
-  ChevronDown
+  ChevronDown,
+  Lock,
+  AlertCircle
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -36,6 +38,7 @@ import { format, isWithinInterval, startOfDay, endOfDay, isValid, startOfMonth }
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function SalesHistoryContent() {
   const router = useRouter();
@@ -76,6 +79,7 @@ function SalesHistoryContent() {
   const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
   const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  
   const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isTodayClosed && !isAdminOrPrepa;
 
@@ -166,7 +170,7 @@ function SalesHistoryContent() {
 
   const handleUpdateCosts = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!costDialogSale) return;
+    if (!costDialogSale || isReadOnly) return;
     setIsSavingCosts(true);
     
     const frameCost = parseAmount(purchaseCosts.frame);
@@ -213,8 +217,8 @@ function SalesHistoryContent() {
   };
 
   const handleOpenPayment = (sale: any) => {
-    if (isTodayClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse du jour est clôturée." });
       return;
     }
     setPaymentSale(sale);
@@ -284,6 +288,16 @@ function SalesHistoryContent() {
 
   return (
     <div className="space-y-8 pb-10">
+      {isReadOnly && (
+        <Alert variant="destructive" className="bg-red-600 text-white border-none rounded-[32px] mb-6 shadow-2xl py-6 animate-in fade-in slide-in-from-top-4">
+          <Lock className="h-6 w-6 text-white" />
+          <AlertTitle className="font-black uppercase tracking-[0.2em] text-lg">Caisse du jour Clôturée</AlertTitle>
+          <AlertDescription className="font-bold opacity-95 text-sm">
+            Toute modification financière ou règlement est désormais BLOQUÉ car la session de caisse actuelle est fermée.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
@@ -404,13 +418,13 @@ function SalesHistoryContent() {
                           </span>
                           {reste > 0 && (
                             <button 
-                              disabled={isReadOnly} 
+                              disabled={sessionLoading || isReadOnly} 
                               onClick={() => handleOpenPayment(sale)}
                               className={cn(
                                 "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm",
-                                isReadOnly ? "bg-slate-100 text-slate-300" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
+                                (isReadOnly || sessionLoading) ? "bg-slate-100 text-slate-300 cursor-not-allowed" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
                               )} 
-                              title="Régler le reste"
+                              title={isReadOnly ? "Caisse clôturée" : "Régler le reste"}
                             >
                               <HandCoins className="h-4 w-4" />
                             </button>
@@ -491,11 +505,12 @@ function SalesHistoryContent() {
                   onChange={e => setPaymentAmount(e.target.value)} 
                   onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} 
                   autoFocus
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isProcessingPayment} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+              <Button type="submit" disabled={isProcessingPayment || sessionLoading || isReadOnly} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
                 {isProcessingPayment ? <Loader2 className="animate-spin h-6 w-6" /> : "VALIDER LE PAIEMENT"}
               </Button>
             </DialogFooter>
@@ -522,6 +537,7 @@ function SalesHistoryContent() {
                     value={purchaseCosts.frame} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} 
                     onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} 
+                    readOnly={isReadOnly}
                   />
                 </div>
                 <div className="space-y-2">
@@ -531,6 +547,7 @@ function SalesHistoryContent() {
                     value={purchaseCosts.lenses} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} 
                     onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} 
+                    readOnly={isReadOnly}
                   />
                 </div>
               </div>
@@ -541,6 +558,7 @@ function SalesHistoryContent() {
                   placeholder="Ex: Vision Optic ou Stock..." 
                   value={purchaseCosts.label} 
                   onChange={e => setPurchaseCosts(prev => ({ ...prev, label: e.target.value }))} 
+                  readOnly={isReadOnly}
                 />
               </div>
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
@@ -551,7 +569,7 @@ function SalesHistoryContent() {
               </div>
             </div>
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isSavingCosts} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+              <Button type="submit" disabled={isSavingCosts || sessionLoading || isReadOnly} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
                 {isSavingCosts ? <Loader2 className="animate-spin h-6 w-6" /> : "ENREGISTRER LES COÛTS"}
               </Button>
             </DialogFooter>

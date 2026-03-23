@@ -36,6 +36,7 @@ import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const DENOMINATIONS = [200, 100, 50, 20, 10, 5, 1];
 
@@ -599,6 +600,16 @@ function CaisseContent() {
 
   return (
     <div className="space-y-10 pb-20">
+      {isClosed && !isAdminOrPrepa && (
+        <Alert variant="destructive" className="bg-red-600 text-white border-none rounded-[32px] mb-10 shadow-2xl py-6 animate-in fade-in slide-in-from-top-4">
+          <Lock className="h-6 w-6 text-white" />
+          <AlertTitle className="font-black uppercase tracking-[0.2em] text-lg">Caisse Clôturée</AlertTitle>
+          <AlertDescription className="font-bold opacity-95 text-sm">
+            Cette session de caisse est FERMÉE. Toute nouvelle opération ou modification est bloquée pour votre compte.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
           <div className={cn("h-16 w-16 rounded-[24px] flex items-center justify-center shrink-0 shadow-lg", isClosed ? "bg-red-100 text-red-600" : "bg-[#D4AF37]/10 text-[#D4AF37]")}>

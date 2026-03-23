@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -17,6 +17,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
 import { format, isValid } from "date-fns";
 import { MUTUELLES } from "@/lib/constants";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -152,10 +153,12 @@ function NewSaleForm() {
 
   const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  
   const isSessionClosed = !sessionLoading && sessionData?.status === "CLOSED";
   const isReadOnly = isSessionClosed && !isAdminOrPrepa;
 
   const handleResetSearch = () => {
+    if (isReadOnly) return;
     setClientName("");
     setClientPhone("");
     setSelectedClientId(null);
@@ -194,7 +197,7 @@ function NewSaleForm() {
   const { data: matchedClients } = useCollection(clientsQuery);
 
   const handleSelectMember = (client: any) => {
-    if (!client) return;
+    if (!client || isReadOnly) return;
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
@@ -212,7 +215,7 @@ function NewSaleForm() {
   };
 
   useEffect(() => {
-    if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode) {
+    if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode && !isReadOnly) {
       const client = matchedClients[0];
       if (selectedClientId === client.id) return;
 
@@ -226,7 +229,7 @@ function NewSaleForm() {
         handleSelectMember(client);
       }
     }
-  }, [matchedClients, clientPhone, clientName, isFamilyMode, activeEditId, selectedClientId]);
+  }, [matchedClients, clientPhone, clientName, isFamilyMode, activeEditId, selectedClientId, isReadOnly]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -236,6 +239,7 @@ function NewSaleForm() {
   const resteAPayerValue = useMemo(() => roundAmount(Math.max(0, totalNetValue - nAvance)), [totalNetValue, nAvance]);
 
   const handlePhoneChange = (val: string) => {
+    if (isReadOnly) return;
     const raw = val.replace(/\D/g, '');
     if (raw === "") {
       setClientPhone("");
@@ -248,6 +252,7 @@ function NewSaleForm() {
   };
 
   const handleToggleFamilyMode = (checked: boolean) => {
+    if (isReadOnly) return;
     setIsFamilyMode(checked);
     if (checked) {
       setSelectedClientId(null);
@@ -258,8 +263,8 @@ function NewSaleForm() {
 
   const handleSave = async (shouldPrint: boolean = false) => {
     if (sessionLoading || saleDataLoading) return;
-    if (isSessionClosed && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "ACTION BLOQUÉE", description: "La caisse est clôturée." });
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "ACTION BLOQUÉE", description: "La caisse est clôturée. Modifications interdites." });
       return;
     }
     if (!clientName) { toast({ variant: "destructive", title: "Erreur", description: "Nom client obligatoire." }); return; }
@@ -269,7 +274,6 @@ function NewSaleForm() {
     const currentIsDraft = isPrepaMode;
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
 
-    // Logic anti-doublon : Si aucun ID n'est sélectionné, on cherche s'il existe un client avec ce numéro
     let finalClientId = selectedClientId;
     if (!finalClientId && cleanedPhone.length >= 8) {
       try {
@@ -383,6 +387,16 @@ function NewSaleForm() {
   return (
     <AppShell>
       <div className="space-y-4 max-w-7xl mx-auto pb-6">
+        {isReadOnly && (
+          <Alert variant="destructive" className="bg-red-600 text-white border-none rounded-[32px] mb-6 shadow-2xl animate-in fade-in slide-in-from-top-4 py-6">
+            <Lock className="h-6 w-6 text-white" />
+            <AlertTitle className="font-black uppercase tracking-[0.2em] text-lg">Caisse Clôturée</AlertTitle>
+            <AlertDescription className="font-bold opacity-95 text-sm">
+              La session de caisse pour cette date est FERMÉE. Toute modification ou création est bloquée pour votre compte.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex justify-between items-center px-2">
           <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-3">
             <ShoppingBag className="h-6 w-6 text-[#D4AF37]/40" />
@@ -393,14 +407,14 @@ function NewSaleForm() {
               variant="outline" 
               onClick={() => handleSave(true)} 
               className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs" 
-              disabled={loading || isReadOnly}
+              disabled={loading || sessionLoading || isReadOnly}
             >
               <Printer className="mr-2 h-5 w-5" /> IMPRIMER
             </Button>
             <Button 
               onClick={() => handleSave(false)} 
               className="h-12 px-10 font-black rounded-full shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs" 
-              disabled={loading || isReadOnly}
+              disabled={loading || sessionLoading || isReadOnly}
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />} ENREGISTRER
             </Button>
@@ -443,7 +457,7 @@ function NewSaleForm() {
                         className="h-10 pr-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" 
                         value={clientName} 
                         onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} 
-                        onFocus={() => setIsNameFocused(true)} 
+                        onFocus={() => !isReadOnly && setIsNameFocused(true)} 
                         onBlur={() => setTimeout(() => setIsNameFocused(false), 200)} 
                         readOnly={isReadOnly} 
                         autoComplete="off" 
@@ -457,7 +471,7 @@ function NewSaleForm() {
                         </button>
                       )}
                     </div>
-                    {matchedClients && matchedClients.length > 1 && isNameFocused && !selectedClientId && !isFamilyMode && (
+                    {matchedClients && matchedClients.length > 1 && isNameFocused && !selectedClientId && !isFamilyMode && !isReadOnly && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                         <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membre(s) trouvé(s)</p></div>
                         {matchedClients.map(c => (
@@ -492,7 +506,7 @@ function NewSaleForm() {
                 </div>
                 <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" />
+                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-widest">PARRAINAGE</label>
                   </div>
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
@@ -510,7 +524,9 @@ function NewSaleForm() {
               </CardHeader>
               <CardContent className="p-6 bg-[#D4AF37] space-y-4">
                 <PrescriptionForm od={prescription.od} og={prescription.og} onChange={(s, f, v) => {
-                  setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}));
+                  if (!isReadOnly) {
+                    setPrescription(prev => ({...prev, [s.toLowerCase()]: {...(prev as any)[s.toLowerCase()], [f]: v}}));
+                  }
                 }} />
                 <div className="space-y-1 pt-2 border-t border-[#0D1B2A]/10">
                   <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Libellé (Désignation)</Label>
@@ -536,16 +552,17 @@ function NewSaleForm() {
                           type="text" 
                           className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums" 
                           value={total} 
-                          onChange={e => setTotal(e.target.value)} 
-                          onBlur={() => total && setTotal(formatCurrency(parseAmount(total)))} 
+                          onChange={e => !isReadOnly && setTotal(e.target.value)} 
+                          onBlur={() => !isReadOnly && total && setTotal(formatCurrency(parseAmount(total)))} 
+                          readOnly={isReadOnly}
                         />
                       </div>
                       <div className="space-y-4 pt-4 border-t border-white/10">
                         <div className="flex justify-between items-center">
                           <Label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Remise</Label>
                           <div className="flex bg-white/10 p-0.5 rounded-full">
-                            <button onClick={() => setDiscountType('fixed')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>DH</button>
-                            <button onClick={() => setDiscountType('percent')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")}>%</button>
+                            <button onClick={() => !isReadOnly && setDiscountType('fixed')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'fixed' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")} disabled={isReadOnly}>DH</button>
+                            <button onClick={() => !isReadOnly && setDiscountType('percent')} className={cn("px-3 py-1 rounded-full text-[9px] font-black transition-all", discountType === 'percent' ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg" : "text-white/40 hover:text-white/60")} disabled={isReadOnly}>%</button>
                           </div>
                         </div>
                         <div className="flex justify-between items-center">
@@ -554,7 +571,8 @@ function NewSaleForm() {
                             type="text" 
                             className="bg-transparent text-right font-black text-xl text-white outline-none w-40 tabular-nums" 
                             value={discountValue} 
-                            onChange={e => setDiscountValue(e.target.value)} 
+                            onChange={e => !isReadOnly && setDiscountValue(e.target.value)} 
+                            readOnly={isReadOnly}
                           />
                         </div>
                       </div>
@@ -569,8 +587,9 @@ function NewSaleForm() {
                           type="text" 
                           className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
                           value={avance} 
-                          onChange={e => setAvance(e.target.value)} 
-                          onBlur={() => avance && setAvance(formatCurrency(parseAmount(avance)))} 
+                          onChange={e => !isReadOnly && setAvance(e.target.value)} 
+                          onBlur={() => !isReadOnly && avance && setAvance(formatCurrency(parseAmount(avance)))} 
+                          readOnly={isReadOnly}
                         />
                       </div>
                     </div>
@@ -582,7 +601,7 @@ function NewSaleForm() {
                   <Button 
                     onClick={() => handleSave(true)} 
                     className="w-full h-16 rounded-3xl font-black text-base uppercase shadow-2xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-white hover:text-[#0D1B2A] transition-all transform active:scale-95 mt-8" 
-                    disabled={loading || isReadOnly}
+                    disabled={loading || sessionLoading || isReadOnly}
                   >
                     {loading ? <Loader2 className="animate-spin h-6 w-6" /> : <div className="flex items-center gap-3"><Save className="h-6 w-6" /><span>ENREGISTRER & IMPRIMER</span></div>}
                   </Button>
