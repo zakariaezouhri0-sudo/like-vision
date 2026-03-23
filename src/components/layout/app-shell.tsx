@@ -35,8 +35,8 @@ export function AppShell({ children }: AppShellProps) {
     setIsHydrated(true);
   }, []);
 
-  const isPrepa = role === "PREPA";
-  const isOpticienne = role === "OPTICIENNE";
+  const isPrepa = isHydrated && role === "PREPA";
+  const isOpticienne = isHydrated && role === "OPTICIENNE";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -104,24 +104,26 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
-          <div className={cn(
-            "px-4 py-2 rounded-full border flex items-center gap-2 shadow-sm transition-all",
-            isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/5 text-white border-white/5"
-          )}>
-            <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
-            <span className="text-[9px] font-black uppercase tracking-widest">
-              {isPrepa ? "Espace Brouillon" : "Espace Réel"}
-            </span>
-          </div>
+          {isHydrated && (
+            <div className={cn(
+              "px-4 py-2 rounded-full border flex items-center gap-2 shadow-sm transition-all",
+              isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/5 text-white border-white/5"
+            )}>
+              <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                {isPrepa ? "Espace Brouillon" : "Espace Réel"}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-3xl border border-white/5 shadow-sm transition-all">
             <Avatar className="h-10 w-10 border-2 border-[#D4AF37]/20 shadow-inner">
-              <AvatarFallback className="bg-[#D4AF37] text-[#0D1B2A] text-xs font-black">{userInitials}</AvatarFallback>
+              <AvatarFallback className="bg-[#D4AF37] text-[#0D1B2A] text-xs font-black">{isHydrated ? userInitials : "??"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black truncate capitalize text-white">{userName}</span>
+              <span className="text-xs font-black truncate capitalize text-white">{isHydrated ? userName : "Chargement..."}</span>
               <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">
-                {role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")}
+                {isHydrated ? (role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")) : "..."}
               </span>
             </div>
           </div>
@@ -131,7 +133,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen bg-[#F8F9FA]">
         {isPrepa && (
-          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0">
+          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0 animate-in slide-in-from-top duration-300">
             <AlertTriangle className="h-4 w-4" />
             Compte de Préparation : Vos saisies sont isolées (Brouillon).
           </div>
@@ -139,23 +141,25 @@ export function AppShell({ children }: AppShellProps) {
         
         <header className="h-20 border-b border-border/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
           <div className="flex items-center gap-4">
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 hover:bg-primary/5 rounded-xl border border-border shadow-sm">
-                  <Menu className="h-6 w-6 text-[#0D1B2A]" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-80 bg-[#0D1B2A] border-none">
-                <SheetHeader className="p-6 border-b border-white/5 text-left">
-                  <SheetTitle>
-                    <LogoContainer size="large" />
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="py-4 overflow-y-auto px-2" onClick={() => setOpen(false)}>
-                  <SidebarNav role={role} />
-                </div>
-              </SheetContent>
-            </Sheet>
+            {isHydrated && (
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden h-11 w-11 hover:bg-primary/5 rounded-xl border border-border shadow-sm">
+                    <Menu className="h-6 w-6 text-[#0D1B2A]" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-80 bg-[#0D1B2A] border-none">
+                  <SheetHeader className="p-6 border-b border-white/5 text-left">
+                    <SheetTitle>
+                      <LogoContainer size="large" />
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4 overflow-y-auto px-2" onClick={() => setOpen(false)}>
+                    <SidebarNav role={role} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
 
             <div className="md:hidden cursor-pointer" onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}>
               <LogoContainer size="small" />
