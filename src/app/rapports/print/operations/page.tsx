@@ -12,6 +12,7 @@ import { doc, collection, query, where, getDocs, Timestamp } from "firebase/fire
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { Badge } from "@/components/ui/badge";
 
 function OperationsReportContent() {
   const searchParams = useSearchParams();
@@ -54,7 +55,6 @@ function OperationsReportContent() {
   const transQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
-    // Query by range without isDraft equality to avoid composite index error
     return query(
       collection(db, "transactions"), 
       where("createdAt", ">=", Timestamp.fromDate(start)),
@@ -79,7 +79,6 @@ function OperationsReportContent() {
         const details: Record<string, any> = {};
         snap.docs.forEach(doc => {
           const data = doc.data();
-          // Filter by isDraft in memory
           if (isPrepaMode === (data.isDraft === true)) {
             if (data.invoiceId) details[data.invoiceId] = data;
           }
@@ -131,7 +130,6 @@ function OperationsReportContent() {
   const groupedTransactions = useMemo(() => {
     if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
     
-    // Filter by isDraft in memory to solve index requirement
     const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
     const sorted = [...filtered].sort((a, b) => {
@@ -246,7 +244,7 @@ function OperationsReportContent() {
               <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
                 <div className="flex items-center gap-2">
                   {displayLabel}
-                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase">Σ {t.childCount}</Badge>}
+                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase rounded-sm">Σ {t.childCount}</Badge>}
                 </div>
               </td>
               <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
@@ -284,7 +282,7 @@ function OperationsReportContent() {
       <div className="pdf-a4-landscape shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[10mm] flex flex-col min-h-[210mm] w-[297mm]">
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
           <div className="flex items-center gap-6">
-            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
+            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-sm bg-white shadow-sm">
               {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-[#0D1B2A]"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-[#0D1B2A]" /></div>)}
             </div>
             <div>
@@ -294,7 +292,7 @@ function OperationsReportContent() {
             </div>
           </div>
           <div className="text-right">
-            <div className="bg-slate-900 text-white px-5 py-2 rounded-xl inline-block mb-2 shadow-lg">
+            <div className="bg-slate-900 text-white px-5 py-2 rounded-sm inline-block mb-2 shadow-lg">
               <h2 className="text-base font-black uppercase tracking-[0.2em] leading-none">Détail des Opérations</h2>
             </div>
             <div className="space-y-1">
@@ -310,7 +308,7 @@ function OperationsReportContent() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-xl bg-white shadow-sm">
+        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-sm bg-white shadow-sm">
           <table className="w-full border-collapse">
             <thead className="bg-[#0D1B2A] text-[#D4AF37] border-b-2 border-slate-950">
               <tr>
@@ -342,7 +340,7 @@ function OperationsReportContent() {
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Cachet Magasin</p>
-              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-xl flex items-center justify-center bg-slate-50/50">
+              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-sm flex items-center justify-center bg-slate-50/50">
                 <span className="text-[8px] text-slate-200 font-black rotate-[-12deg] uppercase opacity-40">Authentification</span>
               </div>
             </div>
