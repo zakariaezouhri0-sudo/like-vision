@@ -63,7 +63,8 @@ export default function OrderTrackingPage() {
   const filteredSales = useMemo(() => {
     if (!sales || !isReady) return [];
     return sales.filter((sale: any) => {
-      if (isPrepaMode ? sale.isDraft !== true : sale.isDraft === true) return false;
+      const matchesMode = isPrepaMode ? sale.isDraft === true : sale.isDraft !== true;
+      if (!matchesMode) return false;
       
       const search = searchTerm.toLowerCase().trim();
       const matchesSearch = !search || 
@@ -109,7 +110,7 @@ export default function OrderTrackingPage() {
               <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
                 Order Tracking (Follow-up)
               </h1>
-              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2 ml-1">
                 Suivi de l'état des commandes et notifications.
               </p>
             </div>
@@ -133,7 +134,7 @@ export default function OrderTrackingPage() {
               <Table>
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-80">Client</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">Client</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
                     <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
                     <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
@@ -149,18 +150,18 @@ export default function OrderTrackingPage() {
                     
                     return (
                       <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group animate-subtle">
-                        <TableCell className="px-6 py-6">
-                          <div className="flex flex-col">
-                            <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap">{sale.clientName}</span>
+                        <TableCell className="px-6 py-6 w-48">
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap truncate">{sale.clientName}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6 py-6">
+                        <TableCell className="text-right px-6 py-6 w-32">
                           <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
                             {formatCurrency(sale.reste || 0)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center px-6 py-6">
+                        <TableCell className="text-center px-6 py-6 w-48">
                           <Select 
                             value={sale.deliveryStatus || "En préparation"} 
                             onValueChange={(val) => handleUpdateDeliveryStatus(sale.id, val)}
