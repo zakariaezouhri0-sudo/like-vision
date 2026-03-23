@@ -268,7 +268,7 @@ function CaisseContent() {
     if (!newOp.montant) return;
     
     if (session?.status === "CLOSED" && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Ré-ouvrez la caisse pour ajouter une opération." });
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       return;
     }
 
@@ -322,12 +322,12 @@ function CaisseContent() {
   };
 
   const handleOpenEdit = (t: any) => {
-    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour modifier une opération." });
+    if (!isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut modifier une opération de caisse." });
       return;
     }
     if (t.isGrouped) {
-      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul de plusieurs opérations. Modifiez-les individuellement via l'historique." });
+      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul de plusieurs opérations." });
       return;
     }
     setSelectedTrans(t);
@@ -344,11 +344,6 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!selectedTrans || !editOp.montant) return;
 
-    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
-      return;
-    }
-
     setOpLoading(true);
     const amt = parseAmount(editOp.montant);
     const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
@@ -356,11 +351,6 @@ function CaisseContent() {
     
     try {
       await runTransaction(db, async (transaction) => {
-        const sSnap = await transaction.get(sessionRef);
-        if (sSnap.exists() && sSnap.data().status === "CLOSED" && !isAdminOrPrepa) {
-          throw new Error("SESSION_CLOSED");
-        }
-
         const transRef = doc(db, "transactions", selectedTrans.id);
         transaction.update(transRef, {
           type: editOp.type,
@@ -375,40 +365,28 @@ function CaisseContent() {
       toast({ variant: "success", title: "Opération mise à jour" });
       setIsEditDialogOpen(false);
     } catch (e: any) { 
-      if (e.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
-      } else {
-        toast({ variant: "destructive", title: "Erreur" }); 
-      }
+      toast({ variant: "destructive", title: "Erreur" }); 
     } finally { setOpLoading(false); }
   };
 
   const handleDeleteOp = async (t: any) => {
-    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "Ré-ouvrez la caisse pour supprimer une opération." });
+    if (!isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut supprimer une opération de caisse." });
       return;
     }
     if (t.isGrouped) {
-      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul. Supprimez les opérations individuellement." });
+      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul." });
       return;
     }
     if (!confirm("Supprimer cette opération ?")) return;
     
     try {
       await runTransaction(db, async (transaction) => {
-        const sSnap = await transaction.get(sessionRef);
-        if (sSnap.exists() && sSnap.data().status === "CLOSED" && !isAdminOrPrepa) {
-          throw new Error("SESSION_CLOSED");
-        }
         transaction.delete(doc(db, "transactions", t.id));
       });
       toast({ variant: "success", title: "Supprimé" });
     } catch (e: any) {
-      if (e.message === "SESSION_CLOSED") {
-        toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
-      } else {
-        toast({ variant: "destructive", title: "Erreur" });
-      }
+      toast({ variant: "destructive", title: "Erreur" });
     }
   };
 
@@ -566,7 +544,7 @@ function CaisseContent() {
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
-                      {(!isClosed || isAdminOrPrepa) && (
+                      {isAdminOrPrepa && (
                         <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="outline" 

@@ -267,6 +267,26 @@ function NewSaleForm() {
 
     setLoading(true);
     const currentIsDraft = isPrepaMode;
+    const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
+
+    // Logic anti-doublon : Si aucun ID n'est sélectionné, on cherche s'il existe un client avec ce numéro
+    let finalClientId = selectedClientId;
+    if (!finalClientId && cleanedPhone.length >= 8) {
+      try {
+        const q = query(
+          collection(db, "clients"),
+          where("isDraft", "==", currentIsDraft),
+          where("phone", "==", cleanedPhone),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          finalClientId = snap.docs[0].id;
+        }
+      } catch (e) {
+        console.error("Erreur recherche client:", e);
+      }
+    }
 
     try {
       const bonCheckQuery = query(collection(db, "sales"), where("bonNumber", "==", bonNumber.trim()));
@@ -283,7 +303,6 @@ function NewSaleForm() {
 
       const currentUserName = user?.displayName || "Inconnu";
       const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
-      const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
 
       await runTransaction(db, async (transaction) => {
         if (sessionRef && !isAdminOrPrepa) {
@@ -317,7 +336,7 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        const clientRef = selectedClientId ? doc(db, "clients", selectedClientId) : doc(collection(db, "clients"));
+        const clientRef = finalClientId ? doc(db, "clients", finalClientId) : doc(collection(db, "clients"));
         transaction.set(clientRef, {
           name: clientName.toUpperCase(), phone: cleanedPhone,
           mutuelle: finalMutuelle, lastVisit: format(new Date(), "dd/MM/yyyy"), isDraft: currentIsDraft, updatedAt: serverTimestamp()
