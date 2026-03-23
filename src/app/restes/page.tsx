@@ -134,10 +134,10 @@ export default function OrderTrackingPage() {
               <Table>
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">Client</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-32">Reste</TableHead>
-                    <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-48">État Commande</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Actions</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-1/4">Client</TableHead>
+                    <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-1/4">État Commande</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-1/4">Reste</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest w-1/4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,24 +150,19 @@ export default function OrderTrackingPage() {
                     
                     return (
                       <TableRow key={sale.id} className="hover:bg-slate-50 transition-all border-b last:border-0 group animate-subtle">
-                        <TableCell className="px-6 py-6 w-48">
+                        <TableCell className="px-6 py-6 w-1/4">
                           <div className="flex flex-col min-w-0">
                             <span className="font-black text-sm uppercase text-[#0D1B2A] whitespace-nowrap truncate">{sale.clientName}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{sale.invoiceId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6 py-6 w-32">
-                          <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
-                            {formatCurrency(sale.reste || 0)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center px-6 py-6 w-48">
+                        <TableCell className="text-center px-6 py-6 w-1/4">
                           <Select 
                             value={sale.deliveryStatus || "En préparation"} 
                             onValueChange={(val) => handleUpdateDeliveryStatus(sale.id, val)}
                           >
                             <SelectTrigger className={cn(
-                              "h-9 rounded-full border-none font-black text-[10px] uppercase shadow-inner px-4 min-w-[160px] whitespace-nowrap",
+                              "h-9 rounded-full border-none font-black text-[10px] uppercase shadow-inner px-4 mx-auto w-fit min-w-[160px] whitespace-nowrap",
                               currentStatusObj?.color
                             )}>
                               <SelectValue />
@@ -184,7 +179,12 @@ export default function OrderTrackingPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="text-right px-6 py-6">
+                        <TableCell className="text-right px-6 py-6 w-1/4">
+                          <span className={cn("text-sm font-black tabular-nums whitespace-nowrap", (sale.reste || 0) > 0 ? "text-red-500" : "text-emerald-600")}>
+                            {formatCurrency(sale.reste || 0)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right px-6 py-6 w-1/4">
                           <div className="flex items-center justify-end gap-2">
                             <Button 
                               onClick={() => handleNotifyClient(sale)}
