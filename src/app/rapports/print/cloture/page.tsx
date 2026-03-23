@@ -88,7 +88,7 @@ function CashClosurePrintContent() {
       <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-sm p-[15mm]">
         <div className="flex justify-between items-start border-b border-slate-100 pb-8 mb-10">
           <div className="flex items-center gap-6">
-            <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative">
+            <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-sm">
               {shop.logoUrl ? (
                 <img src={shop.logoUrl} alt="Logo" className="object-contain" />
               ) : (
