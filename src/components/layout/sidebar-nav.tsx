@@ -13,7 +13,8 @@ import {
   TrendingUp,
   HandCoins,
   Upload,
-  CalendarClock
+  CalendarClock,
+  PackageCheck
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,7 +23,7 @@ const NAV_ITEMS = [
   { href: "/caisse/sessions", label: "Sessions de Caisse", icon: CalendarClock, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/ventes/nouvelle", label: "Nouvelle Vente", icon: ShoppingCart, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/ventes", label: "Historique Ventes", icon: History, roles: ["ADMIN", "OPTICIENNE"] },
-  { href: "/restes", label: "Restes à Régler", icon: HandCoins, roles: ["ADMIN", "OPTICIENNE"] },
+  { href: "/restes", label: "Suivi Commandes", icon: PackageCheck, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/rapports", label: "Rapports", icon: TrendingUp, roles: ["ADMIN"] },
   { href: "/import", label: "Importation", icon: Upload, roles: ["ADMIN"] },
@@ -53,14 +54,12 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
       {NAV_ITEMS.filter(item => item.roles.includes(effectiveRole)).map((item) => {
         const Icon = item.icon;
         
-        // Match logic to avoid overlapping highlights
         const isExactMatch = pathname === item.href;
         const isSubPathMatch = item.href !== "/" && 
                               item.href !== "/ventes" && 
                               item.href !== "/caisse" && 
                               pathname.startsWith(item.href + "/");
         
-        // Special logic for Historique vs Nouvelle
         const isHistoriqueActive = item.href === "/ventes" && (
           pathname === "/ventes" || 
           pathname.startsWith("/ventes/facture") || 
