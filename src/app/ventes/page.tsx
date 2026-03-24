@@ -376,8 +376,7 @@ function SalesHistoryContent() {
               <TableHeader className="bg-[#0D1B2A]">
                 <TableRow>
                   <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Date</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">N° Facture</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Client</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest whitespace-nowrap">Document & Client</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Total Net</TableHead>
                   <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Avancé</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest w-40 whitespace-nowrap">Reste</TableHead>
@@ -387,9 +386,9 @@ function SalesHistoryContent() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={8} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                 ) : filteredSales.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucune vente trouvée.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucune vente trouvée.</TableCell></TableRow>
                 ) : filteredSales.map((sale: any) => {
                   const totalNet = (sale.total || 0) - (sale.remise || 0);
                   const reste = sale.reste || 0;
@@ -399,11 +398,15 @@ function SalesHistoryContent() {
                       <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-500 tabular-nums whitespace-nowrap">
                         {sale.createdAt?.toDate ? format(sale.createdAt.toDate(), "dd/MM/yyyy") : "---"}
                       </TableCell>
-                      <TableCell className="px-10 py-6 text-[11px] font-black text-[#0D1B2A] tracking-tight whitespace-nowrap uppercase">
-                        {sale.invoiceId}
-                      </TableCell>
-                      <TableCell className="px-10 py-6 text-[11px] font-black uppercase text-[#0D1B2A] max-w-[200px] truncate whitespace-nowrap">
-                        {sale.clientName}
+                      <TableCell className="px-10 py-6 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-black text-[#0D1B2A] tracking-tight uppercase leading-tight">
+                            {sale.invoiceId}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+                            {sale.clientName}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right px-10 py-6 text-sm font-black text-[#0D1B2A] tabular-nums whitespace-nowrap">
                         {formatCurrency(totalNet)}
