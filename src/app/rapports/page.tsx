@@ -181,32 +181,40 @@ export default function ReportsPage() {
               <Table>
                 <TableHeader className="bg-[#0D1B2A]">
                   <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Facture & Client</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">CA Net</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Coût Achat</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Marge</TableHead>
-                    <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">%</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Facture & Client</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">CA Net</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Coût Monture</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Coût Verres</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">Marge</TableHead>
+                    <TableHead className="text-center text-[10px] uppercase font-black px-6 py-6 text-[#D4AF37] tracking-widest">%</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stats.filteredSales.length > 0 ? stats.filteredSales.map(s => {
                     const caNet = (s.total || 0) - (s.remise || 0);
-                    const cost = (s.purchasePriceFrame || 0) + (s.purchasePriceLenses || 0);
-                    const marge = caNet - cost;
+                    const costFrame = s.purchasePriceFrame || 0;
+                    const costLenses = s.purchasePriceLenses || 0;
+                    const totalCost = costFrame + costLenses;
+                    const marge = caNet - totalCost;
                     const margePct = caNet > 0 ? (marge / caNet) * 100 : 0;
 
                     return (
                       <TableRow key={s.id} className="hover:bg-slate-50 border-b last:border-0">
-                        <TableCell className="px-10 py-6">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-[#0D1B2A] uppercase">{s.invoiceId}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{s.clientName}</span>
+                        <TableCell className="px-6 py-6 font-bold text-[11px] text-slate-400 whitespace-nowrap">
+                          {s.createdAt?.toDate ? format(s.createdAt.toDate(), "dd/MM/yyyy") : "---"}
+                        </TableCell>
+                        <TableCell className="px-6 py-6">
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-black text-[#0D1B2A] uppercase truncate">{s.invoiceId}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{s.clientName}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-10 py-6 font-black text-sm tabular-nums text-slate-900">{formatCurrency(caNet)}</TableCell>
-                        <TableCell className="text-right px-10 py-6 font-black text-sm tabular-nums text-red-400">-{formatCurrency(cost)}</TableCell>
-                        <TableCell className="text-right px-10 py-6 font-black text-sm tabular-nums text-emerald-600">{formatCurrency(marge)}</TableCell>
-                        <TableCell className="text-center px-10 py-6">
+                        <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-slate-900">{formatCurrency(caNet)}</TableCell>
+                        <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-red-400">-{formatCurrency(costFrame)}</TableCell>
+                        <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-red-400">-{formatCurrency(costLenses)}</TableCell>
+                        <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-emerald-600">{formatCurrency(marge)}</TableCell>
+                        <TableCell className="text-center px-6 py-6">
                           <Badge className={cn("text-[9px] font-black", margePct > 50 ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>
                             {margePct.toFixed(0)}%
                           </Badge>
@@ -214,7 +222,7 @@ export default function ReportsPage() {
                       </TableRow>
                     );
                   }) : (
-                    <TableRow><TableCell colSpan={5} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Veuillez affecter des coûts d'achat dans l'historique.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Veuillez affecter des coûts d'achat dans l'historique.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
