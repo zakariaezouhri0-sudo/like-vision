@@ -9,11 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileSpreadsheet, Loader2, Download, Calendar as CalendarIcon, CheckCircle2, AlertTriangle, Layers, Target, RefreshCw, FileUp, X } from "lucide-react";
 import * as XLSX from "xlsx";
-import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, setDoc, getDoc, Timestamp, query, where, getDocs, addDoc, orderBy, limit } from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
+import { collection, doc, setDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, addDays, parse, isValid, isSameDay, isBefore, startOfDay } from "date-fns";
+import { setHours, format, parse, isValid, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { roundAmount, cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -101,7 +101,6 @@ export default function ImportPage() {
           setStartingBalance("0");
         }
       } catch (e) {
-        console.error("Erreur solde:", e);
         setStartingBalance("0");
       } finally {
         setIsLoadingBalance(false);
@@ -130,10 +129,12 @@ export default function ImportPage() {
               if (cell) allHeaders.push(cell.v?.toString().trim());
             }
           });
-          setHeaders(Array.from(new Set(allHeaders.filter(h => h))));
+          const uniqueHeaders = Array.from(new Set(allHeaders.filter(h => h)));
+          setHeaders(uniqueHeaders);
+          
           const newMapping: Mapping = {};
           GLOBAL_FIELDS.forEach(f => {
-            const match = allHeaders.find(h => h?.toLowerCase().trim() === f.label.toLowerCase().trim());
+            const match = uniqueHeaders.find(h => h?.toLowerCase().trim() === f.label.toLowerCase().trim());
             if (match) newMapping[f.key] = match;
           });
           setMapping(newMapping);
@@ -141,14 +142,6 @@ export default function ImportPage() {
       };
       reader.readAsBinaryString(selectedFile);
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    const headerRow = GLOBAL_FIELDS.map(f => f.label);
-    const ws = XLSX.utils.aoa_to_sheet([headerRow]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Modele");
-    XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
   };
 
   const cleanNum = (val: any): number => {
@@ -160,12 +153,16 @@ export default function ImportPage() {
 
   const ensureClient = async (name: string, isDraft: boolean) => {
     if (!name || name.toUpperCase() === "CLIENT DIVERS" || name === "---") return;
-    const q = query(collection(db, "clients"), where("name", "==", name), where("isDraft", "==", isDraft));
+    const q = query(collection(db, "clients"), where("name", "==", name.toUpperCase().trim()), where("isDraft", "==", isDraft));
     const snap = await getDocs(q);
     if (snap.empty) {
       await addDoc(collection(db, "clients"), {
-        name, phone: "", mutuelle: "Aucun", isDraft, 
-        createdAt: Timestamp.now(), ordersCount: 1, 
+        name: name.toUpperCase().trim(), 
+        phone: "", 
+        mutuelle: "Aucun", 
+        isDraft, 
+        createdAt: Timestamp.now(), 
+        ordersCount: 1, 
         lastVisit: format(new Date(), "dd/MM/yyyy")
       });
     }
@@ -185,12 +182,15 @@ export default function ImportPage() {
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
+      // 1. Parsing and Filtering by Date
       allRows = allRows.map(row => {
         const val = row[mapping.date_col];
         let d: Date | null = null;
         if (val instanceof Date) d = val;
-        else if (typeof val === 'number') d = new Date(Math.round((val - 25569) * 86400 * 1000));
-        else if (val) {
+        else if (typeof val === 'number') {
+          // Excel serial date format
+          d = new Date(Math.round((val - 25569) * 86400 * 1000));
+        } else if (val) {
           const s = val.toString().trim();
           const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yy", "dd MMMM yyyy", "dd MMMM"];
           for (const f of formats) {
@@ -198,14 +198,24 @@ export default function ImportPage() {
             if (isValid(parsed)) { d = parsed; break; }
           }
         }
+        // Force year 2026 if unclear or very old
         if (d && d.getFullYear() < 2000) d.setFullYear(2026);
         return { ...row, _parsedDate: d };
       });
 
       if (importMode === 'SINGLE') {
         allRows = allRows.filter(r => r._parsedDate && isSameDay(r._parsedDate, targetDate));
+      } else {
+        allRows = allRows.filter(r => r._parsedDate !== null);
       }
 
+      if (allRows.length === 0) {
+        toast({ variant: "destructive", title: "Aucune donnée trouvée", description: "Vérifiez vos colonnes et dates." });
+        setIsProcessing(false);
+        return;
+      }
+
+      // 2. Process Sales
       const salesGroups: Record<string, any> = {};
       allRows.forEach(row => {
         const ref = (row[mapping.ref_vente] || "").toString().trim();
@@ -244,23 +254,34 @@ export default function ImportPage() {
         }
 
         await setDoc(doc(collection(db, "sales")), {
-          invoiceId, clientName: s.clientName, total: roundAmount(s.totalBrut), avance: roundAmount(totalPaidEffective), reste: roundAmount(Math.max(0, s.totalBrut - totalPaidEffective)),
-          statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), isDraft: currentIsDraft, 
-          createdAt: Timestamp.fromDate(setHours(s.earliestDate || targetDate, 12)), createdBy: userName,
-          payments: allPayments.map((p: any) => ({ ...p, amount: roundAmount(p.amount), date: typeof p.date === 'string' ? p.date : p.date.toISOString() }))
-        });
+          invoiceId, 
+          bonNumber: s.ref,
+          clientName: s.clientName.toUpperCase(), 
+          total: roundAmount(s.totalBrut), 
+          avance: roundAmount(totalPaidEffective), 
+          reste: roundAmount(Math.max(0, s.totalBrut - totalPaidEffective)),
+          statut: isFullyPaid ? "Payé" : (totalPaidEffective > 0 ? "Partiel" : "En attente"), 
+          isDraft: currentIsDraft, 
+          createdAt: Timestamp.fromDate(setHours(s.earliestDate || targetDate, 12)), 
+          createdBy: userName,
+          payments: allPayments.map((p: any) => ({ 
+            ...p, 
+            amount: roundAmount(p.amount), 
+            date: typeof p.date === 'string' ? p.date : p.date.toISOString() 
+          }))
+        }, { merge: true });
       }
 
-      const totalDays = importMode === 'SINGLE' ? 1 : 60; 
-      const startDate = importMode === 'SINGLE' ? targetDate : new Date(2026, 0, 1);
+      // 3. Process Daily Sessions and Transactions
+      const uniqueDates = Array.from(new Set(allRows.map(r => format(r._parsedDate!, "yyyy-MM-dd")))).sort();
 
-      for (let i = 0; i < totalDays; i++) {
-        const currentDate = addDays(startDate, i);
-        const dateStr = format(currentDate, "yyyy-MM-dd");
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const dateStr = uniqueDates[i];
+        const currentDate = new Date(dateStr);
         const isToday = isSameDay(currentDate, new Date());
         
         setCurrentDayLabel(format(currentDate, "dd MMMM", { locale: fr }));
-        setProgress(Math.round(((i + 1) / totalDays) * 100));
+        setProgress(Math.round(((i + 1) / uniqueDates.length) * 100));
 
         const sessionId = currentIsDraft ? `DRAFT-${dateStr}` : dateStr;
         const sessionRef = doc(db, "cash_sessions", sessionId);
@@ -270,7 +291,7 @@ export default function ImportPage() {
         let dayVersements = 0;
         const initialBalanceForDay = roundAmount(runningBalance);
 
-        const dayRows = allRows.filter(row => row._parsedDate && format(row._parsedDate, "yyyy-MM-dd") === dateStr);
+        const dayRows = allRows.filter(row => format(row._parsedDate!, "yyyy-MM-dd") === dateStr);
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
@@ -279,45 +300,69 @@ export default function ImportPage() {
           
           if (ref && currentAvance > 0) {
             const invoiceId = finalSalesMap[ref];
-            await setDoc(doc(collection(db, "transactions")), {
-              type: "VENTE", label: `VENTE ${invoiceId}`, clientName: (row[mapping.client_1] || "").toString().trim(), 
-              montant: roundAmount(currentAvance), isDraft: currentIsDraft, createdAt: rowTimestamp, userName, relatedId: invoiceId
+            await addDoc(collection(db, "transactions"), {
+              type: "VENTE", 
+              label: `VENTE ${invoiceId}`, 
+              clientName: (row[mapping.client_1] || "").toString().trim().toUpperCase(), 
+              montant: roundAmount(currentAvance), 
+              isDraft: currentIsDraft, 
+              createdAt: rowTimestamp, 
+              userName, 
+              relatedId: invoiceId
             });
             daySales = roundAmount(daySales + currentAvance);
           }
 
           const vAmt = cleanNum(row[mapping.montant_v]);
           if (vAmt > 0) {
-            await setDoc(doc(collection(db, "transactions")), {
-              type: "ACHAT VERRES", label: (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim(), clientName: (row[mapping.nom_client_v] || "").toString().trim(),
-              montant: -Math.abs(roundAmount(vAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            await addDoc(collection(db, "transactions"), {
+              type: "ACHAT VERRES", 
+              label: (row[mapping.achat_verre_det] || "ACHAT VERRES").toString().trim().toUpperCase(), 
+              clientName: `BC : ${(row[mapping.nom_client_v] || "").toString().trim()}`,
+              montant: -Math.abs(roundAmount(vAmt)), 
+              isDraft: currentIsDraft, 
+              createdAt: rowTimestamp, 
+              userName
             });
             dayExpenses = roundAmount(dayExpenses + vAmt);
           }
 
           const mAmt = cleanNum(row[mapping.montant_m]);
           if (mAmt > 0) {
-            await setDoc(doc(collection(db, "transactions")), {
-              type: "ACHAT MONTURE", label: (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim(), clientName: (row[mapping.nom_client_m] || "").toString().trim(),
-              montant: -Math.abs(roundAmount(mAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            await addDoc(collection(db, "transactions"), {
+              type: "ACHAT MONTURE", 
+              label: (row[mapping.achat_mont_det] || "ACHAT MONTURE").toString().trim().toUpperCase(), 
+              clientName: `BC : ${(row[mapping.nom_client_m] || "").toString().trim()}`,
+              montant: -Math.abs(roundAmount(mAmt)), 
+              isDraft: currentIsDraft, 
+              createdAt: rowTimestamp, 
+              userName
             });
             dayExpenses = roundAmount(dayExpenses + mAmt);
           }
 
           const dAmt = cleanNum(row[mapping.montant_dep]);
           if (dAmt > 0) {
-            await setDoc(doc(collection(db, "transactions")), {
-              type: "DEPENSE", label: (row[mapping.libelle_dep] || "CHARGE").toString().trim(),
-              montant: -Math.abs(roundAmount(dAmt)), isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            await addDoc(collection(db, "transactions"), {
+              type: "DEPENSE", 
+              label: (row[mapping.libelle_dep] || "CHARGE").toString().trim().toUpperCase(),
+              montant: -Math.abs(roundAmount(dAmt)), 
+              isDraft: currentIsDraft, 
+              createdAt: rowTimestamp, 
+              userName
             });
             dayExpenses = roundAmount(dayExpenses + dAmt);
           }
 
           const verAmt = cleanNum(row[mapping.versement_mt]);
           if (verAmt > 0) {
-            await setDoc(doc(collection(db, "transactions")), {
-              type: "VERSEMENT", label: "BANQUE", montant: -Math.abs(roundAmount(verAmt)),
-              isDraft: currentIsDraft, createdAt: rowTimestamp, userName
+            await addDoc(collection(db, "transactions"), {
+              type: "VERSEMENT", 
+              label: "BANQUE", 
+              montant: -Math.abs(roundAmount(verAmt)),
+              isDraft: currentIsDraft, 
+              createdAt: rowTimestamp, 
+              userName
             });
             dayVersements = roundAmount(dayVersements + verAmt);
           }
@@ -326,7 +371,8 @@ export default function ImportPage() {
         runningBalance = roundAmount(initialBalanceForDay + daySales - dayExpenses - dayVersements);
         
         const sessionData: any = {
-          date: dateStr, isDraft: currentIsDraft,
+          date: dateStr, 
+          isDraft: currentIsDraft,
           openedAt: Timestamp.fromDate(setHours(currentDate, 9)),
           openedBy: userName,
           openingBalance: roundAmount(initialBalanceForDay),
@@ -349,9 +395,19 @@ export default function ImportPage() {
         await setDoc(sessionRef, sessionData);
       }
 
-      toast({ variant: "success", title: isSameDay(targetDate, new Date()) ? "Saisie du jour effectuée (Caisse Ouverte)" : "Correction terminée (Caisse Fermée)" });
-      router.push(isSameDay(targetDate, new Date()) ? "/caisse" : "/caisse/sessions");
-    } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'importation" }); } finally { setIsProcessing(false); }
+      toast({ variant: "success", title: "Importation terminée avec succès !" });
+      router.push(importMode === 'SINGLE' ? "/caisse" : "/caisse/sessions");
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur lors de l'importation", description: "Vérifiez que le fichier respecte le modèle." }); 
+    } finally { setIsProcessing(false); }
+  };
+
+  const handleDownloadTemplate = () => {
+    const headerRow = GLOBAL_FIELDS.map(f => f.label);
+    const ws = XLSX.utils.aoa_to_sheet([headerRow]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modele");
+    XLSX.writeFile(wb, "Modele_Import_LikeVision.xlsx");
   };
 
   const handleResetFile = () => {
