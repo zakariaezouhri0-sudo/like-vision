@@ -400,7 +400,7 @@ function SalesHistoryContent() {
                       </TableCell>
                       <TableCell className="px-10 py-6 whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span className="text-[13px] font-black text-[#0D1B2A] tracking-tight uppercase leading-tight">
+                          <span className="text-[18px] font-black text-[#0D1B2A] tracking-tighter uppercase leading-none">
                             {sale.invoiceId}
                           </span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">
