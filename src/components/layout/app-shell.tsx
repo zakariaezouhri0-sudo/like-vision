@@ -53,7 +53,7 @@ export function AppShell({ children }: AppShellProps) {
     const isLoading = settingsLoading && !settings;
     
     return (
-      <div className="flex items-center gap-3 min-w-0 h-14">
+      <div className="flex items-center gap-3 h-14">
         <div className={cn(
           "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl transition-all duration-300",
           size === "large" ? "h-14 w-14" : "h-10 w-10",
@@ -73,7 +73,7 @@ export function AppShell({ children }: AppShellProps) {
             <Logo variant="icon" color="#D4AF37" className={size === "large" ? "w-10" : "w-7"} />
           )}
         </div>
-        <div className="flex flex-col justify-center min-w-0 pr-2">
+        <div className="flex flex-col justify-center pr-1">
           <span className={cn(
             "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-all duration-500",
             size === "large" ? "text-sm lg:text-base" : "text-xs"
@@ -90,10 +90,10 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex min-h-screen bg-[#0D1B2A] text-white font-body overflow-hidden">
-      {/* Sidebar - Desktop (Width reduced from w-72 to w-64) */}
+      {/* Sidebar - Desktop (Centered Logo) */}
       <aside className="w-64 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <div 
-          className="h-24 border-b border-white/5 flex items-center px-6 cursor-pointer"
+          className="h-24 border-b border-white/5 flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors"
           onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}
         >
           <LogoContainer size="large" />
@@ -167,7 +167,9 @@ export function AppShell({ children }: AppShellProps) {
                 <SheetContent side="left" className="p-0 w-72 bg-[#0D1B2A] border-none">
                   <SheetHeader className="p-6 border-b border-white/5 text-left">
                     <SheetTitle>
-                      <LogoContainer size="large" />
+                      <div className="flex justify-start">
+                        <LogoContainer size="large" />
+                      </div>
                     </SheetTitle>
                   </SheetHeader>
                   <div className="py-4 overflow-y-auto px-2" onClick={() => setOpen(false)}>
