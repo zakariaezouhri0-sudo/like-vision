@@ -53,7 +53,8 @@ function SalesHistoryContent() {
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(startOfMonth(new Date()));
+  // Modification : Date de début fixée au 01/01/2026 par défaut
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2026, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   const [costDialogSale, setCostDialogSale] = useState<any>(null);

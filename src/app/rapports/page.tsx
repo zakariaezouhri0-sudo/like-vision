@@ -44,7 +44,11 @@ export default function ReportsPage() {
   }, [router]);
 
   const isPrepaMode = role === "PREPA";
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({ from: startOfMonth(new Date()), to: new Date() });
+  // Modification : Date de début fixée au 01/01/2026 par défaut
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({ 
+    from: new Date(2026, 0, 1), 
+    to: new Date() 
+  });
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc"), limit(2000)), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
@@ -147,7 +151,6 @@ export default function ReportsPage() {
             <TabsTrigger value="charges" className="rounded-full font-black text-[10px] uppercase px-8">Détail des Charges</TabsTrigger>
           </TabsList>
 
-          {/* TAB: FLUX DE CAISSE */}
           <TabsContent value="flux" className="mt-6">
             <Card className="rounded-[60px] shadow-xl border-none overflow-hidden bg-white">
               <Table>
@@ -175,7 +178,6 @@ export default function ReportsPage() {
             </Card>
           </TabsContent>
 
-          {/* TAB: ANALYSE MARGES */}
           <TabsContent value="marges" className="mt-6">
             <Card className="rounded-[60px] shadow-xl border-none overflow-hidden bg-white">
               <Table>
@@ -229,7 +231,6 @@ export default function ReportsPage() {
             </Card>
           </TabsContent>
 
-          {/* TAB: DÉTAIL DES CHARGES (Achats Verres/Montures) */}
           <TabsContent value="charges" className="mt-6">
             <Card className="rounded-[60px] shadow-xl border-none overflow-hidden bg-white">
               <Table>
