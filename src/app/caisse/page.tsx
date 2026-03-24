@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -743,56 +742,56 @@ function CaisseContent() {
         </div>
       </div>
 
-      {/* STATS CARDS GRID - PREMIUM IMAGE STYLE */}
+      {/* STATS CARDS GRID - REDUCED HEIGHT (h-40) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
         {/* SOLDE OUVERTURE */}
-        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-white relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-blue-100" />
-          <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-            <Lock className="h-5 w-5 text-blue-400" />
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-white relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
+          <div className="absolute top-0 left-0 h-1 w-full bg-blue-100" />
+          <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
+            <Lock className="h-4 w-4 text-blue-400" />
           </div>
-          <p className="text-[9px] uppercase font-black text-slate-400 mb-3 tracking-widest">Solde Ouverture</p>
-          <p className="text-2xl font-black text-[#0D1B2A] tabular-nums tracking-tighter">{formatCurrency(initialBalance)}</p>
+          <p className="text-[9px] uppercase font-black text-slate-400 mb-2 tracking-widest">Solde Ouverture</p>
+          <p className="text-xl font-black text-[#0D1B2A] tabular-nums tracking-tighter">{formatCurrency(initialBalance)}</p>
         </Card>
 
         {/* VENTES */}
-        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-emerald-100" />
-          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
+          <div className="absolute top-0 left-0 h-1 w-full bg-emerald-100" />
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
           </div>
-          <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-3 tracking-widest">Ventes</p>
-          <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
+          <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-2 tracking-widest">Ventes</p>
+          <p className="text-xl font-black text-emerald-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
         </Card>
 
         {/* DÉPENSES */}
-        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-red-100" />
-          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
-            <TrendingDown className="h-5 w-5 text-red-500" />
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
+          <div className="absolute top-0 left-0 h-1 w-full bg-red-100" />
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
+            <TrendingDown className="h-4 w-4 text-red-500" />
           </div>
-          <p className="text-[9px] uppercase font-black text-red-400 mb-3 tracking-widest">Dépenses</p>
-          <p className="text-2xl font-black text-red-600 tabular-nums tracking-tighter">-{formatCurrency(stats.depenses)}</p>
+          <p className="text-[9px] uppercase font-black text-red-400 mb-2 tracking-widest">Dépenses</p>
+          <p className="text-xl font-black text-red-600 tabular-nums tracking-tighter">-{formatCurrency(stats.depenses)}</p>
         </Card>
 
         {/* VERSEMENTS */}
-        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-orange-100" />
-          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
-            <ArrowLeftRight className="h-5 w-5 text-orange-500" />
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
+          <div className="absolute top-0 left-0 h-1 w-full bg-orange-100" />
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
+            <ArrowLeftRight className="h-4 w-4 text-orange-500" />
           </div>
-          <p className="text-[9px] uppercase font-black text-orange-400 mb-3 tracking-widest">Versements</p>
-          <p className="text-2xl font-black text-orange-600 tabular-nums tracking-tighter">-{formatCurrency(stats.versements)}</p>
+          <p className="text-[9px] uppercase font-black text-orange-400 mb-2 tracking-widest">Versements</p>
+          <p className="text-xl font-black text-orange-600 tabular-nums tracking-tighter">-{formatCurrency(stats.versements)}</p>
         </Card>
 
         {/* SOLDE THÉORIQUE */}
-        <Card className="p-8 rounded-[40px] border-none shadow-2xl bg-[#0D1B2A] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
-          <div className="absolute top-0 left-0 h-1.5 w-full bg-[#D4AF37]" />
-          <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
-            <DollarSign className="h-5 w-5 text-[#D4AF37]" />
+        <Card className="p-6 rounded-[40px] border-none shadow-2xl bg-[#0D1B2A] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
+          <div className="absolute top-0 left-0 h-1 w-full bg-[#D4AF37]" />
+          <div className="h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center mb-3">
+            <DollarSign className="h-4 w-4 text-[#D4AF37]" />
           </div>
-          <p className="text-[9px] uppercase font-black text-[#D4AF37] mb-3 tracking-widest opacity-80">Solde Théorique</p>
-          <p className="text-2xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p>
+          <p className="text-[9px] uppercase font-black text-[#D4AF37] mb-2 tracking-widest opacity-80">Solde Théorique</p>
+          <p className="text-xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p>
         </Card>
       </div>
 
