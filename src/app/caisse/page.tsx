@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -25,7 +26,9 @@ import {
   Coins,
   RotateCcw,
   Layers,
-  Wallet
+  ArrowLeftRight,
+  DollarSign,
+  Plus
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -411,6 +414,26 @@ function CaisseContent() {
     }
   };
 
+  const handleFinalizeClosure = async () => {
+    try {
+      setOpLoading(true);
+      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
+      await updateDoc(sessionRef, { 
+        status: "CLOSED", 
+        closedAt, 
+        closingBalanceReal: soldeReel, 
+        closingBalanceTheoretical: soldeTheorique, 
+        discrepancy: ecart, 
+        closedBy: user?.displayName || "---", 
+        totalSales: stats.entrees, 
+        totalExpenses: stats.depenses, 
+        totalVersements: stats.versements, 
+        isDraft: isPrepaMode 
+      });
+      router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
+    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+  };
+
   if (!isClientReady || sessionLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
 
   if (!session) {
@@ -578,26 +601,6 @@ function CaisseContent() {
     </Card>
   );
 
-  const handleFinalizeClosure = async () => {
-    try {
-      setOpLoading(true);
-      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
-      await updateDoc(sessionRef, { 
-        status: "CLOSED", 
-        closedAt, 
-        closingBalanceReal: soldeReel, 
-        closingBalanceTheoretical: soldeTheorique, 
-        discrepancy: ecart, 
-        closedBy: user?.displayName || "---", 
-        totalSales: stats.entrees, 
-        totalExpenses: stats.depenses, 
-        totalVersements: stats.versements, 
-        isDraft: isPrepaMode 
-      });
-      router.push(`/rapports/print/cloture?date=${dateStr}&ventes=${stats.entrees}&depenses=${stats.depenses}&versements=${stats.versements}&reel=${soldeReel}&initial=${initialBalance}`);
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
-  };
-
   return (
     <div className="space-y-10 pb-20">
       {isClosed && !isAdminOrPrepa && (
@@ -610,32 +613,34 @@ function CaisseContent() {
         </Alert>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      {/* HEADER SECTION - REDESIGNED PER IMAGE */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-transparent py-4 px-2">
         <div className="flex items-center gap-6">
-          <div className={cn("h-16 w-16 rounded-[24px] flex items-center justify-center shrink-0 shadow-lg", isClosed ? "bg-red-100 text-red-600" : "bg-[#D4AF37]/10 text-[#D4AF37]")}>
-            {isClosed ? <Lock className="h-8 w-8" /> : <div className="h-4 w-4 bg-[#D4AF37] rounded-full animate-pulse" />}
+          {/* Status Indicator Dot */}
+          <div className="h-12 w-12 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
+            <div className={cn("h-4 w-4 rounded-full", isClosed ? "bg-red-500" : "bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.6)]")} />
           </div>
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
-                {isClosed ? "Session Clôturée" : "Caisse Ouverte"}
-              </h1>
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border shadow-sm w-fit shrink-0">
-                <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
-                <span className="text-xs text-[#0D1B2A] font-black tracking-widest uppercase">
-                  {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
-                </span>
-              </div>
+          
+          <div className="flex items-center gap-6">
+            <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-wider leading-none">
+              {isClosed ? "CAISSE CLÔTURÉE" : "CAISSE OUVERTE"}
+            </h1>
+            
+            <div className="bg-white px-6 py-2.5 rounded-full border border-slate-100 shadow-sm flex items-center gap-3">
+              <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+              <span className="text-[11px] text-[#0D1B2A] font-black tracking-widest uppercase">
+                {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
+              </span>
             </div>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
           {isAdminOrPrepa && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50 transition-all">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /> CHANGER DATE
+                <Button variant="outline" className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-none bg-white text-slate-500 shadow-sm hover:bg-slate-50 transition-all">
+                  <RotateCcw className="mr-2 h-4 w-4 text-slate-400" /> CHANGER DATE
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl">
@@ -644,17 +649,11 @@ function CaisseContent() {
             </Popover>
           )}
           
-          {isClosed && role === 'ADMIN' && (
-            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm">
-              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
-            </Button>
-          )}
-          
           {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
-                  <PlusCircle className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION
+                <Button className="h-11 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
+                  <Plus className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md rounded-[40px] p-10" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
@@ -681,15 +680,15 @@ function CaisseContent() {
               </DialogContent>
             </Dialog>
           )}
-          
-          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-[#0D1B2A]/10 bg-white text-[#0D1B2A] shadow-sm hover:bg-slate-50">
-            <FileText className="mr-2 h-4 w-4 text-[#D4AF37]" /> RAPPORT
+
+          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-none bg-white text-slate-500 shadow-sm hover:bg-slate-50">
+            <FileText className="mr-2 h-4 w-4 text-[#D4AF37]" /> RAPPORT PDF
           </Button>
           
           {!isClosed && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 px-6 rounded-full font-black text-[10px] uppercase border-red-50 text-red-500 shadow-sm hover:bg-red-50 transition-all">
+                <Button variant="ghost" className="h-11 px-6 rounded-full font-black text-[10px] uppercase text-red-500 hover:bg-red-50 transition-all">
                   <LogOut className="mr-2 h-4 w-4" /> CLÔTURE
                 </Button>
               </DialogTrigger>
@@ -731,33 +730,64 @@ function CaisseContent() {
               </DialogContent>
             </Dialog>
           )}
+          
+          {isClosed && role === 'ADMIN' && (
+            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm">
+              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 h-1 w-full bg-blue-500 opacity-20" />
-          <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Solde Ouv.</p>
+      {/* STATS CARDS GRID - REDESIGNED PER IMAGE */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+        {/* SOLDE OUVERTURE */}
+        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-white relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
+          <div className="absolute top-0 left-0 h-1.5 w-full bg-blue-100" />
+          <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+            <Lock className="h-5 w-5 text-blue-400" />
+          </div>
+          <p className="text-[9px] uppercase font-black text-slate-400 mb-3 tracking-widest">Solde Ouverture</p>
           <p className="text-2xl font-black text-[#0D1B2A] tabular-nums tracking-tighter">{formatCurrency(initialBalance)}</p>
         </Card>
-        <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 h-1 w-full bg-[#D4AF37] opacity-20" />
-          <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Ventes</p>
+
+        {/* VENTES */}
+        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
+          <div className="absolute top-0 left-0 h-1.5 w-full bg-emerald-100" />
+          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
+            <TrendingUp className="h-5 w-5 text-emerald-500" />
+          </div>
+          <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-3 tracking-widest">Ventes</p>
           <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
         </Card>
-        <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 h-1 w-full bg-red-500 opacity-20" />
-          <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Dépenses</p>
-          <p className="text-2xl font-black text-red-500 tabular-nums tracking-tighter">-{formatCurrency(stats.depenses)}</p>
+
+        {/* DÉPENSES */}
+        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
+          <div className="absolute top-0 left-0 h-1.5 w-full bg-red-100" />
+          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
+            <TrendingDown className="h-5 w-5 text-red-500" />
+          </div>
+          <p className="text-[9px] uppercase font-black text-red-400 mb-3 tracking-widest">Dépenses</p>
+          <p className="text-2xl font-black text-red-600 tabular-nums tracking-tighter">-{formatCurrency(stats.depenses)}</p>
         </Card>
-        <Card className="p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 h-1 w-full bg-orange-500 opacity-20" />
-          <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">Versements</p>
+
+        {/* VERSEMENTS */}
+        <Card className="p-8 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
+          <div className="absolute top-0 left-0 h-1.5 w-full bg-orange-100" />
+          <div className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center mb-4">
+            <ArrowLeftRight className="h-5 w-5 text-orange-500" />
+          </div>
+          <p className="text-[9px] uppercase font-black text-orange-400 mb-3 tracking-widest">Versements</p>
           <p className="text-2xl font-black text-orange-600 tabular-nums tracking-tighter">-{formatCurrency(stats.versements)}</p>
         </Card>
-        <Card className="bg-[#0D1B2A] text-white p-8 rounded-[40px] border-none shadow-xl shadow-slate-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 h-1 w-full bg-[#D4AF37] opacity-40" />
-          <p className="text-[10px] uppercase font-black text-[#D4AF37] mb-3 tracking-widest opacity-80">Solde {isClosed ? "Clôt." : "Théorique"}</p>
+
+        {/* SOLDE THÉORIQUE */}
+        <Card className="p-8 rounded-[40px] border-none shadow-2xl bg-[#0D1B2A] relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
+          <div className="absolute top-0 left-0 h-1.5 w-full bg-[#D4AF37]" />
+          <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
+            <DollarSign className="h-5 w-5 text-[#D4AF37]" />
+          </div>
+          <p className="text-[9px] uppercase font-black text-[#D4AF37] mb-3 tracking-widest opacity-80">Solde Théorique</p>
           <p className="text-2xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p>
         </Card>
       </div>
