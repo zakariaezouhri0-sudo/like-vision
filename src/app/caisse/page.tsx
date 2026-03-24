@@ -139,40 +139,12 @@ function CaisseContent() {
       });
   }, [rawTransactions, isPrepaMode]);
 
-  const groupTransactionsByBC = (list: any[]) => {
-    const grouped: any[] = [];
-    const map: Record<string, any> = {};
-
-    list.forEach(t => {
-      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
-      const canGroup = bcMatch && ["ACHAT VERRES", "ACHAT MONTURE", "VENTE"].includes(t.type);
-      
-      if (canGroup) {
-        const bcId = bcMatch[1];
-        const key = `${t.type}-${bcId}`;
-        if (map[key]) {
-          map[key].montant = roundAmount(map[key].montant + t.montant);
-          map[key].isGrouped = true;
-          map[key].childCount = (map[key].childCount || 1) + 1;
-        } else {
-          map[key] = { ...t, childCount: 1 };
-          grouped.push(map[key]);
-        }
-      } else {
-        grouped.push({ ...t });
-      }
-    });
-    return grouped;
-  };
-
   const salesTransactions = useMemo(() => {
-    const raw = transactions.filter(t => t.type === "VENTE");
-    return groupTransactionsByBC(raw);
+    return transactions.filter(t => t.type === "VENTE");
   }, [transactions]);
   
   const expenseTransactions = useMemo(() => {
     const data = transactions.filter(t => t.type !== "VENTE");
-    const grouped = groupTransactionsByBC(data);
     const priority: Record<string, number> = {
       "ACHAT VERRES": 1,
       "ACHAT MONTURE": 2,
@@ -180,7 +152,7 @@ function CaisseContent() {
       "DEPENSE": 4
     };
     
-    return [...grouped].sort((a, b) => {
+    return [...data].sort((a, b) => {
       const pA = priority[a.type as string] || 99;
       const pB = priority[b.type as string] || 99;
       if (pA !== pB) return pA - pB;
@@ -329,10 +301,6 @@ function CaisseContent() {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut modifier une opération de caisse." });
       return;
     }
-    if (t.isGrouped) {
-      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul de plusieurs opérations." });
-      return;
-    }
     setSelectedTrans(t);
     setEditOp({
       type: t.type,
@@ -375,10 +343,6 @@ function CaisseContent() {
   const handleDeleteOp = async (t: any) => {
     if (!isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut supprimer une opération de caisse." });
-      return;
-    }
-    if (t.isGrouped) {
-      toast({ variant: "destructive", title: "Action Impossible", description: "Cette ligne est un cumul." });
       return;
     }
     if (!confirm("Supprimer cette opération ?")) return;
@@ -553,11 +517,6 @@ function CaisseContent() {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-black uppercase text-[#0D1B2A] leading-tight tracking-tight">{displayLabel}</span>
-                            {t.isGrouped && (
-                              <Badge variant="outline" className="text-[8px] font-black h-4 px-2 border-primary/20 text-primary bg-primary/5 uppercase rounded-full">
-                                <Layers className="h-2.5 w-2.5 mr-1" /> Σ {t.childCount}
-                              </Badge>
-                            )}
                           </div>
                           <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mt-1.5">{t.clientName || "---"}</span>
                         </div>
@@ -568,13 +527,12 @@ function CaisseContent() {
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
                       {isAdminOrPrepa && (
-                        <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-3 transition-opacity">
                           <Button 
                             variant="outline" 
                             size="icon" 
                             onClick={() => handleOpenEdit(t)} 
-                            disabled={t.isGrouped}
-                            className={cn("h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm", t.isGrouped && "opacity-30 cursor-not-allowed")}
+                            className="h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm cursor-pointer"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -582,8 +540,7 @@ function CaisseContent() {
                             variant="outline" 
                             size="icon" 
                             onClick={() => handleDeleteOp(t)} 
-                            disabled={t.isGrouped}
-                            className={cn("h-9 w-9 text-red-500 border-red-100 hover:bg-red-50 rounded-full shadow-sm", t.isGrouped && "opacity-30 cursor-not-allowed")}
+                            className="h-9 w-9 text-red-500 border-red-100 hover:bg-red-50 rounded-full shadow-sm cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

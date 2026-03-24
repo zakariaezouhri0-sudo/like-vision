@@ -12,7 +12,8 @@ export function roundAmount(amount: number): number {
 export function parseAmount(val: string | number): number {
   if (typeof val === 'number') return roundAmount(val);
   if (!val || val === "") return 0;
-  const cleaned = val.toString().replace(/\s/g, '').replace(',', '.');
+  // Nettoyage complet : on enlève tous les types d'espaces (y compris NBSP \u00A0) et on remplace la virgule par un point
+  const cleaned = val.toString().replace(/[\s\u00A0]/g, '').replace(',', '.');
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : roundAmount(parsed);
 }
