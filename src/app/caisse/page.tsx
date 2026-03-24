@@ -456,7 +456,7 @@ function CaisseContent() {
             {isAdminOrPrepa && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all">
+                  <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#0D1B2A] hover:bg-[#D4AF37]/10 transition-all">
                     <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /> CHOISIR UNE AUTRE DATE
                   </Button>
                 </PopoverTrigger>
@@ -613,34 +613,38 @@ function CaisseContent() {
         </Alert>
       )}
 
-      {/* HEADER SECTION - REDESIGNED PER IMAGE */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-transparent py-4 px-2">
-        <div className="flex items-center gap-6">
-          {/* Status Indicator Dot */}
-          <div className="h-12 w-12 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
-            <div className={cn("h-4 w-4 rounded-full", isClosed ? "bg-red-500" : "bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.6)]")} />
+      {/* HEADER SECTION - COMPACT PREMIUM DESIGN */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-transparent py-2 px-2">
+        <div className="flex items-center gap-5">
+          {/* Pulsing Status Dot */}
+          <div className="h-14 w-14 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
+            <div className={cn(
+              "h-4 w-4 rounded-full transition-all duration-1000", 
+              isClosed 
+                ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" 
+                : "bg-emerald-400 shadow-[0_0_15px_#34d399] animate-pulse"
+            )} />
           </div>
           
-          <div className="flex items-center gap-6">
-            <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-wider leading-none">
+          <div className="flex flex-col text-left">
+            <h1 className="text-xl font-black text-[#0D1B2A] uppercase tracking-wider leading-tight">
               {isClosed ? "CAISSE CLÔTURÉE" : "CAISSE OUVERTE"}
             </h1>
-            
-            <div className="bg-white px-6 py-2.5 rounded-full border border-slate-100 shadow-sm flex items-center gap-3">
-              <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
-              <span className="text-[11px] text-[#0D1B2A] font-black tracking-widest uppercase">
+            <div className="flex items-center gap-2 mt-0.5 opacity-60">
+              <CalendarIcon className="h-3 w-3 text-[#D4AF37]" />
+              <span className="text-[10px] text-[#0D1B2A] font-black tracking-[0.1em] uppercase">
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </span>
             </div>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-3">
           {isAdminOrPrepa && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-none bg-white text-slate-500 shadow-sm hover:bg-slate-50 transition-all">
-                  <RotateCcw className="mr-2 h-4 w-4 text-slate-400" /> CHANGER DATE
+                <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-none bg-white text-slate-500 shadow-md hover:bg-slate-50 transition-all">
+                  <RotateCcw className="mr-2 h-3.5 w-3.5 text-slate-400" /> CHANGER DATE
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl">
@@ -652,8 +656,8 @@ function CaisseContent() {
           {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="h-11 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
-                  <Plus className="mr-2 h-4 w-4" /> NOUVELLE OPÉRATION
+                <Button className="h-10 px-6 rounded-full font-black text-[9px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
+                  <Plus className="mr-2 h-3.5 w-3.5" /> NOUVELLE OPÉRATION
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md rounded-[40px] p-10" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
@@ -681,15 +685,15 @@ function CaisseContent() {
             </Dialog>
           )}
 
-          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-none bg-white text-slate-500 shadow-sm hover:bg-slate-50">
-            <FileText className="mr-2 h-4 w-4 text-[#D4AF37]" /> RAPPORT PDF
+          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-none bg-white text-slate-500 shadow-md hover:bg-slate-50">
+            <FileText className="mr-2 h-3.5 w-3.5 text-[#D4AF37]" /> RAPPORT PDF
           </Button>
           
           {!isClosed && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="ghost" className="h-11 px-6 rounded-full font-black text-[10px] uppercase text-red-500 hover:bg-red-50 transition-all">
-                  <LogOut className="mr-2 h-4 w-4" /> CLÔTURE
+                <Button variant="ghost" className="h-10 px-5 rounded-full font-black text-[9px] uppercase text-red-500 hover:bg-red-50 transition-all">
+                  <LogOut className="mr-2 h-3.5 w-3.5" /> CLÔTURE
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl rounded-[60px] p-12 border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleFinalizeClosure()}>
@@ -732,14 +736,14 @@ function CaisseContent() {
           )}
           
           {isClosed && role === 'ADMIN' && (
-            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-11 px-6 rounded-full font-black text-[10px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-sm">
-              <RotateCcw className="mr-2 h-4 w-4" /> RÉ-OUVRIR LA CAISSE
+            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-md">
+              <RotateCcw className="mr-2 h-3.5 w-3.5" /> RÉ-OUVRIR LA CAISSE
             </Button>
           )}
         </div>
       </div>
 
-      {/* STATS CARDS GRID - REDESIGNED PER IMAGE */}
+      {/* STATS CARDS GRID - PREMIUM IMAGE STYLE */}
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
         {/* SOLDE OUVERTURE */}
         <Card className="p-8 rounded-[40px] border-none shadow-xl bg-white relative overflow-hidden flex flex-col items-center justify-center text-center h-52 group">
