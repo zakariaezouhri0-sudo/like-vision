@@ -90,8 +90,8 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex min-h-screen bg-[#0D1B2A] text-white font-body overflow-hidden">
-      {/* Sidebar - Desktop */}
-      <aside className="w-72 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
+      {/* Sidebar - Desktop (Width reduced from w-72 to w-64) */}
+      <aside className="w-64 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <div 
           className="h-24 border-b border-white/5 flex items-center px-6 cursor-pointer"
           onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}
@@ -164,7 +164,7 @@ export function AppShell({ children }: AppShellProps) {
                     <Menu className="h-6 w-6 text-[#0D1B2A]" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-80 bg-[#0D1B2A] border-none">
+                <SheetContent side="left" className="p-0 w-72 bg-[#0D1B2A] border-none">
                   <SheetHeader className="p-6 border-b border-white/5 text-left">
                     <SheetTitle>
                       <LogoContainer size="large" />
