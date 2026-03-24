@@ -13,7 +13,7 @@ import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, Timestamp, query, where, getDocs, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { setHours, format, parse, isValid, isSameDay } from "date-fns";
+import { setHours, format, parse, isValid, isSameDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { roundAmount, cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -126,7 +126,7 @@ export default function ImportPage() {
             const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:Z1');
             for (let C = range.s.c; C <= range.e.c; ++C) {
               const cell = sheet[XLSX.utils.encode_cell({ r: range.s.r, c: C })];
-              if (cell) allHeaders.push(cell.v?.toString().trim());
+              if (cell && cell.v) allHeaders.push(cell.v.toString().trim());
             }
           });
           const uniqueHeaders = Array.from(new Set(allHeaders.filter(h => h)));
@@ -151,6 +151,40 @@ export default function ImportPage() {
     return isNaN(p) ? 0 : roundAmount(p);
   };
 
+  const parseExcelDate = (val: any): Date | null => {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    
+    // Gérer les numéros de série Excel (ex: 45657)
+    if (typeof val === 'number') {
+      return new Date(Math.round((val - 25569) * 86400 * 1000));
+    }
+
+    const s = val.toString().trim();
+    if (!s) return null;
+
+    // Liste exhaustive de formats de date supportés
+    const formats = [
+      "dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", 
+      "dd/MM/yy", "dd-MM-yy", 
+      "d/M/yyyy", "d/M/yy",
+      "dd/MM", "dd MMMM", "d MMMM",
+      "yyyyMMdd", "dd.MM.yyyy"
+    ];
+
+    for (const f of formats) {
+      try {
+        const parsed = parse(s, f, new Date(), { locale: fr });
+        if (isValid(parsed)) {
+          // Si l'année est < 2000, on force 2026 (cas des formats sans année ou années tronquées)
+          if (parsed.getFullYear() < 2000) parsed.setFullYear(2026);
+          return parsed;
+        }
+      } catch (e) {}
+    }
+    return null;
+  };
+
   const ensureClient = async (name: string, isDraft: boolean) => {
     if (!name || name.toUpperCase() === "CLIENT DIVERS" || name === "---") return;
     const q = query(collection(db, "clients"), where("name", "==", name.toUpperCase().trim()), where("isDraft", "==", isDraft));
@@ -170,6 +204,12 @@ export default function ImportPage() {
 
   const handleImportGlobal = async () => {
     if (!workbook || !file) return;
+    
+    if (!mapping.date_col) {
+      toast({ variant: "destructive", title: "Erreur de configuration", description: "Veuillez mapper la colonne 'DATE'." });
+      return;
+    }
+
     setIsProcessing(true);
     const currentIsDraft = role === 'PREPA';
     const userName = user?.displayName || "Import Automatique";
@@ -178,47 +218,40 @@ export default function ImportPage() {
     try {
       let allRows: any[] = [];
       workbook.SheetNames.forEach(sheetName => {
-        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" }) as any[];
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "", blankrows: false }) as any[];
         allRows = [...allRows, ...data.map(r => ({ ...r, _sheet: sheetName }))];
       });
 
-      // 1. Parsing and Filtering by Date
+      // 1. Parsing et Filtrage par Date
       allRows = allRows.map(row => {
-        const val = row[mapping.date_col];
-        let d: Date | null = null;
-        if (val instanceof Date) d = val;
-        else if (typeof val === 'number') {
-          // Excel serial date format
-          d = new Date(Math.round((val - 25569) * 86400 * 1000));
-        } else if (val) {
-          const s = val.toString().trim();
-          const formats = ["dd/MM/yyyy", "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yy", "dd MMMM yyyy", "dd MMMM"];
-          for (const f of formats) {
-            const parsed = parse(s, f, new Date(), { locale: fr });
-            if (isValid(parsed)) { d = parsed; break; }
-          }
-        }
-        // Force year 2026 if unclear or very old
-        if (d && d.getFullYear() < 2000) d.setFullYear(2026);
-        return { ...row, _parsedDate: d };
+        const dateVal = row[mapping.date_col];
+        return { ...row, _parsedDate: parseExcelDate(dateVal) };
       });
 
       if (importMode === 'SINGLE') {
-        allRows = allRows.filter(r => r._parsedDate && isSameDay(r._parsedDate, targetDate));
+        const target = startOfDay(targetDate);
+        allRows = allRows.filter(r => r._parsedDate && isSameDay(startOfDay(r._parsedDate), target));
       } else {
         allRows = allRows.filter(r => r._parsedDate !== null);
       }
 
       if (allRows.length === 0) {
-        toast({ variant: "destructive", title: "Aucune donnée trouvée", description: "Vérifiez vos colonnes et dates." });
+        toast({ 
+          variant: "destructive", 
+          title: "Aucune donnée trouvée", 
+          description: importMode === 'SINGLE' 
+            ? `Vérifiez que votre fichier contient bien la date du ${format(targetDate, 'dd/MM/yyyy')}.` 
+            : "Vérifiez que la colonne DATE est bien remplie dans votre fichier." 
+        });
         setIsProcessing(false);
         return;
       }
 
-      // 2. Process Sales
+      // 2. Traitement des Ventes (Regroupement par N° BON)
       const salesGroups: Record<string, any> = {};
       allRows.forEach(row => {
-        const ref = (row[mapping.ref_vente] || "").toString().trim();
+        const refRaw = row[mapping.ref_vente];
+        const ref = refRaw ? refRaw.toString().trim() : "";
         const clientName = (row[mapping.client_1] || "").toString().trim();
         const totalBrut = cleanNum(row[mapping.total_brut]);
         const avancePaye = cleanNum(row[mapping.avance_paye]);
@@ -272,7 +305,7 @@ export default function ImportPage() {
         }, { merge: true });
       }
 
-      // 3. Process Daily Sessions and Transactions
+      // 3. Traitement des Sessions Journalières et Transactions
       const uniqueDates = Array.from(new Set(allRows.map(r => format(r._parsedDate!, "yyyy-MM-dd")))).sort();
 
       for (let i = 0; i < uniqueDates.length; i++) {
@@ -295,7 +328,8 @@ export default function ImportPage() {
 
         for (const row of dayRows) {
           const rowTimestamp = Timestamp.fromDate(setHours(currentDate, 12));
-          const ref = (row[mapping.ref_vente] || "").toString().trim();
+          const refRaw = row[mapping.ref_vente];
+          const ref = refRaw ? refRaw.toString().trim() : "";
           const currentAvance = cleanNum(row[mapping.avance_paye]);
           
           if (ref && currentAvance > 0) {
@@ -398,7 +432,8 @@ export default function ImportPage() {
       toast({ variant: "success", title: "Importation terminée avec succès !" });
       router.push(importMode === 'SINGLE' ? "/caisse" : "/caisse/sessions");
     } catch (e) { 
-      toast({ variant: "destructive", title: "Erreur lors de l'importation", description: "Vérifiez que le fichier respecte le modèle." }); 
+      console.error(e);
+      toast({ variant: "destructive", title: "Erreur lors de l'importation", description: "Vérifiez que le fichier respecte le modèle et les formats de date." }); 
     } finally { setIsProcessing(false); }
   };
 
