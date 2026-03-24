@@ -75,13 +75,13 @@ export function SidebarNav({ role = "OPTICIENNE" }: { role?: string }) {
             ref={isFinalActive ? activeRef : null}
             prefetch={true}
             className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-full transition-all text-sm font-bold group",
+              "flex items-center gap-3 px-4 py-3 rounded-full transition-all duration-300 text-sm font-bold group",
               isFinalActive 
                 ? "bg-[#D4AF37] text-[#0D1B2A] shadow-lg scale-[1.02]" 
-                : "text-white/70 hover:bg-white/10 hover:text-[#D4AF37]"
+                : "text-white/70 hover:bg-white/10 hover:text-[#D4AF37] active:scale-95"
             )}
           >
-            <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", isFinalActive ? "text-[#0D1B2A]" : "text-[#D4AF37]/40 group-hover:text-[#D4AF37]")} />
+            <Icon className={cn("h-5 w-5 transition-all duration-300 group-hover:scale-110", isFinalActive ? "text-[#0D1B2A]" : "text-[#D4AF37]/40 group-hover:text-[#D4AF37]")} />
             <span className="tracking-tight">{item.label}</span>
           </Link>
         );

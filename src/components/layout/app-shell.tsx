@@ -50,24 +50,24 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   const LogoContainer = ({ size = "large" }: { size?: "small" | "large" }) => {
-    const showPlaceholder = settingsLoading && !settings;
+    const isLoading = settingsLoading && !settings;
     
     return (
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 h-14">
         <div className={cn(
           "flex items-center justify-center shrink-0 relative overflow-hidden rounded-xl transition-all duration-300",
           size === "large" ? "h-14 w-14" : "h-10 w-10",
           "bg-transparent"
         )}>
-          {showPlaceholder ? (
+          {isLoading ? (
             <div className="h-full w-full flex items-center justify-center">
-              <Logo variant="icon" color="#D4AF37" className={cn("transition-opacity duration-500", size === "large" ? "w-10 opacity-20" : "w-7 opacity-20")} />
+              <div className="w-8 h-8 rounded-full border-2 border-[#D4AF37]/20 border-t-[#D4AF37] animate-spin" />
             </div>
           ) : settings?.logoUrl ? (
             <img 
               src={settings.logoUrl} 
               alt="Logo" 
-              className="h-full w-full object-contain p-1 animate-in fade-in duration-500" 
+              className="h-full w-full object-contain p-1 animate-in fade-in duration-700" 
             />
           ) : (
             <Logo variant="icon" color="#D4AF37" className={size === "large" ? "w-10" : "w-7"} />
@@ -75,12 +75,12 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         <div className="flex flex-col justify-center min-w-0 pr-2">
           <span className={cn(
-            "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-colors",
+            "font-black tracking-tighter text-[#D4AF37] leading-tight uppercase block whitespace-nowrap transition-all duration-500",
             size === "large" ? "text-sm lg:text-base" : "text-xs"
           )}>
-            {showPlaceholder ? <div className="h-4 w-24 bg-white/5 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
+            {isLoading ? <div className="h-4 w-24 bg-white/5 animate-pulse rounded" /> : (settings?.name || APP_NAME)}
           </span>
-          <span className="text-[7px] font-black text-[#D4AF37]/60 uppercase tracking-[0.3em] mt-0.5 shrink-0 transition-colors">
+          <span className="text-[7px] font-black text-[#D4AF37]/60 uppercase tracking-[0.3em] mt-0.5 shrink-0">
             Optique Pro
           </span>
         </div>
@@ -91,7 +91,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-[#0D1B2A] text-white font-body overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className="w-72 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40 transition-colors">
+      <aside className="w-72 border-r border-white/5 bg-[#0D1B2A] hidden md:flex flex-col sticky top-0 h-screen shadow-xl z-40">
         <div 
           className="h-24 border-b border-white/5 flex items-center px-6 cursor-pointer"
           onClick={() => router.push(isOpticienne ? "/caisse" : "/dashboard")}
@@ -99,33 +99,49 @@ export function AppShell({ children }: AppShellProps) {
           <LogoContainer size="large" />
         </div>
         
-        <div className="flex-1 py-4 overflow-y-auto px-2 mt-4">
+        <div className="flex-1 py-4 overflow-y-auto px-2 mt-2">
           <SidebarNav role={role} />
         </div>
 
-        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
-          {isHydrated && (
-            <div className={cn(
-              "px-4 py-2 rounded-full border flex items-center gap-2 shadow-sm transition-all",
-              isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/5 text-white border-white/5"
-            )}>
-              <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
-              <span className="text-[9px] font-black uppercase tracking-widest">
-                {isPrepa ? "Espace Brouillon" : "Espace Réel"}
-              </span>
-            </div>
-          )}
+        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3 shrink-0">
+          <div className="h-[34px]">
+            {isHydrated ? (
+              <div className={cn(
+                "px-4 py-2 rounded-full border flex items-center gap-2 shadow-sm transition-all duration-500 animate-in fade-in",
+                isPrepa ? "bg-orange-500 text-white border-orange-600" : "bg-white/5 text-white border-white/5"
+              )}>
+                <div className={cn("h-2 w-2 rounded-full bg-current", isPrepa && "animate-pulse")} />
+                <span className="text-[9px] font-black uppercase tracking-widest">
+                  {isPrepa ? "Espace Brouillon" : "Espace Réel"}
+                </span>
+              </div>
+            ) : (
+              <div className="h-full w-full bg-white/5 rounded-full animate-pulse" />
+            )}
+          </div>
 
-          <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-3xl border border-white/5 shadow-sm transition-all">
-            <Avatar className="h-10 w-10 border-2 border-[#D4AF37]/20 shadow-inner">
-              <AvatarFallback className="bg-[#D4AF37] text-[#0D1B2A] text-xs font-black">{isHydrated ? userInitials : "??"}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black truncate capitalize text-white">{isHydrated ? userName : "Chargement..."}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">
-                {isHydrated ? (role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")) : "..."}
-              </span>
-            </div>
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-3xl border border-white/5 shadow-sm min-h-[64px]">
+            {isHydrated ? (
+              <>
+                <Avatar className="h-10 w-10 border-2 border-[#D4AF37]/20 shadow-inner shrink-0">
+                  <AvatarFallback className="bg-[#D4AF37] text-[#0D1B2A] text-xs font-black">{userInitials}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0 animate-in fade-in slide-in-from-left-2 duration-500">
+                  <span className="text-xs font-black truncate capitalize text-white">{userName}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">
+                    {role === "ADMIN" ? "ADMINISTRATEUR" : (role === "PREPA" ? "ZAKARIAE" : "OPTICIENNE")}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-3 w-full">
+                <div className="h-10 w-10 rounded-full bg-white/5 animate-pulse shrink-0" />
+                <div className="space-y-2 w-full">
+                  <div className="h-3 w-2/3 bg-white/5 animate-pulse rounded" />
+                  <div className="h-2 w-1/3 bg-white/5 animate-pulse rounded" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -133,13 +149,13 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen bg-[#F8F9FA]">
         {isPrepa && (
-          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0 animate-in slide-in-from-top duration-300">
+          <div className="h-10 bg-orange-500 text-white flex items-center justify-center gap-3 px-4 font-black text-[10px] uppercase tracking-[0.2em] shadow-inner shrink-0 animate-in slide-in-from-top duration-500">
             <AlertTriangle className="h-4 w-4" />
             Compte de Préparation : Vos saisies sont isolées (Brouillon).
           </div>
         )}
         
-        <header className="h-20 border-b border-border/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
+        <header className="h-20 border-b border-border/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shrink-0">
           <div className="flex items-center gap-4">
             {isHydrated && (
               <Sheet open={open} onOpenChange={setOpen}>
