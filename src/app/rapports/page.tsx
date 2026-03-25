@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -6,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  FileSpreadsheet,
   Calendar as CalendarIcon,
   Loader2,
   Printer,
@@ -14,12 +14,9 @@ import {
   ChevronDown,
   TrendingUp,
   TrendingDown,
-  Wallet,
   Tag,
-  Receipt,
-  ShoppingCart,
-  Percent,
-  Download
+  Filter,
+  CalendarDays
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -28,9 +25,11 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, isValid } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -46,9 +45,14 @@ export default function ReportsPage() {
 
   const isPrepaMode = role === "PREPA";
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({ 
-    from: new Date(2026, 0, 1), 
-    to: new Date() 
+    from: startOfMonth(new Date()), 
+    to: endOfMonth(new Date()) 
   });
+
+  // Filtres pour l'impression des charges
+  const [includeVerres, setIncludeVerres] = useState(true);
+  const [includeMontures, setIncludeMontures] = useState(true);
+  const [includeFrais, setIncludeFrais] = useState(true);
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc"), limit(2000)), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
@@ -76,7 +80,6 @@ export default function ReportsPage() {
     const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0), 0);
     const expenses = filteredTrans.filter(t => ["DEPENSE", "ACHAT VERRES", "ACHAT MONTURE"].includes(t.type)).reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
-    const versements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     const chargeVerres = filteredTrans.filter(t => t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const chargeMontures = filteredTrans.filter(t => t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
@@ -87,7 +90,6 @@ export default function ReportsPage() {
       volumeFacture: roundAmount(volumeFacture), 
       marge: roundAmount(volumeFacture - costs), 
       expenses: roundAmount(expenses), 
-      versements: roundAmount(versements),
       chargeVerres: roundAmount(chargeVerres),
       chargeMontures: roundAmount(chargeMontures),
       chargeGeral: roundAmount(chargeGeral),
@@ -97,11 +99,25 @@ export default function ReportsPage() {
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
 
   const handlePrintCharges = () => {
+    const types = [];
+    if (includeVerres) types.push("ACHAT VERRES");
+    if (includeMontures) types.push("ACHAT MONTURE");
+    if (includeFrais) types.push("DEPENSE");
+
     const params = new URLSearchParams({
       from: format(dateRange.from, "yyyy-MM-dd"),
-      to: format(dateRange.to, "yyyy-MM-dd")
+      to: format(dateRange.to, "yyyy-MM-dd"),
+      types: types.join(",")
     });
     router.push(`/rapports/print/charges?${params.toString()}`);
+  };
+
+  const setMonth = (monthsAgo: number) => {
+    const target = subMonths(new Date(), monthsAgo);
+    setDateRange({
+      from: startOfMonth(target),
+      to: endOfMonth(target)
+    });
   };
 
   if (loadingRole) return null;
@@ -165,22 +181,28 @@ export default function ReportsPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-full border shadow-inner">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" className="h-12 px-6 rounded-full font-black text-[10px] uppercase bg-white border min-w-[220px] justify-between shadow-sm">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" />
-                  <span>{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
-                <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} locale={fr} />
-              </PopoverContent>
-            </Popover>
-            <Button onClick={() => router.push(`/rapports/print/journalier?date=${format(dateRange.from, "yyyy-MM-dd")}`)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
-              <FileText className="mr-2 h-4 w-4" /> JOURNALIER
-            </Button>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex bg-slate-50 p-1 rounded-full border shadow-inner">
+              <Button variant="ghost" onClick={() => setMonth(0)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase hover:bg-white hover:shadow-sm transition-all">Ce mois</Button>
+              <Button variant="ghost" onClick={() => setMonth(1)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase hover:bg-white hover:shadow-sm transition-all">Mois dernier</Button>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-full border shadow-inner">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="h-12 px-6 rounded-full font-black text-[10px] uppercase bg-white border min-w-[220px] justify-between shadow-sm">
+                    <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" />
+                    <span>{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
+                  <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} locale={fr} />
+                </PopoverContent>
+              </Popover>
+              <Button onClick={() => router.push(`/rapports/print/journalier?date=${format(dateRange.from, "yyyy-MM-dd")}`)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
+                <FileText className="mr-2 h-4 w-4" /> JOURNALIER
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -286,16 +308,37 @@ export default function ReportsPage() {
           </TabsContent>
 
           <TabsContent value="charges" className="mt-6 space-y-10">
-            <div className="flex justify-end px-2">
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[40px] border shadow-lg gap-6">
+              <div className="flex items-center gap-8">
+                <div className="flex items-center gap-3">
+                  <Filter className="h-4 w-4 text-[#D4AF37]" />
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sélection des types :</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Switch id="inc-verres" checked={includeVerres} onCheckedChange={setIncludeVerres} />
+                    <Label htmlFor="inc-verres" className="text-[10px] font-black uppercase cursor-pointer">Verres</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="inc-montures" checked={includeMontures} onCheckedChange={setIncludeMontures} />
+                    <Label htmlFor="inc-montures" className="text-[10px] font-black uppercase cursor-pointer">Montures</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="inc-frais" checked={includeFrais} onCheckedChange={setIncludeFrais} />
+                    <Label htmlFor="inc-frais" className="text-[10px] font-black uppercase cursor-pointer">Frais & Charges</Label>
+                  </div>
+                </div>
+              </div>
+              
               <Button onClick={handlePrintCharges} className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all">
-                <Printer className="mr-2 h-4 w-4" /> IMPRIMER ÉTAT DES CHARGES
+                <Printer className="mr-2 h-4 w-4" /> GÉNÉRER ÉTAT PDF
               </Button>
             </div>
             
             <div className="grid grid-cols-1 gap-10">
-              <RenderChargesTable title="Achats de Verres" type="ACHAT VERRES" color="text-blue-600" icon={Tag} />
-              <RenderChargesTable title="Achats de Montures" type="ACHAT MONTURE" color="text-orange-600" icon={Tag} />
-              <RenderChargesTable title="Charges Générales & Frais" type="DEPENSE" color="text-red-600" icon={TrendingDown} />
+              {includeVerres && <RenderChargesTable title="Achats de Verres" type="ACHAT VERRES" color="text-blue-600" icon={Tag} />}
+              {includeMontures && <RenderChargesTable title="Achats de Montures" type="ACHAT MONTURE" color="text-orange-600" icon={Tag} />}
+              {includeFrais && <RenderChargesTable title="Charges Générales & Frais" type="DEPENSE" color="text-red-600" icon={TrendingDown} />}
             </div>
           </TabsContent>
         </Tabs>

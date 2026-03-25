@@ -1,21 +1,21 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, TrendingDown, Tag } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
-import { format, startOfDay, endOfDay, isValid, parseISO } from "date-fns";
+import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function ChargesReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
-  const [printTime, setPrintTime] = useState<string>("");
   const [role, setRole] = useState<string>("OPTICIENNE");
 
   const dateRange = useMemo(() => {
@@ -27,9 +27,12 @@ function ChargesReportContent() {
     };
   }, [searchParams]);
 
+  const selectedTypes = useMemo(() => {
+    const typesStr = searchParams.get("types");
+    return typesStr ? typesStr.split(",") : ["ACHAT VERRES", "ACHAT MONTURE", "DEPENSE"];
+  }, [searchParams]);
+
   useEffect(() => {
-    const now = new Date();
-    setPrintTime(format(now, "HH:mm"));
     document.title = `Charges - ${format(dateRange.from, "dd/MM/yyyy")}`;
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
@@ -62,7 +65,11 @@ function ChargesReportContent() {
   const categorizedData = useMemo(() => {
     if (!rawTransactions) return { verres: [], montures: [], depenses: [], total: 0 };
     
-    const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    const filtered = rawTransactions.filter((t: any) => {
+      const modeMatch = isPrepaMode ? t.isDraft === true : t.isDraft !== true;
+      const typeMatch = selectedTypes.includes(t.type);
+      return modeMatch && typeMatch;
+    });
     
     const verres = filtered.filter(t => t.type === "ACHAT VERRES");
     const montures = filtered.filter(t => t.type === "ACHAT MONTURE");
@@ -81,7 +88,7 @@ function ChargesReportContent() {
         depenses: roundAmount(sum(depenses))
       }
     };
-  }, [rawTransactions, isPrepaMode]);
+  }, [rawTransactions, isPrepaMode, selectedTypes]);
 
   if (settingsLoading || transLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
@@ -157,15 +164,15 @@ function ChargesReportContent() {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-10">
-          <div className="p-4 rounded-2xl bg-blue-50 text-center border border-blue-100"><p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Achats Verres</p><p className="text-xl font-black text-blue-700 tabular-nums">{formatCurrency(categorizedData.totals.verres, false)}</p></div>
-          <div className="p-4 rounded-2xl bg-orange-50 text-center border border-orange-100"><p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Achats Montures</p><p className="text-xl font-black text-orange-700 tabular-nums">{formatCurrency(categorizedData.totals.montures, false)}</p></div>
-          <div className="p-4 rounded-2xl bg-red-50 text-center border border-red-100"><p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Frais & Charges</p><p className="text-xl font-black text-red-700 tabular-nums">{formatCurrency(categorizedData.totals.depenses, false)}</p></div>
+          {selectedTypes.includes("ACHAT VERRES") && <div className="p-4 rounded-2xl bg-blue-50 text-center border border-blue-100"><p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Achats Verres</p><p className="text-xl font-black text-blue-700 tabular-nums">{formatCurrency(categorizedData.totals.verres, false)}</p></div>}
+          {selectedTypes.includes("ACHAT MONTURE") && <div className="p-4 rounded-2xl bg-orange-50 text-center border border-orange-100"><p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Achats Montures</p><p className="text-xl font-black text-orange-700 tabular-nums">{formatCurrency(categorizedData.totals.montures, false)}</p></div>}
+          {selectedTypes.includes("DEPENSE") && <div className="p-4 rounded-2xl bg-red-50 text-center border border-red-100"><p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1">Frais & Charges</p><p className="text-xl font-black text-red-700 tabular-nums">{formatCurrency(categorizedData.totals.depenses, false)}</p></div>}
         </div>
 
         <div className="flex-1">
-          <RenderSection title="Détail Achats Verres" data={categorizedData.verres} icon={Tag} colorClass="bg-blue-600" />
-          <RenderSection title="Détail Achats Montures" data={categorizedData.montures} icon={Tag} colorClass="bg-orange-600" />
-          <RenderSection title="Charges Générales & Frais" data={categorizedData.depenses} icon={TrendingDown} colorClass="bg-red-600" />
+          {selectedTypes.includes("ACHAT VERRES") && <RenderSection title="Détail Achats Verres" data={categorizedData.verres} icon={Tag} colorClass="bg-blue-600" />}
+          {selectedTypes.includes("ACHAT MONTURE") && <RenderSection title="Détail Achats Montures" data={categorizedData.montures} icon={Tag} colorClass="bg-orange-600" />}
+          {selectedTypes.includes("DEPENSE") && <RenderSection title="Charges Générales & Frais" data={categorizedData.depenses} icon={TrendingDown} colorClass="bg-red-600" />}
         </div>
 
         <div className="mt-8 pt-6 border-t-4 border-slate-900 flex justify-between items-center">
