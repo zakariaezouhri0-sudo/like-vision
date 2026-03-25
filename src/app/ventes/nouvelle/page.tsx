@@ -292,15 +292,23 @@ function NewSaleForm() {
     }
 
     try {
-      const bonCheckQuery = query(collection(db, "sales"), where("bonNumber", "==", bonNumber.trim()));
-      const bonCheckSnap = await getDocs(bonCheckQuery);
-      const isDuplicate = bonCheckSnap.docs.some(d => (activeEditId ? d.id !== activeEditId : true) && d.data().isDraft === currentIsDraft);
+      if (bonNumber) {
+        const bonCheckQuery = query(
+          collection(db, "sales"), 
+          where("bonNumber", "==", bonNumber.trim()),
+          where("isDraft", "==", currentIsDraft)
+        );
+        const bonCheckSnap = await getDocs(bonCheckQuery);
+        
+        // Exclure le document actuel en cas de modification
+        const otherSales = bonCheckSnap.docs.filter(d => activeEditId ? d.id !== activeEditId : true);
 
-      if (isDuplicate) {
-        setBonError(true);
-        toast({ variant: "destructive", title: "Erreur", description: "Ce Numéro de Bon existe déjà !" });
-        setLoading(false);
-        return;
+        if (otherSales.length > 0) {
+          setBonError(true);
+          toast({ variant: "destructive", title: "Erreur", description: "Ce Numéro de Bon existe déjà !" });
+          setLoading(false);
+          return;
+        }
       }
       setBonError(false);
 
