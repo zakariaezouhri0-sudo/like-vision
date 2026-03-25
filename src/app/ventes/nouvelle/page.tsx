@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -87,6 +87,7 @@ function NewSaleForm() {
   );
   const [discountValue, setDiscountValue] = useState<string>(searchParams.get("discountValue") ? (searchParams.get("discountType") === 'percent' ? searchParams.get("discountValue")! : formatCurrency(searchParams.get("discountValue")!)) : "");
   const [avance, setAvance] = useState<string>(searchParams.get("avance") ? formatCurrency(searchParams.get("avance")!) : "");
+  const [avanceAnte, setAvanceAnte] = useState<string>("");
 
   const [prescription, setPrescription] = useState({
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
@@ -231,9 +232,10 @@ function NewSaleForm() {
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
   const nAvance = useMemo(() => parseAmount(avance), [avance]);
+  const nAvanceAnte = useMemo(() => parseAmount(avanceAnte), [avanceAnte]);
   const calculatedRemise = useMemo(() => discountType === 'percent' ? roundAmount((nTotal * nDiscountVal) / 100) : roundAmount(nDiscountVal), [nTotal, nDiscountVal, discountType]);
   const totalNetValue = useMemo(() => roundAmount(Math.max(0, nTotal - calculatedRemise)), [nTotal, calculatedRemise]);
-  const resteAPayerValue = useMemo(() => roundAmount(Math.max(0, totalNetValue - nAvance)), [totalNetValue, nAvance]);
+  const resteAPayerValue = useMemo(() => roundAmount(Math.max(0, totalNetValue - nAvance - nAvanceAnte)), [totalNetValue, nAvance, nAvanceAnte]);
 
   const handlePhoneChange = (val: string) => {
     if (isReadOnly) return;
@@ -271,17 +273,14 @@ function NewSaleForm() {
     const currentIsDraft = isPrepaMode;
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
 
-    // Amélioration de la détection du client ID avant sauvegarde
     let finalClientId = selectedClientId;
     if (!finalClientId && !isFamilyMode) {
       try {
-        // 1. Chercher par téléphone
         if (cleanedPhone.length >= 8) {
           const q = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("phone", "==", cleanedPhone), limit(1));
           const snap = await getDocs(q);
           if (!snap.empty) finalClientId = snap.docs[0].id;
         }
-        // 2. Chercher par nom exact si toujours pas trouvé
         if (!finalClientId) {
           const qName = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("name", "==", clientName.trim().toUpperCase()), limit(1));
           const snapName = await getDocs(qName);
@@ -316,7 +315,7 @@ function NewSaleForm() {
 
         const saleRef = activeEditId ? doc(db, "sales", activeEditId) : doc(collection(db, "sales"));
         const isPaid = resteAPayerValue <= 0;
-        const statut = isPaid ? "Payé" : (nAvance > 0 ? "Partiel" : "En attente");
+        const statut = isPaid ? "Payé" : ((nAvance + nAvanceAnte) > 0 ? "Partiel" : "En attente");
         let invoiceId = editableInvoiceId || "";
 
         if (!activeEditId) {
@@ -329,18 +328,24 @@ function NewSaleForm() {
         const saleData: any = {
           invoiceId, bonNumber, fromDoctor, clientName: clientName.toUpperCase(), clientPhone: cleanedPhone,
           mutuelle: finalMutuelle, notes, total: nTotal, remise: calculatedRemise,
-          discountType, discountValue: nDiscountVal, avance: nAvance, reste: resteAPayerValue,
+          discountType, discountValue: nDiscountVal, avance: roundAmount(nAvance + nAvanceAnte), reste: resteAPayerValue,
           statut, prescription, isDraft: currentIsDraft, updatedAt: serverTimestamp(), createdAt: Timestamp.fromDate(saleDate)
         };
 
         if (!activeEditId) {
           saleData.createdBy = currentUserName;
-          saleData.payments = nAvance > 0 ? [{ amount: nAvance, date: new Date().toISOString(), userName: currentUserName }] : [];
+          const payments = [];
+          if (nAvanceAnte > 0) {
+            payments.push({ amount: nAvanceAnte, date: new Date(2025, 11, 31).toISOString(), userName: "Historique", note: "Avance antérieure" });
+          }
+          if (nAvance > 0) {
+            payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
+          }
+          saleData.payments = payments;
         }
 
         transaction.set(saleRef, saleData, { merge: true });
 
-        // Mise à jour ou création du client
         const clientRef = finalClientId ? doc(db, "clients", finalClientId) : doc(collection(db, "clients"));
         const clientData: any = {
           name: clientName.toUpperCase(), 
@@ -350,7 +355,6 @@ function NewSaleForm() {
           isDraft: currentIsDraft, 
           updatedAt: serverTimestamp()
         };
-        // Ajouter createdAt seulement si c'est un nouveau client
         if (!finalClientId) {
           clientData.createdAt = serverTimestamp();
         }
@@ -379,7 +383,7 @@ function NewSaleForm() {
           mutuelle: finalMutuelle,
           total: nTotal.toString(),
           remise: calculatedRemise.toString(),
-          avance: nAvance.toString(),
+          avance: roundAmount(nAvance + nAvanceAnte).toString(),
           od_sph: prescription.od.sph, od_cyl: prescription.od.cyl, od_axe: prescription.od.axe, od_add: prescription.od.add,
           og_sph: prescription.og.sph, og_cyl: prescription.og.cyl, og_axe: prescription.og.axe, og_add: prescription.og.add,
           date: format(saleDate, "dd-MM-yyyy")
@@ -589,22 +593,46 @@ function NewSaleForm() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white/5 p-6 rounded-3xl shadow-inner border border-white/5">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <HandCoins className="h-4 w-4 text-[#D4AF37]" />
-                          <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE</Label>
+
+                    <div className="space-y-4">
+                      {isAdminOrPrepa && (
+                        <div className="bg-[#D4AF37]/5 p-6 rounded-3xl shadow-inner border border-[#D4AF37]/10">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <History className="h-4 w-4 text-[#D4AF37]" />
+                              <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">AVANCE ANTÉRIEURE</Label>
+                            </div>
+                            <input 
+                              type="text" 
+                              className="bg-transparent text-right font-black text-xl text-white outline-none w-32 tabular-nums" 
+                              placeholder="0,00"
+                              value={avanceAnte} 
+                              onChange={e => !isReadOnly && setAvanceAnte(e.target.value)} 
+                              onBlur={() => !isReadOnly && avanceAnte && setAvanceAnte(formatCurrency(parseAmount(avanceAnte)))} 
+                              readOnly={isReadOnly}
+                            />
+                          </div>
                         </div>
-                        <input 
-                          type="text" 
-                          className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
-                          value={avance} 
-                          onChange={e => !isReadOnly && setAvance(e.target.value)} 
-                          onBlur={() => !isReadOnly && avance && setAvance(formatCurrency(parseAmount(avance)))} 
-                          readOnly={isReadOnly}
-                        />
+                      )}
+
+                      <div className="bg-white/5 p-6 rounded-3xl shadow-inner border border-white/5">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <HandCoins className="h-4 w-4 text-[#D4AF37]" />
+                            <Label className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">VERSEMENT DU JOUR</Label>
+                          </div>
+                          <input 
+                            type="text" 
+                            className="bg-transparent text-right font-black text-2xl text-white outline-none w-40 tabular-nums border-b border-white/10 focus:border-[#D4AF37] transition-colors" 
+                            value={avance} 
+                            onChange={e => !isReadOnly && setAvance(e.target.value)} 
+                            onBlur={() => !isReadOnly && avance && setAvance(formatCurrency(parseAmount(avance)))} 
+                            readOnly={isReadOnly}
+                          />
+                        </div>
                       </div>
                     </div>
+
                     <div className={cn("p-6 rounded-3xl text-center shadow-2xl border-2 transition-all", resteAPayerValue > 0 ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400")}>
                       <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1">Reste à Régler</p>
                       <p className="text-4xl font-black tabular-nums tracking-tighter">{formatCurrency(resteAPayerValue)}</p>

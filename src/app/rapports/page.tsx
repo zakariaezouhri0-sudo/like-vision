@@ -18,7 +18,8 @@ import {
   Tag,
   Receipt,
   ShoppingCart,
-  Percent
+  Percent,
+  Download
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -44,7 +45,6 @@ export default function ReportsPage() {
   }, [router]);
 
   const isPrepaMode = role === "PREPA";
-  // Modification : Date de début fixée au 01/01/2026 par défaut
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({ 
     from: new Date(2026, 0, 1), 
     to: new Date() 
@@ -80,6 +80,7 @@ export default function ReportsPage() {
 
     const chargeVerres = filteredTrans.filter(t => t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const chargeMontures = filteredTrans.filter(t => t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+    const chargeGeral = filteredTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     return { 
       ca: roundAmount(ca), 
@@ -89,12 +90,65 @@ export default function ReportsPage() {
       versements: roundAmount(versements),
       chargeVerres: roundAmount(chargeVerres),
       chargeMontures: roundAmount(chargeMontures),
+      chargeGeral: roundAmount(chargeGeral),
       filteredSales, 
       filteredTrans 
     };
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
 
+  const handlePrintCharges = () => {
+    const params = new URLSearchParams({
+      from: format(dateRange.from, "yyyy-MM-dd"),
+      to: format(dateRange.to, "yyyy-MM-dd")
+    });
+    router.push(`/rapports/print/charges?${params.toString()}`);
+  };
+
   if (loadingRole) return null;
+
+  const RenderChargesTable = ({ title, type, color, icon: Icon }: any) => {
+    const data = stats.filteredTrans.filter(t => t.type === type);
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b pb-2 px-2">
+          <h3 className={cn("text-xs font-black uppercase flex items-center gap-2", color)}>
+            <Icon className="h-4 w-4" /> {title}
+          </h3>
+          <Badge className={cn("text-[10px] font-black uppercase", color.replace('text-', 'bg-') + '/10 ' + color)}>
+            Total: {formatCurrency(data.reduce((acc, t) => acc + Math.abs(t.montant), 0))}
+          </Badge>
+        </div>
+        <div className="overflow-hidden border rounded-2xl bg-white">
+          <Table>
+            <TableBody>
+              {data.length > 0 ? data.map(t => {
+                const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+                const bcNum = bcMatch ? bcMatch[1] : "---";
+                return (
+                  <TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0">
+                    <TableCell className="py-4 font-bold text-[10px] text-slate-400 w-24">
+                      {t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yy") : "---"}
+                    </TableCell>
+                    <TableCell className="py-4 font-black uppercase text-[11px] text-[#0D1B2A]">
+                      {t.label}
+                    </TableCell>
+                    <TableCell className="py-4 text-center font-black text-[10px] text-slate-400 w-20">
+                      {bcNum !== "---" ? `BC ${bcNum}` : "---"}
+                    </TableCell>
+                    <TableCell className="py-4 text-right font-black text-xs tabular-nums text-red-500 w-32">
+                      -{formatCurrency(Math.abs(t.montant))}
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow><TableCell className="text-center py-8 text-[9px] font-black uppercase opacity-20">Aucune opération.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <AppShell>
@@ -231,51 +285,18 @@ export default function ReportsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="charges" className="mt-6">
-            <Card className="rounded-[60px] shadow-xl border-none overflow-hidden bg-white">
-              <Table>
-                <TableHeader className="bg-[#0D1B2A]">
-                  <TableRow>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Date</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Catégorie</TableHead>
-                    <TableHead className="text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Libellé / Fournisseur</TableHead>
-                    <TableHead className="text-center text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">BC N°</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase font-black px-10 py-6 text-[#D4AF37] tracking-widest">Montant</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.filteredTrans.filter(t => t.type !== "VENTE").length > 0 ? stats.filteredTrans.filter(t => t.type !== "VENTE").map(t => {
-                    const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
-                    const bcNum = bcMatch ? bcMatch[1] : "---";
-                    
-                    return (
-                      <TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0">
-                        <TableCell className="px-10 py-6 font-bold text-[11px] text-slate-400">
-                          {t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---"}
-                        </TableCell>
-                        <TableCell className="px-10 py-6">
-                          <Badge variant="outline" className={cn(
-                            "text-[9px] font-black uppercase border-none",
-                            t.type === "ACHAT VERRES" ? "bg-blue-50 text-blue-700" : 
-                            t.type === "ACHAT MONTURE" ? "bg-orange-50 text-orange-700" : 
-                            "bg-slate-50 text-slate-700"
-                          )}>
-                            {t.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-10 py-6 font-black uppercase text-xs text-[#0D1B2A]">{t.label}</TableCell>
-                        <TableCell className="text-center px-10 py-6 font-black text-xs text-slate-500 tabular-nums">{bcNum}</TableCell>
-                        <TableCell className="text-right px-10 py-6 font-black text-sm tabular-nums text-red-500">
-                          -{formatCurrency(Math.abs(t.montant))}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }) : (
-                    <TableRow><TableCell colSpan={5} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Aucune dépense enregistrée sur cette période.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
+          <TabsContent value="charges" className="mt-6 space-y-10">
+            <div className="flex justify-end px-2">
+              <Button onClick={handlePrintCharges} className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all">
+                <Printer className="mr-2 h-4 w-4" /> IMPRIMER ÉTAT DES CHARGES
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-10">
+              <RenderChargesTable title="Achats de Verres" type="ACHAT VERRES" color="text-blue-600" icon={Tag} />
+              <RenderChargesTable title="Achats de Montures" type="ACHAT MONTURE" color="text-orange-600" icon={Tag} />
+              <RenderChargesTable title="Charges Générales & Frais" type="DEPENSE" color="text-red-600" icon={TrendingDown} />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
