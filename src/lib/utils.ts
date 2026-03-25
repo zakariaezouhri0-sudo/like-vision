@@ -58,16 +58,22 @@ export async function sendWhatsApp(phone: string, message: string) {
   if (!phone || !message) return;
 
   try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    // Vérifie si le document a le focus pour éviter l'erreur NotAllowedError: Document is not focused
+    // Cette erreur survient souvent après une opération asynchrone (Firestore) qui dure plus de quelques secondes
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.clipboard && document.hasFocus()) {
       await navigator.clipboard.writeText(message);
     }
   } catch (err) {
-    console.error("Erreur clipboard:", err);
+    // On logge simplement un avertissement car l'accès au presse-papier n'est pas critique
+    console.warn("Clipboard access skipped (document not focused or permission denied)");
   }
 
   const cleanPhone = phone.replace(/\D/g, '');
   const formattedPhone = cleanPhone.startsWith('0') ? '212' + cleanPhone.substring(1) : cleanPhone;
-  window.open(`https://wa.me/${formattedPhone}`, '_blank');
+  
+  // On passe le texte dans l'URL comme solution de secours robuste
+  const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
 }
 
 export const copyAndOpenWhatsApp = sendWhatsApp;
