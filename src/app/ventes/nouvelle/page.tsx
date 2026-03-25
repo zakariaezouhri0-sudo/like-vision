@@ -220,16 +220,13 @@ function NewSaleForm() {
       if (selectedClientId === client.id) return;
 
       const cleanedPhone = clientPhone.replace(/\s/g, "");
-      const isPhoneMatch = cleanedPhone === client.phone;
-      const isNameExactMatch = clientName.trim().toUpperCase() === client.name.toUpperCase();
+      const isPhoneMatch = cleanedPhone.length >= 8 && cleanedPhone === client.phone;
       
-      if (isPhoneMatch && !clientName) {
-        handleSelectMember(client);
-      } else if (isNameExactMatch && !clientPhone) {
+      if (isPhoneMatch) {
         handleSelectMember(client);
       }
     }
-  }, [matchedClients, clientPhone, clientName, isFamilyMode, activeEditId, selectedClientId, isReadOnly]);
+  }, [matchedClients, clientPhone, isFamilyMode, activeEditId, selectedClientId, isReadOnly]);
 
   const nTotal = useMemo(() => parseAmount(total), [total]);
   const nDiscountVal = useMemo(() => parseAmount(discountValue), [discountValue]);
@@ -274,21 +271,24 @@ function NewSaleForm() {
     const currentIsDraft = isPrepaMode;
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
 
+    // Amélioration de la détection du client ID avant sauvegarde
     let finalClientId = selectedClientId;
-    if (!finalClientId && cleanedPhone.length >= 8) {
+    if (!finalClientId && !isFamilyMode) {
       try {
-        const q = query(
-          collection(db, "clients"),
-          where("isDraft", "==", currentIsDraft),
-          where("phone", "==", cleanedPhone),
-          limit(1)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          finalClientId = snap.docs[0].id;
+        // 1. Chercher par téléphone
+        if (cleanedPhone.length >= 8) {
+          const q = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("phone", "==", cleanedPhone), limit(1));
+          const snap = await getDocs(q);
+          if (!snap.empty) finalClientId = snap.docs[0].id;
+        }
+        // 2. Chercher par nom exact si toujours pas trouvé
+        if (!finalClientId) {
+          const qName = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("name", "==", clientName.trim().toUpperCase()), limit(1));
+          const snapName = await getDocs(qName);
+          if (!snapName.empty) finalClientId = snapName.docs[0].id;
         }
       } catch (e) {
-        console.error("Erreur recherche client:", e);
+        console.error("Erreur lookup client:", e);
       }
     }
 
@@ -340,11 +340,22 @@ function NewSaleForm() {
 
         transaction.set(saleRef, saleData, { merge: true });
 
+        // Mise à jour ou création du client
         const clientRef = finalClientId ? doc(db, "clients", finalClientId) : doc(collection(db, "clients"));
-        transaction.set(clientRef, {
-          name: clientName.toUpperCase(), phone: cleanedPhone,
-          mutuelle: finalMutuelle, lastVisit: format(new Date(), "dd/MM/yyyy"), isDraft: currentIsDraft, updatedAt: serverTimestamp()
-        }, { merge: true });
+        const clientData: any = {
+          name: clientName.toUpperCase(), 
+          phone: cleanedPhone,
+          mutuelle: finalMutuelle, 
+          lastVisit: format(new Date(), "dd/MM/yyyy"), 
+          isDraft: currentIsDraft, 
+          updatedAt: serverTimestamp()
+        };
+        // Ajouter createdAt seulement si c'est un nouveau client
+        if (!finalClientId) {
+          clientData.createdAt = serverTimestamp();
+        }
+
+        transaction.set(clientRef, clientData, { merge: true });
 
         if (nAvance > 0 && !activeEditId) {
           transaction.set(doc(collection(db, "transactions")), {
@@ -378,7 +389,8 @@ function NewSaleForm() {
         router.push("/ventes");
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message === "SESSION_CLOSED" ? "Caisse clôturée." : "Erreur technique." });
+      console.error(err);
+      toast({ variant: "destructive", title: "Erreur", description: err.message === "SESSION_CLOSED" ? "Caisse clôturée." : "Erreur technique lors de la sauvegarde." });
     } finally { setLoading(false); }
   };
 
