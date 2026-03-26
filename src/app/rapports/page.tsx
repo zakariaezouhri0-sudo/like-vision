@@ -16,7 +16,8 @@ import {
   TrendingDown,
   Tag,
   Filter,
-  CalendarDays
+  CalendarDays,
+  Landmark
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -53,6 +54,7 @@ export default function ReportsPage() {
   const [includeVerres, setIncludeVerres] = useState(true);
   const [includeMontures, setIncludeMontures] = useState(true);
   const [includeFrais, setIncludeFrais] = useState(true);
+  const [includeVersements, setIncludeVersements] = useState(true);
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc"), limit(2000)), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
@@ -79,11 +81,12 @@ export default function ReportsPage() {
     const ca = filteredTrans.filter(t => t.type === "VENTE").reduce((acc, t) => acc + (Number(t.montant) || 0), 0);
     const volumeFacture = filteredSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
     const costs = filteredSales.reduce((acc, s) => acc + (Number(s.purchasePriceFrame) || 0) + (Number(s.purchasePriceLenses) || 0), 0);
-    const expenses = filteredTrans.filter(t => ["DEPENSE", "ACHAT VERRES", "ACHAT MONTURE"].includes(t.type)).reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+    const expenses = filteredTrans.filter(t => ["DEPENSE", "ACHAT VERRES", "ACHAT MONTURE", "VERSEMENT"].includes(t.type)).reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     const chargeVerres = filteredTrans.filter(t => t.type === "ACHAT VERRES").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const chargeMontures = filteredTrans.filter(t => t.type === "ACHAT MONTURE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
     const chargeGeral = filteredTrans.filter(t => t.type === "DEPENSE").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+    const chargeVersements = filteredTrans.filter(t => t.type === "VERSEMENT").reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
     return { 
       ca: roundAmount(ca), 
@@ -93,6 +96,7 @@ export default function ReportsPage() {
       chargeVerres: roundAmount(chargeVerres),
       chargeMontures: roundAmount(chargeMontures),
       chargeGeral: roundAmount(chargeGeral),
+      chargeVersements: roundAmount(chargeVersements),
       filteredSales, 
       filteredTrans 
     };
@@ -103,6 +107,7 @@ export default function ReportsPage() {
     if (includeVerres) types.push("ACHAT VERRES");
     if (includeMontures) types.push("ACHAT MONTURE");
     if (includeFrais) types.push("DEPENSE");
+    if (includeVersements) types.push("VERSEMENT");
 
     const params = new URLSearchParams({
       from: format(dateRange.from, "yyyy-MM-dd"),
@@ -308,30 +313,34 @@ export default function ReportsPage() {
           </TabsContent>
 
           <TabsContent value="charges" className="mt-6 space-y-10">
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[40px] border shadow-lg gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[40px] border shadow-lg gap-8">
               <div className="flex items-center gap-8">
                 <div className="flex items-center gap-3">
-                  <Filter className="h-4 w-4 text-[#D4AF37]" />
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sélection des types :</span>
+                  <Filter className="h-5 w-5 text-[#D4AF37]" />
+                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Sélection des types :</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="flex items-center space-x-2">
-                    <Switch id="inc-verres" checked={includeVerres} onCheckedChange={setIncludeVerres} />
-                    <Label htmlFor="inc-verres" className="text-[10px] font-black uppercase cursor-pointer">Verres</Label>
+                <div className="flex flex-wrap items-center gap-8">
+                  <div className="flex items-center space-x-3 bg-blue-50/50 px-4 py-2 rounded-2xl border border-blue-100">
+                    <Switch id="inc-verres" checked={includeVerres} onCheckedChange={setIncludeVerres} className="data-[state=checked]:bg-blue-600" />
+                    <Label htmlFor="inc-verres" className="text-[11px] font-black uppercase cursor-pointer text-blue-700 tracking-tight">Verres</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="inc-montures" checked={includeMontures} onCheckedChange={setIncludeMontures} />
-                    <Label htmlFor="inc-montures" className="text-[10px] font-black uppercase cursor-pointer">Montures</Label>
+                  <div className="flex items-center space-x-3 bg-orange-50/50 px-4 py-2 rounded-2xl border border-orange-100">
+                    <Switch id="inc-montures" checked={includeMontures} onCheckedChange={setIncludeMontures} className="data-[state=checked]:bg-orange-600" />
+                    <Label htmlFor="inc-montures" className="text-[11px] font-black uppercase cursor-pointer text-orange-700 tracking-tight">Montures</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="inc-frais" checked={includeFrais} onCheckedChange={setIncludeFrais} />
-                    <Label htmlFor="inc-frais" className="text-[10px] font-black uppercase cursor-pointer">Frais & Charges</Label>
+                  <div className="flex items-center space-x-3 bg-red-50/50 px-4 py-2 rounded-2xl border border-red-100">
+                    <Switch id="inc-frais" checked={includeFrais} onCheckedChange={setIncludeFrais} className="data-[state=checked]:bg-red-600" />
+                    <Label htmlFor="inc-frais" className="text-[11px] font-black uppercase cursor-pointer text-red-700 tracking-tight">Frais & Charges</Label>
+                  </div>
+                  <div className="flex items-center space-x-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
+                    <Switch id="inc-versements" checked={includeVersements} onCheckedChange={setIncludeVersements} className="data-[state=checked]:bg-[#0D1B2A]" />
+                    <Label htmlFor="inc-versements" className="text-[11px] font-black uppercase cursor-pointer text-[#0D1B2A] tracking-tight">Versements</Label>
                   </div>
                 </div>
               </div>
               
-              <Button onClick={handlePrintCharges} className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all">
-                <Printer className="mr-2 h-4 w-4" /> GÉNÉRER ÉTAT PDF
+              <Button onClick={handlePrintCharges} className="h-14 px-10 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95">
+                <Printer className="mr-3 h-5 w-5" /> GÉNÉRER ÉTAT PDF
               </Button>
             </div>
             
@@ -339,6 +348,7 @@ export default function ReportsPage() {
               {includeVerres && <RenderChargesTable title="Achats de Verres" type="ACHAT VERRES" color="text-blue-600" icon={Tag} />}
               {includeMontures && <RenderChargesTable title="Achats de Montures" type="ACHAT MONTURE" color="text-orange-600" icon={Tag} />}
               {includeFrais && <RenderChargesTable title="Charges Générales & Frais" type="DEPENSE" color="text-red-600" icon={TrendingDown} />}
+              {includeVersements && <RenderChargesTable title="Versements Bancaires" type="VERSEMENT" color="text-[#0D1B2A]" icon={Landmark} />}
             </div>
           </TabsContent>
         </Tabs>
