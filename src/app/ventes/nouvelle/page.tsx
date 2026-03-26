@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -293,21 +294,26 @@ function NewSaleForm() {
 
     try {
       if (bonNumber) {
-        const bonCheckQuery = query(
-          collection(db, "sales"), 
-          where("bonNumber", "==", bonNumber.trim()),
-          where("isDraft", "==", currentIsDraft)
-        );
-        const bonCheckSnap = await getDocs(bonCheckQuery);
+        // Uniquement lancer la vérification si le numéro de bon a changé ou si c'est une nouvelle vente
+        const isBonNumberChanged = !existingSale || bonNumber.trim() !== (existingSale.bonNumber || "").trim();
         
-        // Exclure le document actuel en cas de modification
-        const otherSales = bonCheckSnap.docs.filter(d => activeEditId ? d.id !== activeEditId : true);
+        if (isBonNumberChanged) {
+          const bonCheckQuery = query(
+            collection(db, "sales"), 
+            where("bonNumber", "==", bonNumber.trim()),
+            where("isDraft", "==", currentIsDraft)
+          );
+          const bonCheckSnap = await getDocs(bonCheckQuery);
+          
+          // Exclure le document actuel en cas de modification
+          const otherSales = bonCheckSnap.docs.filter(d => activeEditId ? d.id !== activeEditId : true);
 
-        if (otherSales.length > 0) {
-          setBonError(true);
-          toast({ variant: "destructive", title: "Erreur", description: "Ce Numéro de Bon existe déjà !" });
-          setLoading(false);
-          return;
+          if (otherSales.length > 0) {
+            setBonError(true);
+            toast({ variant: "destructive", title: "Erreur", description: "Ce Numéro de Bon existe déjà !" });
+            setLoading(false);
+            return;
+          }
         }
       }
       setBonError(false);
