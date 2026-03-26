@@ -314,32 +314,32 @@ export default function ReportsPage() {
 
           <TabsContent value="charges" className="mt-6 space-y-10">
             <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[40px] border shadow-lg gap-8">
-              <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center gap-6 overflow-hidden">
+                <div className="flex items-center gap-3 shrink-0">
                   <Filter className="h-5 w-5 text-[#D4AF37]" />
-                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Sélection des types :</span>
+                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest hidden sm:inline">Sélection :</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-8">
-                  <div className="flex items-center space-x-3 bg-blue-50/50 px-4 py-2 rounded-2xl border border-blue-100">
+                <div className="flex flex-nowrap items-center gap-4 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+                  <div className="flex items-center space-x-3 bg-blue-50/50 px-4 py-2 rounded-2xl border border-blue-100 shrink-0">
                     <Switch id="inc-verres" checked={includeVerres} onCheckedChange={setIncludeVerres} className="data-[state=checked]:bg-blue-600" />
                     <Label htmlFor="inc-verres" className="text-[11px] font-black uppercase cursor-pointer text-blue-700 tracking-tight">Verres</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-orange-50/50 px-4 py-2 rounded-2xl border border-orange-100">
+                  <div className="flex items-center space-x-3 bg-orange-50/50 px-4 py-2 rounded-2xl border border-orange-100 shrink-0">
                     <Switch id="inc-montures" checked={includeMontures} onCheckedChange={setIncludeMontures} className="data-[state=checked]:bg-orange-600" />
                     <Label htmlFor="inc-montures" className="text-[11px] font-black uppercase cursor-pointer text-orange-700 tracking-tight">Montures</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-red-50/50 px-4 py-2 rounded-2xl border border-red-100">
+                  <div className="flex items-center space-x-3 bg-red-50/50 px-4 py-2 rounded-2xl border border-red-100 shrink-0">
                     <Switch id="inc-frais" checked={includeFrais} onCheckedChange={setIncludeFrais} className="data-[state=checked]:bg-red-600" />
-                    <Label htmlFor="inc-frais" className="text-[11px] font-black uppercase cursor-pointer text-red-700 tracking-tight">Frais & Charges</Label>
+                    <Label htmlFor="inc-frais" className="text-[11px] font-black uppercase cursor-pointer text-red-700 tracking-tight">Frais</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
+                  <div className="flex items-center space-x-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200 shrink-0">
                     <Switch id="inc-versements" checked={includeVersements} onCheckedChange={setIncludeVersements} className="data-[state=checked]:bg-[#0D1B2A]" />
                     <Label htmlFor="inc-versements" className="text-[11px] font-black uppercase cursor-pointer text-[#0D1B2A] tracking-tight">Versements</Label>
                   </div>
                 </div>
               </div>
               
-              <Button onClick={handlePrintCharges} className="h-14 px-10 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95">
+              <Button onClick={handlePrintCharges} className="h-14 px-10 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95 shrink-0">
                 <Printer className="mr-3 h-5 w-5" /> GÉNÉRER ÉTAT PDF
               </Button>
             </div>
