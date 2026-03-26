@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -340,7 +339,7 @@ export default function ReportsPage() {
               </div>
               
               <Button onClick={handlePrintCharges} className="h-14 px-10 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95 shrink-0">
-                <Printer className="mr-3 h-5 w-5" /> GÉNÉRER ÉTAT PDF
+                <Printer className="mr-3 h-5 w-5" /> PDF
               </Button>
             </div>
             
