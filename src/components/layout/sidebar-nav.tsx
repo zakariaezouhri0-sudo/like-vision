@@ -14,7 +14,8 @@ import {
   HandCoins,
   Upload,
   CalendarClock,
-  PackageCheck
+  PackageCheck,
+  BookOpen
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/restes", label: "Suivi Commandes", icon: PackageCheck, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/clients", label: "Clients", icon: Eye, roles: ["ADMIN", "OPTICIENNE"] },
   { href: "/rapports", label: "Rapports", icon: TrendingUp, roles: ["ADMIN"] },
+  { href: "/comptabilite", label: "Comptabilité", icon: BookOpen, roles: ["ADMIN"] },
   { href: "/import", label: "Importation", icon: Upload, roles: ["ADMIN"] },
   { href: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["ADMIN"] },
   { href: "/parametres", label: "Paramètres", icon: Settings, roles: ["ADMIN"] },
