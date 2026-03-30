@@ -187,13 +187,13 @@ export default function ReportsPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <div className="flex bg-slate-50 p-1 rounded-full border shadow-inner">
-              <Button variant="ghost" onClick={() => setMonth(0)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase hover:bg-white hover:shadow-sm transition-all">Ce mois</Button>
-              <Button variant="ghost" onClick={() => setMonth(1)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase hover:bg-white hover:shadow-sm transition-all">Mois dernier</Button>
+              <Button variant="ghost" onClick={() => setMonth(0)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase text-[#0D1B2A] hover:bg-white hover:shadow-sm transition-all">Ce mois</Button>
+              <Button variant="ghost" onClick={() => setMonth(1)} className="h-10 px-4 rounded-full font-black text-[9px] uppercase text-[#0D1B2A] hover:bg-white hover:shadow-sm transition-all">Mois dernier</Button>
             </div>
             <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-full border shadow-inner">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" className="h-12 px-6 rounded-full font-black text-[10px] uppercase bg-white border min-w-[220px] justify-between shadow-sm">
+                  <Button variant="ghost" className="h-12 px-6 rounded-full font-black text-[10px] uppercase bg-white border min-w-[220px] justify-between shadow-sm text-[#0D1B2A]">
                     <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" />
                     <span>{format(dateRange.from, "dd MMM")} - {format(dateRange.to, "dd MMM yyyy")}</span>
                     <ChevronDown className="h-3 w-3" />
