@@ -97,7 +97,7 @@ export default function AccountingPage() {
         return isSameDay(t.createdAt.toDate(), day);
       });
 
-      // 1. Journal CS - Encaissements (ENTRÉES ESPÈCES)
+      // 1. Journal CS - Encaissements (ENTRÉES ESPÈCES) - CUMULÉ
       const totalEncaissements = dayTrans
         .filter(t => t.type === "VENTE")
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
@@ -121,33 +121,55 @@ export default function AccountingPage() {
         });
       }
 
-      // 2. Journal CS - Décaissements (SORTIES ESPÈCES / CHARGES)
-      const cashExpenses = dayTrans.filter(t => ["DEPENSE", "ACHAT VERRES", "ACHAT MONTURE"].includes(t.type));
+      // 2. Journal CS - Décaissements (ACHATS & CHARGES) - CUMULÉS PAR NATURE
       
-      cashExpenses.forEach(t => {
-        const amt = Math.abs(Number(t.montant) || 0);
-        if (amt > 0) {
-          const isPurchase = t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE";
-          const chargeAccount = isPurchase ? ACCOUNTS.ACHATS : ACCOUNTS.CHARGES_DIVERSES;
-          
-          allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: chargeAccount,
-            libelle: `${t.label} DU ${dateStr}`,
-            debit: roundAmount(amt),
-            credit: 0
-          });
-          allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.CAISSE,
-            libelle: `${t.label} DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(amt)
-          });
-        }
-      });
+      // A. CUMUL DES ACHATS (Verres/Montures)
+      const totalDayAchats = dayTrans
+        .filter(t => ["ACHAT VERRES", "ACHAT MONTURE"].includes(t.type))
+        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+
+      if (totalDayAchats > 0) {
+        allEntries.push({
+          date: dateStr,
+          journal: "CS",
+          compte: ACCOUNTS.ACHATS,
+          libelle: `ACHATS ESPÈCES DU ${dateStr}`,
+          debit: roundAmount(totalDayAchats),
+          credit: 0
+        });
+        allEntries.push({
+          date: dateStr,
+          journal: "CS",
+          compte: ACCOUNTS.CAISSE,
+          libelle: `ACHATS ESPÈCES DU ${dateStr}`,
+          debit: 0,
+          credit: roundAmount(totalDayAchats)
+        });
+      }
+
+      // B. CUMUL DES CHARGES GÉNÉRALES (Dépenses caisse)
+      const totalDayCharges = dayTrans
+        .filter(t => t.type === "DEPENSE")
+        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+
+      if (totalDayCharges > 0) {
+        allEntries.push({
+          date: dateStr,
+          journal: "CS",
+          compte: ACCOUNTS.CHARGES_DIVERSES,
+          libelle: `CHARGES ESPÈCES DU ${dateStr}`,
+          debit: roundAmount(totalDayCharges),
+          credit: 0
+        });
+        allEntries.push({
+          date: dateStr,
+          journal: "CS",
+          compte: ACCOUNTS.CAISSE,
+          libelle: `CHARGES ESPÈCES DU ${dateStr}`,
+          debit: 0,
+          credit: roundAmount(totalDayCharges)
+        });
+      }
 
       // 3. Journal CS/BQ - Transferts vers Banque
       const totalTransferts = dayTrans
