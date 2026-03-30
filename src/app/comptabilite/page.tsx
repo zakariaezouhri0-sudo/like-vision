@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Download, BookOpen, Calculator, FileSpreadsheet, RefreshCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Download, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, Timestamp, orderBy } from "firebase/firestore";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, lastDayOfMonth } from "date-fns";
@@ -364,5 +365,3 @@ export default function AccountingPage() {
     </AppShell>
   );
 }
-
-import { TrendingUp } from "lucide-react";
