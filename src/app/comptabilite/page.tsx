@@ -291,7 +291,7 @@ export default function AccountingPage() {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-12 w-[200px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6">
+              <SelectTrigger className="h-12 w-[200px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6 text-[#0D1B2A]">
                 <SelectValue placeholder="Choisir un mois" />
               </SelectTrigger>
               <SelectContent className="rounded-[24px]">
