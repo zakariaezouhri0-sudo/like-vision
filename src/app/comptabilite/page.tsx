@@ -15,6 +15,7 @@ import { fr } from "date-fns/locale";
 import { formatCurrency, roundAmount } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 // Configuration des comptes (8 chiffres)
 const ACCOUNTS = {
@@ -45,19 +46,31 @@ const FIXED_CHARGES = [
 export default function AccountingPage() {
   const { toast } = useToast();
   const db = useFirestore();
+  const router = useRouter();
+  
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
   const [role, setRole] = useState<string | null>(null);
   const [isClientReady, setIsClientReady] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
-    setRole(savedRole);
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase();
+    if (savedRole && (savedRole === "ADMIN" || savedRole === "PREPA")) {
+      setRole(savedRole);
+    } else {
+      router.push("/dashboard");
+    }
     setIsClientReady(true);
-  }, []);
+  }, [router]);
 
-  const monthDate = useMemo(() => new Date(selectedMonth + "-01"), [selectedMonth]);
-  const start = startOfMonth(monthDate);
-  const end = endOfMonth(monthDate);
+  // Memoization des dates pour éviter les boucles infinies de requête
+  const { start, end, monthDate } = useMemo(() => {
+    const date = new Date(selectedMonth + "-01");
+    return {
+      monthDate: date,
+      start: startOfMonth(date),
+      end: endOfMonth(date)
+    };
+  }, [selectedMonth]);
 
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
@@ -252,7 +265,7 @@ export default function AccountingPage() {
 
   const isLoading = !isClientReady || salesLoading || transLoading;
 
-  if (!isClientReady) {
+  if (!isClientReady || !role) {
     return (
       <AppShell>
         <div className="flex items-center justify-center min-h-[60vh]">
