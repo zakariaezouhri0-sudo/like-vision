@@ -26,6 +26,8 @@ const ACCOUNTS = {
   TRANSFERT: "51150000",
   FOURNISSEURS: "44110000",
   PERSONNEL: "44320000",
+  ACHATS: "61110000", // Pour achats verres/montures en caisse
+  CHARGES_DIVERSES: "61250000", // Pour dépenses générales en caisse
   CHARGES_LOYER: "61310000",
   CHARGES_SALAIRES: "61710000",
   CHARGES_MENAGE: "61310000",
@@ -62,7 +64,6 @@ export default function AccountingPage() {
     setIsClientReady(true);
   }, [router]);
 
-  // Memoization des dates pour éviter les boucles infinies de requête
   const { start, end, monthDate } = useMemo(() => {
     const date = new Date(selectedMonth + "-01");
     return {
@@ -72,23 +73,16 @@ export default function AccountingPage() {
     };
   }, [selectedMonth]);
 
-  const salesQuery = useMemoFirebase(() => query(
-    collection(db, "sales"),
-    where("createdAt", ">=", Timestamp.fromDate(start)),
-    where("createdAt", "<=", Timestamp.fromDate(end))
-  ), [db, start, end]);
-
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"),
     where("createdAt", ">=", Timestamp.fromDate(start)),
     where("createdAt", "<=", Timestamp.fromDate(end))
   ), [db, start, end]);
 
-  const { data: sales, isLoading: salesLoading } = useCollection(salesQuery);
   const { data: trans, isLoading: transLoading } = useCollection(transQuery);
 
   const entries = useMemo(() => {
-    if (!sales || !trans || !role) return [];
+    if (!trans || !role) return [];
 
     const allEntries: any[] = [];
     const days = eachDayOfInterval({ start, end });
@@ -97,41 +91,13 @@ export default function AccountingPage() {
     days.forEach(day => {
       const dateStr = format(day, "dd/MM/yyyy");
       
-      // 1. Journal VT - Ventes Quotidiennes
-      const daySales = sales.filter(s => {
-        if (!s.createdAt?.toDate) return false;
-        if (isPrepaMode !== (s.isDraft === true)) return false;
-        return isSameDay(s.createdAt.toDate(), day);
-      });
-
-      const totalDaySales = daySales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
-
-      if (totalDaySales > 0) {
-        allEntries.push({
-          date: dateStr,
-          journal: "VT",
-          compte: ACCOUNTS.CLIENTS,
-          libelle: `VENTES DU ${dateStr}`,
-          debit: roundAmount(totalDaySales),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "VT",
-          compte: ACCOUNTS.VENTES,
-          libelle: `VENTES DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalDaySales)
-        });
-      }
-
-      // 2. Journal CS - Encaissements
       const dayTrans = trans.filter(t => {
         if (!t.createdAt?.toDate) return false;
         if (isPrepaMode !== (t.isDraft === true)) return false;
         return isSameDay(t.createdAt.toDate(), day);
       });
 
+      // 1. Journal CS - Encaissements (ENTRÉES ESPÈCES)
       const totalEncaissements = dayTrans
         .filter(t => t.type === "VENTE")
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
@@ -154,6 +120,34 @@ export default function AccountingPage() {
           credit: roundAmount(totalEncaissements)
         });
       }
+
+      // 2. Journal CS - Décaissements (SORTIES ESPÈCES / CHARGES)
+      const cashExpenses = dayTrans.filter(t => ["DEPENSE", "ACHAT VERRES", "ACHAT MONTURE"].includes(t.type));
+      
+      cashExpenses.forEach(t => {
+        const amt = Math.abs(Number(t.montant) || 0);
+        if (amt > 0) {
+          const isPurchase = t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE";
+          const chargeAccount = isPurchase ? ACCOUNTS.ACHATS : ACCOUNTS.CHARGES_DIVERSES;
+          
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: chargeAccount,
+            libelle: `${t.label} DU ${dateStr}`,
+            debit: roundAmount(amt),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.CAISSE,
+            libelle: `${t.label} DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(amt)
+          });
+        }
+      });
 
       // 3. Journal CS/BQ - Transferts vers Banque
       const totalTransferts = dayTrans
@@ -201,7 +195,6 @@ export default function AccountingPage() {
     // 4. Charges Fixes (Fin de mois)
     const lastDay = format(lastDayOfMonth(monthDate), "dd/MM/yyyy");
     FIXED_CHARGES.forEach(charge => {
-      // Étape 1 : Engagement (OD)
       allEntries.push({
         date: lastDay,
         journal: "OD",
@@ -219,7 +212,6 @@ export default function AccountingPage() {
         credit: roundAmount(charge.amount)
       });
 
-      // Étape 2 : Paiement (BQ)
       allEntries.push({
         date: lastDay,
         journal: "BQ",
@@ -239,7 +231,7 @@ export default function AccountingPage() {
     });
 
     return allEntries;
-  }, [sales, trans, start, end, monthDate, role]);
+  }, [trans, start, end, monthDate, role]);
 
   const handleExportExcel = () => {
     try {
@@ -249,13 +241,9 @@ export default function AccountingPage() {
         ...entries.map(e => [e.date, e.journal, e.compte, e.libelle, e.debit || "", e.credit || ""])
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
-      ws['!cols'] = [
-        { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }
-      ];
-
+      ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }];
       XLSX.utils.book_append_sheet(wb, ws, "Ecritures Sage");
-      const fileName = `Like Vision - Comptabilite - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
+      const fileName = `Like Vision - Flux Réels - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
       XLSX.writeFile(wb, fileName);
       toast({ variant: "success", title: "Export réussi" });
     } catch (e) {
@@ -263,7 +251,7 @@ export default function AccountingPage() {
     }
   };
 
-  const isLoading = !isClientReady || salesLoading || transLoading;
+  const isLoading = !isClientReady || transLoading;
 
   if (!isClientReady || !role) {
     return (
@@ -284,8 +272,8 @@ export default function AccountingPage() {
               <BookOpen className="h-7 w-7 text-[#D4AF37]" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">Automate Comptable</h1>
-              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Génération des écritures Sage (8 chiffres).</p>
+              <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">Automate des Flux</h1>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Export des entrées et sorties réelles (Sage).</p>
             </div>
           </div>
 
@@ -323,7 +311,7 @@ export default function AccountingPage() {
               <Calculator className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Total Débit</p>
+              <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Cumul Débit</p>
               <p className="text-2xl font-black text-slate-900 tabular-nums">
                 {formatCurrency(entries.reduce((acc, e) => acc + (e.debit || 0), 0))}
               </p>
@@ -334,7 +322,7 @@ export default function AccountingPage() {
               <RefreshCcw className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Écritures</p>
+              <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Lignes d'Écritures</p>
               <p className="text-2xl font-black text-slate-900 tabular-nums">{entries.length}</p>
             </div>
           </Card>
@@ -351,7 +339,7 @@ export default function AccountingPage() {
 
         <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
           <CardHeader className="p-10 border-b bg-slate-50">
-            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-slate-400">Prévisualisation du Journal de {format(monthDate, "MMMM yyyy", { locale: fr })}</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-slate-400">Prévisualisation des flux de {format(monthDate, "MMMM yyyy", { locale: fr })}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -370,7 +358,7 @@ export default function AccountingPage() {
                   {isLoading ? (
                     <TableRow><TableCell colSpan={6} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : entries.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucune donnée sur ce mois.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucun flux sur ce mois.</TableCell></TableRow>
                   ) : entries.map((entry, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50 transition-all group border-b last:border-0">
                       <TableCell className="px-10 py-5 text-[11px] font-bold text-slate-500 tabular-nums">{entry.date}</TableCell>
