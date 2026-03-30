@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp } from "lucide-react";
+import { Loader2, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp, orderBy } from "firebase/firestore";
+import { collection, query, where, Timestamp } from "firebase/firestore";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, lastDayOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatCurrency, roundAmount } from "@/lib/utils";
@@ -46,7 +46,14 @@ export default function AccountingPage() {
   const { toast } = useToast();
   const db = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [isClientReady, setIsClientReady] = useState(false);
+
+  useEffect(() => {
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    setRole(savedRole);
+    setIsClientReady(true);
+  }, []);
 
   const monthDate = useMemo(() => new Date(selectedMonth + "-01"), [selectedMonth]);
   const start = startOfMonth(monthDate);
@@ -68,11 +75,11 @@ export default function AccountingPage() {
   const { data: trans, isLoading: transLoading } = useCollection(transQuery);
 
   const entries = useMemo(() => {
-    if (!sales || !trans) return [];
+    if (!sales || !trans || !role) return [];
 
     const allEntries: any[] = [];
     const days = eachDayOfInterval({ start, end });
-    const isPrepaMode = localStorage.getItem('user_role')?.toUpperCase() === 'PREPA';
+    const isPrepaMode = role === 'PREPA';
 
     days.forEach(day => {
       const dateStr = format(day, "dd/MM/yyyy");
@@ -219,7 +226,7 @@ export default function AccountingPage() {
     });
 
     return allEntries;
-  }, [sales, trans, start, end, monthDate]);
+  }, [sales, trans, start, end, monthDate, role]);
 
   const handleExportExcel = () => {
     try {
@@ -230,7 +237,6 @@ export default function AccountingPage() {
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
-      // Mise en forme des colonnes
       ws['!cols'] = [
         { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }
       ];
@@ -244,7 +250,17 @@ export default function AccountingPage() {
     }
   };
 
-  const isLoading = salesLoading || transLoading;
+  const isLoading = !isClientReady || salesLoading || transLoading;
+
+  if (!isClientReady) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
