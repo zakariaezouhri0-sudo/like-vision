@@ -587,7 +587,10 @@ function SessionsContent() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-slate-100 min-w-[180px]">
                                       <DropdownMenuItem onClick={() => handleExportDayExcel(s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
-                                        <FileText className="mr-3 h-4 w-4 text-[#D4AF37]" /> Détails (Excel)
+                                        <FileText className="mr-3 h-4 w-4 text-emerald-600" /> Détails (Excel)
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => router.push(`/rapports/print/operations?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
+                                        <FileText className="mr-3 h-4 w-4 text-blue-600" /> Détails (PDF)
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => router.push(`/caisse?date=${s.date}`)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl">
                                         <ArrowRight className="mr-3 h-4 w-4 text-primary" /> Voir la session

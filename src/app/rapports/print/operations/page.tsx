@@ -3,16 +3,14 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Calendar, Loader2, Glasses, ThumbsUp, Clock, Download, Layers } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, cn, roundAmount, formatMAD } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { format, startOfDay, endOfDay, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import * as XLSX from "xlsx";
-import { Badge } from "@/components/ui/badge";
 
 function OperationsReportContent() {
   const searchParams = useSearchParams();
@@ -46,11 +44,15 @@ function OperationsReportContent() {
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
 
-  const urlDraft = searchParams.get("draft");
-  const isPrepaMode = urlDraft !== null ? urlDraft === "true" : role === "PREPA";
+  const isPrepaMode = role === "PREPA";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
+
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
+  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
 
   const transQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -70,11 +72,8 @@ function OperationsReportContent() {
     const fetchSalesForMatching = async () => {
       if (!selectedDate) return;
       setLoadingSales(true);
-      
       try {
-        const qSales = query(
-          collection(db, "sales")
-        );
+        const qSales = query(collection(db, "sales"));
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
         snap.docs.forEach(doc => {
@@ -93,261 +92,134 @@ function OperationsReportContent() {
     fetchSalesForMatching();
   }, [db, isPrepaMode, selectedDate]);
 
-  const shop = {
-    name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
-    address: remoteSettings?.address || DEFAULT_SHOP_SETTINGS.address,
-    phone: remoteSettings?.phone || DEFAULT_SHOP_SETTINGS.phone,
-    icePatent: remoteSettings?.icePatent || DEFAULT_SHOP_SETTINGS.icePatent,
-    logoUrl: remoteSettings?.logoUrl || DEFAULT_SHOP_SETTINGS.logoUrl,
-  };
-
-  const groupTransactionsByBC = (list: any[]) => {
-    const grouped: any[] = [];
-    const map: Record<string, any> = {};
-
-    list.forEach(t => {
-      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
-      const canGroup = bcMatch && ["ACHAT VERRES", "ACHAT MONTURE", "VENTE"].includes(t.type);
-      
-      if (canGroup) {
-        const bcId = bcMatch[1];
-        const key = `${t.type}-${bcId}`;
-        if (map[key]) {
-          map[key].montant = roundAmount(map[key].montant + t.montant);
-          map[key].isGrouped = true;
-          map[key].childCount = (map[key].childCount || 1) + 1;
-        } else {
-          map[key] = { ...t, childCount: 1 };
-          grouped.push(map[key]);
-        }
-      } else {
-        grouped.push({ ...t });
-      }
-    });
-    return grouped;
-  };
-
-  const groupedTransactions = useMemo(() => {
-    if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [] };
+  const reportData = useMemo(() => {
+    if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [], summary: { initial: 0, entrees: 0, sorties: 0, final: 0 } };
     
     const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+    const sorted = [...filtered].sort((a, b) => (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0));
 
-    const sorted = [...filtered].sort((a, b) => {
-      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-      return timeA - timeB;
-    });
+    const nouvellesVentes = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
+    const sorties = sorted.filter((t: any) => t.type !== "VENTE");
+    const reglements = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
 
-    const vNew = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment !== true);
-    const vSorties = sorted.filter((t: any) => t.type !== "VENTE");
-    const vRegl = sorted.filter((t: any) => t.type === "VENTE" && t.isBalancePayment === true);
-
-    return {
-      nouvellesVentes: groupTransactionsByBC(vNew),
-      sorties: groupTransactionsByBC(vSorties),
-      reglements: groupTransactionsByBC(vRegl)
-    };
-  }, [rawTransactions, isPrepaMode]);
-
-  const mapToExcelRow = (t: any) => {
-    if (!t.id) return {};
-
-    let invoiceId = t.relatedId || "";
-    if (!invoiceId && t.label?.includes('VENTE')) {
-      invoiceId = t.label.replace('VENTE ', '').trim();
-    }
-    
-    const sale = salesDetails[invoiceId];
-    const isVente = t.type === "VENTE";
-    const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-    const movement = Math.abs(t.montant);
-    const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-    
-    let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
-    if (t.type === "VERSEMENT" && !isVente) {
-      const clean = (t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim();
-      displayLabel = `VERSEMENT | ${clean || "BANQUE"}`;
-    }
+    const initial = roundAmount(sessionData?.openingBalance || 0);
+    const sumEntrees = filtered.filter(t => t.type === "VENTE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+    const sumSorties = filtered.filter(t => t.type !== "VENTE").reduce((acc, t) => acc + Math.abs(t.montant), 0);
+    const final = roundAmount(initial + sumEntrees - sumSorties);
 
     return {
-      "Réf": refDisplay,
-      "Date": t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----",
-      "Libellé": displayLabel,
-      "Nom client": t.clientName || "---",
-      "Montant Tot": isVente && totalNet !== null ? formatMAD(totalNet) : "",
-      "Mouvement": isVente ? formatMAD(movement) : "",
-      "SORTIE": !isVente ? formatMAD(movement) : ""
+      nouvellesVentes,
+      sorties,
+      reglements,
+      summary: {
+        initial,
+        entrees: roundAmount(sumEntrees),
+        sorties: roundAmount(sumSorties),
+        final
+      }
     };
-  };
+  }, [rawTransactions, isPrepaMode, sessionData]);
 
-  const handleExportExcel = () => {
-    const excelRows = [
-      ...groupedTransactions.nouvellesVentes.map(mapToExcelRow),
-      {}, 
-      ...groupedTransactions.sorties.map(mapToExcelRow),
-      {}, 
-      ...groupedTransactions.reglements.map(mapToExcelRow)
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(excelRows);
-    
-    worksheet['!cols'] = [
-      { wch: 10 }, 
-      { wch: 12 }, 
-      { wch: 35 }, 
-      { wch: 25 }, 
-      { wch: 18 }, 
-      { wch: 18 }, 
-      { wch: 18 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Opérations");
-    XLSX.writeFile(workbook, `Like Vision - Opérations ${format(selectedDate, "dd-MM-yyyy")}.xlsx`);
-  };
-
-  const renderTableRows = (title: string, data: any[]) => {
-    if (data.length === 0) return null;
-    return (
-      <>
-        <tr className="bg-slate-50"><td colSpan={7} className="p-2 text-center text-[10px] font-black uppercase text-[#D4AF37] border-y-2 border-slate-950"> {title} </td></tr>
-        {data.map((t: any) => {
-          let invoiceId = t.relatedId || "";
-          if (!invoiceId && t.label?.includes('VENTE')) {
-            invoiceId = t.label.replace('VENTE ', '').trim();
-          }
-          const sale = salesDetails[invoiceId];
-          const isVente = t.type === "VENTE";
-          const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
-          const movement = Math.abs(t.montant);
-          const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
-          
-          let cleanedLabel = t.label || "";
-          if (!isVente) {
-            const typeStr = t.type || "";
-            const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
-            redundantPrefixes.forEach(p => {
-              const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
-              cleanedLabel = cleanedLabel.replace(reg, '');
-            });
-            cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
-          }
-
-          let displayLabel = isVente 
-            ? (sale?.notes || "") 
-            : (t.type === "VERSEMENT" ? `VERSEMENT | ${cleanedLabel || "BANQUE"}` : `${t.type} | ${cleanedLabel || "---"}`);
-
-          return (
-            <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-              <td className="p-3 text-[11px] font-black text-[#D4AF37] border-r-2 border-slate-950 tabular-nums">{refDisplay}</td>
-              <td className="p-3 text-center text-[10px] font-bold text-slate-500 border-r-2 border-slate-950 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "--/--/----"}</td>
-              <td className="p-3 text-[11px] font-black text-slate-800 uppercase border-r-2 border-slate-950">
-                <div className="flex items-center gap-2">
-                  {displayLabel}
-                  {t.isGrouped && <Badge variant="outline" className="text-[7px] font-black h-3 px-1 border-slate-900 text-slate-900 uppercase rounded-[2px]">Σ {t.childCount}</Badge>}
-                </div>
-              </td>
-              <td className="p-3 text-[11px] font-bold text-slate-600 uppercase border-r-2 border-slate-950 truncate">{t.clientName || "---"}</td>
-              <td className="p-3 text-right text-[11px] font-black text-slate-900 border-r-2 border-slate-950 tabular-nums">{isVente && totalNet !== null ? formatCurrency(totalNet, false) : ""}</td>
-              <td className="p-3 text-right text-[11px] font-black border-r-2 border-slate-950 tabular-nums">{isVente ? (<span className="text-[#D4AF37]">+{formatCurrency(movement, false)}</span>) : ""}</td>
-              <td className="p-3 text-right text-[11px] font-black text-red-600 tabular-nums">{!isVente ? `-${formatCurrency(movement, false)}` : ""}</td>
-            </tr>
-          );
-        })}
-      </>
-    );
-  };
-
-  if (settingsLoading || transLoading || loadingSales) {
+  if (settingsLoading || transLoading || loadingSales || sessionLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 
+  const renderTableRows = (data: any[]) => {
+    return data.map((t: any) => {
+      let invoiceId = t.relatedId || "";
+      if (!invoiceId && t.label?.includes('VENTE')) invoiceId = t.label.replace('VENTE ', '').trim();
+      
+      const sale = salesDetails[invoiceId];
+      const isVente = t.type === "VENTE";
+      const totalNet = sale ? roundAmount(Number(sale.total) - (Number(sale.remise) || 0)) : null;
+      const movement = Math.abs(t.montant);
+      const refDisplay = isVente ? (invoiceId ? invoiceId.slice(-4) : "---") : "---";
+      
+      let displayLabel = isVente ? (sale?.notes || t.label || "") : t.label;
+      if (t.type === "VERSEMENT" && !isVente) {
+        displayLabel = `VERSEMENT | ${(t.label || "").replace(/^VERSEMENT\s*[:\-']?\s*/i, '').trim() || "BANQUE"}`;
+      } else if (!isVente) {
+        displayLabel = `${t.type} | ${(t.label || "").replace(new RegExp(`^${t.type}\\s*[:\\-']?\s*`, 'i'), '').trim() || "---"}`;
+      }
+
+      return (
+        <tr key={t.id} className="border-b border-black">
+          <td className="p-1 border-r border-black text-center text-[10px] font-bold">{refDisplay}</td>
+          <td className="p-1 border-r border-black text-center text-[10px]">{format(t.createdAt?.toDate() || selectedDate, "dd/MM/yyyy")}</td>
+          <td className="p-1 border-r border-black text-left text-[10px] uppercase truncate max-w-[200px]">{displayLabel}</td>
+          <td className="p-1 border-r border-black text-left text-[10px] uppercase truncate">{t.clientName || "---"}</td>
+          <td className="p-1 border-r border-black text-right text-[10px] tabular-nums font-medium">{isVente && totalNet !== null ? formatCurrency(totalNet, true) : ""}</td>
+          <td className="p-1 border-r border-black text-right text-[10px] tabular-nums font-bold">{isVente ? formatCurrency(movement, true) : ""}</td>
+          <td className="p-1 text-right text-[10px] tabular-nums font-bold">{!isVente ? formatCurrency(movement, true) : ""}</td>
+        </tr>
+      );
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-4 pb-10 print:pt-0 print:pb-0 print:bg-white">
-      <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-6 px-4">
-        <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-11 px-6 rounded-[8px] shadow-sm font-black text-xs hover:bg-slate-50">
-          <Link href="/caisse/sessions"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR SESSIONS</Link>
+    <div className="min-h-screen bg-white flex flex-col items-center p-4 print:p-0">
+      <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-6">
+        <Button variant="outline" asChild className="h-10 px-4 rounded-xl font-black text-xs border-slate-200">
+          <Link href="/caisse/sessions"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR</Link>
         </Button>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="bg-white border-[#D4AF37]/20 text-[#D4AF37] h-11 px-6 rounded-[8px] shadow-sm font-black text-xs hover:bg-[#D4AF37]/5">
-            <Download className="mr-2 h-4 w-4" /> TÉLÉCHARGER EXCEL
-          </Button>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-2.5 rounded-full border shadow-sm">Format Paysage A4</span>
-          <Button onClick={() => window.print()} className="bg-[#0D1B2A] shadow-xl hover:bg-[#0D1B2A]/90 h-11 px-10 rounded-[8px] font-black text-sm text-white">
-            <Printer className="mr-2 h-4 w-4" /> IMPRIMER LA LISTE
-          </Button>
-        </div>
+        <Button onClick={() => window.print()} className="bg-slate-900 text-white h-10 px-8 rounded-xl font-black text-xs shadow-xl">
+          <Printer className="mr-2 h-4 w-4" /> IMPRIMER (PDF)
+        </Button>
       </div>
 
-      <div className="pdf-a4-landscape shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-none p-[10mm] flex flex-col min-h-[210mm] w-[297mm]">
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-[4px] bg-white shadow-sm">
-              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-[#0D1B2A]"><Glasses className="h-10 w-10" /><ThumbsUp className="h-5 w-5 absolute -top-1 -right-1 bg-white p-0.5 rounded-full border border-[#0D1B2A]" /></div>)}
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
-              <p className="text-[10px] text-slate-500 font-bold leading-tight mt-1 uppercase tracking-widest">{shop.address || "---"}</p>
-              <p className="text-[10px] font-black text-slate-800 uppercase mt-1">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
-            </div>
+      <div className="pdf-a4-landscape w-[297mm] bg-white print:m-0 flex flex-col p-[5mm]">
+        <h1 className="text-center text-xs font-bold uppercase mb-6 tracking-widest">JOURNAL DE CAISSE - {format(selectedDate, "dd/MM/yyyy")}</h1>
+
+        <div className="mb-8 w-fit border border-black text-[10px]">
+          <div className="flex border-b border-black">
+            <div className="w-32 p-1 border-r border-black bg-slate-50 font-bold">SOLDE INITIAL</div>
+            <div className="w-32 p-1 text-right font-bold tabular-nums">{formatCurrency(reportData.summary.initial, true)}</div>
           </div>
-          <div className="text-right">
-            <div className="bg-slate-900 text-white px-5 py-2 rounded-[2px] inline-block mb-2 shadow-lg">
-              <h2 className="text-base font-black uppercase tracking-[0.2em] leading-none">Détail des Opérations</h2>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-end gap-2 text-lg font-black text-slate-900 uppercase">
-                <Calendar className="h-5 w-5 text-[#D4AF37]" />
-                <span>{format(selectedDate, "dd MMMM yyyy", { locale: fr }).toUpperCase()}</span>
-              </div>
-              <div className="flex items-center justify-end gap-2 text-[9px] font-bold text-slate-400 italic">
-                <Clock className="h-3 w-3" />
-                <span>Généré le {format(new Date(), "dd/MM/yyyy")} à {printTime}</span>
-              </div>
-            </div>
+          <div className="flex border-b border-black">
+            <div className="w-32 p-1 border-r border-black">(+) Encaissements</div>
+            <div className="w-32 p-1 text-right tabular-nums">{formatCurrency(reportData.summary.entrees, true)}</div>
+          </div>
+          <div className="flex border-b border-black">
+            <div className="w-32 p-1 border-r border-black">(-) Décaissements</div>
+            <div className="w-32 p-1 text-right tabular-nums">{formatCurrency(reportData.summary.sorties, true)}</div>
+          </div>
+          <div className="flex font-bold bg-slate-50">
+            <div className="w-32 p-1 border-r border-black">SOLDE FINAL</div>
+            <div className="w-32 p-1 text-right tabular-nums">{formatCurrency(reportData.summary.final, true)}</div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden border-2 border-slate-950 rounded-[4px] bg-white shadow-sm">
-          <table className="w-full border-collapse">
-            <thead className="bg-[#0D1B2A] text-[#D4AF37] border-b-2 border-slate-950">
-              <tr>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Réf</th>
-                <th className="p-3 text-center text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-24">Date</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Libellé</th>
-                <th className="p-3 text-left text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950">Nom client</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-32">Montant Tot</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest border-r-2 border-slate-950 w-44">Mouvement</th>
-                <th className="p-3 text-right text-[11px] font-black uppercase tracking-widest w-32">SORTIE</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y-2 divide-slate-950">
-              {renderTableRows("NOUVELLES VENTES", groupedTransactions.nouvellesVentes)}
-              {renderTableRows("SORTIES (ACHATS & CHARGES)", groupedTransactions.sorties)}
-              {renderTableRows("RÈGLEMENTS DES RESTES", groupedTransactions.reglements)}
-              {(groupedTransactions.nouvellesVentes.length === 0 && groupedTransactions.sorties.length === 0 && groupedTransactions.reglements.length === 0) && (
-                <tr><td colSpan={7} className="p-10 text-center text-slate-300 font-black italic uppercase tracking-widest">Aucune opération enregistrée pour ce jour.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <table className="w-full border-collapse border border-black table-fixed">
+          <thead>
+            <tr className="bg-slate-100 border-b border-black">
+              <th className="w-[8%] p-1 border-r border-black text-center text-[10px] font-bold">Réf</th>
+              <th className="w-[10%] p-1 border-r border-black text-center text-[10px] font-bold">Date</th>
+              <th className="w-[25%] p-1 border-r border-black text-center text-[10px] font-bold">Libellé</th>
+              <th className="w-[20%] p-1 border-r border-black text-center text-[10px] font-bold">Nom client</th>
+              <th className="w-[12%] p-1 border-r border-black text-center text-[10px] font-bold">Montant Tot</th>
+              <th className="w-[12%] p-1 border-r border-black text-center text-[10px] font-bold">Mouvement</th>
+              <th className="w-[13%] p-1 text-center text-[10px] font-bold">SORTIE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderTableRows(reportData.nouvellesVentes)}
+            {reportData.nouvellesVentes.length > 0 && <tr className="h-4 border-b border-black"><td colSpan={7}></td></tr>}
+            {renderTableRows(reportData.sorties)}
+            {reportData.sorties.length > 0 && <tr className="h-4 border-b border-black"><td colSpan={7}></td></tr>}
+            {renderTableRows(reportData.reglements)}
+            
+            <tr className="bg-slate-50 font-bold border-t-2 border-black">
+              <td colSpan={5} className="p-2 border-r border-black text-center text-[11px] uppercase tracking-widest">TOTAL GÉNÉRAL</td>
+              <td className="p-2 border-r border-black text-right text-[11px] tabular-nums">{formatCurrency(reportData.summary.entrees, true)}</td>
+              <td className="p-2 text-right text-[11px] tabular-nums">{formatCurrency(reportData.summary.sorties, true)}</td>
+            </tr>
+          </tbody>
+        </table>
 
-        <div className="mt-6 flex justify-between items-end border-t border-slate-100 pt-4">
-          <div className="flex gap-10">
-            <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Visa Responsable</p>
-              <div className="w-40 border-b-2 border-slate-950 pt-10"></div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Cachet Magasin</p>
-              <div className="w-40 h-20 border-2 border-dashed border-slate-950 rounded-[4px] flex items-center justify-center bg-slate-50/50">
-                <span className="text-[8px] text-slate-200 font-black rotate-[-12deg] uppercase opacity-40">Authentification</span>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.5em] italic">SYSTÈME LIKE VISION • RAPPORT DÉTAILLÉ</p>
-          </div>
+        <div className="mt-auto pt-4 text-center">
+          <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic opacity-50">
+            LIKE VISION SYSTEM • DOCUMENT GÉNÉRÉ LE {format(new Date(), "dd/MM/yyyy")} À {printTime}
+          </p>
         </div>
       </div>
     </div>
