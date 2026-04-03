@@ -34,7 +34,7 @@ import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction, limit, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-fns";
+import { startOfDay, endOfDay, format, setHours, parseISO, isValid, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -91,38 +91,43 @@ function CaisseContent() {
 
   const session = useMemo(() => {
     if (!rawSession) return null;
-    // On s'assure que la session chargée correspond bien au mode actuel
     if (isPrepaMode !== (rawSession.isDraft === true)) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
+  // Chargement des sessions passées pour le report automatique
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     orderBy("date", "desc"),
-    limit(1000)
+    limit(500)
   ), [db]);
   
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
-  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE
+  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE (FIX 03/04 -> 02/04)
   useEffect(() => {
-    if (!isClientReady) return;
+    if (!isClientReady || sessionLoading) return;
 
-    if (!session && !sessionLoading) {
+    if (!session) {
       if (!loadingPast) {
-        // Recherche de la dernière session clôturée pour le mode actuel
-        const previousClosedSession = allSessions?.find((s: any) => {
+        // 1. Normaliser et trier toutes les sessions par date chronologique inverse
+        const sortedSessions = (allSessions || [])
+          .map((s: any) => {
+            let sDate = s.date || "";
+            // Gérer le format dd-MM-yyyy si présent
+            if (sDate.includes('-') && sDate.split('-')[0].length === 2) {
+              const [d, m, y] = sDate.split('-');
+              sDate = `${y}-${m}-${d}`;
+            }
+            return { ...s, normalizedDate: sDate };
+          })
+          .sort((a, b) => b.normalizedDate.localeCompare(a.normalizedDate));
+
+        // 2. Trouver la session CLÔTURÉE la plus récente STRICTEMENT INFÉRIEURE à la date sélectionnée
+        const previousClosedSession = sortedSessions.find((s: any) => {
           const sIsDraft = s.isDraft === true;
           const modeMatch = isPrepaMode ? sIsDraft : !sIsDraft;
-          
-          // Normalisation de la date pour comparaison string (yyyy-MM-dd)
-          let sDate = s.date || "";
-          if (sDate.includes('-') && sDate.split('-')[0].length === 2) {
-            const [d, m, y] = sDate.split('-');
-            sDate = `${y}-${m}-${d}`;
-          }
-          
-          return modeMatch && s.status === "CLOSED" && sDate < dateStr;
+          return modeMatch && s.status === "CLOSED" && s.normalizedDate < dateStr;
         });
 
         if (previousClosedSession) {
@@ -137,7 +142,8 @@ function CaisseContent() {
       } else {
         setIsLoadingReport(true);
       }
-    } else if (session) {
+    } else {
+      // Si la session existe déjà, on n'affiche plus l'état de chargement du report
       setIsLoadingReport(false);
     }
   }, [allSessions, loadingPast, session, sessionLoading, isClientReady, isPrepaMode, dateStr]);
@@ -305,7 +311,6 @@ function CaisseContent() {
         });
       });
 
-      // L'affectation BC est asynchrone mais ne doit pas bloquer l'UI si elle échoue
       handleAutoAffectBC(newOp.clientName, newOp.type, amt).catch(console.error);
       
       toast({ variant: "success", title: "Opération enregistrée" });
@@ -548,7 +553,7 @@ function CaisseContent() {
                 let displayLabel = t.type === "VENTE" ? (t.relatedId ? `VENTE ${t.relatedId}` : labelPart) : `${t.type} | ${cleanedLabel || "---"}`;
 
                 return (
-                  <TableRow key={t.id} className="hover:bg-slate-50 transition-all group">
+                  <TableRow key={t.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
                     <TableCell className="px-10 py-5">
                       <div className="flex items-center gap-6">
                         <span className="text-[10px] font-black text-slate-400 w-12 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
@@ -691,17 +696,17 @@ function CaisseContent() {
           <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(initialBalance)}</p>
         </Card>
         <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] flex flex-col items-center justify-center text-center h-40">
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><TrendingUp className="h-4 w-4 text-emerald-500" /></div>
+          <div className="h-10 w-10 bg-white/5 rounded-2xl flex items-center justify-center mb-3"><TrendingUp className="h-4 w-4 text-emerald-500" /></div>
           <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-2">Ventes</p>
           <p className="text-xl font-black text-emerald-600">+{formatCurrency(stats.entrees)}</p>
         </Card>
         <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] flex flex-col items-center justify-center text-center h-40">
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><TrendingDown className="h-4 w-4 text-red-500" /></div>
+          <div className="h-10 w-10 bg-white/5 rounded-2xl flex items-center justify-center mb-3"><TrendingDown className="h-4 w-4 text-red-500" /></div>
           <p className="text-[9px] uppercase font-black text-red-400 mb-2">Dépenses</p>
           <p className="text-xl font-black text-red-600">-{formatCurrency(stats.depenses)}</p>
         </Card>
         <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] flex flex-col items-center justify-center text-center h-40">
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><ArrowLeftRight className="h-4 w-4 text-orange-500" /></div>
+          <div className="h-10 w-10 bg-white/5 rounded-2xl flex items-center justify-center mb-3"><ArrowLeftRight className="h-4 w-4 text-orange-500" /></div>
           <p className="text-[9px] uppercase font-black text-orange-400 mb-2">Versements</p>
           <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p>
         </Card>
