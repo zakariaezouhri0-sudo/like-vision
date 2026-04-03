@@ -94,23 +94,18 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Sans Index)
+  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Limite augmentée à 1000 pour trouver le vrai max)
   const lastSalesRawQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
-    limit(100)
+    orderBy("createdAt", "desc"),
+    limit(1000)
   ), [db]);
   
   const { data: allRecentSales } = useCollection(lastSalesRawQuery);
 
   const lastSales = useMemo(() => {
     if (!allRecentSales || !isClientReady) return [];
-    return allRecentSales
-      .filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true)
-      .sort((a, b) => {
-        const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return db - da;
-      });
+    return allRecentSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [allRecentSales, isPrepaMode, isClientReady]);
 
   // LOGIQUE DE SUGGESTION AUTOMATIQUE (+1)
