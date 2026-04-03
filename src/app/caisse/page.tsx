@@ -95,7 +95,7 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // REQUÊTE CORRIGÉE : On cherche la dernière session fermée AVANT la date sélectionnée
+  // REQUÊTE : On cherche la dernière session fermée AVANT la date sélectionnée
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     where("isDraft", "==", isPrepaMode),
@@ -114,13 +114,16 @@ function CaisseContent() {
       if (!loadingPast) {
         if (lastSessions && lastSessions.length > 0) {
           const lastS = lastSessions[0];
-          setOpeningVal(roundAmount(lastS.closingBalanceReal || 0).toString());
+          const prevFinal = roundAmount(lastS.closingBalanceReal || 0);
+          setOpeningVal(prevFinal.toString());
           setIsAutoReport(true);
         } else {
           setOpeningVal("0");
           setIsAutoReport(false);
         }
         setIsLoadingReport(false);
+      } else {
+        setIsLoadingReport(true);
       }
     } else if (session) {
       setIsLoadingReport(false);
@@ -451,12 +454,12 @@ function CaisseContent() {
               <div className="relative">
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]", (isAutoReport || isLoadingReport) ? "text-slate-500" : "text-[#0D1B2A]")}
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]", (isLoadingReport) ? "text-slate-300" : "text-[#0D1B2A]")}
                   value={isLoadingReport ? "..." : (isAutoReport ? formatCurrency(openingVal) : openingVal)} 
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                   onBlur={() => !isAutoReport && openingVal && setOpeningVal(formatCurrency(parseAmount(openingVal)))}
-                  readOnly={isAutoReport || isLoadingReport}
+                  readOnly={isLoadingReport}
                   autoFocus
                 />
                 {isLoadingReport && (
@@ -471,7 +474,7 @@ function CaisseContent() {
               disabled={opLoading || isLoadingReport} 
               className={cn("w-full h-16 rounded-full font-black text-lg shadow-xl uppercase bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all")}
             >
-              {isLoadingReport ? "CHARGEMENT DU SOLDE..." : "VALIDER L'OUVERTURE"}
+              {isLoadingReport ? "RECHERCHE SOLDE..." : "VALIDER L'OUVERTURE"}
             </Button>
           </form>
         </Card>

@@ -536,6 +536,7 @@ function SessionsContent() {
                             const isSunday = isValid(d) && getDay(d) === 0;
                             const isClosed = s.status === "CLOSED";
                             const fluxNet = (s.totalSales || 0) - (s.totalExpenses || 0);
+                            const calcFinal = roundAmount((s.openingBalance || 0) + (s.totalSales || 0) - (s.totalExpenses || 0) - (s.totalVersements || 0));
 
                             return (
                               <TableRow key={s.id} className={cn("hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0", isSunday && "bg-red-50/40")}>
@@ -566,7 +567,7 @@ function SessionsContent() {
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-slate-900 tabular-nums">
-                                  {formatCurrency(s.closingBalanceReal ?? (s.openingBalance + fluxNet - (s.totalVersements || 0)))}
+                                  {formatCurrency(s.closingBalanceReal ?? calcFinal)}
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
                                   {isClosed ? (
