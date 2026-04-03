@@ -36,7 +36,7 @@ import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO, isValid, getDay, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { format, parseISO, isValid, getDay, startOfDay, endOfDay, startOfMonth, endOfMonth, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
@@ -53,40 +53,47 @@ function SessionsContent() {
     const savedMode = localStorage.getItem('work_mode');
     
     setRole(savedRole);
-    // Unification de la logique isPrepaMode (Admin en mode Brouillon doit voir les sessions Brouillon)
     setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsHydrated(true);
   }, []);
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
+  // On retire le 'where' strict pour récupérer les anciennes données qui n'auraient pas le champ isDraft
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
-    where("isDraft", "==", isPrepaMode),
     orderBy("date", "desc"),
     limit(500)
-  ), [db, isPrepaMode]);
+  ), [db]);
   
   const { data: rawSessions, isLoading: loading } = useCollection(sessionsQuery);
 
   const sessions = useMemo(() => {
-    if (!rawSessions) return [];
-    return rawSessions;
-  }, [rawSessions]);
+    if (!rawSessions || !isClientReady) return [];
+    // On filtre en mémoire pour être plus souple (inclure les undefined si on est en mode réel)
+    return rawSessions.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
+  }, [rawSessions, isPrepaMode, isClientReady]);
 
   const groupedSessions = useMemo(() => {
     const groups: Record<string, any[]> = {};
     sessions.forEach(s => {
-      const d = parseISO(s.date);
+      let d = parseISO(s.date);
+      // Tentative de parsing alternatif si ISO échoue
+      if (!isValid(d)) {
+        try {
+          d = parse(s.date, "dd-MM-yyyy", new Date());
+        } catch(e) {}
+      }
+
       if (isValid(d)) {
         const monthKey = format(d, "yyyy-MM");
         if (!groups[monthKey]) groups[monthKey] = [];
         groups[monthKey].push(s);
       }
     });
-    // On s'assure que les sessions dans chaque mois sont bien triées par date décroissante
+
     Object.keys(groups).forEach(key => {
-      groups[monthKey].sort((a, b) => b.date.localeCompare(a.date));
+      groups[key].sort((a, b) => b.date.localeCompare(a.date));
     });
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [sessions]);
@@ -148,7 +155,8 @@ function SessionsContent() {
       const sortedSessions = [...sessionsOfMonth].sort((a, b) => a.date.localeCompare(b.date));
 
       for (const session of sortedSessions) {
-        const d = parseISO(session.date);
+        let d = parseISO(session.date);
+        if (!isValid(d)) d = parse(session.date, "dd-MM-yyyy", new Date());
         if (!isValid(d)) continue;
 
         const dayStart = startOfDay(d);
@@ -286,7 +294,8 @@ function SessionsContent() {
 
   const handleExportDayExcel = async (dateStr: string) => {
     try {
-      const d = parseISO(dateStr);
+      let d = parseISO(dateStr);
+      if (!isValid(d)) d = parse(dateStr, "dd-MM-yyyy", new Date());
       if (!isValid(d)) throw new Error("Date invalide");
 
       const start = startOfDay(d);
@@ -462,7 +471,7 @@ function SessionsContent() {
         </Button>
       </div>
 
-      <Accordion type="multiple" defaultValue={[groupedSessions[0]?.[0]]} className="space-y-8">
+      <Accordion type="multiple" defaultValue={groupedSessions.length > 0 ? [groupedSessions[0][0]] : []} className="space-y-8">
         {groupedSessions.length === 0 ? (
           <Card className="p-24 text-center rounded-[48px] border-dashed border-2 border-slate-100 bg-white">
             <p className="text-[10px] font-black uppercase opacity-20 tracking-[0.5em]">Aucune donnée disponible.</p>
@@ -535,14 +544,13 @@ function SessionsContent() {
                         </TableHeader>
                         <TableBody>
                           {monthSessions.map((s: any, idx: number) => {
-                            const d = parseISO(s.date);
+                            let d = parseISO(s.date);
+                            if (!isValid(d)) d = parse(s.date, "dd-MM-yyyy", new Date());
                             const isSunday = isValid(d) && getDay(d) === 0;
                             const isClosed = s.status === "CLOSED";
                             
-                            // Calcul du final théorique pour les sessions en cours
                             const calcFinal = (session: any) => roundAmount((session.openingBalance || 0) + (session.totalSales || 0) - (session.totalExpenses || 0) - (session.totalVersements || 0));
                             
-                            // Logique de continuité : si Initial est 0, on essaye de récupérer le Final du jour précédent dans la liste
                             const prevSession = monthSessions[idx + 1];
                             const initialToDisplay = (s.openingBalance > 0) 
                               ? s.openingBalance 
