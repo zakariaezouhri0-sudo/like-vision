@@ -87,28 +87,42 @@ export default function DashboardPage() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
+  // Correction : suppression du where(isDraft) qui cause l'erreur d'index
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
-    where("isDraft", "==", isPrepaMode),
     orderBy("createdAt", "desc"), 
     limit(1000)
-  ), [db, isPrepaMode]);
-  const { data: allSales, isLoading: loadingSales } = useCollection(salesQuery);
+  ), [db]);
+  const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
 
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"), 
-    where("isDraft", "==", isPrepaMode),
     orderBy("createdAt", "desc"), 
     limit(1000)
-  ), [db, isPrepaMode]);
-  const { data: allTransactions, isLoading: loadingTrans } = useCollection(transQuery);
+  ), [db]);
+  const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
   const clientsQuery = useMemoFirebase(() => query(
     collection(db, "clients"), 
-    where("isDraft", "==", isPrepaMode),
     limit(1000)
-  ), [db, isPrepaMode]);
-  const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
+  ), [db]);
+  const { data: rawClients, isLoading: loadingClients } = useCollection(clientsQuery);
+
+  // Filtrage en mémoire pour éviter les erreurs d'index
+  const allSales = useMemo(() => {
+    if (!rawSales) return [];
+    return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
+  }, [rawSales, isPrepaMode]);
+
+  const allTransactions = useMemo(() => {
+    if (!rawTransactions) return [];
+    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+  }, [rawTransactions, isPrepaMode]);
+
+  const allClients = useMemo(() => {
+    if (!rawClients) return [];
+    return rawClients.filter((c: any) => isPrepaMode ? c.isDraft === true : c.isDraft !== true);
+  }, [rawClients, isPrepaMode]);
 
   const stats = useMemo(() => {
     const ca = (allTransactions || [])
@@ -279,14 +293,14 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
                 <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="barGradient" x1="0" x2="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#D4AF37" stopOpacity={1}/>
                     <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.6}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeights: '900', fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeights: '900', fill: '#64748b' }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '900', fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '900', fill: '#64748b' }} />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}} 
                   contentStyle={{ 

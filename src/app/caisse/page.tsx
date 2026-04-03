@@ -95,17 +95,21 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // REQUÊTE : On cherche la dernière session fermée AVANT la date sélectionnée
+  // Correction de la requête pour éviter les erreurs d'index : on récupère les sessions et on filtre en mémoire
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
-    where("isDraft", "==", isPrepaMode),
-    where("status", "==", "CLOSED"),
-    where("date", "<", dateStr),
     orderBy("date", "desc"),
-    limit(1)
-  ), [db, isPrepaMode, dateStr]);
+    limit(500)
+  ), [db]);
   
-  const { data: lastSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
+  const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
+
+  const lastSessions = useMemo(() => {
+    if (!allSessions) return [];
+    return allSessions
+      .filter((s: any) => (isPrepaMode ? s.isDraft === true : s.isDraft !== true) && s.status === "CLOSED" && s.date < dateStr)
+      .slice(0, 1);
+  }, [allSessions, isPrepaMode, dateStr]);
 
   useEffect(() => {
     if (!isClientReady) return;
