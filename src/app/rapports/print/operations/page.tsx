@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -16,7 +17,16 @@ function OperationsReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [printTime, setPrintTime] = useState<string>("");
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const now = new Date();
+    setPrintTime(format(now, "HH:mm"));
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase();
+    setRole(savedRole || "OPTICIENNE");
+    setIsReady(true);
+  }, []);
 
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
@@ -36,11 +46,8 @@ function OperationsReportContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const now = new Date();
-    setPrintTime(format(now, "HH:mm"));
     const dateStr = format(selectedDate, "dd-MM-yyyy");
     document.title = `Opérations - ${dateStr}`;
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
 
@@ -50,8 +57,12 @@ function OperationsReportContent() {
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
-  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
-  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  const sessionDocId = useMemo(() => {
+    if (!isReady || !role) return null;
+    return isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
+  }, [isReady, role, isPrepaMode, dateStr]);
+
+  const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
 
   const transQuery = useMemoFirebase(() => {
@@ -70,17 +81,15 @@ function OperationsReportContent() {
 
   useEffect(() => {
     const fetchSalesForMatching = async () => {
-      if (!selectedDate) return;
+      if (!isReady || !role) return;
       setLoadingSales(true);
       try {
-        const qSales = query(collection(db, "sales"));
+        const qSales = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
         const snap = await getDocs(qSales);
         const details: Record<string, any> = {};
         snap.docs.forEach(doc => {
           const data = doc.data();
-          if (isPrepaMode === (data.isDraft === true)) {
-            if (data.invoiceId) details[data.invoiceId] = data;
-          }
+          if (data.invoiceId) details[data.invoiceId] = data;
         });
         setSalesDetails(details);
       } catch (e) {
@@ -90,10 +99,10 @@ function OperationsReportContent() {
       }
     };
     fetchSalesForMatching();
-  }, [db, isPrepaMode, selectedDate]);
+  }, [db, isPrepaMode, isReady, role]);
 
   const reportData = useMemo(() => {
-    if (!rawTransactions) return { nouvellesVentes: [], sorties: [], reglements: [], summary: { initial: 0, entrees: 0, sorties: 0, final: 0 } };
+    if (!rawTransactions || !isReady) return { nouvellesVentes: [], sorties: [], reglements: [], summary: { initial: 0, entrees: 0, sorties: 0, final: 0 } };
     
     const filtered = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     const sorted = [...filtered].sort((a, b) => (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0));
@@ -118,9 +127,9 @@ function OperationsReportContent() {
         final
       }
     };
-  }, [rawTransactions, isPrepaMode, sessionData]);
+  }, [rawTransactions, isPrepaMode, sessionData, isReady]);
 
-  if (settingsLoading || transLoading || loadingSales || sessionLoading) {
+  if (!isReady || settingsLoading || transLoading || loadingSales || sessionLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 

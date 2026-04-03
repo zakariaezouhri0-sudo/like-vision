@@ -167,6 +167,10 @@ function NewSaleForm() {
     setMutuelle("Aucun");
     setCustomMutuelle("");
     setIsFamilyMode(false);
+    setPrescription({
+      od: { sph: "", cyl: "", axe: "", add: "" },
+      og: { sph: "", cyl: "", axe: "", add: "" }
+    });
   };
 
   const clientsQuery = useMemoFirebase(() => {
@@ -204,6 +208,26 @@ function NewSaleForm() {
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
     setIsFamilyMode(false);
+    
+    // Récupération de la prescription historique si elle existe
+    if (client.prescription) {
+      setPrescription({
+        od: {
+          sph: client.prescription.od?.sph || "",
+          cyl: client.prescription.od?.cyl || "",
+          axe: client.prescription.od?.axe || "",
+          add: client.prescription.od?.add || ""
+        },
+        og: {
+          sph: client.prescription.og?.sph || "",
+          cyl: client.prescription.og?.cyl || "",
+          axe: client.prescription.og?.axe || "",
+          add: client.prescription.og?.add || ""
+        }
+      });
+      toast({ title: "Historique Chargé", description: "La dernière prescription du client a été appliquée." });
+    }
+
     if (client.mutuelle) {
       if (MUTUELLES.filter(m => m !== 'Autre').includes(client.mutuelle)) {
         setMutuelle(client.mutuelle);
@@ -294,7 +318,6 @@ function NewSaleForm() {
 
     try {
       if (bonNumber) {
-        // Uniquement lancer la vérification si le numéro de bon a changé ou si c'est une nouvelle vente
         const isBonNumberChanged = !existingSale || bonNumber.trim() !== (existingSale.bonNumber || "").trim();
         
         if (isBonNumberChanged) {
@@ -304,8 +327,6 @@ function NewSaleForm() {
             where("isDraft", "==", currentIsDraft)
           );
           const bonCheckSnap = await getDocs(bonCheckQuery);
-          
-          // Exclure le document actuel en cas de modification
           const otherSales = bonCheckSnap.docs.filter(d => activeEditId ? d.id !== activeEditId : true);
 
           if (otherSales.length > 0) {
@@ -367,7 +388,9 @@ function NewSaleForm() {
           mutuelle: finalMutuelle, 
           lastVisit: format(new Date(), "dd/MM/yyyy"), 
           isDraft: currentIsDraft, 
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          // Sauvegarde de la prescription dans le client pour rappel futur
+          prescription: prescription
         };
         if (!finalClientId) {
           clientData.createdAt = serverTimestamp();

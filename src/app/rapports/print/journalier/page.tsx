@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -16,7 +17,8 @@ function DailyCashReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [printTime, setPrintTime] = useState<string>("");
-  const [role, setRole] = useState<string>("OPTICIENNE");
+  const [role, setRole] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const selectedDate = useMemo(() => {
     const d = searchParams.get("date");
@@ -37,7 +39,9 @@ function DailyCashReportContent() {
     setPrintTime(format(now, "HH:mm"));
     const dateStr = format(selectedDate, "dd-MM-yyyy");
     document.title = `Like Vision - ${dateStr}`;
-    setRole(localStorage.getItem('user_role') || "OPTICIENNE");
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase();
+    setRole(savedRole || "OPTICIENNE");
+    setIsReady(true);
     return () => { document.title = "Like Vision"; };
   }, [selectedDate]);
 
@@ -47,8 +51,12 @@ function DailyCashReportContent() {
   const { data: remoteSettings, isLoading: settingsLoading } = useDoc(settingsRef);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
-  const sessionDocId = isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
-  const sessionRef = useMemoFirebase(() => doc(db, "cash_sessions", sessionDocId), [db, sessionDocId]);
+  const sessionDocId = useMemo(() => {
+    if (!isReady || !role) return null;
+    return isPrepaMode ? `DRAFT-${dateStr}` : dateStr;
+  }, [isReady, role, isPrepaMode, dateStr]);
+
+  const sessionRef = useMemoFirebase(() => sessionDocId ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId]);
   const { data: rawSession, isLoading: sessionLoading } = useDoc(sessionRef);
 
   const session = useMemo(() => {
@@ -75,7 +83,7 @@ function DailyCashReportContent() {
 
   useEffect(() => {
     const fetchSalesForTransactions = async () => {
-      if (!rawTransactions || rawTransactions.length === 0) return;
+      if (!rawTransactions || rawTransactions.length === 0 || !role) return;
       setLoadingSales(true);
       try {
         const ids = new Set<string>();
@@ -123,7 +131,7 @@ function DailyCashReportContent() {
       }
     };
     fetchSalesForTransactions();
-  }, [db, rawTransactions, isPrepaMode]);
+  }, [db, rawTransactions, isPrepaMode, role]);
 
   const shop = {
     name: remoteSettings?.name || DEFAULT_SHOP_SETTINGS.name,
@@ -160,7 +168,7 @@ function DailyCashReportContent() {
   };
 
   const reportData = useMemo(() => {
-    if (!rawTransactions) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
+    if (!rawTransactions || !isReady) return { sales: [], expenses: [], versements: [], initial: 0, fluxOp: 0, totalVersements: 0, final: 0 };
     
     const filteredTransactions = rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
     
@@ -200,9 +208,9 @@ function DailyCashReportContent() {
     const final = roundAmount(initialBalance + fluxOp - totalVersements);
 
     return { sales: salesList, expenses: expensesList, versements: versementsList, initial: initialBalance, fluxOp, totalVersements, final };
-  }, [rawTransactions, session, isPrepaMode]);
+  }, [rawTransactions, session, isPrepaMode, isReady]);
 
-  if (settingsLoading || transLoading || sessionLoading || loadingSales) {
+  if (!isReady || settingsLoading || transLoading || sessionLoading || loadingSales) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
 
