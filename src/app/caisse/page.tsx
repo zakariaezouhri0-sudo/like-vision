@@ -91,6 +91,7 @@ function CaisseContent() {
 
   const session = useMemo(() => {
     if (!rawSession) return null;
+    // On s'assure que la session chargée correspond bien au mode actuel
     if (isPrepaMode !== (rawSession.isDraft === true)) return null;
     return rawSession;
   }, [rawSession, isPrepaMode]);
@@ -98,27 +99,34 @@ function CaisseContent() {
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     orderBy("date", "desc"),
-    limit(500)
+    limit(1000)
   ), [db]);
   
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
-  const lastSessions = useMemo(() => {
-    if (!allSessions || !isClientReady) return [];
-    // Filtrage en mémoire pour éviter les erreurs d'index Firestore
-    return allSessions
-      .filter((s: any) => (isPrepaMode ? s.isDraft === true : s.isDraft !== true) && s.status === "CLOSED" && s.date < dateStr)
-      .slice(0, 1);
-  }, [allSessions, isPrepaMode, dateStr, isClientReady]);
-
+  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE
   useEffect(() => {
     if (!isClientReady) return;
 
     if (!session && !sessionLoading) {
       if (!loadingPast) {
-        if (lastSessions && lastSessions.length > 0) {
-          const lastS = lastSessions[0];
-          const prevFinal = roundAmount(lastS.closingBalanceReal || 0);
+        // Recherche de la dernière session clôturée pour le mode actuel
+        const previousClosedSession = allSessions?.find((s: any) => {
+          const sIsDraft = s.isDraft === true;
+          const modeMatch = isPrepaMode ? sIsDraft : !sIsDraft;
+          
+          // Normalisation de la date pour comparaison string (yyyy-MM-dd)
+          let sDate = s.date || "";
+          if (sDate.includes('-') && sDate.split('-')[0].length === 2) {
+            const [d, m, y] = sDate.split('-');
+            sDate = `${y}-${m}-${d}`;
+          }
+          
+          return modeMatch && s.status === "CLOSED" && sDate < dateStr;
+        });
+
+        if (previousClosedSession) {
+          const prevFinal = roundAmount(previousClosedSession.closingBalanceReal || 0);
           setOpeningVal(prevFinal.toString());
           setIsAutoReport(true);
         } else {
@@ -132,7 +140,7 @@ function CaisseContent() {
     } else if (session) {
       setIsLoadingReport(false);
     }
-  }, [lastSessions, loadingPast, session, sessionLoading, isClientReady]);
+  }, [allSessions, loadingPast, session, sessionLoading, isClientReady, isPrepaMode, dateStr]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -239,7 +247,6 @@ function CaisseContent() {
     if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
       const bcId = bcMatch[1].padStart(4, '0');
       try {
-        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
         const q = query(
           collection(db, "sales"), 
           where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
@@ -298,21 +305,16 @@ function CaisseContent() {
         });
       });
 
-      await handleAutoAffectBC(newOp.clientName, newOp.type, amt);
+      // L'affectation BC est asynchrone mais ne doit pas bloquer l'UI si elle échoue
+      handleAutoAffectBC(newOp.clientName, newOp.type, amt).catch(console.error);
       
-      toast({ 
-        variant: "success", 
-        title: "Opération enregistrée", 
-        description: newOp.clientName.match(/(\d+)/) ? `Coût affecté au BC ${newOp.clientName.match(/(\d+)/)?.[0]}` : undefined 
-      });
-
+      toast({ variant: "success", title: "Opération enregistrée" });
       setNewOp(prev => ({ ...prev, label: "", clientName: "", montant: "" }));
       setIsOpDialogOpen(false);
     } catch (e: any) { 
       if (e.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       } else {
-        console.error(e);
         toast({ variant: "destructive", title: "Erreur lors de l'enregistrement" }); 
       }
     } finally { setOpLoading(false); }
@@ -354,7 +356,7 @@ function CaisseContent() {
         });
       });
 
-      await handleAutoAffectBC(editOp.clientName, editOp.type, amt);
+      handleAutoAffectBC(editOp.clientName, editOp.type, amt).catch(console.error);
       toast({ variant: "success", title: "Opération mise à jour" });
       setIsEditDialogOpen(false);
     } catch (e: any) { 
@@ -367,27 +369,19 @@ function CaisseContent() {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut supprimer une opération de caisse." });
       return;
     }
-    if (!confirm("Supprimer cette opération ? Cela remettra également à zéro les coûts liés dans les factures.")) return;
+    if (!confirm("Supprimer cette opération ?")) return;
     
     try {
       setOpLoading(true);
       const batch = writeBatch(db);
-      
-      // Suppression de la transaction
       batch.delete(doc(db, "transactions", t.id));
 
-      // Nettoyage en cascade : si c'est un achat, on remet à zéro dans la vente
       const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
       if (bcMatch && (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE")) {
         const bcId = bcMatch[1].padStart(4, '0');
-        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
-        const q = query(
-          collection(db, "sales"), 
-          where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
-        );
+        const q = query(collection(db, "sales"), where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`]));
         const snap = await getDocs(q);
         const saleDoc = snap.docs.find(d => d.data().isDraft === isPrepaMode);
-        
         if (saleDoc) {
           const updateField = t.type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
           batch.update(saleDoc.ref, { [updateField]: 0 });
@@ -395,7 +389,7 @@ function CaisseContent() {
       }
 
       await batch.commit();
-      toast({ variant: "success", title: "Opération supprimée", description: "Les liens ont été nettoyés." });
+      toast({ variant: "success", title: "Opération supprimée" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur lors de la suppression" });
     } finally {
@@ -415,7 +409,7 @@ function CaisseContent() {
         closingBalanceTheoretical: null,
         discrepancy: null
       });
-      toast({ variant: "success", title: "Caisse Ré-ouverte", description: "Les modifications sont de nouveau possibles." });
+      toast({ variant: "success", title: "Caisse Ré-ouverte" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de la ré-ouverture" });
     } finally {
@@ -489,7 +483,7 @@ function CaisseContent() {
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                   onBlur={() => !isAutoReport && openingVal && setOpeningVal(formatCurrency(parseAmount(openingVal)))}
-                  readOnly={isLoadingReport}
+                  readOnly={isLoadingReport || isAutoReport}
                   autoFocus
                 />
                 {isLoadingReport && (
@@ -543,22 +537,15 @@ function CaisseContent() {
               data.map((t: any) => {
                 const labelPart = t.label || "";
                 const typeStr = t.type || "";
-                const redundantPrefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
                 let cleanedLabel = labelPart;
-                redundantPrefixes.forEach(p => {
+                const prefixes = [typeStr, "Achat monture", "Achat verres", "Versement", "Depense"];
+                prefixes.forEach(p => {
                   const reg = new RegExp(`^${p}\\s*[:\\-']?\\s*`, 'i');
                   cleanedLabel = cleanedLabel.replace(reg, '');
                 });
                 cleanedLabel = cleanedLabel.replace(/^['"]|['"]$/g, '').trim();
 
-                let displayLabel = "";
-                if (t.type === "VENTE") {
-                  displayLabel = t.relatedId ? `VENTE ${t.relatedId}` : (labelPart || "VENTE");
-                } else if (t.type === "VERSEMENT") {
-                  displayLabel = `VERSEMENT | ${cleanedLabel || "BANQUE"}`;
-                } else {
-                  displayLabel = `${t.type} | ${cleanedLabel || "---"}`;
-                }
+                let displayLabel = t.type === "VENTE" ? (t.relatedId ? `VENTE ${t.relatedId}` : labelPart) : `${t.type} | ${cleanedLabel || "---"}`;
 
                 return (
                   <TableRow key={t.id} className="hover:bg-slate-50 transition-all group">
@@ -566,9 +553,7 @@ function CaisseContent() {
                       <div className="flex items-center gap-6">
                         <span className="text-[10px] font-black text-slate-400 w-12 shrink-0 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "HH:mm") : "--:--"}</span>
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black uppercase text-[#0D1B2A] leading-tight tracking-tight">{displayLabel}</span>
-                          </div>
+                          <span className="text-xs font-black uppercase text-[#0D1B2A] leading-tight tracking-tight">{displayLabel}</span>
                           <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mt-1.5">{t.clientName || "---"}</span>
                         </div>
                       </div>
@@ -578,23 +563,9 @@ function CaisseContent() {
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
                       {isAdminOrPrepa && (
-                        <div className="flex items-center justify-end gap-3 transition-opacity">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleOpenEdit(t)} 
-                            className="h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm cursor-pointer"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleDeleteOp(t)} 
-                            className="h-9 w-9 text-red-500 border-red-100 hover:bg-red-50 rounded-full shadow-sm cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div className="flex items-center justify-end gap-3">
+                          <Button variant="outline" size="icon" onClick={() => handleOpenEdit(t)} className="h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm"><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="icon" onClick={() => handleDeleteOp(t)} className="h-9 w-9 text-red-500 border-red-100 hover:bg-red-50 rounded-full shadow-sm"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       )}
                     </TableCell>
@@ -614,34 +585,20 @@ function CaisseContent() {
         <Alert variant="destructive" className="bg-red-600 text-white border-none rounded-[32px] mb-10 shadow-2xl py-6 animate-in fade-in slide-in-from-top-4">
           <Lock className="h-6 w-6 text-white" />
           <AlertTitle className="font-black uppercase tracking-[0.2em] text-lg">Caisse Clôturée</AlertTitle>
-          <AlertDescription className="font-bold opacity-95 text-sm">
-            Cette session de caisse est FERMÉE. Toute nouvelle opération ou modification est bloquée pour votre compte.
-          </AlertDescription>
+          <AlertDescription className="font-bold opacity-95 text-sm">Session fermée. Toute modification est bloquée.</AlertDescription>
         </Alert>
       )}
 
-      {/* HEADER SECTION - COMPACT PREMIUM DESIGN */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-transparent py-2 px-2">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-5">
-          {/* Pulsing Status Dot */}
           <div className="h-14 w-14 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
-            <div className={cn(
-              "h-4 w-4 rounded-full transition-all duration-1000", 
-              isClosed 
-                ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" 
-                : "bg-emerald-400 shadow-[0_0_15px_#34d399] animate-pulse"
-            )} />
+            <div className={cn("h-4 w-4 rounded-full", isClosed ? "bg-red-500" : "bg-emerald-400 animate-pulse")} />
           </div>
-          
           <div className="flex flex-col text-left">
-            <h1 className="text-xl font-black text-[#0D1B2A] uppercase tracking-wider leading-tight">
-              {isClosed ? "CAISSE CLÔTURÉE" : "CAISSE OUVERTE"}
-            </h1>
+            <h1 className="text-xl font-black text-[#0D1B2A] uppercase tracking-wider">{isClosed ? "CAISSE CLÔTURÉE" : "CAISSE OUVERTE"}</h1>
             <div className="flex items-center gap-2 mt-0.5 opacity-60">
               <CalendarIcon className="h-3 w-3 text-[#D4AF37]" />
-              <span className="text-[10px] text-[#0D1B2A] font-black tracking-[0.1em] uppercase">
-                {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
-              </span>
+              <span className="text-[10px] text-[#0D1B2A] font-black uppercase">{format(selectedDate, "dd MMMM yyyy", { locale: fr })}</span>
             </div>
           </div>
         </div>
@@ -650,92 +607,69 @@ function CaisseContent() {
           {isAdminOrPrepa && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-none bg-white text-slate-500 shadow-md hover:bg-slate-50 transition-all">
-                  <RotateCcw className="mr-2 h-3.5 w-3.5 text-slate-400" /> CHANGER DATE
+                <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase bg-white text-slate-500 shadow-md">
+                  <RotateCcw className="mr-2 h-3.5 w-3.5" /> CHANGER DATE
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl">
-                <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus />
-              </PopoverContent>
+              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} /></PopoverContent>
             </Popover>
           )}
           
           {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="h-10 px-6 rounded-full font-black text-[9px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
-                  <Plus className="mr-2 h-3.5 w-3.5" /> NOUVELLE OPÉRATION
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md rounded-[40px] p-10" onKeyDown={(e) => e.key === 'Enter' && handleAddOperation(e)}>
+              <DialogTrigger asChild><Button className="h-10 px-6 rounded-full font-black text-[9px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white"><Plus className="mr-2 h-3.5 w-3.5" /> NOUVELLE OPÉRATION</Button></DialogTrigger>
+              <DialogContent className="max-w-md rounded-[40px] p-10">
                 <form onSubmit={handleAddOperation}>
-                  <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center text-xl">Mouvement de Caisse</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center">Mouvement de Caisse</DialogTitle></DialogHeader>
                   <div className="space-y-6 py-8">
-                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Type</Label><select className="w-full h-12 rounded-2xl font-bold bg-slate-50 border-none px-4 outline-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
-                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Libellé</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="Désignation..." value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
-                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Client / BC (ex: BC : 2472)</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="M. Mohamed ou BC : 2472..." value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Type</Label><select className="w-full h-12 rounded-2xl font-bold bg-slate-50 px-4 outline-none border-none" value={newOp.type} onChange={e => setNewOp({...newOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Libellé</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none" value={newOp.label} onChange={e => setNewOp({...newOp, label: e.target.value})} /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Client / BC</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none" value={newOp.clientName} onChange={e => setNewOp({...newOp, clientName: e.target.value})} /></div>
                     <div className="space-y-2">
                       <Label className="text-[10px] uppercase font-black ml-2">Montant (DH)</Label>
-                      <Input 
-                        type="text" 
-                        className="h-12 rounded-2xl font-black text-lg bg-slate-50 border-none px-4 text-[#0D1B2A] tabular-nums" 
-                        placeholder="0,00" 
-                        value={newOp.montant} 
-                        onChange={e => setNewOp({...newOp, montant: e.target.value})} 
-                        onBlur={() => newOp.montant && setNewOp({...newOp, montant: formatCurrency(parseAmount(newOp.montant))})}
-                      />
+                      <Input type="text" className="h-12 rounded-2xl font-black text-lg bg-slate-50 border-none" value={newOp.montant} onChange={e => setNewOp({...newOp, montant: e.target.value})} onBlur={() => newOp.montant && setNewOp({...newOp, montant: formatCurrency(parseAmount(newOp.montant))})} />
                     </div>
                   </div>
-                  <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full text-base tracking-widest shadow-xl">VALIDER</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full shadow-xl">VALIDER</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
           )}
 
-          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-none bg-white text-slate-500 shadow-md hover:bg-slate-50">
+          <Button variant="outline" onClick={() => router.push(`/rapports/print/journalier?date=${dateStr}`)} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-none bg-white text-slate-500 shadow-md">
             <FileText className="mr-2 h-3.5 w-3.5 text-[#D4AF37]" /> RAPPORT PDF
           </Button>
           
           {!isClosed && (
             <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="h-10 px-5 rounded-full font-black text-[9px] uppercase text-red-500 hover:bg-red-50 transition-all">
-                  <LogOut className="mr-2 h-3.5 w-3.5" /> CLÔTURE
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl rounded-[60px] p-12 border-none shadow-2xl" onKeyDown={(e) => e.key === 'Enter' && handleFinalizeClosure()}>
-                <DialogHeader><DialogTitle className="font-black uppercase tracking-[0.3em] text-center text-2xl text-[#0D1B2A]">Clôture & Comptage {isPrepaMode ? "(Brouillon)" : ""}</DialogTitle></DialogHeader>
+              <DialogTrigger asChild><Button variant="ghost" className="h-10 px-5 rounded-full font-black text-[9px] uppercase text-red-500 hover:bg-red-50">CLÔTURE</Button></DialogTrigger>
+              <DialogContent className="max-w-4xl rounded-[60px] p-12 border-none shadow-2xl">
+                <DialogHeader><DialogTitle className="font-black uppercase tracking-[0.3em] text-center text-2xl text-[#0D1B2A]">Clôture & Comptage</DialogTitle></DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-10">
                   <div className="space-y-3">
                     {DENOMINATIONS.map(val => (
-                      <div key={val} className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
-                        <span className="w-20 text-right font-black text-xs text-slate-400 group-hover:text-[#D4AF37] transition-colors">{val} DH</span>
-                        <Input type="number" step="any" className="h-10 w-24 text-center font-black bg-white border-none rounded-xl shadow-inner" placeholder="---" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseFloat(e.target.value) || 0})} />
-                        <span className="flex-1 text-right font-black text-[#0D1B2A] text-sm tabular-nums">{formatCurrency(val * (denoms[val] || 0))}</span>
+                      <div key={val} className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 transition-all hover:bg-white hover:shadow-md">
+                        <span className="w-20 text-right font-black text-xs text-slate-400">{val} DH</span>
+                        <Input type="number" className="h-10 w-24 text-center font-black bg-white border-none rounded-xl" value={denoms[val] || ""} onChange={(e) => setDenoms({...denoms, [val]: parseFloat(e.target.value) || 0})} />
+                        <span className="flex-1 text-right font-black text-[#0D1B2A] text-sm">{formatCurrency(val * (denoms[val] || 0))}</span>
                       </div>
                     ))}
-                    <div className="flex items-center gap-4 bg-[#D4AF37]/5 p-4 rounded-2xl border border-[#D4AF37]/20 mt-6 shadow-inner">
-                      <span className="w-20 text-right font-black text-[10px] text-[#D4AF37] uppercase tracking-widest">Centimes</span>
-                      <Input type="number" className="h-10 w-24 text-center font-black bg-white border-none rounded-xl shadow-inner" placeholder="60" value={manualCents} onChange={(e) => setManualCents(e.target.value)} />
-                      <span className="flex-1 text-right font-black text-[#0D1B2A] text-sm tabular-nums flex items-center justify-end gap-1"><Coins className="h-4 w-4 text-[#D4AF37]" /> DH</span>
+                    <div className="flex items-center gap-4 bg-[#D4AF37]/5 p-4 rounded-2xl border border-[#D4AF37]/20 mt-6">
+                      <span className="w-20 text-right font-black text-[10px] text-[#D4AF37] uppercase">Centimes</span>
+                      <Input type="number" className="h-10 w-24 text-center font-black bg-white border-none rounded-xl" value={manualCents} onChange={(e) => setManualCents(e.target.value)} />
+                      <span className="flex-1 text-right font-black text-[#0D1B2A] text-sm"><Coins className="h-4 w-4 inline mr-1" /> DH</span>
                     </div>
                   </div>
-                  <div className="space-y-6 bg-slate-50 p-10 rounded-[40px] border border-slate-100 shadow-inner flex flex-col justify-center">
+                  <div className="space-y-6 bg-slate-50 p-10 rounded-[40px] border border-slate-100 flex flex-col justify-center">
                     <div className="space-y-4">
-                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest"><span>Solde Initial</span><span className="tabular-nums">{formatCurrency(initialBalance)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-[#D4AF37] tracking-widest"><span>Ventes (+)</span><span className="tabular-nums">{formatCurrency(stats.entrees)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-red-500 tracking-widest"><span>Dépenses (-)</span><span className="tabular-nums">{formatCurrency(stats.depenses)}</span></div>
-                      <div className="flex justify-between text-[10px] font-black uppercase text-orange-600 tracking-widest"><span>Versements (-)</span><span className="tabular-nums">{formatCurrency(stats.versements)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-400"><span>Solde Initial</span><span>{formatCurrency(initialBalance)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-[#D4AF37]"><span>Ventes (+)</span><span>{formatCurrency(stats.entrees)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-red-500"><span>Dépenses (-)</span><span>{formatCurrency(stats.depenses)}</span></div>
+                      <div className="flex justify-between text-[10px] font-black uppercase text-orange-600"><span>Versements (-)</span><span>{formatCurrency(stats.versements)}</span></div>
                     </div>
-                    <div className="pt-8 border-t border-slate-200 flex justify-between items-center">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0D1B2A]">Total Compté</span>
-                      <span className="text-3xl font-black text-[#D4AF37] tabular-nums tracking-tighter">{formatCurrency(soldeReel)}</span>
-                    </div>
-                    <div className={cn("p-6 rounded-3xl text-center shadow-sm", Math.abs(ecart) < 0.01 ? "bg-[#D4AF37]/10 text-[#D4AF37]" : "bg-red-100 text-red-700")}>
-                      <p className="text-[10px] font-black uppercase mb-1 tracking-widest">Écart Final</p>
-                      <p className="text-2xl font-black tabular-nums">{formatCurrency(ecart)}</p>
-                    </div>
-                    <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-16 rounded-full font-black text-base tracking-widest shadow-xl mt-4">VALIDER LA CLÔTURE</Button>
+                    <div className="pt-8 border-t border-slate-200 flex justify-between items-center"><span className="text-xs font-black uppercase text-[#0D1B2A]">Total Compté</span><span className="text-3xl font-black text-[#D4AF37]">{formatCurrency(soldeReel)}</span></div>
+                    <div className={cn("p-6 rounded-3xl text-center shadow-sm", Math.abs(ecart) < 0.01 ? "bg-[#D4AF37]/10 text-[#D4AF37]" : "bg-red-100 text-red-700")}><p className="text-[10px] font-black uppercase mb-1">Écart Final</p><p className="text-2xl font-black">{formatCurrency(ecart)}</p></div>
+                    <Button onClick={handleFinalizeClosure} disabled={opLoading} className="w-full h-16 rounded-full font-black text-base shadow-xl mt-4">VALIDER LA CLÔTURE</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -743,63 +677,38 @@ function CaisseContent() {
           )}
           
           {isClosed && role === 'ADMIN' && (
-            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white transition-all shadow-md">
+            <Button variant="outline" onClick={handleReopenSession} disabled={opLoading} className="h-10 px-5 rounded-full font-black text-[9px] uppercase border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white shadow-md">
               <RotateCcw className="mr-2 h-3.5 w-3.5" /> RÉ-OUVRIR LA CAISSE
             </Button>
           )}
         </div>
       </div>
 
-      {/* STATS CARDS GRID - REDUCED HEIGHT (h-40) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-        {/* SOLDE OUVERTURE */}
-        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-white relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-blue-100" />
-          <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
-            <Lock className="h-4 w-4 text-blue-400" />
-          </div>
-          <p className="text-[9px] uppercase font-black text-slate-400 mb-2 tracking-widest">Solde Ouverture</p>
-          <p className="text-xl font-black text-[#0D1B2A] tabular-nums tracking-tighter">{formatCurrency(initialBalance)}</p>
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-white flex flex-col items-center justify-center text-center h-40">
+          <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3"><Lock className="h-4 w-4 text-blue-400" /></div>
+          <p className="text-[9px] uppercase font-black text-slate-400 mb-2">Solde Ouverture</p>
+          <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(initialBalance)}</p>
         </Card>
-
-        {/* VENTES */}
-        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-emerald-100" />
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
-          </div>
-          <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-2 tracking-widest">Ventes</p>
-          <p className="text-xl font-black text-emerald-600 tabular-nums tracking-tighter">+{formatCurrency(stats.entrees)}</p>
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] flex flex-col items-center justify-center text-center h-40">
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><TrendingUp className="h-4 w-4 text-emerald-500" /></div>
+          <p className="text-[9px] uppercase font-black text-emerald-600/60 mb-2">Ventes</p>
+          <p className="text-xl font-black text-emerald-600">+{formatCurrency(stats.entrees)}</p>
         </Card>
-
-        {/* DÉPENSES */}
-        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-red-100" />
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
-            <TrendingDown className="h-4 w-4 text-red-500" />
-          </div>
-          <p className="text-[9px] uppercase font-black text-red-400 mb-2 tracking-widest">Dépenses</p>
-          <p className="text-xl font-black text-red-600 tabular-nums tracking-tighter">-{formatCurrency(stats.depenses)}</p>
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FEF2F2] flex flex-col items-center justify-center text-center h-40">
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><TrendingDown className="h-4 w-4 text-red-500" /></div>
+          <p className="text-[9px] uppercase font-black text-red-400 mb-2">Dépenses</p>
+          <p className="text-xl font-black text-red-600">-{formatCurrency(stats.depenses)}</p>
         </Card>
-
-        {/* VERSEMENTS */}
-        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-orange-100" />
-          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3">
-            <ArrowLeftRight className="h-4 w-4 text-orange-500" />
-          </div>
-          <p className="text-[9px] uppercase font-black text-orange-400 mb-2 tracking-widest">Versements</p>
-          <p className="text-xl font-black text-orange-600 tabular-nums tracking-tighter">-{formatCurrency(stats.versements)}</p>
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#FFF7ED] flex flex-col items-center justify-center text-center h-40">
+          <div className="h-10 w-10 bg-white/50 rounded-2xl flex items-center justify-center mb-3"><ArrowLeftRight className="h-4 w-4 text-orange-500" /></div>
+          <p className="text-[9px] uppercase font-black text-orange-400 mb-2">Versements</p>
+          <p className="text-xl font-black text-orange-600">-{formatCurrency(stats.versements)}</p>
         </Card>
-
-        {/* SOLDE THÉORIQUE */}
-        <Card className="p-6 rounded-[40px] border-none shadow-2xl bg-[#0D1B2A] relative overflow-hidden flex flex-col items-center justify-center text-center h-40 group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-[#D4AF37]" />
-          <div className="h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center mb-3">
-            <DollarSign className="h-4 w-4 text-[#D4AF37]" />
-          </div>
-          <p className="text-[9px] uppercase font-black text-[#D4AF37] mb-2 tracking-widest opacity-80">Solde Théorique</p>
-          <p className="text-xl font-black text-white tabular-nums tracking-tighter">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p>
+        <Card className="p-6 rounded-[40px] border-none shadow-2xl bg-[#0D1B2A] flex flex-col items-center justify-center text-center h-40">
+          <div className="h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center mb-3"><DollarSign className="h-4 w-4 text-[#D4AF37]" /></div>
+          <p className="text-[9px] uppercase font-black text-[#D4AF37] mb-2 opacity-80">Solde Théorique</p>
+          <p className="text-xl font-black text-white">{formatCurrency(isClosed ? session.closingBalanceReal : soldeTheorique)}</p>
         </Card>
       </div>
 
@@ -807,26 +716,16 @@ function CaisseContent() {
       {renderTransactionTable("Sorties (Charges & Versements)", expenseTransactions, <TrendingDown className="h-5 w-5 text-red-500" />, "bg-red-100 text-red-700")}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md rounded-[40px] p-10" onKeyDown={(e) => e.key === 'Enter' && handleUpdateOperation(e)}>
+        <DialogContent className="max-w-md rounded-[40px] p-10">
           <form onSubmit={handleUpdateOperation}>
-            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center text-xl">Modifier Opération</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center">Modifier Opération</DialogTitle></DialogHeader>
             <div className="space-y-6 py-8">
-              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Type</Label><select className="w-full h-12 rounded-2xl font-bold bg-slate-50 border-none px-4 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
-              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Libellé</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
-              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Client / BC</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black ml-2">Montant (DH)</Label>
-                <Input 
-                  type="text" 
-                  className="h-12 rounded-2xl font-black text-lg bg-slate-50 border-none px-4 text-[#0D1B2A] tabular-nums" 
-                  placeholder="0,00" 
-                  value={editOp.montant} 
-                  onChange={e => setEditOp({...editOp, montant: e.target.value})} 
-                  onBlur={() => editOp.montant && setEditOp({...editOp, montant: formatCurrency(parseAmount(editOp.montant))})}
-                />
-              </div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Type</Label><select className="w-full h-12 rounded-2xl font-bold bg-slate-50 outline-none border-none px-4" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Libellé</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none" value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Client / BC</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none" value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Montant (DH)</Label><Input type="text" className="h-12 rounded-2xl font-black text-lg bg-slate-50 border-none" value={editOp.montant} onChange={e => setEditOp({...editOp, montant: e.target.value})} onBlur={() => editOp.montant && setEditOp({...editOp, montant: formatCurrency(parseAmount(editOp.montant))})} /></div>
             </div>
-            <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full text-base tracking-widest shadow-xl">ENREGISTRER</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full shadow-xl">ENREGISTRER</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
