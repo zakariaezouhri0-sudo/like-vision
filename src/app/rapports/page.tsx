@@ -16,7 +16,8 @@ import {
   Tag,
   Filter,
   CalendarDays,
-  Landmark
+  Landmark,
+  PieChart as PieChartIcon
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
@@ -129,44 +130,53 @@ export default function ReportsPage() {
   const RenderChargesTable = ({ title, type, color, icon: Icon }: any) => {
     const data = stats.filteredTrans.filter(t => t.type === type);
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between border-b pb-2 px-2">
-          <h3 className={cn("text-xs font-black uppercase flex items-center gap-2", color)}>
-            <Icon className="h-4 w-4" /> {title}
-          </h3>
-          <Badge className={cn("text-[10px] font-black uppercase", color.replace('text-', 'bg-') + '/10 ' + color)}>
-            Total: {formatCurrency(data.reduce((acc, t) => acc + Math.abs(t.montant), 0))}
-          </Badge>
-        </div>
-        <div className="overflow-hidden border rounded-2xl bg-white">
+      <Card className="rounded-[40px] border-none shadow-xl bg-white overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b p-6 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center bg-white shadow-sm border", color)}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-black uppercase text-[#0D1B2A] tracking-wider">{title}</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase text-slate-400">Total :</span>
+            <Badge className={cn("text-xs font-black px-4 py-1.5 rounded-full border-none shadow-sm", color.replace('text-', 'bg-') + '/10 ' + color)}>
+              {formatCurrency(data.reduce((acc, t) => acc + Math.abs(t.montant), 0))}
+            </Badge>
+          </div>
+        </CardHeader>
+        <div className="overflow-x-auto">
           <Table>
             <TableBody>
               {data.length > 0 ? data.map(t => {
                 const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
                 const bcNum = bcMatch ? bcMatch[1] : "---";
                 return (
-                  <TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0">
-                    <TableCell className="py-4 font-bold text-[10px] text-slate-400 w-24">
-                      {t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yy") : "---"}
+                  <TableRow key={t.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
+                    <TableCell className="px-8 py-5">
+                      <div className="flex items-center gap-6">
+                        <span className="text-[10px] font-black text-slate-400 w-16 tabular-nums">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yy") : "---"}</span>
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black uppercase text-[#0D1B2A] group-hover:text-primary transition-colors">{t.label}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">{t.clientName || "---"}</span>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell className="py-4 font-black uppercase text-[11px] text-[#0D1B2A]">
-                      {t.label}
+                    <TableCell className="px-8 py-5 text-center">
+                      {bcNum !== "---" && <Badge variant="outline" className="text-[9px] font-black uppercase border-slate-200 bg-white">BC {bcNum}</Badge>}
                     </TableCell>
-                    <TableCell className="py-4 text-center font-black text-[10px] text-slate-400 w-20">
-                      {bcNum !== "---" ? `BC ${bcNum}` : "---"}
-                    </TableCell>
-                    <TableCell className="py-4 text-right font-black text-xs tabular-nums text-red-500 w-32">
-                      -{formatCurrency(Math.abs(t.montant))}
+                    <TableCell className="px-8 py-5 text-right">
+                      <span className="text-sm font-black tabular-nums text-red-500">-{formatCurrency(Math.abs(t.montant))}</span>
                     </TableCell>
                   </TableRow>
                 );
               }) : (
-                <TableRow><TableCell className="text-center py-8 text-[9px] font-black uppercase opacity-20">Aucune opération.</TableCell></TableRow>
+                <TableRow><TableCell className="text-center py-12 text-[10px] font-black uppercase opacity-20 tracking-[0.3em]">Aucune opération enregistrée.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </div>
-      </div>
+      </Card>
     );
   };
 
@@ -175,13 +185,15 @@ export default function ReportsPage() {
       <div className="space-y-8 pb-10">
         <div className="bg-white p-8 rounded-[60px] border shadow-xl shadow-slate-200/50 flex flex-col lg:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
-            <TrendingUp className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
+            <div className="h-14 w-14 bg-[#0D1B2A] rounded-[24px] flex items-center justify-center shadow-lg shadow-[#0D1B2A]/20">
+              <TrendingUp className="h-7 w-7 text-[#D4AF37]" />
+            </div>
             <div className="flex flex-col">
               <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">
                 Rapports d'Activité
               </h1>
               <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">
-                Analyses Luxury & Exports Fournisseurs.
+                Suivi Luxury des marges et des sorties de caisse.
               </p>
             </div>
           </div>
@@ -212,13 +224,13 @@ export default function ReportsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[ 
-            { l: "CA Encaissé", v: stats.ca, c: "text-[#D4AF37]" }, 
-            { l: "Marge Brute", v: stats.marge, c: "text-emerald-600" }, 
-            { l: "Achats (V+M)", v: -(stats.chargeVerres + stats.chargeMontures), c: "text-orange-500" }, 
-            { l: "Résultat Net", v: stats.ca - stats.expenses, c: "text-blue-600" } 
+            { l: "CA Encaissé", v: stats.ca, c: "text-[#D4AF37]", bg: "bg-white" }, 
+            { l: "Marge Brute", v: stats.marge, c: "text-emerald-600", bg: "bg-white" }, 
+            { l: "Achats (V+M)", v: -(stats.chargeVerres + stats.chargeMontures), c: "text-orange-500", bg: "bg-white" }, 
+            { l: "Résultat Net", v: stats.ca - stats.expenses, c: "text-white", bg: "bg-[#0D1B2A]" } 
           ].map((item, i) => (
-            <Card key={i} className="p-8 rounded-[60px] border-none shadow-xl shadow-slate-200/50 bg-white relative overflow-hidden">
-              <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-widest">{item.l}</p>
+            <Card key={i} className={cn("p-8 rounded-[60px] border-none shadow-xl shadow-slate-200/50 relative overflow-hidden", item.bg)}>
+              <p className={cn("text-[10px] uppercase font-black mb-3 tracking-widest", item.bg === "bg-[#0D1B2A]" ? "text-slate-400" : "text-slate-400")}>{item.l}</p>
               <p className={cn("text-2xl font-black tabular-nums tracking-tighter", item.c)}>{formatCurrency(item.v)}</p>
             </Card>
           ))}
@@ -243,7 +255,7 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {stats.filteredTrans.length > 0 ? stats.filteredTrans.map(t => (
-                    <TableRow key={t.id} className="hover:bg-slate-50 border-b last:border-0">
+                    <TableRow key={t.id} className="hover:bg-slate-50 transition-all group border-b last:border-0">
                       <TableCell className="px-10 py-6 font-bold text-[11px] text-slate-400">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM HH:mm") : "---"}</TableCell>
                       <TableCell className="px-10 py-6 font-black uppercase text-xs text-[#0D1B2A]">{t.label}</TableCell>
                       <TableCell className={cn("text-right px-10 py-6 font-black text-sm tabular-nums", t.montant >= 0 ? "text-emerald-600" : "text-red-500")}>
@@ -282,7 +294,7 @@ export default function ReportsPage() {
                     const margePct = caNet > 0 ? (marge / caNet) * 100 : 0;
 
                     return (
-                      <TableRow key={s.id} className="hover:bg-slate-50 border-b last:border-0">
+                      <TableRow key={s.id} className="hover:bg-slate-50 border-b last:border-0 transition-all">
                         <TableCell className="px-6 py-6 font-bold text-[11px] text-slate-400 whitespace-nowrap">
                           {s.createdAt?.toDate ? format(s.createdAt.toDate(), "dd/MM/yyyy") : "---"}
                         </TableCell>
@@ -297,14 +309,14 @@ export default function ReportsPage() {
                         <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-red-400">-{formatCurrency(costLenses)}</TableCell>
                         <TableCell className="text-right px-6 py-6 font-black text-sm tabular-nums text-emerald-600">{formatCurrency(marge)}</TableCell>
                         <TableCell className="text-center px-6 py-6">
-                          <Badge className={cn("text-[9px] font-black", margePct > 50 ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>
+                          <Badge className={cn("text-[9px] font-black px-3 py-1 rounded-full", margePct > 50 ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>
                             {margePct.toFixed(0)}%
                           </Badge>
                         </TableCell>
                       </TableRow>
                     );
                   }) : (
-                    <TableRow><TableCell colSpan={7} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Veuillez affecter des coûts d'achat dans l'historique.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-20 text-[10px] font-black uppercase opacity-20 tracking-widest">Affectez des coûts d'achat pour voir vos marges.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -315,23 +327,25 @@ export default function ReportsPage() {
             <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[40px] border shadow-lg gap-8">
               <div className="flex items-center gap-6 overflow-hidden">
                 <div className="flex items-center gap-3 shrink-0">
-                  <Filter className="h-5 w-5 text-[#D4AF37]" />
-                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest hidden sm:inline">Sélection :</span>
+                  <div className="h-10 w-10 bg-slate-100 rounded-2xl flex items-center justify-center">
+                    <Filter className="h-5 w-5 text-[#D4AF37]" />
+                  </div>
+                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest hidden sm:inline">Afficher :</span>
                 </div>
                 <div className="flex flex-nowrap items-center gap-4 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-                  <div className="flex items-center space-x-3 bg-blue-50/50 px-4 py-2 rounded-2xl border border-blue-100 shrink-0">
+                  <div className="flex items-center space-x-3 bg-blue-50/50 px-4 py-2.5 rounded-2xl border border-blue-100 shrink-0">
                     <Switch id="inc-verres" checked={includeVerres} onCheckedChange={setIncludeVerres} className="data-[state=checked]:bg-blue-600" />
                     <Label htmlFor="inc-verres" className="text-[11px] font-black uppercase cursor-pointer text-blue-700 tracking-tight">Verres</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-orange-50/50 px-4 py-2 rounded-2xl border border-orange-100 shrink-0">
+                  <div className="flex items-center space-x-3 bg-orange-50/50 px-4 py-2.5 rounded-2xl border border-orange-100 shrink-0">
                     <Switch id="inc-montures" checked={includeMontures} onCheckedChange={setIncludeMontures} className="data-[state=checked]:bg-orange-600" />
                     <Label htmlFor="inc-montures" className="text-[11px] font-black uppercase cursor-pointer text-orange-700 tracking-tight">Montures</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-red-50/50 px-4 py-2 rounded-2xl border border-red-100 shrink-0">
+                  <div className="flex items-center space-x-3 bg-red-50/50 px-4 py-2.5 rounded-2xl border border-red-100 shrink-0">
                     <Switch id="inc-frais" checked={includeFrais} onCheckedChange={setIncludeFrais} className="data-[state=checked]:bg-red-600" />
                     <Label htmlFor="inc-frais" className="text-[11px] font-black uppercase cursor-pointer text-red-700 tracking-tight">Frais</Label>
                   </div>
-                  <div className="flex items-center space-x-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200 shrink-0">
+                  <div className="flex items-center space-x-3 bg-slate-100 px-4 py-2.5 rounded-2xl border border-slate-200 shrink-0">
                     <Switch id="inc-versements" checked={includeVersements} onCheckedChange={setIncludeVersements} className="data-[state=checked]:bg-[#0D1B2A]" />
                     <Label htmlFor="inc-versements" className="text-[11px] font-black uppercase cursor-pointer text-[#0D1B2A] tracking-tight">Versements</Label>
                   </div>
@@ -339,7 +353,7 @@ export default function ReportsPage() {
               </div>
               
               <Button onClick={handlePrintCharges} className="h-14 px-10 rounded-full font-black text-xs uppercase shadow-xl bg-[#0D1B2A] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95 shrink-0">
-                <Printer className="mr-3 h-5 w-5" /> PDF
+                <Printer className="mr-3 h-5 w-5" /> IMPRIMER LE DÉTAIL (PDF)
               </Button>
             </div>
             

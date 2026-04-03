@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -17,6 +16,7 @@ function ChargesReportContent() {
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [printTime, setPrintTime] = useState("");
 
   const dateRange = useMemo(() => {
     const from = searchParams.get("from");
@@ -33,7 +33,9 @@ function ChargesReportContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    document.title = `Charges - ${format(dateRange.from, "dd/MM/yyyy")}`;
+    const now = new Date();
+    setPrintTime(format(now, "HH:mm"));
+    document.title = `Détail des Charges - ${format(dateRange.from, "dd/MM/yyyy")}`;
     setRole(localStorage.getItem('user_role') || "OPTICIENNE");
     return () => { document.title = "Like Vision"; };
   }, [dateRange]);
@@ -100,36 +102,33 @@ function ChargesReportContent() {
   const RenderSection = ({ title, data, icon: Icon, colorClass }: any) => {
     if (data.length === 0) return null;
     return (
-      <div className="space-y-3 mb-10">
-        <div className={cn("flex items-center justify-between border-b-2 pb-2", colorClass.replace('bg-', 'border-'))}>
-          <h3 className={cn("text-xs font-black uppercase flex items-center gap-2", colorClass.replace('bg-', 'text-'))}>
-            <Icon className="h-4 w-4" /> {title}
+      <div className="space-y-2 mb-8">
+        <div className={cn("flex items-center justify-between border-b-2 border-black pb-1")}>
+          <h3 className="text-[11px] font-black uppercase flex items-center gap-2 text-black">
+            <Icon className="h-3.5 w-3.5" /> {title}
           </h3>
-          <span className={cn("text-[10px] font-black uppercase px-3 py-1 rounded-full", colorClass + "/10 " + colorClass.replace('bg-', 'text-'))}>
-            Sous-total: {formatCurrency(data.reduce((a: any, b: any) => a + Math.abs(b.montant), 0), false)}
+          <span className="text-[10px] font-black uppercase text-black">
+            Sous-total : {formatCurrency(data.reduce((a: any, b: any) => a + Math.abs(b.montant), 0), false)} DH
           </span>
         </div>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-slate-50">
-              <th className="p-2 text-left text-[9px] font-black uppercase text-slate-400 w-24">Date</th>
-              <th className="p-2 text-left text-[9px] font-black uppercase text-slate-400">Libellé / Désignation</th>
-              <th className="p-2 text-center text-[9px] font-black uppercase text-slate-400 w-24">BC N°</th>
-              <th className="p-2 text-right text-[9px] font-black uppercase text-slate-400 w-32">Montant (DH)</th>
+        <table className="w-full border-collapse border border-black">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="p-1 border border-black text-left text-[9px] font-black uppercase w-24">Date</th>
+              <th className="p-1 border border-black text-left text-[9px] font-black uppercase">Libellé / Désignation</th>
+              <th className="p-1 border border-black text-left text-[9px] font-black uppercase w-48">Affectation / Client</th>
+              <th className="p-1 border border-black text-right text-[9px] font-black uppercase w-32">Montant (DH)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {data.map((t: any) => {
-              const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
-              return (
-                <tr key={t.id}>
-                  <td className="p-2 text-[10px] font-bold text-slate-500">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---"}</td>
-                  <td className="p-2 text-[10px] font-black text-slate-800 uppercase">{t.label}</td>
-                  <td className="p-2 text-center text-[9px] font-black text-slate-400">{bcMatch ? bcMatch[1] : "---"}</td>
-                  <td className="p-2 text-right text-[11px] font-black text-slate-950 tabular-nums">-{formatCurrency(Math.abs(t.montant), false)}</td>
-                </tr>
-              );
-            })}
+          <tbody>
+            {data.map((t: any) => (
+              <tr key={t.id} className="border-b border-black">
+                <td className="p-1 border border-black text-[10px] font-bold text-center">{t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---"}</td>
+                <td className="p-1 border border-black text-[10px] font-black text-slate-800 uppercase">{t.label}</td>
+                <td className="p-1 border border-black text-[10px] font-bold uppercase">{t.clientName || "---"}</td>
+                <td className="p-1 border border-black text-right text-[11px] font-black text-black tabular-nums">{formatCurrency(Math.abs(t.montant), false)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -137,56 +136,97 @@ function ChargesReportContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-4 pb-10 print:pt-0 print:bg-white">
-      <div className="no-print w-full max-w-[210mm] flex justify-between items-center mb-6 px-4">
-        <Button variant="outline" asChild className="bg-white border-slate-200 text-slate-600 h-10 px-4 rounded-xl font-black text-xs hover:bg-slate-50">
-          <Link href="/rapports"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR RAPPORTS</Link>
+    <div className="min-h-screen bg-white flex flex-col items-center p-4 print:p-0">
+      <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-6">
+        <Button variant="outline" asChild className="h-10 px-4 rounded-xl font-black text-xs border-slate-200">
+          <Link href="/rapports"><ArrowLeft className="mr-2 h-4 w-4" /> RETOUR</Link>
         </Button>
-        <Button onClick={() => window.print()} className="bg-[#0D1B2A] shadow-xl hover:bg-[#0D1B2A]/90 h-10 px-8 rounded-xl font-black text-xs text-white">
-          <Printer className="mr-2 h-4 w-4" /> IMPRIMER
+        <Button onClick={() => window.print()} className="bg-slate-900 text-white h-10 px-8 rounded-xl font-black text-xs shadow-xl">
+          <Printer className="mr-2 h-4 w-4" /> IMPRIMER (PDF)
         </Button>
       </div>
 
-      <div className="pdf-a4-portrait shadow-2xl bg-white print:shadow-none print:m-0 border border-slate-100 rounded-none p-[15mm] flex flex-col min-h-[297mm]">
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-xl bg-white shadow-sm">
-              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-[#0D1B2A]"><Glasses className="h-10 w-10" /></div>)}
+      <div className="pdf-a4-landscape w-[297mm] bg-white print:m-0 flex flex-col p-[10mm] min-h-[210mm] border border-slate-100 shadow-2xl print:shadow-none">
+        <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-6">
+          <div className="flex items-center gap-6">
+            <div className="h-16 w-16 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-200 rounded-xl bg-white">
+              {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-1.5" />) : (<div className="relative text-black"><Glasses className="h-10 w-10" /></div>)}
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
+              <h1 className="text-xl font-black text-black uppercase tracking-tighter leading-none">{shop.name || "---"}</h1>
               <p className="text-[9px] text-slate-500 font-bold leading-tight mt-1">ICE: {shop.icePatent || "---"} • Tél: {shop.phone || "---"}</p>
+              <p className="text-[8px] text-slate-400 font-medium uppercase mt-0.5">{shop.address || "---"}</p>
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] leading-none border-2 border-slate-900 px-4 py-2 rounded-md mb-2">État des Sorties</h2>
-            <div className="flex items-center justify-end gap-2 text-[10px] font-black text-[#D4AF37] uppercase">
-              <span>Période: {format(dateRange.from, "dd/MM")} au {format(dateRange.to, "dd/MM/yyyy")}</span>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] leading-none border-2 border-black px-4 py-2 rounded-md mb-2">État Détaillé des Sorties</h2>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2 text-[11px] font-black text-black uppercase">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>Du {format(dateRange.from, "dd/MM/yyyy")} au {format(dateRange.to, "dd/MM/yyyy")}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[8px] font-bold text-slate-400 italic">
+                <Clock className="h-2.5 w-2.5" />
+                <span>Généré à {printTime}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-10">
-          {selectedTypes.includes("ACHAT VERRES") && <div className="p-3 rounded-2xl bg-blue-50 text-center border border-blue-100"><p className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-1 leading-none">Achats Verres</p><p className="text-sm font-black text-blue-700 tabular-nums leading-none">{formatCurrency(categorizedData.totals.verres, false)}</p></div>}
-          {selectedTypes.includes("ACHAT MONTURE") && <div className="p-3 rounded-2xl bg-orange-50 text-center border border-orange-100"><p className="text-[7px] font-black text-orange-400 uppercase tracking-widest mb-1 leading-none">Achats Montures</p><p className="text-sm font-black text-orange-700 tabular-nums leading-none">{formatCurrency(categorizedData.totals.montures, false)}</p></div>}
-          {selectedTypes.includes("DEPENSE") && <div className="p-3 rounded-2xl bg-red-50 text-center border border-red-100"><p className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-1 leading-none">Frais & Charges</p><p className="text-sm font-black text-red-700 tabular-nums leading-none">{formatCurrency(categorizedData.totals.depenses, false)}</p></div>}
-          {selectedTypes.includes("VERSEMENT") && <div className="p-3 rounded-2xl bg-slate-100 text-center border border-slate-200"><p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Versements</p><p className="text-sm font-black text-[#0D1B2A] tabular-nums leading-none">{formatCurrency(categorizedData.totals.versements, false)}</p></div>}
+        <div className="grid grid-cols-4 gap-3 mb-8">
+          {selectedTypes.includes("ACHAT VERRES") && (
+            <div className="p-3 rounded-xl border border-black bg-slate-50 text-center">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Achats Verres</p>
+              <p className="text-base font-black text-black tabular-nums leading-none">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
+            </div>
+          )}
+          {selectedTypes.includes("ACHAT MONTURE") && (
+            <div className="p-3 rounded-xl border border-black bg-slate-50 text-center">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Achats Montures</p>
+              <p className="text-base font-black text-black tabular-nums leading-none">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
+            </div>
+          )}
+          {selectedTypes.includes("DEPENSE") && (
+            <div className="p-3 rounded-xl border border-black bg-slate-50 text-center">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Frais & Charges</p>
+              <p className="text-base font-black text-black tabular-nums leading-none">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
+            </div>
+          )}
+          {selectedTypes.includes("VERSEMENT") && (
+            <div className="p-3 rounded-xl border border-black bg-slate-50 text-center">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Versements</p>
+              <p className="text-base font-black text-black tabular-nums leading-none">{formatCurrency(categorizedData.totals.versements, false)} DH</p>
+            </div>
+          )}
         </div>
 
         <div className="flex-1">
           {selectedTypes.includes("ACHAT VERRES") && <RenderSection title="Détail Achats Verres" data={categorizedData.verres} icon={Tag} colorClass="bg-blue-600" />}
           {selectedTypes.includes("ACHAT MONTURE") && <RenderSection title="Détail Achats Montures" data={categorizedData.montures} icon={Tag} colorClass="bg-orange-600" />}
           {selectedTypes.includes("DEPENSE") && <RenderSection title="Charges Générales & Frais" data={categorizedData.depenses} icon={TrendingDown} colorClass="bg-red-600" />}
-          {selectedTypes.includes("VERSEMENT") && <RenderSection title="Versements Bancaires" data={categorizedData.versements} icon={Landmark} colorClass="bg-[#0D1B2A]" />}
+          {selectedTypes.includes("VERSEMENT") && <RenderSection title="Versements Bancaires" data={categorizedData.versements} icon={Landmark} colorClass="bg-slate-900" />}
         </div>
 
-        <div className="mt-8 pt-6 border-t-4 border-slate-900 flex justify-between items-center">
-          <span className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Total Général des Sorties</span>
-          <span className="text-3xl font-black text-slate-950 tabular-nums">{formatCurrency(categorizedData.total, true)}</span>
+        <div className="mt-8 pt-4 border-t-4 border-black flex justify-between items-center">
+          <span className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Total Général des Sorties (Espèces)</span>
+          <span className="text-3xl font-black text-black tabular-nums">{formatCurrency(categorizedData.total, true)}</span>
         </div>
 
-        <div className="mt-12 text-center border-t border-slate-50 pt-4">
-          <p className="text-[7px] text-slate-300 font-black uppercase tracking-[0.5em] italic">SYSTÈME LIKE VISION • RAPPORT DÉTAILLÉ GÉNÉRÉ LE {format(new Date(), "dd/MM/yyyy")}</p>
+        <div className="mt-12 grid grid-cols-2 gap-20">
+          <div className="space-y-10">
+            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Visa Responsable</p>
+            <div className="border-b border-slate-200 w-full h-10"></div>
+          </div>
+          <div className="text-right flex flex-col items-end">
+            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Authentification Magasin</p>
+            <div className="w-[50mm] h-[25mm] border border-dashed border-slate-300 rounded-lg mt-4 flex items-center justify-center">
+              <span className="text-[8px] font-black text-slate-200 rotate-[-15deg] uppercase tracking-[0.4em]">Cachet</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-auto text-center pt-6">
+          <p className="text-[7px] text-slate-300 font-black uppercase tracking-[0.5em] italic">SYSTÈME LIKE VISION • DOCUMENT OFFICIEL • GÉNÉRÉ LE {format(new Date(), "dd/MM/yyyy")}</p>
         </div>
       </div>
     </div>
