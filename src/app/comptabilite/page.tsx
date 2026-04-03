@@ -5,35 +5,54 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BookOpen, Calculator, RefreshCcw, TrendingUp, Download } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  Loader2, 
+  BookOpen, 
+  Calculator, 
+  RefreshCcw, 
+  TrendingUp, 
+  Download, 
+  ChevronDown, 
+  CalendarDays,
+  CheckSquare,
+  Square
+} from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { collection, query, where, Timestamp, orderBy } from "firebase/firestore";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatCurrency, roundAmount, cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-// Configuration des comptes comptables selon les instructions de l'utilisateur
 const ACCOUNTS = {
   VENTES: "71110000",
   CLIENTS: "34210000",
-  CAISSE: "61510000", // Caisse (CS)
+  CAISSE: "61510000",
   FOURNISSEURS: "44110000",
-  ACHATS: "61110000", // Achats/Charges (OD)
+  ACHATS: "61110000",
   BANQUE: "51410000",
-  TRANSFERT: "51150000", // Compte de liaison pour les versements
+  TRANSFERT: "51150000",
 };
+
+const MONTHS_2026 = Array.from({ length: 12 }).map((_, i) => {
+  const d = new Date(2026, i, 1);
+  return {
+    value: format(d, "yyyy-MM"),
+    label: format(d, "MMMM yyyy", { locale: fr })
+  };
+});
 
 export default function AccountingPage() {
   const { toast } = useToast();
   const db = useFirestore();
   const router = useRouter();
   
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([format(new Date(), "yyyy-MM")]);
   const [role, setRole] = useState<string | null>(null);
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isClientReady, setIsClientReady] = useState(false);
@@ -51,169 +70,181 @@ export default function AccountingPage() {
     setIsClientReady(true);
   }, [router]);
 
-  const { start, end, monthDate } = useMemo(() => {
-    const date = new Date(selectedMonth + "-01");
-    return {
-      monthDate: date,
-      start: startOfMonth(date),
-      end: endOfMonth(date)
-    };
-  }, [selectedMonth]);
-
+  // Récupérer toutes les transactions de l'année 2026 pour le filtrage en mémoire
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"),
-    where("createdAt", ">=", Timestamp.fromDate(start)),
-    where("createdAt", "<=", Timestamp.fromDate(end))
-  ), [db, start, end]);
+    where("createdAt", ">=", Timestamp.fromDate(new Date(2026, 0, 1))),
+    where("createdAt", "<=", Timestamp.fromDate(new Date(2026, 11, 31, 23, 59, 59))),
+    orderBy("createdAt", "asc")
+  ), [db]);
 
-  const { data: trans, isLoading: transLoading } = useCollection(transQuery);
+  const { data: allTrans, isLoading: transLoading } = useCollection(transQuery);
 
   const entries = useMemo(() => {
-    if (!trans || !role) return [];
+    if (!allTrans || !role || selectedMonths.length === 0) return [];
 
     const allEntries: any[] = [];
-    const days = eachDayOfInterval({ start, end });
+    
+    // Trier les mois sélectionnés pour garantir l'ordre chronologique
+    const sortedSelectedMonths = [...selectedMonths].sort();
 
-    days.forEach(day => {
-      const dateStr = format(day, "dd/MM/yyyy");
-      
-      const dayTrans = trans.filter(t => {
-        if (!t.createdAt?.toDate) return false;
-        if (isPrepaMode !== (t.isDraft === true)) return false;
-        return isSameDay(t.createdAt.toDate(), day);
+    sortedSelectedMonths.forEach(monthKey => {
+      const monthDate = new Date(monthKey + "-01");
+      const start = startOfMonth(monthDate);
+      const end = endOfMonth(monthDate);
+      const days = eachDayOfInterval({ start, end });
+
+      days.forEach(day => {
+        const dateStr = format(day, "dd/MM/yyyy");
+        
+        const dayTrans = allTrans.filter(t => {
+          if (!t.createdAt?.toDate) return false;
+          if (isPrepaMode !== (t.isDraft === true)) return false;
+          return isSameDay(t.createdAt.toDate(), day);
+        });
+
+        // 1. LES VENTES (VT & CS)
+        const totalEncaissements = dayTrans
+          .filter(t => t.type === "VENTE")
+          .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+
+        if (totalEncaissements > 0) {
+          allEntries.push({
+            date: dateStr,
+            journal: "VT",
+            compte: ACCOUNTS.CLIENTS,
+            libelle: `VENTES DU ${dateStr}`,
+            debit: roundAmount(totalEncaissements),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "VT",
+            compte: ACCOUNTS.VENTES,
+            libelle: `VENTES DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalEncaissements)
+          });
+
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.CAISSE,
+            libelle: `ENCAISSEMENTS DU ${dateStr}`,
+            debit: roundAmount(totalEncaissements),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.CLIENTS,
+            libelle: `ENCAISSEMENTS DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalEncaissements)
+          });
+        }
+
+        // 2. LES CHARGES (OD & CS)
+        const totalCharges = dayTrans
+          .filter(t => ["ACHAT VERRES", "ACHAT MONTURE", "DEPENSE"].includes(t.type))
+          .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+
+        if (totalCharges > 0) {
+          allEntries.push({
+            date: dateStr,
+            journal: "OD",
+            compte: ACCOUNTS.ACHATS,
+            libelle: `ACHATS/CHARGES DU ${dateStr}`,
+            debit: roundAmount(totalCharges),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "OD",
+            compte: ACCOUNTS.FOURNISSEURS,
+            libelle: `ACHATS/CHARGES DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalCharges)
+          });
+
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.FOURNISSEURS,
+            libelle: `PAIEMENT CHARGES DU ${dateStr}`,
+            debit: roundAmount(totalCharges),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.CAISSE,
+            libelle: `PAIEMENT CHARGES DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalCharges)
+          });
+        }
+
+        // 3. LES VERSEMENTS BANQUE (CS & BQ)
+        const totalVersements = dayTrans
+          .filter(t => t.type === "VERSEMENT")
+          .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
+
+        if (totalVersements > 0) {
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.TRANSFERT,
+            libelle: `VERS. BANQUE DU ${dateStr}`,
+            debit: roundAmount(totalVersements),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "CS",
+            compte: ACCOUNTS.CAISSE,
+            libelle: `VERS. BANQUE DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalVersements)
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "BQ",
+            compte: ACCOUNTS.BANQUE,
+            libelle: `RECP. VERS. DU ${dateStr}`,
+            debit: roundAmount(totalVersements),
+            credit: 0
+          });
+          allEntries.push({
+            date: dateStr,
+            journal: "BQ",
+            compte: ACCOUNTS.TRANSFERT,
+            libelle: `RECP. VERS. DU ${dateStr}`,
+            debit: 0,
+            credit: roundAmount(totalVersements)
+          });
+        }
       });
-
-      // 1. LES VENTES (VT & CS)
-      const totalEncaissements = dayTrans
-        .filter(t => t.type === "VENTE")
-        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
-
-      if (totalEncaissements > 0) {
-        // Journal VT : 71110000 Crédit / 34210000 Débit
-        allEntries.push({
-          date: dateStr,
-          journal: "VT",
-          compte: ACCOUNTS.CLIENTS,
-          libelle: `VENTES DU ${dateStr}`,
-          debit: roundAmount(totalEncaissements),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "VT",
-          compte: ACCOUNTS.VENTES,
-          libelle: `VENTES DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalEncaissements)
-        });
-
-        // Journal CS : 34210000 Crédit / 61510000 Débit
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CAISSE,
-          libelle: `ENCAISSEMENTS DU ${dateStr}`,
-          debit: roundAmount(totalEncaissements),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CLIENTS,
-          libelle: `ENCAISSEMENTS DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalEncaissements)
-        });
-      }
-
-      // 2. LES CHARGES (OD & CS) - Exclut les versements banque
-      const totalCharges = dayTrans
-        .filter(t => ["ACHAT VERRES", "ACHAT MONTURE", "DEPENSE"].includes(t.type))
-        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
-
-      if (totalCharges > 0) {
-        // Journal OD : 44110000 Crédit / 61110000 Débit
-        allEntries.push({
-          date: dateStr,
-          journal: "OD",
-          compte: ACCOUNTS.ACHATS,
-          libelle: `ACHATS/CHARGES DU ${dateStr}`,
-          debit: roundAmount(totalCharges),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "OD",
-          compte: ACCOUNTS.FOURNISSEURS,
-          libelle: `ACHATS/CHARGES DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalCharges)
-        });
-
-        // Journal CS : 61510000 Crédit / 44110000 Débit
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.FOURNISSEURS,
-          libelle: `PAIEMENT CHARGES DU ${dateStr}`,
-          debit: roundAmount(totalCharges),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CAISSE,
-          libelle: `PAIEMENT CHARGES DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalCharges)
-        });
-      }
-
-      // 3. LES VERSEMENTS BANQUE (CS & BQ)
-      const totalVersements = dayTrans
-        .filter(t => t.type === "VERSEMENT")
-        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
-
-      if (totalVersements > 0) {
-        // Sortie Caisse vers Transfert (CS)
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.TRANSFERT,
-          libelle: `VERS. BANQUE DU ${dateStr}`,
-          debit: roundAmount(totalVersements),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CAISSE,
-          libelle: `VERS. BANQUE DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalVersements)
-        });
-        // Entrée Banque via Transfert (BQ)
-        allEntries.push({
-          date: dateStr,
-          journal: "BQ",
-          compte: ACCOUNTS.BANQUE,
-          libelle: `RECP. VERS. DU ${dateStr}`,
-          debit: roundAmount(totalVersements),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "BQ",
-          compte: ACCOUNTS.TRANSFERT,
-          libelle: `RECP. VERS. DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalVersements)
-        });
-      }
     });
 
     return allEntries;
-  }, [trans, start, end, role, isPrepaMode]);
+  }, [allTrans, role, isPrepaMode, selectedMonths]);
+
+  const handleToggleMonth = (month: string) => {
+    setSelectedMonths(prev => 
+      prev.includes(month) 
+        ? prev.filter(m => m !== month) 
+        : [...prev, month]
+    );
+  };
+
+  const handleToggleAll = () => {
+    if (selectedMonths.length === MONTHS_2026.length) {
+      setSelectedMonths([]);
+    } else {
+      setSelectedMonths(MONTHS_2026.map(m => m.value));
+    }
+  };
 
   const handleExportExcel = () => {
     try {
@@ -223,13 +254,18 @@ export default function AccountingPage() {
         ...entries.map(e => [e.date, e.journal, e.compte, e.libelle, e.debit || "", e.credit || ""])
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
-      // Formatage des largeurs de colonnes
       ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }];
       
       XLSX.utils.book_append_sheet(wb, ws, "Ecritures Sage");
-      const fileName = `Like Vision - Export Sage - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      
+      let fileName = "Like Vision - Export Sage";
+      if (selectedMonths.length === 1) {
+        fileName += ` - ${MONTHS_2026.find(m => m.value === selectedMonths[0])?.label}`;
+      } else if (selectedMonths.length > 1) {
+        fileName += ` - Multi-Mois (${selectedMonths.length})`;
+      }
+      
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
       toast({ variant: "success", title: "Export réussi" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erreur lors de l'export" });
@@ -263,22 +299,56 @@ export default function AccountingPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-12 w-[200px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6 text-[#0D1B2A]">
-                <SelectValue placeholder="Choisir un mois" />
-              </SelectTrigger>
-              <SelectContent className="rounded-[24px]">
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const d = new Date(2026, i, 1);
-                  const val = format(d, "yyyy-MM");
-                  return (
-                    <SelectItem key={val} value={val} className="font-black text-[10px] uppercase">
-                      {format(d, "MMMM yyyy", { locale: fr })}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-12 w-[240px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6 text-[#0D1B2A] justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
+                    <span>{selectedMonths.length > 0 ? `${selectedMonths.length} mois sélectionné(s)` : "Choisir les mois"}</span>
+                  </div>
+                  <ChevronDown className="h-3 w-3 opacity-20" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 rounded-[32px] p-4 shadow-2xl border-none" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Périodes 2026</span>
+                    <Button variant="ghost" size="sm" onClick={handleToggleAll} className="h-7 px-2 font-black text-[9px] uppercase text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg">
+                      {selectedMonths.length === MONTHS_2026.length ? <Square className="mr-1.5 h-3 w-3" /> : <CheckSquare className="mr-1.5 h-3 w-3" />}
+                      {selectedMonths.length === MONTHS_2026.length ? "Aucun" : "Tous"}
+                    </Button>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-2 custom-scrollbar">
+                    {MONTHS_2026.map((month) => (
+                      <div 
+                        key={month.value} 
+                        className={cn(
+                          "flex items-center space-x-3 p-2 rounded-xl transition-all cursor-pointer group",
+                          selectedMonths.includes(month.value) ? "bg-[#D4AF37]/5" : "hover:bg-slate-50"
+                        )}
+                        onClick={() => handleToggleMonth(month.value)}
+                      >
+                        <Checkbox 
+                          id={month.value} 
+                          checked={selectedMonths.includes(month.value)}
+                          onCheckedChange={() => handleToggleMonth(month.value)}
+                          className="data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]"
+                        />
+                        <label 
+                          htmlFor={month.value} 
+                          className={cn(
+                            "text-[10px] font-bold uppercase cursor-pointer select-none transition-colors",
+                            selectedMonths.includes(month.value) ? "text-[#0D1B2A]" : "text-slate-500 group-hover:text-slate-900"
+                          )}
+                        >
+                          {month.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <Button 
               onClick={handleExportExcel} 
@@ -324,7 +394,9 @@ export default function AccountingPage() {
 
         <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">
           <CardHeader className="p-10 border-b bg-slate-50">
-            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-slate-400">Prévisualisation des flux de {format(monthDate, "MMMM yyyy", { locale: fr })}</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+              Prévisualisation des flux {selectedMonths.length > 0 ? "sélectionnés" : ""}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -343,7 +415,7 @@ export default function AccountingPage() {
                   {isLoading ? (
                     <TableRow><TableCell colSpan={6} className="py-24 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto opacity-20" /></TableCell></TableRow>
                   ) : entries.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucun flux sur ce mois.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-24 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.5em]">Aucun flux sur la sélection.</TableCell></TableRow>
                   ) : entries.map((entry, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50 transition-all group border-b last:border-0">
                       <TableCell className="px-10 py-5 text-[11px] font-bold text-slate-500 tabular-nums">{entry.date}</TableCell>
