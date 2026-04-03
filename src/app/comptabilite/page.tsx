@@ -7,44 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp, Download } from "lucide-react";
+import { Loader2, BookOpen, Calculator, RefreshCcw, TrendingUp, Download } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, lastDayOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatCurrency, roundAmount } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-// Configuration des comptes comptables (8 chiffres)
+// Configuration des comptes comptables selon les instructions de l'utilisateur
 const ACCOUNTS = {
   VENTES: "71110000",
   CLIENTS: "34210000",
-  CAISSE: "51610000",
-  BANQUE: "51410000",
-  TRANSFERT: "51150000",
+  CAISSE: "61510000", // Caisse (CS)
   FOURNISSEURS: "44110000",
-  PERSONNEL: "44320000",
-  ACHATS: "61110000", 
-  CHARGES_DIVERSES: "61250000",
-  CHARGES_LOYER: "61310000",
-  CHARGES_SALAIRES: "61710000",
-  CHARGES_MENAGE: "61310000",
-  CHARGES_ABONNEMENT: "61450000",
-  CHARGES_CONCIERGE: "61310000",
+  ACHATS: "61110000", // Achats/Charges (OD)
+  BANQUE: "51410000",
+  TRANSFERT: "51150000", // Compte de liaison pour les versements
 };
-
-// Charges fixes mensuelles (automatisées en fin de mois)
-const FIXED_CHARGES = [
-  { label: "Loyer", amount: 8000, account: ACCOUNTS.CHARGES_LOYER, tiers: ACCOUNTS.FOURNISSEURS },
-  { label: "Zakariae", amount: 5000, account: ACCOUNTS.CHARGES_SALAIRES, tiers: ACCOUNTS.PERSONNEL },
-  { label: "Fatima", amount: 4000, account: ACCOUNTS.CHARGES_SALAIRES, tiers: ACCOUNTS.PERSONNEL },
-  { label: "Abidi", amount: 3000, account: ACCOUNTS.CHARGES_SALAIRES, tiers: ACCOUNTS.PERSONNEL },
-  { label: "Ménage", amount: 600, account: ACCOUNTS.CHARGES_MENAGE, tiers: ACCOUNTS.FOURNISSEURS },
-  { label: "Abonnement", amount: 130, account: ACCOUNTS.CHARGES_ABONNEMENT, tiers: ACCOUNTS.FOURNISSEURS },
-  { label: "Concierge", amount: 1200, account: ACCOUNTS.CHARGES_CONCIERGE, tiers: ACCOUNTS.FOURNISSEURS },
-];
 
 export default function AccountingPage() {
   const { toast } = useToast();
@@ -101,12 +83,31 @@ export default function AccountingPage() {
         return isSameDay(t.createdAt.toDate(), day);
       });
 
-      // 1. Journal CS - Encaissements (ENTRÉES ESPÈCES) - CUMULÉ
+      // 1. LES VENTES (VT & CS)
       const totalEncaissements = dayTrans
         .filter(t => t.type === "VENTE")
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
       if (totalEncaissements > 0) {
+        // Journal VT : 71110000 Crédit / 34210000 Débit
+        allEntries.push({
+          date: dateStr,
+          journal: "VT",
+          compte: ACCOUNTS.CLIENTS,
+          libelle: `VENTES DU ${dateStr}`,
+          debit: roundAmount(totalEncaissements),
+          credit: 0
+        });
+        allEntries.push({
+          date: dateStr,
+          journal: "VT",
+          compte: ACCOUNTS.VENTES,
+          libelle: `VENTES DU ${dateStr}`,
+          debit: 0,
+          credit: roundAmount(totalEncaissements)
+        });
+
+        // Journal CS : 34210000 Crédit / 61510000 Débit
         allEntries.push({
           date: dateStr,
           journal: "CS",
@@ -125,69 +126,62 @@ export default function AccountingPage() {
         });
       }
 
-      // 2. Journal CS - Décaissements (ACHATS & CHARGES)
-      
-      // A. CUMUL DES ACHATS (Verres/Montures)
-      const totalDayAchats = dayTrans
-        .filter(t => ["ACHAT VERRES", "ACHAT MONTURE"].includes(t.type))
+      // 2. LES CHARGES (OD & CS) - Exclut les versements banque
+      const totalCharges = dayTrans
+        .filter(t => ["ACHAT VERRES", "ACHAT MONTURE", "DEPENSE"].includes(t.type))
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
-      if (totalDayAchats > 0) {
+      if (totalCharges > 0) {
+        // Journal OD : 44110000 Crédit / 61110000 Débit
         allEntries.push({
           date: dateStr,
-          journal: "CS",
+          journal: "OD",
           compte: ACCOUNTS.ACHATS,
-          libelle: `ACHATS ESPÈCES DU ${dateStr}`,
-          debit: roundAmount(totalDayAchats),
+          libelle: `ACHATS/CHARGES DU ${dateStr}`,
+          debit: roundAmount(totalCharges),
+          credit: 0
+        });
+        allEntries.push({
+          date: dateStr,
+          journal: "OD",
+          compte: ACCOUNTS.FOURNISSEURS,
+          libelle: `ACHATS/CHARGES DU ${dateStr}`,
+          debit: 0,
+          credit: roundAmount(totalCharges)
+        });
+
+        // Journal CS : 61510000 Crédit / 44110000 Débit
+        allEntries.push({
+          date: dateStr,
+          journal: "CS",
+          compte: ACCOUNTS.FOURNISSEURS,
+          libelle: `PAIEMENT CHARGES DU ${dateStr}`,
+          debit: roundAmount(totalCharges),
           credit: 0
         });
         allEntries.push({
           date: dateStr,
           journal: "CS",
           compte: ACCOUNTS.CAISSE,
-          libelle: `ACHATS ESPÈCES DU ${dateStr}`,
+          libelle: `PAIEMENT CHARGES DU ${dateStr}`,
           debit: 0,
-          credit: roundAmount(totalDayAchats)
+          credit: roundAmount(totalCharges)
         });
       }
 
-      // B. CUMUL DES CHARGES GÉNÉRALES
-      const totalDayCharges = dayTrans
-        .filter(t => t.type === "DEPENSE")
-        .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
-
-      if (totalDayCharges > 0) {
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CHARGES_DIVERSES,
-          libelle: `CHARGES ESPÈCES DU ${dateStr}`,
-          debit: roundAmount(totalDayCharges),
-          credit: 0
-        });
-        allEntries.push({
-          date: dateStr,
-          journal: "CS",
-          compte: ACCOUNTS.CAISSE,
-          libelle: `CHARGES ESPÈCES DU ${dateStr}`,
-          debit: 0,
-          credit: roundAmount(totalDayCharges)
-        });
-      }
-
-      // 3. Journal CS/BQ - Transferts vers Banque
-      const totalTransferts = dayTrans
+      // 3. LES VERSEMENTS BANQUE (CS & BQ)
+      const totalVersements = dayTrans
         .filter(t => t.type === "VERSEMENT")
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
-      if (totalTransferts > 0) {
-        // Sortie Caisse
+      if (totalVersements > 0) {
+        // Sortie Caisse vers Transfert (CS)
         allEntries.push({
           date: dateStr,
           journal: "CS",
           compte: ACCOUNTS.TRANSFERT,
           libelle: `VERS. BANQUE DU ${dateStr}`,
-          debit: roundAmount(totalTransferts),
+          debit: roundAmount(totalVersements),
           credit: 0
         });
         allEntries.push({
@@ -196,15 +190,15 @@ export default function AccountingPage() {
           compte: ACCOUNTS.CAISSE,
           libelle: `VERS. BANQUE DU ${dateStr}`,
           debit: 0,
-          credit: roundAmount(totalTransferts)
+          credit: roundAmount(totalVersements)
         });
-        // Entrée Banque
+        // Entrée Banque via Transfert (BQ)
         allEntries.push({
           date: dateStr,
           journal: "BQ",
           compte: ACCOUNTS.BANQUE,
           libelle: `RECP. VERS. DU ${dateStr}`,
-          debit: roundAmount(totalTransferts),
+          debit: roundAmount(totalVersements),
           credit: 0
         });
         allEntries.push({
@@ -213,51 +207,13 @@ export default function AccountingPage() {
           compte: ACCOUNTS.TRANSFERT,
           libelle: `RECP. VERS. DU ${dateStr}`,
           debit: 0,
-          credit: roundAmount(totalTransferts)
+          credit: roundAmount(totalVersements)
         });
       }
     });
 
-    // 4. Charges Fixes (Fin de mois)
-    const lastDay = format(lastDayOfMonth(monthDate), "dd/MM/yyyy");
-    FIXED_CHARGES.forEach(charge => {
-      allEntries.push({
-        date: lastDay,
-        journal: "OD",
-        compte: charge.account,
-        libelle: charge.label,
-        debit: roundAmount(charge.amount),
-        credit: 0
-      });
-      allEntries.push({
-        date: lastDay,
-        journal: "OD",
-        compte: charge.tiers,
-        libelle: charge.label,
-        debit: 0,
-        credit: roundAmount(charge.amount)
-      });
-
-      allEntries.push({
-        date: lastDay,
-        journal: "BQ",
-        compte: charge.tiers,
-        libelle: `PAIEMENT ${charge.label}`,
-        debit: roundAmount(charge.amount),
-        credit: 0
-      });
-      allEntries.push({
-        date: lastDay,
-        journal: "BQ",
-        compte: ACCOUNTS.BANQUE,
-        libelle: `PAIEMENT ${charge.label}`,
-        debit: 0,
-        credit: roundAmount(charge.amount)
-      });
-    });
-
     return allEntries;
-  }, [trans, start, end, monthDate, role, isPrepaMode]);
+  }, [trans, start, end, role, isPrepaMode]);
 
   const handleExportExcel = () => {
     try {
@@ -267,7 +223,10 @@ export default function AccountingPage() {
         ...entries.map(e => [e.date, e.journal, e.compte, e.libelle, e.debit || "", e.credit || ""])
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Formatage des largeurs de colonnes
       ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }];
+      
       XLSX.utils.book_append_sheet(wb, ws, "Ecritures Sage");
       const fileName = `Like Vision - Export Sage - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
       XLSX.writeFile(wb, fileName);
@@ -388,7 +347,20 @@ export default function AccountingPage() {
                   ) : entries.map((entry, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50 transition-all group border-b last:border-0">
                       <TableCell className="px-10 py-5 text-[11px] font-bold text-slate-500 tabular-nums">{entry.date}</TableCell>
-                      <TableCell className="px-6 py-5 text-center"><Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 border-none">{entry.journal}</Badge></TableCell>
+                      <TableCell className="px-6 py-5 text-center">
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-[9px] font-black uppercase border-none",
+                            entry.journal === "VT" ? "bg-blue-50 text-blue-700" :
+                            entry.journal === "CS" ? "bg-emerald-50 text-emerald-700" :
+                            entry.journal === "OD" ? "bg-orange-50 text-orange-700" :
+                            "bg-slate-50 text-slate-700"
+                          )}
+                        >
+                          {entry.journal}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="px-6 py-5 font-black text-xs text-[#0D1B2A] tracking-wider">{entry.compte}</TableCell>
                       <TableCell className="px-10 py-5 text-xs font-bold text-slate-600 uppercase">{entry.libelle}</TableCell>
                       <TableCell className="text-right px-6 py-5 font-black text-sm tabular-nums text-[#0D1B2A]">
