@@ -29,7 +29,8 @@ import {
   DollarSign,
   Plus,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
