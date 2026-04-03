@@ -94,22 +94,30 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  // Suggestion automatique du N° BON
-  const lastSalesQuery = useMemoFirebase(() => query(
+  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Sans Index)
+  const lastSalesRawQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
-    where("isDraft", "==", isPrepaMode),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  ), [db, isPrepaMode]);
+    limit(100)
+  ), [db]);
   
-  const { data: lastSales } = useCollection(lastSalesQuery);
+  const { data: allRecentSales } = useCollection(lastSalesRawQuery);
 
+  const lastSales = useMemo(() => {
+    if (!allRecentSales || !isClientReady) return [];
+    return allRecentSales
+      .filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true)
+      .sort((a, b) => {
+        const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return db - da;
+      });
+  }, [allRecentSales, isPrepaMode, isClientReady]);
+
+  // LOGIQUE DE SUGGESTION AUTOMATIQUE (+1)
   useEffect(() => {
-    // Uniquement pour une nouvelle vente et si le champ est vide
     if (!activeEditId && !bonNumber && lastSales && lastSales.length > 0) {
       const numbers = lastSales
         .map(s => {
-          // On essaie d'extraire le nombre du bonNumber (qui peut être "2472" ou "FC-2026-2472")
           const match = (s.bonNumber || "").match(/\d+/);
           return match ? parseInt(match[0]) : null;
         })
