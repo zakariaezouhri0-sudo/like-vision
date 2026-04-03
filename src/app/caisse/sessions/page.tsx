@@ -45,30 +45,34 @@ function SessionsContent() {
   const db = useFirestore();
   const router = useRouter();
   const [role, setRole] = useState<string>("");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isClientReady, setIsHydrated] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
+    
     setRole(savedRole);
+    // Unification de la logique isPrepaMode (Admin en mode Brouillon doit voir les sessions Brouillon)
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsHydrated(true);
   }, []);
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
-  const isPrepaMode = role === 'PREPA';
 
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
+    where("isDraft", "==", isPrepaMode),
     orderBy("date", "desc"),
     limit(500)
-  ), [db]);
+  ), [db, isPrepaMode]);
   
   const { data: rawSessions, isLoading: loading } = useCollection(sessionsQuery);
 
   const sessions = useMemo(() => {
     if (!rawSessions) return [];
-    return rawSessions
-      .filter(s => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
-  }, [rawSessions, isPrepaMode]);
+    return rawSessions;
+  }, [rawSessions]);
 
   const groupedSessions = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -79,6 +83,10 @@ function SessionsContent() {
         if (!groups[monthKey]) groups[monthKey] = [];
         groups[monthKey].push(s);
       }
+    });
+    // On s'assure que les sessions dans chaque mois sont bien triées par date décroissante
+    Object.keys(groups).forEach(key => {
+      groups[monthKey].sort((a, b) => b.date.localeCompare(a.date));
     });
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [sessions]);
@@ -113,22 +121,19 @@ function SessionsContent() {
 
       const transQ = query(
         collection(db, "transactions"),
+        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(startDate)),
         where("createdAt", "<=", Timestamp.fromDate(endDate))
       );
       const transSnap = await getDocs(transQ);
-      const allMonthTrans = transSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+      const allMonthTrans = transSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
-      const salesQ = query(collection(db, "sales"));
+      const salesQ = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
       const salesSnap = await getDocs(salesQ);
       const salesMap: Record<string, any> = {};
       salesSnap.docs.forEach(doc => {
         const d = doc.data();
-        if (isPrepaMode === (d.isDraft === true)) {
-          if (d.invoiceId) salesMap[d.invoiceId] = d;
-        }
+        if (d.invoiceId) salesMap[d.invoiceId] = d;
       });
 
       const wb = XLSX.utils.book_new();
@@ -295,14 +300,13 @@ function SessionsContent() {
 
       const q = query(
         collection(db, "transactions"),
+        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(start)),
         where("createdAt", "<=", Timestamp.fromDate(end))
       );
       
       const snap = await getDocs(q);
-      const allTrans = snap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
+      const allTrans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
       if (allTrans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
@@ -320,15 +324,14 @@ function SessionsContent() {
       const finalBalance = initialBalance + totalEncaissements - totalDecaissements;
 
       const qSales = query(
-        collection(db, "sales")
+        collection(db, "sales"),
+        where("isDraft", "==", isPrepaMode)
       );
       const salesSnap = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
       salesSnap.docs.forEach(doc => {
         const data = doc.data();
-        if (isPrepaMode === (data.isDraft === true)) {
-          if (data.invoiceId) salesMap[data.invoiceId] = data;
-        }
+        if (data.invoiceId) salesMap[data.invoiceId] = data;
       });
 
       const mapRow = (t: any) => {
@@ -531,12 +534,22 @@ function SessionsContent() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {monthSessions.map((s: any) => {
+                          {monthSessions.map((s: any, idx: number) => {
                             const d = parseISO(s.date);
                             const isSunday = isValid(d) && getDay(d) === 0;
                             const isClosed = s.status === "CLOSED";
+                            
+                            // Calcul du final théorique pour les sessions en cours
+                            const calcFinal = (session: any) => roundAmount((session.openingBalance || 0) + (session.totalSales || 0) - (session.totalExpenses || 0) - (session.totalVersements || 0));
+                            
+                            // Logique de continuité : si Initial est 0, on essaye de récupérer le Final du jour précédent dans la liste
+                            const prevSession = monthSessions[idx + 1];
+                            const initialToDisplay = (s.openingBalance > 0) 
+                              ? s.openingBalance 
+                              : (prevSession ? (prevSession.closingBalanceReal ?? calcFinal(prevSession)) : (s.openingBalance || 0));
+
                             const fluxNet = (s.totalSales || 0) - (s.totalExpenses || 0);
-                            const calcFinal = roundAmount((s.openingBalance || 0) + (s.totalSales || 0) - (s.totalExpenses || 0) - (s.totalVersements || 0));
+                            const currentFinal = s.closingBalanceReal ?? roundAmount(initialToDisplay + fluxNet - (s.totalVersements || 0));
 
                             return (
                               <TableRow key={s.id} className={cn("hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0", isSunday && "bg-red-50/40")}>
@@ -559,7 +572,9 @@ function SessionsContent() {
                                     {s.openedAt?.toDate ? format(s.openedAt.toDate(), "HH:mm") : "--:--"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">{formatCurrency(s.openingBalance || 0)}</TableCell>
+                                <TableCell className="text-right px-2 py-5 font-black text-xs tabular-nums text-slate-500">
+                                  {formatCurrency(initialToDisplay)}
+                                </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-emerald-600 tabular-nums">
                                   {fluxNet > 0 ? "+" : ""}{formatCurrency(fluxNet)}
                                 </TableCell>
@@ -567,7 +582,7 @@ function SessionsContent() {
                                   -{formatCurrency(s.totalVersements || 0)}
                                 </TableCell>
                                 <TableCell className="text-right px-2 py-5 font-black text-xs text-slate-900 tabular-nums">
-                                  {formatCurrency(s.closingBalanceReal ?? calcFinal)}
+                                  {formatCurrency(currentFinal)}
                                 </TableCell>
                                 <TableCell className="text-center px-2 py-5">
                                   {isClosed ? (

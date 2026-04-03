@@ -50,11 +50,13 @@ export default function DashboardPage() {
   const [dateStr, setDateStr] = useState<string>("");
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("OPTICIENNE");
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') || "OPTICIENNE";
+    const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
+    const savedMode = localStorage.getItem('work_mode');
     
-    if (savedRole.toUpperCase() === "OPTICIENNE") {
+    if (savedRole === "OPTICIENNE") {
       router.replace("/caisse");
       return;
     }
@@ -66,11 +68,11 @@ export default function DashboardPage() {
       month: 'short'
     }));
     setDateStr(format(now, "yyyy-MM-dd"));
-    setRole(savedRole.toUpperCase());
+    setRole(savedRole);
+    // Unification de la logique isPrepaMode
+    setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     setIsHydrated(true);
   }, [router]);
-
-  const isPrepaMode = role === "PREPA";
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -87,56 +89,48 @@ export default function DashboardPage() {
 
   const salesQuery = useMemoFirebase(() => query(
     collection(db, "sales"), 
+    where("isDraft", "==", isPrepaMode),
     orderBy("createdAt", "desc"), 
     limit(1000)
-  ), [db]);
-  const { data: rawSales, isLoading: loadingSales } = useCollection(salesQuery);
+  ), [db, isPrepaMode]);
+  const { data: allSales, isLoading: loadingSales } = useCollection(salesQuery);
 
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"), 
+    where("isDraft", "==", isPrepaMode),
     orderBy("createdAt", "desc"), 
     limit(1000)
-  ), [db]);
-  const { data: rawTransactions, isLoading: loadingTrans } = useCollection(transQuery);
+  ), [db, isPrepaMode]);
+  const { data: allTransactions, isLoading: loadingTrans } = useCollection(transQuery);
 
   const clientsQuery = useMemoFirebase(() => query(
     collection(db, "clients"), 
+    where("isDraft", "==", isPrepaMode),
     limit(1000)
-  ), [db]);
+  ), [db, isPrepaMode]);
   const { data: allClients, isLoading: loadingClients } = useCollection(clientsQuery);
 
-  const allSales = useMemo(() => {
-    if (!rawSales) return [];
-    return rawSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
-  }, [rawSales, isPrepaMode]);
-
-  const allTransactions = useMemo(() => {
-    if (!rawTransactions) return [];
-    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
-  }, [rawTransactions, isPrepaMode]);
-
   const stats = useMemo(() => {
-    const ca = allTransactions
+    const ca = (allTransactions || [])
       .filter(t => t.type === "VENTE")
       .reduce((acc, t) => acc + (Number(t.montant) || 0), 0);
 
-    const volume = allSales.reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
-    const reste = allSales.reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
+    const volume = (allSales || []).reduce((acc, s) => acc + (Number(s.total) || 0) - (Number(s.remise) || 0), 0);
+    const reste = (allSales || []).reduce((acc, s) => acc + (Number(s.reste) || 0), 0);
     
-    const filteredClientsCount = (allClients || []).filter((c: any) => 
-      isPrepaMode ? c.isDraft === true : (c.isDraft !== true)
-    ).length;
+    const filteredClientsCount = (allClients || []).length;
 
     return {
       ca: roundAmount(ca),
       volume: roundAmount(volume),
-      count: allSales.length,
+      count: (allSales || []).length,
       reste: roundAmount(reste),
       newClients: filteredClientsCount
     };
-  }, [allSales, allTransactions, allClients, isPrepaMode]);
+  }, [allSales, allTransactions, allClients]);
 
   const weeklyData = useMemo(() => {
+    if (!allTransactions) return [];
     const now = new Date();
     const start = startOfWeek(now, { weekStartsOn: 1 });
     const end = endOfWeek(now, { weekStartsOn: 1 });
@@ -155,6 +149,7 @@ export default function DashboardPage() {
   }, [allTransactions]);
 
   const mutuelleData = useMemo(() => {
+    if (!allSales) return [];
     const counts: Record<string, number> = {};
     allSales.forEach(s => {
       const m = s.mutuelle || "AUCUN";
@@ -163,7 +158,7 @@ export default function DashboardPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [allSales]);
 
-  const recentSales = useMemo(() => allSales.sort((a,b) => {
+  const recentSales = useMemo(() => (allSales || []).sort((a,b) => {
     const da = a.createdAt?.toDate?.().getTime() || 0;
     const db = b.createdAt?.toDate?.().getTime() || 0;
     return db - da;
