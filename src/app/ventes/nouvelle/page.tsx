@@ -152,8 +152,7 @@ function NewSaleForm() {
           og: {
             sph: existingSale.prescription.og?.sph || "",
             cyl: existingSale.prescription.og?.cyl || "",
-            axe: existingSale.prescription.og?.axe || "",
-            add: existingSale.prescription.og?.add || ""
+            axe: existingSale.prescription.og?.add || ""
           }
         });
       }
@@ -562,22 +561,24 @@ function NewSaleForm() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="space-y-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center h-4 mb-1">
                       <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Mutuelle</Label>
+                    </div>
+                    <div className="space-y-2">
                       <Select value={mutuelle} onValueChange={setMutuelle} disabled={isReadOnly}>
                         <SelectTrigger className="h-10 rounded-2xl bg-[#0D1B2A] border-none font-black text-[#D4AF37] text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent className="rounded-2xl">{MUTUELLES.map(m => <SelectItem key={m} value={m} className="font-black uppercase text-[10px]">{m}</SelectItem>)}</SelectContent>
                       </Select>
+                      {mutuelle === "Autre" && (
+                        <div className="animate-in fade-in slide-in-from-top-1">
+                          <Input className="h-10 w-full rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] px-4 placeholder:text-[#D4AF37]/20" placeholder="Libellé mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
+                        </div>
+                      )}
                     </div>
-                    {mutuelle === "Autre" && (
-                      <div className="animate-in fade-in slide-in-from-top-1">
-                        <Input className="h-10 w-full rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] px-4 placeholder:text-[#D4AF37]/20" placeholder="Libellé mutuelle..." value={customMutuelle} onChange={e => setCustomMutuelle(e.target.value)} readOnly={isReadOnly} />
-                      </div>
-                    )}
                   </div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center h-4 gap-2 mb-1">
                       <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">N° BON</Label>
                       {!activeEditId && bonNumber && (
                         <div className="flex items-center gap-1 bg-[#0D1B2A]/10 px-2 py-0.5 rounded-full animate-pulse">
