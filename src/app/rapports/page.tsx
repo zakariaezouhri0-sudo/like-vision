@@ -17,12 +17,13 @@ import {
   Filter,
   CalendarDays,
   Landmark,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Edit2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { formatCurrency, cn, roundAmount } from "@/lib/utils";
+import { formatCurrency, cn, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, updateDoc, serverTimestamp, runTransaction, getDocs, where } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,10 +32,14 @@ import { fr } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReportsPage() {
   const router = useRouter();
   const db = useFirestore();
+  const { toast } = useToast();
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
 
@@ -45,6 +50,8 @@ export default function ReportsPage() {
   }, [router]);
 
   const isPrepaMode = role === "PREPA";
+  const isAdminOrPrepa = role === "ADMIN" || role === "PREPA";
+
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({ 
     from: startOfMonth(new Date()), 
     to: endOfMonth(new Date()) 
@@ -55,6 +62,12 @@ export default function ReportsPage() {
   const [includeMontures, setIncludeMontures] = useState(true);
   const [includeFrais, setIncludeFrais] = useState(true);
   const [includeVersements, setIncludeVersements] = useState(true);
+
+  // States pour l'édition
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTrans, setSelectedTrans] = useState<any>(null);
+  const [opLoading, setOpLoading] = useState(false);
+  const [editOp, setEditOp] = useState({ type: "DEPENSE", label: "", clientName: "", montant: "" });
 
   const salesQuery = useMemoFirebase(() => query(collection(db, "sales"), orderBy("createdAt", "desc"), limit(2000)), [db]);
   const { data: rawSales, isLoading: salesLoading } = useCollection(salesQuery);
@@ -102,6 +115,70 @@ export default function ReportsPage() {
     };
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
 
+  const handleOpenEdit = (t: any) => {
+    setSelectedTrans(t);
+    setEditOp({
+      type: t.type,
+      label: t.label || "",
+      clientName: t.clientName || "",
+      montant: formatCurrency(Math.abs(t.montant))
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleAutoAffectBC = async (clientName: string, type: string, amount: number) => {
+    const bcMatch = (clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+    if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
+      const bcId = bcMatch[1].padStart(4, '0');
+      try {
+        const q = query(
+          collection(db, "sales"), 
+          where("isDraft", "==", isPrepaMode),
+          where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const saleDoc = snap.docs[0];
+          const updateField = type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
+          await updateDoc(saleDoc.ref, { [updateField]: amount });
+          return true;
+        }
+      } catch (e) {
+        console.error("Erreur affectation BC:", e);
+      }
+    }
+    return false;
+  };
+
+  const handleUpdateOperation = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedTrans || !editOp.montant) return;
+
+    setOpLoading(true);
+    const amt = parseAmount(editOp.montant);
+    const finalAmount = (editOp.type === "VENTE") ? Math.abs(amt) : -Math.abs(amt);
+    const finalLabel = editOp.label || (editOp.type === "VERSEMENT" ? "BANQUE" : editOp.type);
+    
+    try {
+      await runTransaction(db, async (transaction) => {
+        const transRef = doc(db, "transactions", selectedTrans.id);
+        transaction.update(transRef, {
+          type: editOp.type,
+          label: finalLabel,
+          clientName: editOp.clientName || "---",
+          montant: finalAmount,
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await handleAutoAffectBC(editOp.clientName, editOp.type, amt);
+      toast({ variant: "success", title: "Opération mise à jour" });
+      setIsEditDialogOpen(false);
+    } catch (e: any) { 
+      toast({ variant: "destructive", title: "Erreur" }); 
+    } finally { setOpLoading(false); }
+  };
+
   const handlePrintCharges = () => {
     const types = [];
     if (includeVerres) types.push("ACHAT VERRES");
@@ -147,6 +224,14 @@ export default function ReportsPage() {
         </CardHeader>
         <div className="overflow-x-auto">
           <Table>
+            <TableHeader className="bg-[#0D1B2A]/5">
+              <TableRow>
+                <TableHead className="text-[10px] uppercase font-black px-8 py-4">Opération</TableHead>
+                <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-center">Réf / Client</TableHead>
+                <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-right">Montant</TableHead>
+                <TableHead className="text-[10px] uppercase font-black px-8 py-4 text-right w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {data.length > 0 ? data.map(t => {
                 const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
@@ -168,10 +253,20 @@ export default function ReportsPage() {
                     <TableCell className="px-8 py-5 text-right">
                       <span className="text-sm font-black tabular-nums text-red-500">-{formatCurrency(Math.abs(t.montant))}</span>
                     </TableCell>
+                    <TableCell className="px-8 py-5 text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full hover:bg-slate-100 text-[#0D1B2A]/40 hover:text-primary"
+                        onClick={() => handleOpenEdit(t)}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               }) : (
-                <TableRow><TableCell className="text-center py-12 text-[10px] font-black uppercase opacity-20 tracking-[0.3em]">Aucune opération enregistrée.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-12 text-[10px] font-black uppercase opacity-20 tracking-[0.3em]">Aucune opération enregistrée.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -366,6 +461,31 @@ export default function ReportsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md rounded-[40px] p-10" onKeyDown={(e) => e.key === 'Enter' && handleUpdateOperation(e)}>
+          <form onSubmit={handleUpdateOperation}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center text-xl">Modifier Opération</DialogTitle></DialogHeader>
+            <div className="space-y-6 py-8">
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Type</Label><select className="w-full h-12 rounded-2xl font-bold bg-slate-50 border-none px-4 outline-none" value={editOp.type} onChange={e => setEditOp({...editOp, type: e.target.value})}><option value="VENTE">Vente (+)</option><option value="DEPENSE">Dépense (-)</option><option value="ACHAT MONTURE">Achat Monture (-)</option><option value="ACHAT VERRES">Achat Verres (-)</option><option value="VERSEMENT">Versement (-)</option></select></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Libellé</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="Désignation..." value={editOp.label} onChange={e => setEditOp({...editOp, label: e.target.value})} /></div>
+              <div className="space-y-2"><Label className="text-[10px] uppercase font-black ml-2">Nom Client / BC</Label><Input className="h-12 rounded-2xl font-bold bg-slate-50 border-none px-4" placeholder="M. Mohamed ou BC : 2472..." value={editOp.clientName} onChange={e => setEditOp({...editOp, clientName: e.target.value})} /></div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black ml-2">Montant (DH)</Label>
+                <Input 
+                  type="text" 
+                  className="h-12 rounded-2xl font-black text-lg bg-slate-50 border-none px-4 text-[#0D1B2A] tabular-nums" 
+                  placeholder="0,00" 
+                  value={editOp.montant} 
+                  onChange={e => setEditOp({...editOp, montant: e.target.value})} 
+                  onBlur={() => editOp.montant && setEditOp({...editOp, montant: formatCurrency(parseAmount(editOp.montant))})}
+                />
+              </div>
+            </div>
+            <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full text-base tracking-widest shadow-xl">ENREGISTRER</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
