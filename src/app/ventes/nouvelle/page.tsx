@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs, orderBy } from "firebase/firestore";
 import { format, isValid } from "date-fns";
 import { MUTUELLES } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -93,6 +93,34 @@ function NewSaleForm() {
     od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
+
+  // Suggestion automatique du N° BON
+  const lastSalesQuery = useMemoFirebase(() => query(
+    collection(db, "sales"),
+    where("isDraft", "==", isPrepaMode),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  ), [db, isPrepaMode]);
+  
+  const { data: lastSales } = useCollection(lastSalesQuery);
+
+  useEffect(() => {
+    // Uniquement pour une nouvelle vente et si le champ est vide
+    if (!activeEditId && !bonNumber && lastSales && lastSales.length > 0) {
+      const numbers = lastSales
+        .map(s => {
+          // On essaie d'extraire le nombre du bonNumber (qui peut être "2472" ou "FC-2026-2472")
+          const match = (s.bonNumber || "").match(/\d+/);
+          return match ? parseInt(match[0]) : null;
+        })
+        .filter((n): n is number => n !== null && !isNaN(n));
+
+      if (numbers.length > 0) {
+        const nextNum = Math.max(...numbers) + 1;
+        setBonNumber(nextNum.toString());
+      }
+    }
+  }, [lastSales, activeEditId, bonNumber]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings } = useDoc(settingsRef);
@@ -208,7 +236,6 @@ function NewSaleForm() {
     setSelectedClientId(client.id || null);
     setIsFamilyMode(false);
     
-    // Récupération de la prescription historique si elle existe
     if (client.prescription) {
       setPrescription({
         od: {
@@ -220,8 +247,7 @@ function NewSaleForm() {
         og: {
           sph: client.prescription.og?.sph || "",
           cyl: client.prescription.og?.cyl || "",
-          axe: client.prescription.og?.axe || "",
-          add: client.prescription.og?.add || ""
+          axe: client.prescription.og?.add || ""
         }
       });
       toast({ title: "Historique Chargé", description: "La dernière prescription du client a été appliquée." });
@@ -388,7 +414,6 @@ function NewSaleForm() {
           lastVisit: format(new Date(), "dd/MM/yyyy"), 
           isDraft: currentIsDraft, 
           updatedAt: serverTimestamp(),
-          // Sauvegarde de la prescription dans le client pour rappel futur
           prescription: prescription
         };
         if (!finalClientId) {
@@ -552,7 +577,15 @@ function NewSaleForm() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">N° BON</Label>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">N° BON</Label>
+                      {!activeEditId && bonNumber && (
+                        <div className="flex items-center gap-1 bg-[#0D1B2A]/10 px-2 py-0.5 rounded-full animate-pulse">
+                          <Sparkles className="h-2.5 w-2.5 text-[#0D1B2A]" />
+                          <span className="text-[7px] font-black uppercase text-[#0D1B2A]">Suggéré</span>
+                        </div>
+                      )}
+                    </div>
                     <Input className={cn("h-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm text-[#D4AF37]", bonError && "ring-2 ring-red-500")} value={bonNumber} onChange={e => setBonNumber(e.target.value)} readOnly={isReadOnly} />
                   </div>
                 </div>
