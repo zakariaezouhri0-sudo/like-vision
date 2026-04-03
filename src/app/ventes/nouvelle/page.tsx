@@ -94,7 +94,7 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Limite augmentée à 1000 pour trouver le vrai max)
+  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Limite à 1000 pour trouver le vrai max)
   const lastSalesRawQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
     orderBy("createdAt", "desc"),
@@ -210,7 +210,6 @@ function NewSaleForm() {
     if (cleanedPhone.length >= 8) {
       return query(
         collection(db, "clients"),
-        where("isDraft", "==", currentIsDraft),
         where("phone", "==", cleanedPhone),
         limit(20)
       );
@@ -219,7 +218,6 @@ function NewSaleForm() {
     if (nameSearch.length >= 3 && !isFamilyMode) {
       return query(
         collection(db, "clients"),
-        where("isDraft", "==", currentIsDraft),
         where("name", ">=", nameSearch),
         where("name", "<=", nameSearch + "\uf8ff"),
         limit(20)
@@ -229,7 +227,12 @@ function NewSaleForm() {
     return null;
   }, [db, clientPhone, clientName, isPrepaMode, isFamilyMode]);
 
-  const { data: matchedClients } = useCollection(clientsQuery);
+  const { data: matchedClientsRaw } = useCollection(clientsQuery);
+  
+  const matchedClients = useMemo(() => {
+    if (!matchedClientsRaw) return [];
+    return matchedClientsRaw.filter(c => c.isDraft === isPrepaMode);
+  }, [matchedClientsRaw, isPrepaMode]);
 
   const handleSelectMember = (client: any) => {
     if (!client || isReadOnly) return;
@@ -329,14 +332,16 @@ function NewSaleForm() {
     if (!finalClientId && !isFamilyMode) {
       try {
         if (cleanedPhone.length >= 8) {
-          const q = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("phone", "==", cleanedPhone), limit(1));
+          const q = query(collection(db, "clients"), where("phone", "==", cleanedPhone), limit(10));
           const snap = await getDocs(q);
-          if (!snap.empty) finalClientId = snap.docs[0].id;
+          const found = snap.docs.find(d => d.data().isDraft === currentIsDraft);
+          if (found) finalClientId = found.id;
         }
         if (!finalClientId) {
-          const qName = query(collection(db, "clients"), where("isDraft", "==", currentIsDraft), where("name", "==", clientName.trim().toUpperCase()), limit(1));
+          const qName = query(collection(db, "clients"), where("name", "==", clientName.trim().toUpperCase()), limit(10));
           const snapName = await getDocs(qName);
-          if (!snapName.empty) finalClientId = snapName.docs[0].id;
+          const foundName = snapName.docs.find(d => d.data().isDraft === currentIsDraft);
+          if (foundName) finalClientId = foundName.id;
         }
       } catch (e) {
         console.error("Erreur lookup client:", e);
@@ -350,11 +355,10 @@ function NewSaleForm() {
         if (isBonNumberChanged) {
           const bonCheckQuery = query(
             collection(db, "sales"), 
-            where("bonNumber", "==", bonNumber.trim()),
-            where("isDraft", "==", currentIsDraft)
+            where("bonNumber", "==", bonNumber.trim())
           );
           const bonCheckSnap = await getDocs(bonCheckQuery);
-          const otherSales = bonCheckSnap.docs.filter(d => activeEditId ? d.id !== activeEditId : true);
+          const otherSales = bonCheckSnap.docs.filter(d => (activeEditId ? d.id !== activeEditId : true) && d.data().isDraft === currentIsDraft);
 
           if (otherSales.length > 0) {
             setBonError(true);
@@ -595,7 +599,7 @@ function NewSaleForm() {
                 </div>
                 <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckboxChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-widest">PARRAINAGE</label>
                   </div>
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">

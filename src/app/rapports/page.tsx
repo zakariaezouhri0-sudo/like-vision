@@ -131,14 +131,15 @@ export default function ReportsPage() {
     if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
       const bcId = bcMatch[1].padStart(4, '0');
       try {
+        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
         const q = query(
           collection(db, "sales"), 
-          where("isDraft", "==", isPrepaMode),
           where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const saleDoc = snap.docs[0];
+        const saleDoc = snap.docs.find(d => d.data().isDraft === isPrepaMode);
+        
+        if (saleDoc) {
           const updateField = type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
           await updateDoc(saleDoc.ref, { [updateField]: amount });
           return true;

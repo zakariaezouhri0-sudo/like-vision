@@ -104,11 +104,12 @@ function CaisseContent() {
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
   const lastSessions = useMemo(() => {
-    if (!allSessions) return [];
+    if (!allSessions || !isClientReady) return [];
+    // Filtrage en mémoire pour éviter les erreurs d'index Firestore
     return allSessions
       .filter((s: any) => (isPrepaMode ? s.isDraft === true : s.isDraft !== true) && s.status === "CLOSED" && s.date < dateStr)
       .slice(0, 1);
-  }, [allSessions, isPrepaMode, dateStr]);
+  }, [allSessions, isPrepaMode, dateStr, isClientReady]);
 
   useEffect(() => {
     if (!isClientReady) return;
@@ -238,14 +239,15 @@ function CaisseContent() {
     if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
       const bcId = bcMatch[1].padStart(4, '0');
       try {
+        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
         const q = query(
           collection(db, "sales"), 
-          where("isDraft", "==", isPrepaMode),
           where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const saleDoc = snap.docs[0];
+        const saleDoc = snap.docs.find(d => d.data().isDraft === isPrepaMode);
+        
+        if (saleDoc) {
           const updateField = type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
           await updateDoc(saleDoc.ref, { [updateField]: amount });
           return true;
@@ -310,7 +312,8 @@ function CaisseContent() {
       if (e.message === "SESSION_CLOSED") {
         toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       } else {
-        toast({ variant: "destructive", title: "Erreur" }); 
+        console.error(e);
+        toast({ variant: "destructive", title: "Erreur lors de l'enregistrement" }); 
       }
     } finally { setOpLoading(false); }
   };
@@ -377,14 +380,15 @@ function CaisseContent() {
       const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
       if (bcMatch && (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE")) {
         const bcId = bcMatch[1].padStart(4, '0');
+        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
         const q = query(
           collection(db, "sales"), 
-          where("isDraft", "==", isPrepaMode),
           where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const saleDoc = snap.docs[0];
+        const saleDoc = snap.docs.find(d => d.data().isDraft === isPrepaMode);
+        
+        if (saleDoc) {
           const updateField = t.type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
           batch.update(saleDoc.ref, { [updateField]: 0 });
         }
