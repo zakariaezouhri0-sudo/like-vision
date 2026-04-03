@@ -84,6 +84,18 @@ export default function AccountingPage() {
   const entries = useMemo(() => {
     if (!allTrans || !role || selectedMonths.length === 0) return [];
 
+    // OPTIMISATION: Grouper les transactions par date une seule fois (O(N))
+    const transByDate: Record<string, any[]> = {};
+    allTrans.forEach(t => {
+      if (isPrepaMode !== (t.isDraft === true)) return;
+      if (!t.createdAt?.toDate) return;
+      
+      const d = t.createdAt.toDate();
+      const dateKey = format(d, "yyyy-MM-dd");
+      if (!transByDate[dateKey]) transByDate[dateKey] = [];
+      transByDate[dateKey].push(t);
+    });
+
     const allEntries: any[] = [];
     const sortedSelectedMonths = [...selectedMonths].sort();
 
@@ -95,13 +107,13 @@ export default function AccountingPage() {
       const days = eachDayOfInterval({ start, end });
 
       days.forEach(day => {
+        const dateKey = format(day, "yyyy-MM-dd");
         const dateStr = format(day, "dd/MM/yyyy");
         
-        const dayTrans = allTrans.filter(t => {
-          if (!t.createdAt?.toDate) return false;
-          if (isPrepaMode !== (t.isDraft === true)) return false;
-          return isSameDay(t.createdAt.toDate(), day);
-        });
+        // Récupération instantanée via le dictionnaire
+        const dayTrans = transByDate[dateKey] || [];
+
+        if (dayTrans.length === 0) return;
 
         const totalEncaissements = dayTrans
           .filter(t => t.type === "VENTE")
