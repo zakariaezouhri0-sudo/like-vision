@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp } from "lucide-react";
+import { Loader2, BookOpen, Calculator, FileSpreadsheet, RefreshCcw, TrendingUp, Download } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, Timestamp } from "firebase/firestore";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, lastDayOfMonth } from "date-fns";
@@ -17,7 +17,7 @@ import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-// Configuration des comptes (8 chiffres)
+// Configuration des comptes comptables (8 chiffres)
 const ACCOUNTS = {
   VENTES: "71110000",
   CLIENTS: "34210000",
@@ -26,8 +26,8 @@ const ACCOUNTS = {
   TRANSFERT: "51150000",
   FOURNISSEURS: "44110000",
   PERSONNEL: "44320000",
-  ACHATS: "61110000", // Pour achats verres/montures en caisse
-  CHARGES_DIVERSES: "61250000", // Pour dépenses générales en caisse
+  ACHATS: "61110000", 
+  CHARGES_DIVERSES: "61250000",
   CHARGES_LOYER: "61310000",
   CHARGES_SALAIRES: "61710000",
   CHARGES_MENAGE: "61310000",
@@ -35,6 +35,7 @@ const ACCOUNTS = {
   CHARGES_CONCIERGE: "61310000",
 };
 
+// Charges fixes mensuelles (automatisées en fin de mois)
 const FIXED_CHARGES = [
   { label: "Loyer", amount: 8000, account: ACCOUNTS.CHARGES_LOYER, tiers: ACCOUNTS.FOURNISSEURS },
   { label: "Zakariae", amount: 5000, account: ACCOUNTS.CHARGES_SALAIRES, tiers: ACCOUNTS.PERSONNEL },
@@ -52,12 +53,16 @@ export default function AccountingPage() {
   
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
   const [role, setRole] = useState<string | null>(null);
+  const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isClientReady, setIsClientReady] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase();
+    const savedMode = localStorage.getItem('work_mode');
+    
     if (savedRole && (savedRole === "ADMIN" || savedRole === "PREPA")) {
       setRole(savedRole);
+      setIsPrepaMode(savedRole === 'PREPA' || (savedRole === 'ADMIN' && savedMode === 'DRAFT'));
     } else {
       router.push("/dashboard");
     }
@@ -86,7 +91,6 @@ export default function AccountingPage() {
 
     const allEntries: any[] = [];
     const days = eachDayOfInterval({ start, end });
-    const isPrepaMode = role === 'PREPA';
 
     days.forEach(day => {
       const dateStr = format(day, "dd/MM/yyyy");
@@ -121,7 +125,7 @@ export default function AccountingPage() {
         });
       }
 
-      // 2. Journal CS - Décaissements (ACHATS & CHARGES) - CUMULÉS PAR NATURE
+      // 2. Journal CS - Décaissements (ACHATS & CHARGES)
       
       // A. CUMUL DES ACHATS (Verres/Montures)
       const totalDayAchats = dayTrans
@@ -147,7 +151,7 @@ export default function AccountingPage() {
         });
       }
 
-      // B. CUMUL DES CHARGES GÉNÉRALES (Dépenses caisse)
+      // B. CUMUL DES CHARGES GÉNÉRALES
       const totalDayCharges = dayTrans
         .filter(t => t.type === "DEPENSE")
         .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
@@ -253,7 +257,7 @@ export default function AccountingPage() {
     });
 
     return allEntries;
-  }, [trans, start, end, monthDate, role]);
+  }, [trans, start, end, monthDate, role, isPrepaMode]);
 
   const handleExportExcel = () => {
     try {
@@ -265,7 +269,7 @@ export default function AccountingPage() {
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }];
       XLSX.utils.book_append_sheet(wb, ws, "Ecritures Sage");
-      const fileName = `Like Vision - Flux Réels - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
+      const fileName = `Like Vision - Export Sage - ${format(monthDate, "MMMM yyyy", { locale: fr })}.xlsx`;
       XLSX.writeFile(wb, fileName);
       toast({ variant: "success", title: "Export réussi" });
     } catch (e) {
@@ -295,7 +299,7 @@ export default function AccountingPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-[#0D1B2A] uppercase tracking-tighter leading-none">Automate des Flux</h1>
-              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Export des entrées et sorties réelles (Sage).</p>
+              <p className="text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.3em] mt-2">Génération des écritures comptables pour Sage.</p>
             </div>
           </div>
 
@@ -322,7 +326,7 @@ export default function AccountingPage() {
               disabled={isLoading || entries.length === 0}
               className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all"
             >
-              <FileSpreadsheet className="mr-2 h-4 w-4" /> EXPORT SAGE (.XLSX)
+              <Download className="mr-2 h-4 w-4" /> EXPORT SAGE (.XLSX)
             </Button>
           </div>
         </div>
