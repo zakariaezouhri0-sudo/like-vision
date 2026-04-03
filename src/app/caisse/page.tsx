@@ -52,7 +52,7 @@ function CaisseContent() {
   const [isClientReady, setIsHydrated] = useState(false);
   const [role, setRole] = useState<string>("");
   const [isPrepaMode, setIsPrepaMode] = useState(false);
-  const [openingVal, setOpeningVal] = useState("");
+  const [openingVal, setOpeningVal] = useState("0");
   const [isAutoReport, setIsAutoReport] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(true);
 
@@ -95,14 +95,15 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Recherche optimisée de la session précédente pour le report
+  // REQUÊTE CORRIGÉE : On cherche la dernière session fermée AVANT la date sélectionnée
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     where("isDraft", "==", isPrepaMode),
     where("status", "==", "CLOSED"),
+    where("date", "<", dateStr),
     orderBy("date", "desc"),
     limit(1)
-  ), [db, isPrepaMode]);
+  ), [db, isPrepaMode, dateStr]);
   
   const { data: lastSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
@@ -113,25 +114,18 @@ function CaisseContent() {
       if (!loadingPast) {
         if (lastSessions && lastSessions.length > 0) {
           const lastS = lastSessions[0];
-          // On ne reporte que si la date est antérieure à la date sélectionnée
-          if (lastS.date < dateStr) {
-            setOpeningVal(roundAmount(lastS.closingBalanceReal || 0).toString());
-            setIsAutoReport(true);
-          } else {
-            setOpeningVal("");
-            setIsAutoReport(false);
-          }
+          setOpeningVal(roundAmount(lastS.closingBalanceReal || 0).toString());
+          setIsAutoReport(true);
         } else {
-          setOpeningVal("");
+          setOpeningVal("0");
           setIsAutoReport(false);
         }
         setIsLoadingReport(false);
       }
     } else if (session) {
-      // Session déjà ouverte, on utilise sa valeur
       setIsLoadingReport(false);
     }
-  }, [lastSessions, loadingPast, session, sessionLoading, dateStr, isClientReady]);
+  }, [lastSessions, loadingPast, session, sessionLoading, isClientReady]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
