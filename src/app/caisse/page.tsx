@@ -27,7 +27,9 @@ import {
   Layers,
   ArrowLeftRight,
   DollarSign,
-  Plus
+  Plus,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
@@ -55,6 +57,8 @@ function CaisseContent() {
   const [openingVal, setOpeningVal] = useState("0");
   const [isAutoReport, setIsAutoReport] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(true);
+  const [isEditingOpening, setIsEditingOpening] = useState(false);
+  const [newOpeningVal, setNewOpeningVal] = useState("");
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
@@ -104,17 +108,15 @@ function CaisseContent() {
   
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
-  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE (FIX 03/04 -> 02/04)
+  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE
   useEffect(() => {
     if (!isClientReady || sessionLoading) return;
 
     if (!session) {
       if (!loadingPast) {
-        // 1. Normaliser et trier toutes les sessions par date chronologique inverse
         const sortedSessions = (allSessions || [])
           .map((s: any) => {
             let sDate = s.date || "";
-            // Gérer le format dd-MM-yyyy si présent
             if (sDate.includes('-') && sDate.split('-')[0].length === 2) {
               const [d, m, y] = sDate.split('-');
               sDate = `${y}-${m}-${d}`;
@@ -123,7 +125,6 @@ function CaisseContent() {
           })
           .sort((a, b) => b.normalizedDate.localeCompare(a.normalizedDate));
 
-        // 2. Trouver la session CLÔTURÉE la plus récente STRICTEMENT INFÉRIEURE à la date sélectionnée
         const previousClosedSession = sortedSessions.find((s: any) => {
           const sIsDraft = s.isDraft === true;
           const modeMatch = isPrepaMode ? sIsDraft : !sIsDraft;
@@ -131,7 +132,8 @@ function CaisseContent() {
         });
 
         if (previousClosedSession) {
-          const prevFinal = roundAmount(previousClosedSession.closingBalanceReal || 0);
+          // Fallback sur le théorique si le réel n'est pas renseigné
+          const prevFinal = roundAmount(previousClosedSession.closingBalanceReal ?? previousClosedSession.closingBalanceTheoretical ?? 0);
           setOpeningVal(prevFinal.toString());
           setIsAutoReport(true);
         } else {
@@ -143,7 +145,6 @@ function CaisseContent() {
         setIsLoadingReport(true);
       }
     } else {
-      // Si la session existe déjà, on n'affiche plus l'état de chargement du report
       setIsLoadingReport(false);
     }
   }, [allSessions, loadingPast, session, sessionLoading, isClientReady, isPrepaMode, dateStr]);
@@ -168,6 +169,12 @@ function CaisseContent() {
         const db = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return db - da;
       });
+  }, [rawTransactions, isPrepaMode]);
+
+  // Détecter si des opérations existent dans l'AUTRE mode (pour aider l'utilisateur)
+  const orphanCount = useMemo(() => {
+    if (!rawTransactions) return 0;
+    return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft !== true : t.isDraft === true).length;
   }, [rawTransactions, isPrepaMode]);
 
   const salesTransactions = useMemo(() => {
@@ -246,6 +253,23 @@ function CaisseContent() {
       });
       toast({ variant: "success", title: "Caisse Ouverte", description: `Solde initial : ${formatCurrency(finalOpening)} DH` });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
+  };
+
+  const handleUpdateOpeningBalance = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!isAdminOrPrepa || !newOpeningVal) return;
+    
+    try {
+      setOpLoading(true);
+      const val = parseAmount(newOpeningVal);
+      await updateDoc(sessionRef, { openingBalance: val });
+      toast({ variant: "success", title: "Solde Initial Corrigé", description: `Nouveau solde : ${formatCurrency(val)} DH` });
+      setIsEditingOpening(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de la correction" });
+    } finally {
+      setOpLoading(false);
+    }
   };
 
   const handleAutoAffectBC = async (clientName: string, type: string, amount: number) => {
@@ -594,6 +618,16 @@ function CaisseContent() {
         </Alert>
       )}
 
+      {orphanCount > 0 && (
+        <Alert className="bg-orange-50 border-orange-200 text-orange-800 rounded-[32px] mb-10 shadow-xl border-2 animate-in fade-in slide-in-from-top-4">
+          <AlertTriangle className="h-6 w-6 text-orange-600" />
+          <AlertTitle className="font-black uppercase tracking-[0.2em] text-sm">Opérations détectées dans l'autre mode</AlertTitle>
+          <AlertDescription className="font-bold text-xs">
+            Il y a {orphanCount} opération(s) enregistrée(s) aujourd'hui en mode {isPrepaMode ? "RÉEL" : "BROUILLON"}. Changez de compte pour les voir.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-5">
           <div className="h-14 w-14 rounded-full bg-white shadow-xl flex items-center justify-center shrink-0">
@@ -690,10 +724,25 @@ function CaisseContent() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-white flex flex-col items-center justify-center text-center h-40">
+        <Card className="p-6 rounded-[40px] border-none shadow-xl bg-white flex flex-col items-center justify-center text-center h-40 relative group">
           <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3"><Lock className="h-4 w-4 text-blue-400" /></div>
           <p className="text-[9px] uppercase font-black text-slate-400 mb-2">Solde Ouverture</p>
-          <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(initialBalance)}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(initialBalance)}</p>
+            {isAdminOrPrepa && !isClosed && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" 
+                onClick={() => {
+                  setNewOpeningVal(formatCurrency(initialBalance));
+                  setIsEditingOpening(true);
+                }}
+              >
+                <Edit2 className="h-3 w-3 text-blue-400" />
+              </Button>
+            )}
+          </div>
         </Card>
         <Card className="p-6 rounded-[40px] border-none shadow-xl bg-[#E6F9F3] flex flex-col items-center justify-center text-center h-40">
           <div className="h-10 w-10 bg-white/5 rounded-2xl flex items-center justify-center mb-3"><TrendingUp className="h-4 w-4 text-emerald-500" /></div>
@@ -719,6 +768,34 @@ function CaisseContent() {
 
       {renderTransactionTable("Encaissements (Ventes)", salesTransactions, <TrendingUp className="h-5 w-5 text-emerald-600" />, "bg-emerald-50 text-emerald-700")}
       {renderTransactionTable("Sorties (Charges & Versements)", expenseTransactions, <TrendingDown className="h-5 w-5 text-red-500" />, "bg-red-100 text-red-700")}
+
+      <Dialog open={isEditingOpening} onOpenChange={setIsEditingOpening}>
+        <DialogContent className="max-w-md rounded-[40px] p-10">
+          <form onSubmit={handleUpdateOpeningBalance}>
+            <DialogHeader><DialogTitle className="font-black uppercase text-[#0D1B2A] tracking-widest text-center">Corriger Solde Initial</DialogTitle></DialogHeader>
+            <div className="space-y-6 py-8">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black ml-2 text-slate-400">Nouveau Solde d'Ouverture (DH)</Label>
+                <Input 
+                  type="text" 
+                  className="h-16 rounded-2xl font-black text-2xl text-center bg-slate-50 border-none shadow-inner" 
+                  value={newOpeningVal} 
+                  onChange={e => setNewOpeningVal(e.target.value)}
+                  onBlur={() => newOpeningVal && setNewOpeningVal(formatCurrency(parseAmount(newOpeningVal)))}
+                  autoFocus
+                />
+              </div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                <AlertCircle className="h-5 w-5 text-blue-600 shrink-0" />
+                <p className="text-[9px] font-bold text-blue-700 leading-tight">
+                  Cette modification recalculera automatiquement votre solde théorique final pour la journée du {format(selectedDate, "dd/MM")}.
+                </p>
+              </div>
+            </div>
+            <DialogFooter><Button type="submit" disabled={opLoading} className="w-full h-14 font-black rounded-full shadow-xl bg-blue-600 text-white">METTRE À JOUR</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md rounded-[40px] p-10">
