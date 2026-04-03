@@ -32,7 +32,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction, limit } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction, limit, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -95,7 +95,6 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  // Correction de la requête pour éviter les erreurs d'index : on récupère les sessions et on filtre en mémoire
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     orderBy("date", "desc"),
@@ -365,15 +364,38 @@ function CaisseContent() {
       toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut supprimer une opération de caisse." });
       return;
     }
-    if (!confirm("Supprimer cette opération ?")) return;
+    if (!confirm("Supprimer cette opération ? Cela remettra également à zéro les coûts liés dans les factures.")) return;
     
     try {
-      await runTransaction(db, async (transaction) => {
-        transaction.delete(doc(db, "transactions", t.id));
-      });
-      toast({ variant: "success", title: "Supprimé" });
+      setOpLoading(true);
+      const batch = writeBatch(db);
+      
+      // Suppression de la transaction
+      batch.delete(doc(db, "transactions", t.id));
+
+      // Nettoyage en cascade : si c'est un achat, on remet à zéro dans la vente
+      const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
+      if (bcMatch && (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE")) {
+        const bcId = bcMatch[1].padStart(4, '0');
+        const q = query(
+          collection(db, "sales"), 
+          where("isDraft", "==", isPrepaMode),
+          where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const saleDoc = snap.docs[0];
+          const updateField = t.type === "ACHAT VERRES" ? "purchasePriceLenses" : "purchasePriceFrame";
+          batch.update(saleDoc.ref, { [updateField]: 0 });
+        }
+      }
+
+      await batch.commit();
+      toast({ variant: "success", title: "Opération supprimée", description: "Les liens ont été nettoyés." });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur" });
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" });
+    } finally {
+      setOpLoading(false);
     }
   };
 

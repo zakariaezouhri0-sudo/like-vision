@@ -34,7 +34,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, formatMAD, roundAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc, Timestamp } from "firebase/firestore";
+import { collection, updateDoc, doc, query, orderBy, deleteDoc, limit, getDocs, where, getDoc, Timestamp, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isValid, getDay, startOfDay, endOfDay, startOfMonth, endOfMonth, parse } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -47,6 +47,7 @@ function SessionsContent() {
   const [role, setRole] = useState<string>("");
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isClientReady, setIsHydrated] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
@@ -59,7 +60,6 @@ function SessionsContent() {
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  // On retire le 'where' strict pour récupérer les anciennes données qui n'auraient pas le champ isDraft
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"),
@@ -70,7 +70,6 @@ function SessionsContent() {
 
   const sessions = useMemo(() => {
     if (!rawSessions || !isClientReady) return [];
-    // On filtre en mémoire pour être plus souple (inclure les undefined si on est en mode réel)
     return rawSessions.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [rawSessions, isPrepaMode, isClientReady]);
 
@@ -78,11 +77,8 @@ function SessionsContent() {
     const groups: Record<string, any[]> = {};
     sessions.forEach(s => {
       let d = parseISO(s.date);
-      // Tentative de parsing alternatif si ISO échoue
       if (!isValid(d)) {
-        try {
-          d = parse(s.date, "dd-MM-yyyy", new Date());
-        } catch(e) {}
+        try { d = parse(s.date, "dd-MM-yyyy", new Date()); } catch(e) {}
       }
 
       if (isValid(d)) {
@@ -98,13 +94,48 @@ function SessionsContent() {
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [sessions]);
 
-  const handleDeleteSession = async (id: string, date: string) => {
+  const handleDeleteSession = async (id: string, dateStr: string) => {
     if (!isAdminOrPrepa) return;
-    if (!confirm(`Supprimer définitivement la session du ${date} ?`)) return;
+    if (!confirm(`Attention ! Supprimer la session du ${dateStr} supprimera également TOUTES les opérations (ventes, charges, versements) liées à cette journée. Confirmer ?`)) return;
+    
     try {
-      await deleteDoc(doc(db, "cash_sessions", id));
-      toast({ variant: "success", title: "Session supprimée" });
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); }
+      setIsDeleting(true);
+      
+      let d = parseISO(dateStr);
+      if (!isValid(d)) d = parse(dateStr, "dd-MM-yyyy", new Date());
+      if (!isValid(d)) throw new Error("Date invalide");
+
+      const start = startOfDay(d);
+      const end = endOfDay(d);
+
+      // 1. Récupération des transactions du jour
+      const transQ = query(
+        collection(db, "transactions"),
+        where("createdAt", ">=", Timestamp.fromDate(start)),
+        where("createdAt", "<=", Timestamp.fromDate(end))
+      );
+      const transSnap = await getDocs(transQ);
+      
+      const batch = writeBatch(db);
+      
+      // 2. Ajout des suppressions de transactions au batch
+      transSnap.docs.forEach(tDoc => {
+        const tData = tDoc.data();
+        if (isPrepaMode === (tData.isDraft === true)) {
+          batch.delete(tDoc.ref);
+        }
+      });
+
+      // 3. Suppression de la session
+      batch.delete(doc(db, "cash_sessions", id));
+
+      await batch.commit();
+      toast({ variant: "success", title: "Session et opérations supprimées" });
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Erreur lors de la suppression" }); 
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleReopenSession = async (id: string) => {
@@ -126,7 +157,6 @@ function SessionsContent() {
       
       toast({ title: "Export en cours", description: `Récupération des données pour ${monthName}...` });
 
-      // Correction Index : suppression du where("isDraft") et filtrage en mémoire
       const transQ = query(
         collection(db, "transactions"),
         where("createdAt", ">=", Timestamp.fromDate(startDate)),
@@ -311,7 +341,6 @@ function SessionsContent() {
       const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
       const initialBalance = sessionData?.openingBalance || 0;
 
-      // Correction Index : suppression du where("isDraft") et filtrage en mémoire
       const q = query(
         collection(db, "transactions"),
         where("createdAt", ">=", Timestamp.fromDate(start)),
@@ -630,8 +659,12 @@ function SessionsContent() {
                                         </DropdownMenuItem>
                                       )}
                                       {isAdminOrPrepa && (
-                                        <DropdownMenuItem onClick={() => handleDeleteSession(s.id, s.date)} className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive">
-                                          <Trash2 className="mr-3 h-4 w-4" /> Supprimer Définitivement
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDeleteSession(s.id, s.date)} 
+                                          disabled={isDeleting}
+                                          className="py-3 font-black text-[10px] uppercase cursor-pointer rounded-xl text-destructive"
+                                        >
+                                          {isDeleting ? <Loader2 className="mr-3 h-4 w-4 animate-spin" /> : <Trash2 className="mr-3 h-4 w-4" />} Supprimer Définitivement
                                         </DropdownMenuItem>
                                       )}
                                     </DropdownMenuContent>
