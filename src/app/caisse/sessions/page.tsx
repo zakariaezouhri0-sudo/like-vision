@@ -126,22 +126,26 @@ function SessionsContent() {
       
       toast({ title: "Export en cours", description: `Récupération des données pour ${monthName}...` });
 
+      // Correction Index : suppression du where("isDraft") et filtrage en mémoire
       const transQ = query(
         collection(db, "transactions"),
-        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(startDate)),
         where("createdAt", "<=", Timestamp.fromDate(endDate))
       );
       const transSnap = await getDocs(transQ);
-      const allMonthTrans = transSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      const allMonthTrans = transSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
-      const salesQ = query(collection(db, "sales"), where("isDraft", "==", isPrepaMode));
+      const salesQ = query(collection(db, "sales"));
       const salesSnap = await getDocs(salesQ);
       const salesMap: Record<string, any> = {};
-      salesSnap.docs.forEach(doc => {
-        const d = doc.data();
-        if (d.invoiceId) salesMap[d.invoiceId] = d;
-      });
+      salesSnap.docs
+        .filter(doc => isPrepaMode ? doc.data().isDraft === true : doc.data().isDraft !== true)
+        .forEach(doc => {
+          const d = doc.data();
+          if (d.invoiceId) salesMap[d.invoiceId] = d;
+        });
 
       const wb = XLSX.utils.book_new();
 
@@ -307,15 +311,17 @@ function SessionsContent() {
       const sessionData = sessionSnap.exists() ? sessionSnap.data() : null;
       const initialBalance = sessionData?.openingBalance || 0;
 
+      // Correction Index : suppression du where("isDraft") et filtrage en mémoire
       const q = query(
         collection(db, "transactions"),
-        where("isDraft", "==", isPrepaMode),
         where("createdAt", ">=", Timestamp.fromDate(start)),
         where("createdAt", "<=", Timestamp.fromDate(end))
       );
       
       const snap = await getDocs(q);
-      const allTrans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      const allTrans = snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
       if (allTrans.length === 0) {
         toast({ title: "Info", description: "Aucune opération enregistrée pour ce jour." });
@@ -332,16 +338,15 @@ function SessionsContent() {
       
       const finalBalance = initialBalance + totalEncaissements - totalDecaissements;
 
-      const qSales = query(
-        collection(db, "sales"),
-        where("isDraft", "==", isPrepaMode)
-      );
+      const qSales = query(collection(db, "sales"));
       const salesSnap = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
-      salesSnap.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.invoiceId) salesMap[data.invoiceId] = data;
-      });
+      salesSnap.docs
+        .filter(doc => isPrepaMode ? doc.data().isDraft === true : doc.data().isDraft !== true)
+        .forEach(doc => {
+          const data = doc.data();
+          if (data.invoiceId) salesMap[data.invoiceId] = data;
+        });
 
       const mapRow = (t: any) => {
         if (!t.id) return ["", "", "", "", "", "", ""];
