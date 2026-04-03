@@ -18,7 +18,9 @@ import {
   ChevronDown, 
   CalendarDays,
   CheckSquare,
-  Square
+  Square,
+  FileSpreadsheet,
+  FileText
 } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, Timestamp, orderBy } from "firebase/firestore";
@@ -70,7 +72,6 @@ export default function AccountingPage() {
     setIsClientReady(true);
   }, [router]);
 
-  // Récupérer toutes les transactions de l'année 2026 pour le filtrage en mémoire
   const transQuery = useMemoFirebase(() => query(
     collection(db, "transactions"),
     where("createdAt", ">=", Timestamp.fromDate(new Date(2026, 0, 1))),
@@ -84,12 +85,11 @@ export default function AccountingPage() {
     if (!allTrans || !role || selectedMonths.length === 0) return [];
 
     const allEntries: any[] = [];
-    
-    // Trier les mois sélectionnés pour garantir l'ordre chronologique
     const sortedSelectedMonths = [...selectedMonths].sort();
 
     sortedSelectedMonths.forEach(monthKey => {
-      const monthDate = new Date(monthKey + "-01");
+      const [year, month] = monthKey.split('-').map(Number);
+      const monthDate = new Date(year, month - 1, 1);
       const start = startOfMonth(monthDate);
       const end = endOfMonth(monthDate);
       const days = eachDayOfInterval({ start, end });
@@ -103,125 +103,72 @@ export default function AccountingPage() {
           return isSameDay(t.createdAt.toDate(), day);
         });
 
-        // 1. LES VENTES (VT & CS)
         const totalEncaissements = dayTrans
           .filter(t => t.type === "VENTE")
           .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
         if (totalEncaissements > 0) {
           allEntries.push({
-            date: dateStr,
-            journal: "VT",
-            compte: ACCOUNTS.CLIENTS,
-            libelle: `VENTES DU ${dateStr}`,
-            debit: roundAmount(totalEncaissements),
-            credit: 0
+            date: dateStr, journal: "VT", compte: ACCOUNTS.CLIENTS,
+            libelle: `VENTES DU ${dateStr}`, debit: roundAmount(totalEncaissements), credit: 0
           });
           allEntries.push({
-            date: dateStr,
-            journal: "VT",
-            compte: ACCOUNTS.VENTES,
-            libelle: `VENTES DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalEncaissements)
-          });
-
-          allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.CAISSE,
-            libelle: `ENCAISSEMENTS DU ${dateStr}`,
-            debit: roundAmount(totalEncaissements),
-            credit: 0
+            date: dateStr, journal: "VT", compte: ACCOUNTS.VENTES,
+            libelle: `VENTES DU ${dateStr}`, debit: 0, credit: roundAmount(totalEncaissements)
           });
           allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.CLIENTS,
-            libelle: `ENCAISSEMENTS DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalEncaissements)
+            date: dateStr, journal: "CS", compte: ACCOUNTS.CAISSE,
+            libelle: `ENCAISSEMENTS DU ${dateStr}`, debit: roundAmount(totalEncaissements), credit: 0
+          });
+          allEntries.push({
+            date: dateStr, journal: "CS", compte: ACCOUNTS.CLIENTS,
+            libelle: `ENCAISSEMENTS DU ${dateStr}`, debit: 0, credit: roundAmount(totalEncaissements)
           });
         }
 
-        // 2. LES CHARGES (OD & CS)
         const totalCharges = dayTrans
           .filter(t => ["ACHAT VERRES", "ACHAT MONTURE", "DEPENSE"].includes(t.type))
           .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
         if (totalCharges > 0) {
           allEntries.push({
-            date: dateStr,
-            journal: "OD",
-            compte: ACCOUNTS.ACHATS,
-            libelle: `ACHATS/CHARGES DU ${dateStr}`,
-            debit: roundAmount(totalCharges),
-            credit: 0
+            date: dateStr, journal: "OD", compte: ACCOUNTS.ACHATS,
+            libelle: `ACHATS/CHARGES DU ${dateStr}`, debit: roundAmount(totalCharges), credit: 0
           });
           allEntries.push({
-            date: dateStr,
-            journal: "OD",
-            compte: ACCOUNTS.FOURNISSEURS,
-            libelle: `ACHATS/CHARGES DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalCharges)
-          });
-
-          allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.FOURNISSEURS,
-            libelle: `PAIEMENT CHARGES DU ${dateStr}`,
-            debit: roundAmount(totalCharges),
-            credit: 0
+            date: dateStr, journal: "OD", compte: ACCOUNTS.FOURNISSEURS,
+            libelle: `ACHATS/CHARGES DU ${dateStr}`, debit: 0, credit: roundAmount(totalCharges)
           });
           allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.CAISSE,
-            libelle: `PAIEMENT CHARGES DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalCharges)
+            date: dateStr, journal: "CS", compte: ACCOUNTS.FOURNISSEURS,
+            libelle: `PAIEMENT CHARGES DU ${dateStr}`, debit: roundAmount(totalCharges), credit: 0
+          });
+          allEntries.push({
+            date: dateStr, journal: "CS", compte: ACCOUNTS.CAISSE,
+            libelle: `PAIEMENT CHARGES DU ${dateStr}`, debit: 0, credit: roundAmount(totalCharges)
           });
         }
 
-        // 3. LES VERSEMENTS BANQUE (CS & BQ)
         const totalVersements = dayTrans
           .filter(t => t.type === "VERSEMENT")
           .reduce((acc, t) => acc + Math.abs(Number(t.montant) || 0), 0);
 
         if (totalVersements > 0) {
           allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.TRANSFERT,
-            libelle: `VERS. BANQUE DU ${dateStr}`,
-            debit: roundAmount(totalVersements),
-            credit: 0
+            date: dateStr, journal: "CS", compte: ACCOUNTS.TRANSFERT,
+            libelle: `VERS. BANQUE DU ${dateStr}`, debit: roundAmount(totalVersements), credit: 0
           });
           allEntries.push({
-            date: dateStr,
-            journal: "CS",
-            compte: ACCOUNTS.CAISSE,
-            libelle: `VERS. BANQUE DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalVersements)
+            date: dateStr, journal: "CS", compte: ACCOUNTS.CAISSE,
+            libelle: `VERS. BANQUE DU ${dateStr}`, debit: 0, credit: roundAmount(totalVersements)
           });
           allEntries.push({
-            date: dateStr,
-            journal: "BQ",
-            compte: ACCOUNTS.BANQUE,
-            libelle: `RECP. VERS. DU ${dateStr}`,
-            debit: roundAmount(totalVersements),
-            credit: 0
+            date: dateStr, journal: "BQ", compte: ACCOUNTS.BANQUE,
+            libelle: `RECP. VERS. DU ${dateStr}`, debit: roundAmount(totalVersements), credit: 0
           });
           allEntries.push({
-            date: dateStr,
-            journal: "BQ",
-            compte: ACCOUNTS.TRANSFERT,
-            libelle: `RECP. VERS. DU ${dateStr}`,
-            debit: 0,
-            credit: roundAmount(totalVersements)
+            date: dateStr, journal: "BQ", compte: ACCOUNTS.TRANSFERT,
+            libelle: `RECP. VERS. DU ${dateStr}`, debit: 0, credit: roundAmount(totalVersements)
           });
         }
       });
@@ -231,19 +178,22 @@ export default function AccountingPage() {
   }, [allTrans, role, isPrepaMode, selectedMonths]);
 
   const handleToggleMonth = (month: string) => {
-    setSelectedMonths(prev => 
-      prev.includes(month) 
-        ? prev.filter(m => m !== month) 
-        : [...prev, month]
-    );
+    setSelectedMonths(prev => prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month]);
   };
 
   const handleToggleAll = () => {
-    if (selectedMonths.length === MONTHS_2026.length) {
-      setSelectedMonths([]);
-    } else {
-      setSelectedMonths(MONTHS_2026.map(m => m.value));
+    if (selectedMonths.length === MONTHS_2026.length) setSelectedMonths([]);
+    else setSelectedMonths(MONTHS_2026.map(m => m.value));
+  };
+
+  const getFileName = (ext: string) => {
+    let base = "Like Vision - Export Sage";
+    if (selectedMonths.length === 1) {
+      base += ` - ${MONTHS_2026.find(m => m.value === selectedMonths[0])?.label}`;
+    } else if (selectedMonths.length > 1) {
+      base += ` - Multi-Mois (${selectedMonths.length})`;
     }
+    return `${base}.${ext}`;
   };
 
   const handleExportExcel = () => {
@@ -255,21 +205,31 @@ export default function AccountingPage() {
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 15 }];
-      
       XLSX.utils.book_append_sheet(wb, ws, "Ecritures Sage");
-      
-      let fileName = "Like Vision - Export Sage";
-      if (selectedMonths.length === 1) {
-        fileName += ` - ${MONTHS_2026.find(m => m.value === selectedMonths[0])?.label}`;
-      } else if (selectedMonths.length > 1) {
-        fileName += ` - Multi-Mois (${selectedMonths.length})`;
-      }
-      
-      XLSX.writeFile(wb, `${fileName}.xlsx`);
-      toast({ variant: "success", title: "Export réussi" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erreur lors de l'export" });
-    }
+      XLSX.writeFile(wb, getFileName("xlsx"));
+      toast({ variant: "success", title: "Export Excel réussi" });
+    } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'export" }); }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const wsData = [
+        ["Date", "Journal", "Compte", "Libellé", "Débit", "Crédit"],
+        ...entries.map(e => [e.date, e.journal, e.compte, e.libelle, (e.debit || 0).toFixed(2), (e.credit || 0).toFixed(2)])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const csv = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", getFileName("csv"));
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ variant: "success", title: "Export CSV réussi" });
+    } catch (e) { toast({ variant: "destructive", title: "Erreur lors de l'export CSV" }); }
   };
 
   const isLoading = !isClientReady || transLoading;
@@ -298,10 +258,10 @@ export default function AccountingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-12 w-[240px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6 text-[#0D1B2A] justify-between">
+                <Button variant="outline" className="h-12 w-full sm:w-[240px] rounded-full border-none shadow-inner bg-slate-50 font-black text-[10px] uppercase px-6 text-[#0D1B2A] justify-between">
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
                     <span>{selectedMonths.length > 0 ? `${selectedMonths.length} mois sélectionné(s)` : "Choisir les mois"}</span>
@@ -322,25 +282,11 @@ export default function AccountingPage() {
                     {MONTHS_2026.map((month) => (
                       <div 
                         key={month.value} 
-                        className={cn(
-                          "flex items-center space-x-3 p-2 rounded-xl transition-all cursor-pointer group",
-                          selectedMonths.includes(month.value) ? "bg-[#D4AF37]/5" : "hover:bg-slate-50"
-                        )}
+                        className={cn("flex items-center space-x-3 p-2 rounded-xl transition-all cursor-pointer group", selectedMonths.includes(month.value) ? "bg-[#D4AF37]/5" : "hover:bg-slate-50")}
                         onClick={() => handleToggleMonth(month.value)}
                       >
-                        <Checkbox 
-                          id={month.value} 
-                          checked={selectedMonths.includes(month.value)}
-                          onCheckedChange={() => handleToggleMonth(month.value)}
-                          className="data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]"
-                        />
-                        <label 
-                          htmlFor={month.value} 
-                          className={cn(
-                            "text-[10px] font-bold uppercase cursor-pointer select-none transition-colors",
-                            selectedMonths.includes(month.value) ? "text-[#0D1B2A]" : "text-slate-500 group-hover:text-slate-900"
-                          )}
-                        >
+                        <Checkbox id={month.value} checked={selectedMonths.includes(month.value)} onCheckedChange={() => handleToggleMonth(month.value)} className="data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]" />
+                        <label htmlFor={month.value} className={cn("text-[10px] font-bold uppercase cursor-pointer select-none transition-colors", selectedMonths.includes(month.value) ? "text-[#0D1B2A]" : "text-slate-500 group-hover:text-slate-900")}>
                           {month.label}
                         </label>
                       </div>
@@ -350,13 +296,23 @@ export default function AccountingPage() {
               </PopoverContent>
             </Popover>
 
-            <Button 
-              onClick={handleExportExcel} 
-              disabled={isLoading || entries.length === 0}
-              className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all"
-            >
-              <Download className="mr-2 h-4 w-4" /> EXPORT SAGE (.XLSX)
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={handleExportExcel} 
+                disabled={isLoading || entries.length === 0}
+                className="flex-1 sm:flex-none h-12 px-6 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> EXCEL
+              </Button>
+              <Button 
+                onClick={handleExportCSV} 
+                disabled={isLoading || entries.length === 0}
+                variant="outline"
+                className="flex-1 sm:flex-none h-12 px-6 rounded-full font-black text-[10px] uppercase shadow-lg border-slate-200 bg-white text-slate-600 hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all"
+              >
+                <FileText className="mr-2 h-4 w-4" /> CSV
+              </Button>
+            </div>
           </div>
         </div>
 
