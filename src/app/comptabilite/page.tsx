@@ -12,7 +12,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, Timestamp } from "firebase/firestore";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { formatCurrency, roundAmount } from "@/lib/utils";
+import { formatCurrency, roundAmount, cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
