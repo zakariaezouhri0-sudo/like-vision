@@ -32,7 +32,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction } from "firebase/firestore";
+import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format, setHours, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -54,6 +54,7 @@ function CaisseContent() {
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [openingVal, setOpeningVal] = useState("");
   const [isAutoReport, setIsAutoReport] = useState(false);
+  const [isLoadingReport, setIsLoadingReport] = useState(true);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
@@ -94,28 +95,43 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
-  const allSessionsQuery = useMemoFirebase(() => query(collection(db, "cash_sessions")), [db]);
-  const { data: allSessions } = useCollection(allSessionsQuery);
+  // Recherche optimisée de la session précédente pour le report
+  const pastSessionsQuery = useMemoFirebase(() => query(
+    collection(db, "cash_sessions"),
+    where("isDraft", "==", isPrepaMode),
+    where("status", "==", "CLOSED"),
+    orderBy("date", "desc"),
+    limit(1)
+  ), [db, isPrepaMode]);
+  
+  const { data: lastSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
   useEffect(() => {
-    if (!session && allSessions && allSessions.length > 0) {
-      const filtered = allSessions.filter(s => (isPrepaMode ? s.isDraft === true : s.isDraft !== true));
-      const pastSessions = filtered
-        .filter(s => s.date < dateStr && s.status === "CLOSED")
-        .sort((a, b) => b.date.localeCompare(a.date));
-      
-      if (pastSessions.length > 0) {
-        const lastClosing = pastSessions[0].closingBalanceReal;
-        if (lastClosing !== undefined) {
-          setOpeningVal(roundAmount(lastClosing).toString());
-          setIsAutoReport(true);
+    if (!isClientReady) return;
+
+    if (!session && !sessionLoading) {
+      if (!loadingPast) {
+        if (lastSessions && lastSessions.length > 0) {
+          const lastS = lastSessions[0];
+          // On ne reporte que si la date est antérieure à la date sélectionnée
+          if (lastS.date < dateStr) {
+            setOpeningVal(roundAmount(lastS.closingBalanceReal || 0).toString());
+            setIsAutoReport(true);
+          } else {
+            setOpeningVal("");
+            setIsAutoReport(false);
+          }
+        } else {
+          setOpeningVal("");
+          setIsAutoReport(false);
         }
+        setIsLoadingReport(false);
       }
-    } else if (!session) {
-      setOpeningVal("");
-      setIsAutoReport(false);
+    } else if (session) {
+      // Session déjà ouverte, on utilise sa valeur
+      setIsLoadingReport(false);
     }
-  }, [allSessions, session, dateStr, isPrepaMode]);
+  }, [lastSessions, loadingPast, session, sessionLoading, dateStr, isClientReady]);
 
   const transactionsQuery = useMemoFirebase(() => {
     const start = startOfDay(selectedDate);
@@ -196,21 +212,24 @@ function CaisseContent() {
 
   const handleOpenSession = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isLoadingReport) return;
+
     try {
       setOpLoading(true);
+      const finalOpening = parseAmount(openingVal);
       const openedAt = isAdminOrPrepa 
         ? Timestamp.fromDate(setHours(selectedDate, 9)) 
         : serverTimestamp();
 
       await setDoc(sessionRef, { 
-        openingBalance: parseAmount(openingVal) || 0, 
+        openingBalance: finalOpening, 
         status: "OPEN", 
         openedAt, 
         date: dateStr, 
         openedBy: user?.displayName || "---", 
         isDraft: isPrepaMode 
       });
-      toast({ variant: "success", title: "Caisse Ouverte" });
+      toast({ variant: "success", title: "Caisse Ouverte", description: `Solde initial : ${formatCurrency(finalOpening)} DH` });
     } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setOpLoading(false); }
   };
 
@@ -438,22 +457,27 @@ function CaisseContent() {
               <div className="relative">
                 <input 
                   type="text" 
-                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]", isAutoReport ? "text-slate-500 cursor-not-allowed" : "text-[#0D1B2A]")}
-                  value={isAutoReport ? formatCurrency(openingVal) : openingVal} 
+                  className={cn("w-full h-20 text-4xl font-black text-center rounded-[32px] border-2 outline-none transition-all tabular-nums", "bg-slate-50 border-[#D4AF37] focus:border-[#D4AF37]", (isAutoReport || isLoadingReport) ? "text-slate-500" : "text-[#0D1B2A]")}
+                  value={isLoadingReport ? "..." : (isAutoReport ? formatCurrency(openingVal) : openingVal)} 
                   placeholder="0,00"
                   onChange={(e) => !isAutoReport && setOpeningVal(e.target.value)}
                   onBlur={() => !isAutoReport && openingVal && setOpeningVal(formatCurrency(parseAmount(openingVal)))}
-                  readOnly={isAutoReport}
+                  readOnly={isAutoReport || isLoadingReport}
                   autoFocus
                 />
+                {isLoadingReport && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37] opacity-40" />
+                  </div>
+                )}
               </div>
             </div>
             <Button 
               type="submit" 
-              disabled={opLoading} 
+              disabled={opLoading || isLoadingReport} 
               className={cn("w-full h-16 rounded-full font-black text-lg shadow-xl uppercase bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all")}
             >
-              VALIDER L'OUVERTURE
+              {isLoadingReport ? "CHARGEMENT DU SOLDE..." : "VALIDER L'OUVERTURE"}
             </Button>
           </form>
         </Card>
