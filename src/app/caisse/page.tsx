@@ -37,7 +37,7 @@ import { cn, formatCurrency, roundAmount, parseAmount } from "@/lib/utils";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, updateDoc, doc, serverTimestamp, query, setDoc, where, Timestamp, deleteDoc, orderBy, getDocs, runTransaction, limit, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { startOfDay, endOfDay, format, setHours, parseISO, isValid, parse } from "date-fns";
+import { startOfDay, endOfDay, format, setHours, parseISO, isValid, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -100,11 +100,13 @@ function CaisseContent() {
     return rawSession;
   }, [rawSession, isPrepaMode]);
 
+  const isClosed = session?.status === "CLOSED";
+
   // Chargement des sessions passées pour le report automatique
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     orderBy("date", "desc"),
-    limit(500)
+    limit(1000)
   ), [db]);
   
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
@@ -133,7 +135,6 @@ function CaisseContent() {
         });
 
         if (previousClosedSession) {
-          // Fallback sur le théorique si le réel n'est pas renseigné
           const prevFinal = roundAmount(previousClosedSession.closingBalanceReal ?? previousClosedSession.closingBalanceTheoretical ?? 0);
           setOpeningVal(prevFinal.toString());
           setIsAutoReport(true);
@@ -172,7 +173,6 @@ function CaisseContent() {
       });
   }, [rawTransactions, isPrepaMode]);
 
-  // Détecter si des opérations existent dans l'AUTRE mode (pour aider l'utilisateur)
   const orphanCount = useMemo(() => {
     if (!rawTransactions) return 0;
     return rawTransactions.filter((t: any) => isPrepaMode ? t.isDraft !== true : t.isDraft === true).length;
@@ -240,7 +240,8 @@ function CaisseContent() {
     try {
       setOpLoading(true);
       const finalOpening = parseAmount(openingVal);
-      const openedAt = isAdminOrPrepa 
+      // Correction exceptionnelle : Permettre l'ouverture sur une heure passée si la date n'est pas aujourd'hui
+      const openedAt = (isAdminOrPrepa || !isSameDay(selectedDate, new Date()))
         ? Timestamp.fromDate(setHours(selectedDate, 9)) 
         : serverTimestamp();
 
@@ -301,7 +302,7 @@ function CaisseContent() {
     if (e) e.preventDefault();
     if (!newOp.montant) return;
     
-    if (session?.status === "CLOSED" && !isAdminOrPrepa) {
+    if (isClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée." });
       return;
     }
@@ -314,7 +315,8 @@ function CaisseContent() {
     const now = new Date();
     const operationDate = new Date(selectedDate);
     operationDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-    const finalCreatedAt = isAdminOrPrepa ? Timestamp.fromDate(operationDate) : serverTimestamp();
+    // Utilisation de la date choisie même pour l'optique aujourd'hui (exceptionnel)
+    const finalCreatedAt = Timestamp.fromDate(operationDate);
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -351,8 +353,9 @@ function CaisseContent() {
   };
 
   const handleOpenEdit = (t: any) => {
-    if (!isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut modifier une opération de caisse." });
+    // Autoriser l'édition si la caisse est ouverte, même pour l'Opticienne
+    if (isClosed && !isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Seul l'administrateur peut modifier." });
       return;
     }
     setSelectedTrans(t);
@@ -395,8 +398,9 @@ function CaisseContent() {
   };
 
   const handleDeleteOp = async (t: any) => {
-    if (!isAdminOrPrepa) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "Seul l'administrateur peut supprimer une opération de caisse." });
+    // Autoriser la suppression si la caisse est ouverte, même pour l'Opticienne
+    if (isClosed && !isAdminOrPrepa) {
+      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Seul l'administrateur peut supprimer." });
       return;
     }
     if (!confirm("Supprimer cette opération ?")) return;
@@ -486,16 +490,15 @@ function CaisseContent() {
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
-            {isAdminOrPrepa && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#0D1B2A] hover:bg-[#D4AF37]/10 transition-all">
-                    <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /> CHOISIR UNE AUTRE DATE
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus /></PopoverContent>
-              </Popover>
-            )}
+            {/* Hand-off: Allow Opticienne to change date exceptionally */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#0D1B2A] hover:bg-[#D4AF37]/10 transition-all">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-[#D4AF37]" /> CHOISIR UNE AUTRE DATE
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} initialFocus /></PopoverContent>
+            </Popover>
           </div>
         </div>
         <Card className="w-full bg-white p-10 rounded-[60px] space-y-6 shadow-2xl border-none">
@@ -535,8 +538,6 @@ function CaisseContent() {
       </div>
     );
   }
-
-  const isClosed = session?.status === "CLOSED";
 
   const renderTransactionTable = (title: string, data: any[], icon: any, colorClass: string) => (
     <Card className="rounded-[60px] overflow-hidden bg-white shadow-xl shadow-slate-200/50 border-none mb-8">
@@ -592,7 +593,8 @@ function CaisseContent() {
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
-                      {isAdminOrPrepa && (
+                      {/* Exceptionally allow Opticienne to manage their day operations if open */}
+                      {(!isClosed || isAdminOrPrepa) && (
                         <div className="flex items-center justify-end gap-3">
                           <Button variant="outline" size="icon" onClick={() => handleOpenEdit(t)} className="h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm"><Edit2 className="h-4 w-4" /></Button>
                           <Button variant="outline" size="icon" onClick={() => handleDeleteOp(t)} className="h-9 w-9 text-red-500 border-red-100 hover:bg-red-50 rounded-full shadow-sm"><Trash2 className="h-4 w-4" /></Button>
@@ -644,16 +646,15 @@ function CaisseContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          {isAdminOrPrepa && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase bg-white text-slate-500 shadow-md">
-                  <RotateCcw className="mr-2 h-3.5 w-3.5" /> CHANGER DATE
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} /></PopoverContent>
-            </Popover>
-          )}
+          {/* Hand-off: Accessible date changer for correction today */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase bg-white text-slate-500 shadow-md">
+                <RotateCcw className="mr-2 h-3.5 w-3.5" /> CHANGER DATE
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl"><Calendar mode="single" selected={selectedDate} onSelect={(d) => d && router.push(`/caisse?date=${format(d, "yyyy-MM-dd")}`)} locale={fr} /></PopoverContent>
+          </Popover>
           
           {(!isClosed || isAdminOrPrepa) && (
             <Dialog open={isOpDialogOpen} onOpenChange={setIsOpDialogOpen}>
