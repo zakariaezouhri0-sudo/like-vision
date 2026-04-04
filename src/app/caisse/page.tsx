@@ -315,7 +315,6 @@ function CaisseContent() {
     const now = new Date();
     const operationDate = new Date(selectedDate);
     operationDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-    // Utilisation de la date choisie même pour l'optique aujourd'hui (exceptionnel)
     const finalCreatedAt = Timestamp.fromDate(operationDate);
 
     try {
@@ -353,7 +352,6 @@ function CaisseContent() {
   };
 
   const handleOpenEdit = (t: any) => {
-    // Autoriser l'édition si la caisse est ouverte, même pour l'Opticienne
     if (isClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Seul l'administrateur peut modifier." });
       return;
@@ -398,7 +396,6 @@ function CaisseContent() {
   };
 
   const handleDeleteOp = async (t: any) => {
-    // Autoriser la suppression si la caisse est ouverte, même pour l'Opticienne
     if (isClosed && !isAdminOrPrepa) {
       toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse est clôturée. Seul l'administrateur peut supprimer." });
       return;
@@ -490,7 +487,6 @@ function CaisseContent() {
                 {format(selectedDate, "dd MMMM yyyy", { locale: fr })}
               </p>
             </div>
-            {/* Hand-off: Allow Opticienne to change date exceptionally */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="h-12 px-8 rounded-full font-black text-xs uppercase shadow-lg border-[#D4AF37] text-[#0D1B2A] hover:bg-[#D4AF37]/10 transition-all">
@@ -593,7 +589,6 @@ function CaisseContent() {
                       {t.montant >= 0 ? "+" : ""}{formatCurrency(t.montant)}
                     </TableCell>
                     <TableCell className="text-right px-10 py-5">
-                      {/* Exceptionally allow Opticienne to manage their day operations if open */}
                       {(!isClosed || isAdminOrPrepa) && (
                         <div className="flex items-center justify-end gap-3">
                           <Button variant="outline" size="icon" onClick={() => handleOpenEdit(t)} className="h-9 w-9 text-primary border-primary/20 hover:bg-primary/10 rounded-full shadow-sm"><Edit2 className="h-4 w-4" /></Button>
@@ -646,7 +641,6 @@ function CaisseContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Hand-off: Accessible date changer for correction today */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="h-10 px-5 rounded-full font-black text-[9px] uppercase bg-white text-slate-500 shadow-md">
