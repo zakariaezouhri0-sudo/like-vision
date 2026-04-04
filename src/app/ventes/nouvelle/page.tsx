@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useMemo } from "react";
@@ -252,7 +253,8 @@ function NewSaleForm() {
         og: {
           sph: client.prescription.og?.sph || "",
           cyl: client.prescription.og?.cyl || "",
-          axe: client.prescription.og?.add || ""
+          axe: client.prescription.og?.axe || "",
+          add: client.prescription.og?.add || ""
         }
       });
       toast({ title: "Historique Chargé", description: "La dernière prescription du client a été appliquée." });
@@ -619,7 +621,7 @@ function NewSaleForm() {
                 </div>
                 <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckboxChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
                     <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-widest">PARRAINAGE</label>
                   </div>
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
