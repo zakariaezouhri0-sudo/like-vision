@@ -102,7 +102,6 @@ function CaisseContent() {
 
   const isClosed = session?.status === "CLOSED";
 
-  // Chargement des sessions passées pour le report automatique
   const pastSessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"),
     orderBy("date", "desc"),
@@ -111,7 +110,6 @@ function CaisseContent() {
   
   const { data: allSessions, isLoading: loadingPast } = useCollection(pastSessionsQuery);
 
-  // LOGIQUE DE REPORT DE SOLDE AMÉLIORÉE
   useEffect(() => {
     if (!isClientReady || sessionLoading) return;
 
@@ -240,7 +238,6 @@ function CaisseContent() {
     try {
       setOpLoading(true);
       const finalOpening = parseAmount(openingVal);
-      // Correction exceptionnelle : Permettre l'ouverture sur une heure passée si la date n'est pas aujourd'hui
       const openedAt = (isAdminOrPrepa || !isSameDay(selectedDate, new Date()))
         ? Timestamp.fromDate(setHours(selectedDate, 9)) 
         : serverTimestamp();
@@ -451,7 +448,11 @@ function CaisseContent() {
   const handleFinalizeClosure = async () => {
     try {
       setOpLoading(true);
-      const closedAt = isPrepaMode ? Timestamp.fromDate(setHours(selectedDate, 20)) : serverTimestamp();
+      // Correction : Pour les sessions passées, on stamp la clôture à 20h du jour choisi
+      const closedAt = (!isSameDay(selectedDate, new Date())) 
+        ? Timestamp.fromDate(setHours(selectedDate, 20)) 
+        : serverTimestamp();
+
       await updateDoc(sessionRef, { 
         status: "CLOSED", 
         closedAt, 

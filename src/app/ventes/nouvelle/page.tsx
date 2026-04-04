@@ -9,15 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History, Sparkles } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History, Sparkles, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction, Timestamp, query, where, limit, getDocs, orderBy } from "firebase/firestore";
 import { format, isValid } from "date-fns";
-import { MUTUELLES } from "@/lib/constants";
+import { fr } from "date-fns/locale";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { MUTUELLES } from "@/lib/constants";
 
 function NewSaleForm() {
   const { toast } = useToast();
@@ -94,7 +97,6 @@ function NewSaleForm() {
     og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
   });
 
-  // RECHERCHE DES DERNIÈRES VENTES POUR SUGGESTION (Limite à 1000 pour trouver le vrai max)
   const lastSalesRawQuery = useMemoFirebase(() => query(
     collection(db, "sales"),
     orderBy("createdAt", "desc"),
@@ -108,7 +110,6 @@ function NewSaleForm() {
     return allRecentSales.filter((s: any) => isPrepaMode ? s.isDraft === true : s.isDraft !== true);
   }, [allRecentSales, isPrepaMode, isClientReady]);
 
-  // LOGIQUE DE SUGGESTION AUTOMATIQUE (+1)
   useEffect(() => {
     if (!activeEditId && !bonNumber && lastSales && lastSales.length > 0) {
       const numbers = lastSales
@@ -205,7 +206,6 @@ function NewSaleForm() {
   const clientsQuery = useMemoFirebase(() => {
     const cleanedPhone = (clientPhone || "").replace(/\s/g, "");
     const nameSearch = (clientName || "").trim().toUpperCase();
-    const currentIsDraft = isPrepaMode;
 
     if (cleanedPhone.length >= 8) {
       return query(
@@ -225,7 +225,7 @@ function NewSaleForm() {
     }
 
     return null;
-  }, [db, clientPhone, clientName, isPrepaMode, isFamilyMode]);
+  }, [db, clientPhone, clientName, isFamilyMode]);
 
   const { data: matchedClientsRaw } = useCollection(clientsQuery);
   
@@ -373,6 +373,12 @@ function NewSaleForm() {
       const currentUserName = user?.displayName || "Inconnu";
       const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
 
+      // Préparation de la date de transaction
+      const now = new Date();
+      const finalSaleDate = new Date(saleDate);
+      finalSaleDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      const saleTimestamp = Timestamp.fromDate(finalSaleDate);
+
       await runTransaction(db, async (transaction) => {
         if (sessionRef && !isAdminOrPrepa) {
           const sessionSnap = await transaction.get(sessionRef);
@@ -395,7 +401,7 @@ function NewSaleForm() {
           invoiceId, bonNumber, fromDoctor, clientName: clientName.toUpperCase(), clientPhone: cleanedPhone,
           mutuelle: finalMutuelle, notes, total: nTotal, remise: calculatedRemise,
           discountType, discountValue: nDiscountVal, avance: roundAmount(nAvance + nAvanceAnte), reste: resteAPayerValue,
-          statut, prescription, isDraft: currentIsDraft, updatedAt: serverTimestamp(), createdAt: Timestamp.fromDate(saleDate)
+          statut, prescription, isDraft: currentIsDraft, updatedAt: serverTimestamp(), createdAt: saleTimestamp
         };
 
         if (!activeEditId) {
@@ -405,7 +411,7 @@ function NewSaleForm() {
             payments.push({ amount: nAvanceAnte, date: new Date(2025, 11, 31).toISOString(), userName: "Historique", note: "Avance antérieure" });
           }
           if (nAvance > 0) {
-            payments.push({ amount: nAvance, date: new Date().toISOString(), userName: currentUserName });
+            payments.push({ amount: nAvance, date: finalSaleDate.toISOString(), userName: currentUserName });
           }
           saleData.payments = payments;
         }
@@ -431,7 +437,7 @@ function NewSaleForm() {
         if (nAvance > 0 && !activeEditId) {
           transaction.set(doc(collection(db, "transactions")), {
             type: "VENTE", label: `VENTE ${invoiceId}`, clientName: clientName.toUpperCase(),
-            montant: nAvance, relatedId: invoiceId, saleId: saleRef.id, userName: currentUserName, isDraft: currentIsDraft, createdAt: serverTimestamp()
+            montant: nAvance, relatedId: invoiceId, saleId: saleRef.id, userName: currentUserName, isDraft: currentIsDraft, createdAt: saleTimestamp
           });
         }
       });
@@ -480,12 +486,26 @@ function NewSaleForm() {
           </Alert>
         )}
 
-        <div className="flex justify-between items-center px-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-2 gap-4">
           <h1 className="text-2xl font-black text-[#0D1B2A] uppercase tracking-tighter flex items-center gap-3">
             <ShoppingBag className="h-6 w-6 text-[#D4AF37]/40" />
             {activeEditId ? "Modification" : "Nouvelle Vente"}
           </h1>
-          <div className="flex gap-3">
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-12 rounded-full font-black text-[10px] uppercase bg-white border-slate-200 shadow-lg px-6 flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+                  <span>{format(saleDate, "dd/MM/yyyy")}</span>
+                  <RefreshCw className="h-3 w-3 opacity-20" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
+                <Calendar mode="single" selected={saleDate} onSelect={(d) => !isReadOnly && d && setSaleDate(d)} locale={fr} initialFocus />
+              </PopoverContent>
+            </Popover>
+
             <Button 
               variant="outline" 
               onClick={() => handleSave(true)} 

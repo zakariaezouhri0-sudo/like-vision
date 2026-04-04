@@ -22,7 +22,8 @@ import {
   TrendingUp,
   ChevronDown,
   Lock,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -53,7 +54,6 @@ function SalesHistoryContent() {
   const [isPrepaMode, setIsPrepaMode] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Modification : Date de début fixée au 01/01/2026 par défaut
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(2026, 0, 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
@@ -63,6 +63,7 @@ function SalesHistoryContent() {
 
   const [paymentSale, setPaymentSale] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
@@ -76,13 +77,17 @@ function SalesHistoryContent() {
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
-  const todayStr = format(new Date(), "yyyy-MM-dd");
-  const sessionDocId = isPrepaMode ? `DRAFT-${todayStr}` : todayStr;
-  const sessionRef = useMemoFirebase(() => isReady ? doc(db, "cash_sessions", sessionDocId) : null, [db, sessionDocId, isReady]);
-  const { data: sessionData, isLoading: sessionLoading } = useDoc(sessionRef);
+  const selectedPaymentSessionDocId = useMemo(() => {
+    if (!isValid(paymentDate)) return null;
+    const ds = format(paymentDate, "yyyy-MM-dd");
+    return isPrepaMode ? `DRAFT-${ds}` : ds;
+  }, [paymentDate, isPrepaMode]);
+
+  const paymentSessionRef = useMemoFirebase(() => selectedPaymentSessionDocId ? doc(db, "cash_sessions", selectedPaymentSessionDocId) : null, [db, selectedPaymentSessionDocId]);
+  const { data: paymentSessionData, isLoading: paymentSessionLoading } = useDoc(paymentSessionRef);
   
-  const isTodayClosed = !sessionLoading && sessionData?.status === "CLOSED";
-  const isReadOnly = isTodayClosed && !isAdminOrPrepa;
+  const isPaymentDateClosed = !paymentSessionLoading && paymentSessionData?.status === "CLOSED";
+  const isPaymentReadOnly = isPaymentDateClosed && !isAdminOrPrepa;
 
   const salesQuery = useMemoFirebase(() => {
     const startLimit = new Date(2026, 0, 1);
@@ -171,7 +176,7 @@ function SalesHistoryContent() {
 
   const handleUpdateCosts = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!costDialogSale || isReadOnly) return;
+    if (!costDialogSale) return;
     setIsSavingCosts(true);
     
     const frameCost = parseAmount(purchaseCosts.frame);
@@ -218,27 +223,30 @@ function SalesHistoryContent() {
   };
 
   const handleOpenPayment = (sale: any) => {
-    if (isReadOnly) {
-      toast({ variant: "destructive", title: "Action Rejetée", description: "La caisse du jour est clôturée." });
-      return;
-    }
     setPaymentSale(sale);
     setPaymentAmount(formatCurrency(sale.reste || 0));
+    setPaymentDate(new Date());
   };
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
     const amount = parseAmount(paymentAmount);
-    if (amount <= 0 || isReadOnly) return;
+    if (amount <= 0 || isPaymentReadOnly) return;
 
     setIsProcessingPayment(true);
     const userName = user?.displayName || "Personnel";
 
+    // Préparation du timestamp correct pour le rattrapage
+    const now = new Date();
+    const finalPaymentDate = new Date(paymentDate);
+    finalPaymentDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+    const paymentTimestamp = Timestamp.fromDate(finalPaymentDate);
+
     try {
       await runTransaction(db, async (transaction) => {
-        if (sessionRef && !isAdminOrPrepa) {
-          const sSnap = await transaction.get(sessionRef);
+        if (paymentSessionRef && !isAdminOrPrepa) {
+          const sSnap = await transaction.get(paymentSessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") throw new Error("SESSION_CLOSED");
         }
 
@@ -260,7 +268,7 @@ function SalesHistoryContent() {
           reste: newReste,
           statut: isPaid ? "Payé" : "Partiel",
           deliveryStatus: isPaid ? "Livrée" : (data.deliveryStatus || "En préparation"),
-          payments: arrayUnion({ amount, date: new Date().toISOString(), userName, note: "Règlement" }),
+          payments: arrayUnion({ amount, date: finalPaymentDate.toISOString(), userName, note: "Règlement" }),
           updatedAt: serverTimestamp()
         });
 
@@ -274,7 +282,7 @@ function SalesHistoryContent() {
           userName,
           isDraft: isPrepaMode,
           isBalancePayment: true,
-          createdAt: serverTimestamp()
+          createdAt: paymentTimestamp
         });
       });
 
@@ -289,16 +297,6 @@ function SalesHistoryContent() {
 
   return (
     <div className="space-y-8 pb-10">
-      {isReadOnly && (
-        <Alert variant="destructive" className="bg-red-600 text-white border-none rounded-[32px] mb-6 shadow-2xl py-6 animate-in fade-in slide-in-from-top-4">
-          <Lock className="h-6 w-6 text-white" />
-          <AlertTitle className="font-black uppercase tracking-[0.2em] text-lg">Caisse du jour Clôturée</AlertTitle>
-          <AlertDescription className="font-bold opacity-95 text-sm">
-            Toute modification financière ou règlement est désormais BLOQUÉ car la session de caisse actuelle est fermée.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <HistoryIcon className="h-8 w-8 text-[#D4AF37]/40 shrink-0" />
@@ -422,13 +420,9 @@ function SalesHistoryContent() {
                           </span>
                           {reste > 0 && (
                             <button 
-                              disabled={sessionLoading || isReadOnly} 
                               onClick={() => handleOpenPayment(sale)}
-                              className={cn(
-                                "h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm",
-                                (isReadOnly || sessionLoading) ? "bg-slate-100 text-slate-300 cursor-not-allowed" : "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
-                              )} 
-                              title={isReadOnly ? "Caisse clôturée" : "Régler le reste"}
+                              className="h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm bg-red-50 text-red-500 hover:bg-red-500 hover:text-white"
+                              title="Régler le reste"
                             >
                               <HandCoins className="h-4 w-4" />
                             </button>
@@ -496,25 +490,58 @@ function SalesHistoryContent() {
               <DialogTitle className="text-2xl font-black uppercase text-[#D4AF37] tracking-tighter">Encaisser Reste</DialogTitle>
               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-2">Document : {paymentSale?.invoiceId}</p>
             </div>
-            <div className="p-10 space-y-6">
-              <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center mb-1">Reste dû par le client</p>
-                <p className="text-3xl font-black text-red-600 text-center tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</p>
+            
+            {isPaymentReadOnly && (
+              <div className="px-10 pt-6">
+                <Alert variant="destructive" className="bg-red-50 border-red-100 text-red-700 rounded-2xl py-3">
+                  <Lock className="h-4 w-4" />
+                  <AlertTitle className="text-[10px] font-black uppercase mb-1">Caisse Clôturée</AlertTitle>
+                  <AlertDescription className="text-[9px] font-bold">Impossible d'enregistrer sur cette date.</AlertDescription>
+                </Alert>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Montant Versé (DH)</Label>
-                <input 
-                  className="h-16 w-full rounded-full text-center text-2xl font-black border-2 border-slate-100 bg-slate-50 focus:border-[#D4AF37] outline-none transition-all tabular-nums" 
-                  value={paymentAmount} 
-                  onChange={e => setPaymentAmount(e.target.value)} 
-                  onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} 
-                  autoFocus
-                  readOnly={isReadOnly}
-                />
+            )}
+
+            <div className="p-10 space-y-6">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Date du Règlement</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6">
+                        <div className="flex items-center gap-3">
+                          <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+                          <span>{format(paymentDate, "dd MMMM yyyy", { locale: fr })}</span>
+                        </div>
+                        <RefreshCw className="h-3 w-3 opacity-20" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
+                      <Calendar mode="single" selected={paymentDate} onSelect={(d) => d && setPaymentDate(d)} locale={fr} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Montant Versé (DH)</Label>
+                  <input 
+                    className="h-16 w-full rounded-full text-center text-2xl font-black border-2 border-slate-100 bg-slate-50 focus:border-[#D4AF37] outline-none transition-all tabular-nums" 
+                    value={paymentAmount} 
+                    onChange={e => setPaymentAmount(e.target.value)} 
+                    onBlur={() => setPaymentAmount(formatCurrency(parseAmount(paymentAmount)))} 
+                    autoFocus
+                    readOnly={isPaymentReadOnly}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center mb-1">Reste total dû</p>
+                <p className="text-2xl font-black text-red-600 text-center tabular-nums">{formatCurrency(paymentSale?.reste || 0)}</p>
               </div>
             </div>
+            
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isProcessingPayment || sessionLoading || isReadOnly} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+              <Button type="submit" disabled={isProcessingPayment || paymentSessionLoading || isPaymentReadOnly} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
                 {isProcessingPayment ? <Loader2 className="animate-spin h-6 w-6" /> : "VALIDER LE PAIEMENT"}
               </Button>
             </DialogFooter>
@@ -541,7 +568,6 @@ function SalesHistoryContent() {
                     value={purchaseCosts.frame} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, frame: e.target.value }))} 
                     onBlur={() => purchaseCosts.frame && setPurchaseCosts(prev => ({ ...prev, frame: formatCurrency(parseAmount(purchaseCosts.frame)) }))} 
-                    readOnly={isReadOnly}
                   />
                 </div>
                 <div className="space-y-2">
@@ -551,7 +577,6 @@ function SalesHistoryContent() {
                     value={purchaseCosts.lenses} 
                     onChange={e => setPurchaseCosts(prev => ({ ...prev, lenses: e.target.value }))} 
                     onBlur={() => purchaseCosts.lenses && setPurchaseCosts(prev => ({ ...prev, lenses: formatCurrency(parseAmount(purchaseCosts.lenses)) }))} 
-                    readOnly={isReadOnly}
                   />
                 </div>
               </div>
@@ -562,7 +587,6 @@ function SalesHistoryContent() {
                   placeholder="Ex: Vision Optic ou Stock..." 
                   value={purchaseCosts.label} 
                   onChange={e => setPurchaseCosts(prev => ({ ...prev, label: e.target.value }))} 
-                  readOnly={isReadOnly}
                 />
               </div>
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3">
@@ -573,7 +597,7 @@ function SalesHistoryContent() {
               </div>
             </div>
             <DialogFooter className="p-10 pt-0">
-              <Button type="submit" disabled={isSavingCosts || sessionLoading || isReadOnly} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
+              <Button type="submit" disabled={isSavingCosts} className="w-full h-16 rounded-full font-black text-base uppercase shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-[#D4AF37] transition-all">
                 {isSavingCosts ? <Loader2 className="animate-spin h-6 w-6" /> : "ENREGISTRER LES COÛTS"}
               </Button>
             </DialogFooter>
