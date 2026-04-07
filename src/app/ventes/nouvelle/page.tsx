@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ function NewSaleForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const db = useFirestore();
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [role, setRole] = useState<string | null>(null);
   const [isPrepaMode, setIsPrepaMode] = useState(false);
@@ -253,8 +254,7 @@ function NewSaleForm() {
         og: {
           sph: client.prescription.og?.sph || "",
           cyl: client.prescription.og?.cyl || "",
-          axe: client.prescription.og?.axe || "",
-          add: client.prescription.og?.add || ""
+          axe: client.prescription.og?.add || ""
         }
       });
       toast({ title: "Historique Chargé", description: "La dernière prescription du client a été appliquée." });
@@ -313,6 +313,10 @@ function NewSaleForm() {
     if (checked) {
       setSelectedClientId(null);
       setClientName(""); 
+      // Focus le champ nom immédiatement après avoir coché
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 50);
       toast({ title: "Mode Parrainage Activé", description: "Veuillez saisir le nom du nouveau membre." });
     }
   };
@@ -375,7 +379,6 @@ function NewSaleForm() {
       const currentUserName = user?.displayName || "Inconnu";
       const finalMutuelle = mutuelle === "Autre" ? (customMutuelle || "Autre") : (mutuelle || "Aucun");
 
-      // Préparation de la date de transaction
       const now = new Date();
       const finalSaleDate = new Date(saleDate);
       finalSaleDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
@@ -559,6 +562,7 @@ function NewSaleForm() {
                     <Label className="text-[9px] font-black uppercase text-[#0D1B2A] ml-1 tracking-widest">Nom Complet</Label>
                     <div className="relative group">
                       <Input 
+                        ref={nameInputRef}
                         className="h-10 pr-10 rounded-2xl bg-[#0D1B2A] border-none shadow-inner font-black text-sm uppercase text-[#D4AF37]" 
                         value={clientName} 
                         onChange={e => { setClientName(e.target.value); setSelectedClientId(null); }} 
@@ -576,9 +580,9 @@ function NewSaleForm() {
                         </button>
                       )}
                     </div>
-                    {matchedClients && matchedClients.length > 1 && isNameFocused && !selectedClientId && !isFamilyMode && !isReadOnly && (
+                    {matchedClients && matchedClients.length > 0 && (isNameFocused || isFamilyMode) && !selectedClientId && !isReadOnly && (
                       <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
-                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membre(s) trouvé(s)</p></div>
+                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membre(s) famille trouvé(s)</p></div>
                         {matchedClients.map(c => (
                           <button key={c.id} onMouseDown={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
                             <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
@@ -621,7 +625,13 @@ function NewSaleForm() {
                 </div>
                 <div className="flex items-center gap-4 pt-1 border-t border-[#0D1B2A]/5 w-full">
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
-                    <Checkbox id="familyMode" checked={isFamilyMode} onCheckedChange={handleToggleFamilyMode} className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" disabled={isReadOnly} />
+                    <Checkbox 
+                      id="familyMode" 
+                      checked={isFamilyMode} 
+                      onCheckedChange={handleToggleFamilyMode} 
+                      className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" 
+                      disabled={isReadOnly} 
+                    />
                     <label htmlFor="familyMode" className="text-[10px] font-black uppercase text-[#0D1B2A] cursor-pointer tracking-widest">PARRAINAGE</label>
                   </div>
                   <div className="flex items-center space-x-2 bg-[#0D1B2A]/10 px-4 py-2 rounded-full flex-1 justify-center">
