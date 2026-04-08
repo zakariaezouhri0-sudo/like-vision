@@ -232,12 +232,16 @@ function SalesHistoryContent() {
     if (e) e.preventDefault();
     if (!paymentSale || !paymentAmount) return;
     const amount = parseAmount(paymentAmount);
-    if (amount <= 0 || isPaymentReadOnly) return;
+    if (amount <= 0) return;
+
+    if (isPaymentReadOnly) {
+      toast({ variant: "destructive", title: "Action Bloquée", description: "La caisse pour cette date est clôturée." });
+      return;
+    }
 
     setIsProcessingPayment(true);
     const userName = user?.displayName || "Personnel";
 
-    // Préparation du timestamp correct pour le rattrapage
     const now = new Date();
     const finalPaymentDate = new Date(paymentDate);
     finalPaymentDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
@@ -496,7 +500,7 @@ function SalesHistoryContent() {
                 <Alert variant="destructive" className="bg-red-50 border-red-100 text-red-700 rounded-2xl py-3">
                   <Lock className="h-4 w-4" />
                   <AlertTitle className="text-[10px] font-black uppercase mb-1">Caisse Clôturée</AlertTitle>
-                  <AlertDescription className="text-[9px] font-bold">Impossible d'enregistrer sur cette date.</AlertDescription>
+                  <AlertDescription className="text-[9px] font-bold">Impossible d'enregistrer un versement sur une date clôturée.</AlertDescription>
                 </Alert>
               </div>
             )}

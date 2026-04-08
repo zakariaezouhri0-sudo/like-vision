@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense, useMemo, useRef } from "react";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrescriptionForm } from "@/components/optical/prescription-form";
-import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, AlertCircle, History, Sparkles, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { ShoppingBag, Save, Loader2, User, Phone, FileText, Printer, Calculator, HandCoins, X, Lock, History, Sparkles, Calendar as CalendarIcon, RefreshCw, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, cn, roundAmount, formatPhoneNumber, parseAmount, sendWhatsApp } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
@@ -241,7 +240,6 @@ function NewSaleForm() {
     setClientName(client.name || "");
     setClientPhone(client.phone || clientPhone);
     setSelectedClientId(client.id || null);
-    setIsFamilyMode(false);
     
     if (client.prescription) {
       setPrescription({
@@ -273,10 +271,8 @@ function NewSaleForm() {
   };
 
   useEffect(() => {
-    if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode && !isReadOnly) {
+    if (!activeEditId && matchedClients && matchedClients.length === 1 && !isFamilyMode && !isReadOnly && !selectedClientId) {
       const client = matchedClients[0];
-      if (selectedClientId === client.id) return;
-
       const cleanedPhone = clientPhone.replace(/\s/g, "");
       const isPhoneMatch = cleanedPhone.length >= 8 && cleanedPhone === client.phone;
       
@@ -313,7 +309,6 @@ function NewSaleForm() {
     if (checked) {
       setSelectedClientId(null);
       setClientName(""); 
-      // Focus le champ nom immédiatement après avoir coché
       setTimeout(() => {
         nameInputRef.current?.focus();
       }, 50);
@@ -478,6 +473,8 @@ function NewSaleForm() {
 
   if (!isClientReady) return null;
 
+  const showClientDropdown = (isNameFocused || isFamilyMode || (clientPhone.length >= 8)) && matchedClients.length > 0 && !selectedClientId && !isReadOnly;
+
   return (
     <AppShell>
       <div className="space-y-4 max-w-7xl mx-auto pb-6">
@@ -580,13 +577,19 @@ function NewSaleForm() {
                         </button>
                       )}
                     </div>
-                    {matchedClients && matchedClients.length > 0 && (isNameFocused || isFamilyMode) && !selectedClientId && !isReadOnly && (
-                      <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
-                        <div className="bg-slate-50 px-4 py-1.5 border-b"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Membre(s) famille trouvé(s)</p></div>
+                    {showClientDropdown && (
+                      <div className="absolute z-50 w-full mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-[#0D1B2A] px-4 py-2 flex items-center gap-2">
+                          <Users className="h-3 w-3 text-[#D4AF37]" />
+                          <p className="text-[8px] font-black text-[#D4AF37] uppercase tracking-widest">Client(s) lié(s) à ce numéro</p>
+                        </div>
                         {matchedClients.map(c => (
-                          <button key={c.id} onMouseDown={() => handleSelectMember(c)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b last:border-0 group">
-                            <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400">{formatPhoneNumber(c.phone)}</p>
+                          <button key={c.id} onMouseDown={() => handleSelectMember(c)} className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b last:border-0 group flex items-center justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase text-[#0D1B2A] group-hover:text-[#D4AF37] transition-colors">{c.name}</p>
+                              <p className="text-[9px] font-bold text-slate-400">Dernière visite: {c.lastVisit || "---"}</p>
+                            </div>
+                            <Sparkles className="h-3 w-3 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                         ))}
                       </div>
