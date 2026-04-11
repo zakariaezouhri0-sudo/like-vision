@@ -200,12 +200,6 @@ function ChargesReportContent() {
               <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
             </div>
           )}
-          {selectedTypes.includes("VERSEMENT") && (
-            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Versements</p>
-              <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(categorizedData.totals.versements, false)} DH</p>
-            </div>
-          )}
         </div>
 
         {/* Details Table Section */}
