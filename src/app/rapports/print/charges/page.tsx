@@ -103,7 +103,7 @@ function ChargesReportContent() {
   const RenderSection = ({ title, data, icon: Icon }: any) => {
     if (data.length === 0) return null;
     return (
-      <div className="space-y-3 mb-10 break-inside-avoid">
+      <div className="space-y-3 break-inside-avoid">
         <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2">
           <h3 className="text-sm font-black uppercase flex items-center gap-3 text-slate-900 tracking-wider">
             <Icon className="h-5 w-5 text-slate-400" /> {title}
@@ -136,6 +136,8 @@ function ChargesReportContent() {
     );
   };
 
+  const hasSummaryItems = selectedTypes.includes("ACHAT VERRES") || selectedTypes.includes("ACHAT MONTURE") || selectedTypes.includes("DEPENSE");
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center p-6 print:p-0">
       <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-8">
@@ -149,7 +151,7 @@ function ChargesReportContent() {
 
       <div className="pdf-a4-landscape w-[297mm] bg-white print:m-0 flex flex-col p-[12mm] min-h-[210mm] border border-slate-100 shadow-2xl print:shadow-none">
         {/* Header Section */}
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
           <div className="flex items-center gap-8">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
               {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />) : (<div className="relative text-slate-900"><Glasses className="h-12 w-12" /></div>)}
@@ -180,30 +182,32 @@ function ChargesReportContent() {
           </div>
         </div>
 
-        {/* Sub-totals Highlights */}
-        <div className="mb-10 flex flex-wrap justify-center gap-6">
-          {selectedTypes.includes("ACHAT VERRES") && (
-            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Verres</p>
-              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
-            </div>
-          )}
-          {selectedTypes.includes("ACHAT MONTURE") && (
-            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Montures</p>
-              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
-            </div>
-          )}
-          {selectedTypes.includes("DEPENSE") && (
-            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Charges & Frais</p>
-              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
-            </div>
-          )}
-        </div>
+        {/* Sub-totals Highlights - Only if relevant items are selected */}
+        {hasSummaryItems && (
+          <div className="mb-8 flex flex-wrap justify-center gap-6">
+            {selectedTypes.includes("ACHAT VERRES") && (
+              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Verres</p>
+                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
+              </div>
+            )}
+            {selectedTypes.includes("ACHAT MONTURE") && (
+              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Montures</p>
+                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
+              </div>
+            )}
+            {selectedTypes.includes("DEPENSE") && (
+              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Charges & Frais</p>
+                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Details Table Section */}
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-8">
           {selectedTypes.includes("ACHAT VERRES") && categorizedData.verres.length > 0 && (
             <RenderSection title="Achats de Verres" data={categorizedData.verres} icon={Tag} />
           )}
@@ -219,7 +223,7 @@ function ChargesReportContent() {
         </div>
 
         {/* Footer Signatures */}
-        <div className="mt-12 pt-8 border-t border-slate-100 grid grid-cols-2 gap-24">
+        <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-2 gap-24">
           <div className="space-y-12">
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Signature Responsable</p>
             <div className="border-b-2 border-slate-200 w-full h-8 opacity-50"></div>
@@ -234,7 +238,7 @@ function ChargesReportContent() {
           </div>
         </div>
 
-        <div className="mt-auto text-center pt-8 border-t border-slate-50">
+        <div className="mt-auto text-center pt-6 border-t border-slate-50">
           <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.6em] italic">
             SYSTÈME LIKE VISION • DOCUMENT DE COMPTABILITÉ INTERNE • PAGE 1 SUR 1
           </p>
