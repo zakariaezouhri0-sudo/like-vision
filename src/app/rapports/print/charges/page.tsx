@@ -180,45 +180,32 @@ function ChargesReportContent() {
           </div>
         </div>
 
-        {/* Global Total Highlights */}
-        <div className="bg-slate-50 border-2 border-slate-200 rounded-[32px] p-8 mb-10 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-          <Wallet className="absolute -right-10 -bottom-10 h-48 w-48 text-slate-200 opacity-10 rotate-12" />
-          <div className="flex items-center gap-6">
-            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100">
-              <TrendingDown className="h-10 w-10 text-red-500" />
+        {/* Sub-totals Highlights */}
+        <div className="mb-10 flex flex-wrap justify-center gap-6">
+          {selectedTypes.includes("ACHAT VERRES") && (
+            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Verres</p>
+              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
             </div>
-            <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Total Général des Sorties (Sélection)</p>
-              <p className="text-4xl font-black text-slate-900 tabular-nums tracking-tighter">{formatCurrency(categorizedData.total, true)}</p>
+          )}
+          {selectedTypes.includes("ACHAT MONTURE") && (
+            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Montures</p>
+              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
             </div>
-          </div>
-          
-          <div className="flex gap-4">
-            {selectedTypes.includes("ACHAT VERRES") && (
-              <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-center shadow-sm min-w-[140px]">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-1 tracking-widest">Achats Verres</p>
-                <p className="text-lg font-black text-slate-900">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
-              </div>
-            )}
-            {selectedTypes.includes("ACHAT MONTURE") && (
-              <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-center shadow-sm min-w-[140px]">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-1 tracking-widest">Achats Montures</p>
-                <p className="text-lg font-black text-slate-900">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
-              </div>
-            )}
-            {(selectedTypes.includes("DEPENSE") || selectedTypes.includes("VERSEMENT")) && (
-              <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-center shadow-sm min-w-[140px]">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-1 tracking-widest">Autres Frais</p>
-                <p className="text-lg font-black text-slate-900">
-                  {formatCurrency(
-                    (selectedTypes.includes("DEPENSE") ? categorizedData.totals.depenses : 0) + 
-                    (selectedTypes.includes("VERSEMENT") ? categorizedData.totals.versements : 0), 
-                    false
-                  )} DH
-                </p>
-              </div>
-            )}
-          </div>
+          )}
+          {selectedTypes.includes("DEPENSE") && (
+            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Charges & Frais</p>
+              <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
+            </div>
+          )}
+          {selectedTypes.includes("VERSEMENT") && (
+            <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Versements</p>
+              <p className="text-xl font-black text-[#0D1B2A]">{formatCurrency(categorizedData.totals.versements, false)} DH</p>
+            </div>
+          )}
         </div>
 
         {/* Details Table Section */}
