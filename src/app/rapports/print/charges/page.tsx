@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark, Calendar, Clock } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark, Calendar, Clock, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -11,8 +11,11 @@ import { useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase
 import { doc, collection, query, orderBy, where, Timestamp } from "firebase/firestore";
 import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 function ChargesReportContent() {
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const db = useFirestore();
   const [role, setRole] = useState<string>("OPTICIENNE");
@@ -90,6 +93,54 @@ function ChargesReportContent() {
     };
   }, [rawTransactions, isPrepaMode, selectedTypes]);
 
+  const handleExportExcel = () => {
+    try {
+      const exportData: any[] = [
+        [shop.name.toUpperCase()],
+        ["RAPPORT DÉTAILLÉ DES SORTIES"],
+        [`Période : Du ${format(dateRange.from, "dd/MM/yyyy")} au ${format(dateRange.to, "dd/MM/yyyy")}`],
+        [""],
+      ];
+      
+      const addSectionToExcel = (title: string, list: any[]) => {
+        if (list.length === 0) return;
+        exportData.push([title.toUpperCase(), "", "", ""]);
+        exportData.push(["DATE", "LIBELLÉ / DÉSIGNATION", "AFFECTATION / BC", "MONTANT (DH)"]);
+        list.forEach(t => {
+          exportData.push([
+            t.createdAt?.toDate ? format(t.createdAt.toDate(), "dd/MM/yyyy") : "---",
+            t.label,
+            t.clientName || "---",
+            Math.abs(t.montant)
+          ]);
+        });
+        exportData.push(["", "", "SOUS-TOTAL", list.reduce((a, b) => a + Math.abs(b.montant), 0)]);
+        exportData.push([""]); // Ligne vide
+      };
+
+      if (selectedTypes.includes("ACHAT VERRES")) addSectionToExcel("Achats de Verres", categorizedData.verres);
+      if (selectedTypes.includes("ACHAT MONTURE")) addSectionToExcel("Achats de Montures", categorizedData.montures);
+      if (selectedTypes.includes("DEPENSE")) addSectionToExcel("Charges Générales & Frais", categorizedData.depenses);
+      if (selectedTypes.includes("VERSEMENT")) addSectionToExcel("Versements Bancaires", categorizedData.versements);
+
+      exportData.push(["", "", "TOTAL GÉNÉRAL DES SORTIES SÉLECTIONNÉES", categorizedData.total]);
+
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Détail Sorties");
+      
+      // Ajustement des largeurs de colonnes
+      ws['!cols'] = [{ wch: 15 }, { wch: 45 }, { wch: 30 }, { wch: 18 }];
+
+      const fileName = `Like Vision - Sorties ${format(dateRange.from, "dd-MM-yy")} au ${format(dateRange.to, "dd-MM-yy")}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast({ variant: "success", title: "Export Excel réussi", description: "Le fichier a été téléchargé." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+    }
+  };
+
   if (settingsLoading || transLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>;
   }
@@ -136,9 +187,14 @@ function ChargesReportContent() {
         <Button variant="outline" asChild className="h-12 px-6 rounded-2xl font-black text-xs border-slate-200 shadow-sm bg-white">
           <Link href="/rapports"><ArrowLeft className="mr-3 h-5 w-5" /> RETOUR AUX RAPPORTS</Link>
         </Button>
-        <Button onClick={() => window.print()} className="bg-[#0D1B2A] text-white h-12 px-10 rounded-2xl font-black text-xs shadow-xl hover:bg-slate-800 transition-all">
-          <Printer className="mr-3 h-5 w-5 text-[#D4AF37]" /> IMPRIMER LE DOCUMENT (PDF)
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={handleExportExcel} variant="outline" className="h-12 px-6 rounded-2xl font-black text-xs border-slate-200 shadow-sm bg-white text-emerald-600 hover:bg-emerald-50 transition-all">
+            <Download className="mr-3 h-5 w-5" /> EXCEL (.XLSX)
+          </Button>
+          <Button onClick={() => window.print()} className="bg-[#0D1B2A] text-white h-12 px-10 rounded-2xl font-black text-xs shadow-xl hover:bg-slate-800 transition-all">
+            <Printer className="mr-3 h-5 w-5 text-[#D4AF37]" /> IMPRIMER LE DOCUMENT (PDF)
+          </Button>
+        </div>
       </div>
 
       <div className="pdf-a4-landscape w-[297mm] bg-white print:m-0 flex flex-col p-[12mm] min-h-[210mm] border border-slate-100 shadow-2xl print:shadow-none">
@@ -175,7 +231,7 @@ function ChargesReportContent() {
         </div>
 
         {/* Details Table Section */}
-        <div className="flex-1 space-y-10">
+        <div className="flex-1 space-y-8">
           {selectedTypes.includes("ACHAT VERRES") && categorizedData.verres.length > 0 && (
             <RenderSection title="Achats de Verres" data={categorizedData.verres} icon={Tag} />
           )}
