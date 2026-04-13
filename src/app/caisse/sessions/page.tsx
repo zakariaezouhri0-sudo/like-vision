@@ -60,10 +60,11 @@ function SessionsContent() {
 
   const isAdminOrPrepa = role === 'ADMIN' || role === 'PREPA';
 
+  // OPTIMISATION: Réduit la limite de sessions à 300 pour économiser les reads
   const sessionsQuery = useMemoFirebase(() => query(
     collection(db, "cash_sessions"), 
     orderBy("date", "desc"),
-    limit(500)
+    limit(300)
   ), [db]);
   
   const { data: rawSessions, isLoading: loading } = useCollection(sessionsQuery);
@@ -108,7 +109,6 @@ function SessionsContent() {
       const start = startOfDay(d);
       const end = endOfDay(d);
 
-      // 1. Récupération des transactions du jour
       const transQ = query(
         collection(db, "transactions"),
         where("createdAt", ">=", Timestamp.fromDate(start)),
@@ -117,8 +117,6 @@ function SessionsContent() {
       const transSnap = await getDocs(transQ);
       
       const batch = writeBatch(db);
-      
-      // 2. Ajout des suppressions de transactions au batch
       transSnap.docs.forEach(tDoc => {
         const tData = tDoc.data();
         if (isPrepaMode === (tData.isDraft === true)) {
@@ -126,9 +124,7 @@ function SessionsContent() {
         }
       });
 
-      // 3. Suppression de la session
       batch.delete(doc(db, "cash_sessions", id));
-
       await batch.commit();
       toast({ variant: "success", title: "Session et opérations supprimées" });
     } catch (e) { 
@@ -167,7 +163,7 @@ function SessionsContent() {
         .map(doc => ({ id: doc.id, ...doc.data() } as any))
         .filter(t => isPrepaMode ? t.isDraft === true : t.isDraft !== true);
 
-      const salesQ = query(collection(db, "sales"));
+      const salesQ = query(collection(db, "sales"), limit(1000));
       const salesSnap = await getDocs(salesQ);
       const salesMap: Record<string, any> = {};
       salesSnap.docs
@@ -367,7 +363,7 @@ function SessionsContent() {
       
       const finalBalance = initialBalance + totalEncaissements - totalDecaissements;
 
-      const qSales = query(collection(db, "sales"));
+      const qSales = query(collection(db, "sales"), limit(500));
       const salesSnap = await getDocs(qSales);
       const salesMap: Record<string, any> = {};
       salesSnap.docs

@@ -89,13 +89,14 @@ function SalesHistoryContent() {
   const isPaymentDateClosed = !paymentSessionLoading && paymentSessionData?.status === "CLOSED";
   const isPaymentReadOnly = isPaymentDateClosed && !isAdminOrPrepa;
 
+  // OPTIMISATION: Limite à 500 au lieu de 2000 pour préserver le quota
   const salesQuery = useMemoFirebase(() => {
     const startLimit = new Date(2026, 0, 1);
     return query(
       collection(db, "sales"),
       where("createdAt", ">=", Timestamp.fromDate(startLimit)),
       orderBy("createdAt", "desc"),
-      limit(2000)
+      limit(500)
     );
   }, [db]);
   const { data: rawSales, isLoading: loading } = useCollection(salesQuery);
@@ -253,7 +254,6 @@ function SalesHistoryContent() {
       const paymentTimestamp = Timestamp.fromDate(finalPaymentDate);
 
       await runTransaction(db, async (transaction) => {
-        // 1. Vérification sécurité Clôture (si non admin)
         if (paymentSessionRef && !isAdminOrPrepa) {
           const sSnap = await transaction.get(paymentSessionRef);
           if (sSnap.exists() && sSnap.data().status === "CLOSED") {
@@ -261,7 +261,6 @@ function SalesHistoryContent() {
           }
         }
 
-        // 2. Récupération de la facture fraîche
         const saleRef = doc(db, "sales", paymentSale.id);
         const saleSnap = await transaction.get(saleRef);
         
@@ -270,8 +269,6 @@ function SalesHistoryContent() {
         }
 
         const data = saleSnap.data()!;
-        
-        // 3. Calculs financiers
         const totalNet = roundAmount((Number(data.total) || 0) - (Number(data.remise) || 0));
         const currentAvance = Number(data.avance) || 0;
         const newAvance = roundAmount(currentAvance + amount);
@@ -279,12 +276,10 @@ function SalesHistoryContent() {
         const isPaid = newReste <= 0;
 
         let invId = data.invoiceId || "---";
-        // Si soldé, on passe de RC (Reçu) à FC (Facture)
         if (isPaid && invId.startsWith("RC-")) {
           invId = invId.replace("RC-", "FC-");
         }
 
-        // 4. Mise à jour de la facture
         transaction.update(saleRef, {
           invoiceId: invId,
           avance: newAvance,
@@ -300,7 +295,6 @@ function SalesHistoryContent() {
           updatedAt: serverTimestamp()
         });
 
-        // 5. Création du mouvement de caisse
         const transRef = doc(collection(db, "transactions"));
         transaction.set(transRef, {
           type: "VENTE",
@@ -324,11 +318,7 @@ function SalesHistoryContent() {
       if (err.message === "SESSION_CLOSED") errorMsg = "La caisse pour cette date est clôturée.";
       if (err.message === "DOCUMENT_NOT_FOUND") errorMsg = "La facture originale est introuvable.";
       
-      toast({ 
-        variant: "destructive", 
-        title: "Erreur", 
-        description: errorMsg
-      });
+      toast({ variant: "destructive", title: "Erreur", description: errorMsg });
     } finally {
       setIsProcessingPayment(false);
     }
