@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark, Calendar, Clock, Wallet } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Glasses, TrendingDown, Tag, Landmark, Calendar, Clock } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn, roundAmount } from "@/lib/utils";
 import { Suspense, useMemo, useState, useEffect } from "react";
@@ -66,7 +66,7 @@ function ChargesReportContent() {
   };
 
   const categorizedData = useMemo(() => {
-    if (!rawTransactions) return { verres: [], montures: [], depenses: [], versements: [], total: 0, totals: { verres: 0, montures: 0, depenses: 0, versements: 0 } };
+    if (!rawTransactions) return { verres: [], montures: [], depenses: [], versements: [], total: 0 };
     
     const filtered = rawTransactions.filter((t: any) => {
       const modeMatch = isPrepaMode ? t.isDraft === true : t.isDraft !== true;
@@ -86,13 +86,7 @@ function ChargesReportContent() {
       montures, 
       depenses,
       versements,
-      total: roundAmount(sum(verres) + sum(montures) + sum(depenses) + sum(versements)),
-      totals: {
-        verres: roundAmount(sum(verres)),
-        montures: roundAmount(sum(montures)),
-        depenses: roundAmount(sum(depenses)),
-        versements: roundAmount(sum(versements))
-      }
+      total: roundAmount(sum(verres) + sum(montures) + sum(depenses) + sum(versements))
     };
   }, [rawTransactions, isPrepaMode, selectedTypes]);
 
@@ -136,8 +130,6 @@ function ChargesReportContent() {
     );
   };
 
-  const hasSummaryItems = selectedTypes.includes("ACHAT VERRES") || selectedTypes.includes("ACHAT MONTURE") || selectedTypes.includes("DEPENSE");
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center p-6 print:p-0">
       <div className="no-print w-full max-w-[297mm] flex justify-between items-center mb-8">
@@ -151,7 +143,7 @@ function ChargesReportContent() {
 
       <div className="pdf-a4-landscape w-[297mm] bg-white print:m-0 flex flex-col p-[12mm] min-h-[210mm] border border-slate-100 shadow-2xl print:shadow-none">
         {/* Header Section */}
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
+        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
           <div className="flex items-center gap-8">
             <div className="h-20 w-20 flex items-center justify-center shrink-0 overflow-hidden relative border border-slate-100 rounded-2xl bg-white shadow-sm">
               {shop.logoUrl ? (<img src={shop.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />) : (<div className="relative text-slate-900"><Glasses className="h-12 w-12" /></div>)}
@@ -182,32 +174,8 @@ function ChargesReportContent() {
           </div>
         </div>
 
-        {/* Sub-totals Highlights - Only if relevant items are selected */}
-        {hasSummaryItems && (
-          <div className="mb-8 flex flex-wrap justify-center gap-6">
-            {selectedTypes.includes("ACHAT VERRES") && (
-              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Verres</p>
-                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.verres, false)} DH</p>
-              </div>
-            )}
-            {selectedTypes.includes("ACHAT MONTURE") && (
-              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Achats Montures</p>
-                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.montures, false)} DH</p>
-              </div>
-            )}
-            {selectedTypes.includes("DEPENSE") && (
-              <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-[24px] text-center shadow-sm min-w-[180px]">
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">Total Charges & Frais</p>
-                <p className="text-xl font-black text-slate-900">{formatCurrency(categorizedData.totals.depenses, false)} DH</p>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Details Table Section */}
-        <div className="flex-1 space-y-8">
+        <div className="flex-1 space-y-10">
           {selectedTypes.includes("ACHAT VERRES") && categorizedData.verres.length > 0 && (
             <RenderSection title="Achats de Verres" data={categorizedData.verres} icon={Tag} />
           )}
