@@ -230,9 +230,13 @@ function SalesHistoryContent() {
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!paymentSale || !paymentAmount) return;
+    if (!paymentSale || !paymentSale.id || !paymentAmount) return;
+    
     const amount = parseAmount(paymentAmount);
-    if (amount <= 0) return;
+    if (amount <= 0) {
+      toast({ variant: "destructive", title: "Montant invalide", description: "Veuillez saisir un montant supérieur à 0." });
+      return;
+    }
 
     if (isPaymentReadOnly) {
       toast({ variant: "destructive", title: "Action Bloquée", description: "La caisse pour cette date est clôturée." });
@@ -240,50 +244,72 @@ function SalesHistoryContent() {
     }
 
     setIsProcessingPayment(true);
-    const userName = user?.displayName || "Personnel";
-
-    const now = new Date();
-    const finalPaymentDate = new Date(paymentDate);
-    finalPaymentDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-    const paymentTimestamp = Timestamp.fromDate(finalPaymentDate);
+    const currentUserName = user?.displayName || "Personnel";
 
     try {
+      const now = new Date();
+      const finalPaymentDate = new Date(paymentDate);
+      finalPaymentDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      const paymentTimestamp = Timestamp.fromDate(finalPaymentDate);
+
       await runTransaction(db, async (transaction) => {
+        // 1. Vérification sécurité Clôture (si non admin)
         if (paymentSessionRef && !isAdminOrPrepa) {
           const sSnap = await transaction.get(paymentSessionRef);
-          if (sSnap.exists() && sSnap.data().status === "CLOSED") throw new Error("SESSION_CLOSED");
+          if (sSnap.exists() && sSnap.data().status === "CLOSED") {
+            throw new Error("SESSION_CLOSED");
+          }
         }
 
+        // 2. Récupération de la facture fraîche
         const saleRef = doc(db, "sales", paymentSale.id);
         const saleSnap = await transaction.get(saleRef);
+        
+        if (!saleSnap.exists()) {
+          throw new Error("DOCUMENT_NOT_FOUND");
+        }
+
         const data = saleSnap.data()!;
         
-        const totalNet = roundAmount((data.total || 0) - (data.remise || 0));
-        const newAvance = roundAmount((data.avance || 0) + amount);
+        // 3. Calculs financiers
+        const totalNet = roundAmount((Number(data.total) || 0) - (Number(data.remise) || 0));
+        const currentAvance = Number(data.avance) || 0;
+        const newAvance = roundAmount(currentAvance + amount);
         const newReste = roundAmount(Math.max(0, totalNet - newAvance));
         const isPaid = newReste <= 0;
 
         let invId = data.invoiceId || "---";
-        if (isPaid && invId.startsWith("RC-")) invId = invId.replace("RC-", "FC-");
+        // Si soldé, on passe de RC (Reçu) à FC (Facture)
+        if (isPaid && invId.startsWith("RC-")) {
+          invId = invId.replace("RC-", "FC-");
+        }
 
+        // 4. Mise à jour de la facture
         transaction.update(saleRef, {
           invoiceId: invId,
           avance: newAvance,
           reste: newReste,
           statut: isPaid ? "Payé" : "Partiel",
           deliveryStatus: isPaid ? "Livrée" : (data.deliveryStatus || "En préparation"),
-          payments: arrayUnion({ amount, date: finalPaymentDate.toISOString(), userName, note: "Règlement" }),
+          payments: arrayUnion({ 
+            amount, 
+            date: finalPaymentDate.toISOString(), 
+            userName: currentUserName, 
+            note: "Règlement" 
+          }),
           updatedAt: serverTimestamp()
         });
 
-        transaction.set(doc(collection(db, "transactions")), {
+        // 5. Création du mouvement de caisse
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, {
           type: "VENTE",
           label: `VENTE ${invId}`,
           clientName: data.clientName || "---",
           montant: amount,
           relatedId: invId,
           saleId: paymentSale.id,
-          userName,
+          userName: currentUserName,
           isDraft: isPrepaMode,
           isBalancePayment: true,
           createdAt: paymentTimestamp
@@ -293,7 +319,16 @@ function SalesHistoryContent() {
       toast({ variant: "success", title: "Règlement enregistré avec succès" });
       setPaymentSale(null);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message === "SESSION_CLOSED" ? "Caisse clôturée." : "Erreur lors du paiement." });
+      console.error("Payment error:", err);
+      let errorMsg = "Erreur lors du paiement.";
+      if (err.message === "SESSION_CLOSED") errorMsg = "La caisse pour cette date est clôturée.";
+      if (err.message === "DOCUMENT_NOT_FOUND") errorMsg = "La facture originale est introuvable.";
+      
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur", 
+        description: errorMsg
+      });
     } finally {
       setIsProcessingPayment(false);
     }
