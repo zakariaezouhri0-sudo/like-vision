@@ -65,6 +65,7 @@ function SalesHistoryContent() {
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isPaymentDatePickerOpen, setIsPaymentDatePickerOpen] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role')?.toUpperCase() || "OPTICIENNE";
@@ -89,7 +90,6 @@ function SalesHistoryContent() {
   const isPaymentDateClosed = !paymentSessionLoading && paymentSessionData?.status === "CLOSED";
   const isPaymentReadOnly = isPaymentDateClosed && !isAdminOrPrepa;
 
-  // OPTIMISATION: Limite à 500 au lieu de 2000 pour préserver le quota
   const salesQuery = useMemoFirebase(() => {
     const startLimit = new Date(2026, 0, 1);
     return query(
@@ -534,7 +534,7 @@ function SalesHistoryContent() {
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Date du Règlement</Label>
-                  <Popover>
+                  <Popover open={isPaymentDatePickerOpen} onOpenChange={setIsPaymentDatePickerOpen} modal={false}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6">
                         <div className="flex items-center gap-3">
@@ -544,8 +544,19 @@ function SalesHistoryContent() {
                         <RefreshCw className="h-3 w-3 opacity-20" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
-                      <Calendar mode="single" selected={paymentDate} onSelect={(d) => d && setPaymentDate(d)} locale={fr} initialFocus />
+                    <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden" align="center">
+                      <Calendar 
+                        mode="single" 
+                        selected={paymentDate} 
+                        onSelect={(d) => {
+                          if (d) {
+                            setPaymentDate(d);
+                            setIsPaymentDatePickerOpen(false);
+                          }
+                        }} 
+                        locale={fr} 
+                        initialFocus 
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>

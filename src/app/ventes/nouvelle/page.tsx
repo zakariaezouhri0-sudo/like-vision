@@ -38,6 +38,7 @@ function NewSaleForm() {
 
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
     const savedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role')?.toUpperCase() : null;
@@ -497,7 +498,7 @@ function NewSaleForm() {
           </h1>
           
           <div className="flex flex-wrap items-center gap-3">
-            <Popover>
+            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen} modal={false}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="h-12 rounded-full font-black text-[10px] uppercase bg-white border-slate-200 shadow-lg px-6 flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
@@ -505,8 +506,19 @@ function NewSaleForm() {
                   <RefreshCw className="h-3 w-3 opacity-20" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden">
-                <Calendar mode="single" selected={saleDate} onSelect={(d) => !isReadOnly && d && setSaleDate(d)} locale={fr} initialFocus />
+              <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden" align="center">
+                <Calendar 
+                  mode="single" 
+                  selected={saleDate} 
+                  onSelect={(d) => {
+                    if (!isReadOnly && d) {
+                      setSaleDate(d);
+                      setIsDatePickerOpen(false);
+                    }
+                  }} 
+                  locale={fr} 
+                  initialFocus 
+                />
               </PopoverContent>
             </Popover>
 
