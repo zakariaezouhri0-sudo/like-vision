@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -9,13 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2,
-  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor, Settings
+  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor, Settings, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp, clearIndexedDbPersistence, terminate } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
@@ -60,6 +61,7 @@ export default function SettingsPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
   const [loadingRole, setLoadingRole] = useState(true);
   const [role, setRole] = useState<string>("OPTICIENNE");
   const [previewTheme, setPreviewTheme] = useState<string | null>(null);
@@ -100,6 +102,27 @@ export default function SettingsPage() {
       toast({ variant: "destructive", title: "Erreur" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true);
+    try {
+      // Terminer l'instance Firestore et vider le cache local (IndexedDB)
+      await terminate(db);
+      await clearIndexedDbPersistence(db);
+      toast({ 
+        variant: "success", 
+        title: "Cache vidé !", 
+        description: "L'application va se recharger pour synchroniser les données avec le serveur." 
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (e) {
+      console.error("Cache clear error:", e);
+      toast({ variant: "destructive", title: "Erreur lors du nettoyage" });
+      setIsClearingCache(false);
     }
   };
 
@@ -275,14 +298,14 @@ export default function SettingsPage() {
                 <Card className="rounded-[60px] overflow-hidden border-none shadow-lg bg-emerald-50 border-emerald-100">
                   <CardHeader className="bg-emerald-100/50 border-b p-6">
                     <CardTitle className="text-[11px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
-                      <Calculator className="h-4 w-4" /> Analyse des Coûts
+                      <RefreshCw className="h-4 w-4" /> Synchronisation
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-3">
-                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Synchronisation Automatique BC</p>
-                    <p className="text-[8px] font-bold text-slate-500 leading-tight">Remet à zéro et réaffecte les coûts d'achat à partir de toutes vos opérations de caisse.</p>
-                    <Button onClick={handleRecalculateBCPrices} disabled={isMigrating} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
-                      {isMigrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Recalculer les coûts BC"}
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Maintenance Cache</p>
+                    <p className="text-[8px] font-bold text-slate-500 leading-tight">Si vous voyez des données différentes sur PC et Téléphone, ou des opérations supprimées qui reviennent.</p>
+                    <Button onClick={handleClearCache} disabled={isClearingCache} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
+                      {isClearingCache ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Vider le cache & Synchroniser"}
                     </Button>
                   </CardContent>
                 </Card>
