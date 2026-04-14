@@ -94,8 +94,8 @@ function NewSaleForm() {
   const [avanceAnte, setAvanceAnte] = useState<string>("");
 
   const [prescription, setPrescription] = useState({
-    od: { sph: searchParams.get("od_sph") || "", cyl: searchParams.get("od_cyl") || "", axe: searchParams.get("od_axe") || "", add: searchParams.get("od_add") || "" },
-    og: { sph: searchParams.get("og_sph") || "", cyl: searchParams.get("og_cyl") || "", axe: searchParams.get("og_axe") || "", add: searchParams.get("og_add") || "" }
+    od: { sph: "", cyl: "", axe: "", add: "" },
+    og: { sph: "", cyl: "", axe: "", add: "" }
   });
 
   const lastSalesRawQuery = useMemoFirebase(() => query(
@@ -157,7 +157,8 @@ function NewSaleForm() {
           og: {
             sph: existingSale.prescription.og?.sph || "",
             cyl: existingSale.prescription.og?.cyl || "",
-            axe: existingSale.prescription.og?.add || ""
+            axe: existingSale.prescription.og?.axe || "",
+            add: existingSale.prescription.og?.add || ""
           }
         });
       }
@@ -252,7 +253,8 @@ function NewSaleForm() {
         og: {
           sph: client.prescription.og?.sph || "",
           cyl: client.prescription.og?.cyl || "",
-          axe: client.prescription.og?.add || ""
+          axe: client.prescription.og?.axe || "",
+          add: client.prescription.og?.add || ""
         }
       });
       toast({ title: "Historique Chargé", description: "La dernière prescription du client a été appliquée." });
@@ -631,7 +633,7 @@ function NewSaleForm() {
                     <Checkbox 
                       id="familyMode" 
                       checked={isFamilyMode} 
-                      onCheckedChange={handleToggleFamilyMode} 
+                      onCheckedChange={(v) => handleToggleFamilyMode(!!v)} 
                       className="h-4 w-4 rounded-md border-[#0D1B2A] data-[state=checked]:bg-[#0D1B2A] data-[state=checked]:text-[#D4AF37]" 
                       disabled={isReadOnly} 
                     />

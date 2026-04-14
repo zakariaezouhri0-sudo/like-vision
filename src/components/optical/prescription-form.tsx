@@ -32,7 +32,7 @@ function PrescriptionSide({ side, values, onChange }: PrescriptionFieldProps) {
             <Input 
               placeholder={item.placeholder}
               className="h-9 rounded-xl bg-[#0D1B2A] border-none shadow-inner font-black text-xs text-[#D4AF37] placeholder:text-[#D4AF37]/20 text-center px-1"
-              value={(values as any)[item.field]} 
+              value={(values as any)[item.field] || ""} 
               onChange={(e) => onChange(side, item.field, e.target.value)} 
             />
           </div>
