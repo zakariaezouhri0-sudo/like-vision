@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -23,7 +24,8 @@ import {
   ChevronDown,
   Lock,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronUp
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -227,6 +229,7 @@ function SalesHistoryContent() {
     setPaymentSale(sale);
     setPaymentAmount(formatCurrency(sale.reste || 0));
     setPaymentDate(new Date());
+    setIsPaymentDatePickerOpen(false);
   };
 
   const handleValidatePayment = async (e?: React.FormEvent) => {
@@ -534,35 +537,37 @@ function SalesHistoryContent() {
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Date du Règlement</Label>
-                  <Popover open={isPaymentDatePickerOpen} onOpenChange={setIsPaymentDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6"
-                      >
-                        <div className="flex items-center gap-3">
-                          <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
-                          <span>{format(paymentDate, "dd MMMM yyyy", { locale: fr })}</span>
-                        </div>
-                        <RefreshCw className="h-3 w-3 opacity-20" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-[32px] border-none shadow-2xl overflow-hidden" align="center">
-                      <Calendar 
-                        mode="single" 
-                        selected={paymentDate} 
-                        onSelect={(d) => {
-                          if (d) {
-                            setPaymentDate(d);
-                            setIsPaymentDatePickerOpen(false);
-                          }
-                        }} 
-                        locale={fr} 
-                        initialFocus 
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="space-y-3">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => setIsPaymentDatePickerOpen(!isPaymentDatePickerOpen)}
+                      className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6"
+                    >
+                      <div className="flex items-center gap-3">
+                        <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
+                        <span>{format(paymentDate, "dd MMMM yyyy", { locale: fr })}</span>
+                      </div>
+                      <ChevronDown className={cn("h-3 w-3 opacity-20 transition-transform", isPaymentDatePickerOpen && "rotate-180")} />
+                    </Button>
+                    
+                    {isPaymentDatePickerOpen && (
+                      <div className="bg-white rounded-[32px] border-2 border-slate-50 p-2 shadow-inner animate-in fade-in slide-in-from-top-2">
+                        <Calendar 
+                          mode="single" 
+                          selected={paymentDate} 
+                          onSelect={(d) => {
+                            if (d) {
+                              setPaymentDate(d);
+                              setIsPaymentDatePickerOpen(false);
+                            }
+                          }} 
+                          locale={fr} 
+                          initialFocus 
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

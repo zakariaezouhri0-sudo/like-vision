@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -51,10 +52,26 @@ export function PrescriptionForm({
   og: any, 
   onChange: (side: "OD" | "OG", field: string, value: string) => void 
 }) {
+  const safeOd = useMemo(() => ({
+    sph: od?.sph || "",
+    cyl: od?.cyl || "",
+    axe: od?.axe || "",
+    add: od?.add || ""
+  }), [od]);
+
+  const safeOg = useMemo(() => ({
+    sph: og?.sph || "",
+    cyl: og?.cyl || "",
+    axe: og?.axe || "",
+    add: og?.add || ""
+  }), [og]);
+
   return (
     <div className="grid grid-cols-1 gap-3">
-      <PrescriptionSide side="OD" values={od} onChange={onChange} />
-      <PrescriptionSide side="OG" values={og} onChange={onChange} />
+      <PrescriptionSide side="OD" values={safeOd} onChange={onChange} />
+      <PrescriptionSide side="OG" values={safeOg} onChange={onChange} />
     </div>
   );
 }
+
+import { useMemo } from "react";
