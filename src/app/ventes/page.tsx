@@ -534,9 +534,13 @@ function SalesHistoryContent() {
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Date du Règlement</Label>
-                  <Popover open={isPaymentDatePickerOpen} onOpenChange={setIsPaymentDatePickerOpen} modal={false}>
+                  <Popover open={isPaymentDatePickerOpen} onOpenChange={setIsPaymentDatePickerOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6">
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        className="w-full h-14 rounded-full font-black text-xs uppercase bg-slate-50 border-none shadow-inner justify-between px-6"
+                      >
                         <div className="flex items-center gap-3">
                           <CalendarIcon className="h-4 w-4 text-[#D4AF37]" />
                           <span>{format(paymentDate, "dd MMMM yyyy", { locale: fr })}</span>
