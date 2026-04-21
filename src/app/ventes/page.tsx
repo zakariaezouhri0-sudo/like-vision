@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -25,7 +24,8 @@ import {
   Lock,
   AlertCircle,
   RefreshCw,
-  ChevronUp
+  ChevronUp,
+  Stethoscope
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -42,6 +42,7 @@ import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import * as XLSX from "xlsx";
 
 function SalesHistoryContent() {
   const router = useRouter();
@@ -175,6 +176,38 @@ function SalesHistoryContent() {
       date: formattedDate
     });
     router.push(`/ventes/${page}/${sale.invoiceId}?${params.toString()}`);
+  };
+
+  const handleExportDoctorExcel = () => {
+    try {
+      const doctorSales = filteredSales.filter((s: any) => s.fromDoctor === true);
+      if (doctorSales.length === 0) {
+        toast({ title: "Info", description: "Aucune vente avec mention 'Médecin' sur cette sélection." });
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ["DATE", "N° FACTURE", "CLIENT", "TÉLÉPHONE", "MUTUELLE", "TOTAL NET (DH)"],
+        ...doctorSales.map((s: any) => [
+          s.createdAt?.toDate ? format(s.createdAt.toDate(), "dd/MM/yyyy") : "---",
+          s.invoiceId,
+          s.clientName,
+          s.clientPhone || "---",
+          s.mutuelle || "Aucun",
+          roundAmount((Number(s.total) || 0) - (Number(s.remise) || 0))
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws, "Ventes Médecin");
+      
+      const fileName = `Like Vision - Ventes Medecin ${dateFrom ? format(dateFrom, "dd-MM-yy") : 'Debut'} au ${dateTo ? format(dateTo, "dd-MM-yy") : 'Fin'}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      toast({ variant: "success", title: "Export réussi", description: `${doctorSales.length} dossier(s) exporté(s).` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+    }
   };
 
   const handleUpdateCosts = async (e?: React.FormEvent) => {
@@ -341,9 +374,18 @@ function SalesHistoryContent() {
             </p>
           </div>
         </div>
-        <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
-          <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={handleExportDoctorExcel} 
+            variant="outline" 
+            className="h-12 px-6 rounded-full font-black text-[10px] uppercase shadow-lg border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all"
+          >
+            <Stethoscope className="mr-2 h-4 w-4" /> EXPORT MÉDECIN
+          </Button>
+          <Button asChild className="h-12 font-black rounded-full px-10 shadow-xl bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all uppercase tracking-widest text-xs">
+            <Link href="/ventes/nouvelle"><Plus className="mr-2 h-5 w-5" />NOUVELLE VENTE</Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="shadow-xl shadow-slate-200/50 rounded-[60px] bg-white border-none overflow-hidden">

@@ -343,9 +343,6 @@ export default function ReportsPage() {
                   <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} locale={fr} />
                 </PopoverContent>
               </Popover>
-              <Button onClick={handleExportDoctorExcel} variant="outline" className="h-12 px-6 rounded-full font-black text-[10px] uppercase shadow-lg border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all">
-                <Stethoscope className="mr-2 h-4 w-4" /> EXPORT MÉDECIN
-              </Button>
               <Button onClick={() => router.push(`/rapports/print/journalier?date=${format(dateRange.from, "yyyy-MM-dd")}`)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
                 <FileText className="mr-2 h-4 w-4" /> JOURNALIER
               </Button>
