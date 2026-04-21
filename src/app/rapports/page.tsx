@@ -18,7 +18,9 @@ import {
   CalendarDays,
   Landmark,
   PieChart as PieChartIcon,
-  Edit2
+  Edit2,
+  Stethoscope,
+  Download
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { formatCurrency, cn, roundAmount, parseAmount } from "@/lib/utils";
@@ -35,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -115,6 +118,36 @@ export default function ReportsPage() {
     };
   }, [rawSales, rawTransactions, dateRange, isPrepaMode]);
 
+  const handleExportDoctorExcel = () => {
+    try {
+      const doctorSales = stats.filteredSales.filter((s: any) => s.fromDoctor === true);
+      if (doctorSales.length === 0) {
+        toast({ title: "Info", description: "Aucune vente avec mention 'Médecin' sur cette période." });
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ["DATE", "N° FACTURE", "CLIENT", "TÉLÉPHONE", "MUTUELLE", "TOTAL NET (DH)"],
+        ...doctorSales.map((s: any) => [
+          s.createdAt?.toDate ? format(s.createdAt.toDate(), "dd/MM/yyyy") : "---",
+          s.invoiceId,
+          s.clientName,
+          s.clientPhone || "---",
+          s.mutuelle || "Aucun",
+          roundAmount((Number(s.total) || 0) - (Number(s.remise) || 0))
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws, "Ventes Médecin");
+      XLSX.writeFile(wb, `Like Vision - Ventes Medecin ${format(dateRange.from, "dd-MM-yy")} au ${format(dateRange.to, "dd-MM-yy")}.xlsx`);
+      toast({ variant: "success", title: "Export réussi", description: `${doctorSales.length} dossier(s) exporté(s).` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur lors de l'export" });
+    }
+  };
+
   const handleOpenEdit = (t: any) => {
     setSelectedTrans(t);
     setEditOp({
@@ -131,7 +164,6 @@ export default function ReportsPage() {
     if (bcMatch && (type === "ACHAT VERRES" || type === "ACHAT MONTURE")) {
       const bcId = bcMatch[1].padStart(4, '0');
       try {
-        // Filtrage en mémoire pour éviter l'erreur d'index Firestore
         const q = query(
           collection(db, "sales"), 
           where("invoiceId", "in", [`FC-2026-${bcId}`, `RC-2026-${bcId}`])
@@ -311,6 +343,9 @@ export default function ReportsPage() {
                   <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r: any) => r?.from && setDateRange({ from: r.from, to: r.to || r.from })} locale={fr} />
                 </PopoverContent>
               </Popover>
+              <Button onClick={handleExportDoctorExcel} variant="outline" className="h-12 px-6 rounded-full font-black text-[10px] uppercase shadow-lg border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all">
+                <Stethoscope className="mr-2 h-4 w-4" /> EXPORT MÉDECIN
+              </Button>
               <Button onClick={() => router.push(`/rapports/print/journalier?date=${format(dateRange.from, "yyyy-MM-dd")}`)} className="h-12 px-8 rounded-full font-black text-[10px] uppercase shadow-lg bg-[#D4AF37] text-[#0D1B2A] hover:bg-[#0D1B2A] hover:text-white transition-all">
                 <FileText className="mr-2 h-4 w-4" /> JOURNALIER
               </Button>
