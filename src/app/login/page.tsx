@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp, RefreshCw } from "lucide-react";
+import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp, RefreshCw, AlertCircle } from "lucide-react";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc, terminate, clearIndexedDbPersistence } from "firebase/firestore";
 import { signInAnonymously, updateProfile, signOut } from "firebase/auth";
@@ -39,22 +39,26 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    setHostname(window.location.hostname);
+    if (typeof window !== 'undefined') {
+      setHostname(window.location.hostname);
+    }
 
-    const checkSession = async () => {
+    const checkAndForceProject = async () => {
       try {
-        const lastProjectId = localStorage.getItem('last_project_id');
+        const expectedProjectId = "studio-8223503245-60ae5";
         const currentProjectId = db.app.options.projectId;
+        const lastProjectId = localStorage.getItem('last_project_id');
         
-        if (lastProjectId && lastProjectId !== currentProjectId) {
-          console.log("Changement de projet détecté, réinitialisation du cache...");
+        // Si on détecte qu'on est sur le mauvais projet ou qu'on vient de changer
+        if (currentProjectId !== expectedProjectId || (lastProjectId && lastProjectId !== currentProjectId)) {
+          console.warn("Projet incorrect détecté. Nettoyage forcé...");
           await handleResetStorage();
-        } else if (!lastProjectId) {
+        } else {
           localStorage.setItem('last_project_id', currentProjectId || "");
         }
       } catch (e) {}
     };
-    checkSession();
+    checkAndForceProject();
   }, [db, auth]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
@@ -66,6 +70,7 @@ export default function LoginPage() {
     
     const cleanUsername = username.toLowerCase().trim();
 
+    // Comptes de secours Hardcoded (Toujours prioritaires)
     if (cleanUsername === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -104,11 +109,12 @@ export default function LoginPage() {
 
     try {
       const usersRef = collection(db, "users");
+      // On cherche l'utilisateur dans la base de données réelle
       const q = query(usersRef, where("username", "==", cleanUsername));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("Utilisateur non trouvé. Vérifiez votre identifiant ou le projet actif.");
+        throw new Error("Utilisateur non trouvé. Vérifiez votre identifiant ou videz le cache.");
       }
 
       const userData = querySnapshot.docs[0].data();
@@ -214,7 +220,7 @@ export default function LoginPage() {
                 onClick={handleResetStorage}
                 className="text-[9px] font-black text-[#D4AF37]/40 hover:text-[#D4AF37] uppercase tracking-widest"
               >
-                <RefreshCw className="mr-2 h-3 w-3" /> Synchronisation forcée (Vider cache)
+                <RefreshCw className="mr-2 h-3.5 w-3.5" /> Synchronisation forcée (Vider cache)
               </Button>
             </CardFooter>
           </form>
@@ -222,7 +228,7 @@ export default function LoginPage() {
         
         <div className="flex flex-col items-center gap-1 opacity-20">
           <p className="text-[8px] font-bold text-white uppercase tracking-widest">
-            ID Projet : {db.app.options.projectId}
+            Base de données : {db.app.options.projectId}
           </p>
           {mounted && (
             <p className="text-[7px] font-bold text-white uppercase tracking-widest">
