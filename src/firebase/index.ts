@@ -26,16 +26,26 @@ export function initializeFirebase() {
   }
 
   let firestore: Firestore;
+  const isServer = typeof window === 'undefined';
+
   try {
-    // Tentative de récupération de l'instance existante
-    firestore = getFirestore(app);
+    if (isServer) {
+      // Version serveur simple sans cache local
+      firestore = getFirestore(app);
+    } else {
+      // Version client avec persistance offline
+      try {
+        firestore = getFirestore(app);
+      } catch (e) {
+        firestore = initializeFirestore(app, {
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+          })
+        });
+      }
+    }
   } catch (e) {
-    // Initialisation avec persistance offline
-    firestore = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      })
-    });
+    firestore = getFirestore(app);
   }
 
   return {

@@ -1,6 +1,7 @@
+
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
 
 const API_KEY = process.env.API_SECURE_KEY || "LV-2026-SECURE";
@@ -22,13 +23,6 @@ export async function GET(request: Request) {
   const { firestore } = initializeFirebase();
 
   try {
-    let results: any = {
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        filters: { type, mode, startDateStr, endDateStr }
-      }
-    };
-
     // Filtres de dates
     let start = startDateStr ? startOfDay(parseISO(startDateStr)) : startOfDay(new Date(2026, 0, 1));
     let end = endDateStr ? endOfDay(parseISO(endDateStr)) : endOfDay(new Date());
@@ -36,18 +30,27 @@ export async function GET(request: Request) {
     if (!isValid(start)) start = startOfDay(new Date(2026, 0, 1));
     if (!isValid(end)) end = endOfDay(new Date());
 
-    // 1. Récupération des Transactions (Achats, Dépenses, Versements et Flux Ventes)
+    let results: any = {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        filters: { type, mode, start: start.toISOString(), end: end.toISOString() }
+      }
+    };
+
+    // 1. Récupération des Transactions (Optimisé sans orderBy pour éviter l'erreur d'index)
     const transRef = collection(firestore, "transactions");
     const transQuery = query(
       transRef,
       where("isDraft", "==", mode),
       where("createdAt", ">=", Timestamp.fromDate(start)),
-      where("createdAt", "<=", Timestamp.fromDate(end)),
-      orderBy("createdAt", "desc")
+      where("createdAt", "<=", Timestamp.fromDate(end))
     );
 
     const transSnap = await getDocs(transQuery);
-    const allTrans = transSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Tri en mémoire pour économiser les quotas et éviter les erreurs d'index composite
+    const allTrans = transSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
     if (type === 'ALL' || type === 'ACHATS') {
       results.achats = allTrans.filter((t: any) => t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE");
@@ -66,15 +69,20 @@ export async function GET(request: Request) {
         salesRef,
         where("isDraft", "==", mode),
         where("createdAt", ">=", Timestamp.fromDate(start)),
-        where("createdAt", "<=", Timestamp.fromDate(end)),
-      //  orderBy("createdAt", "desc")
+        where("createdAt", "<=", Timestamp.fromDate(end))
       );
       const salesSnap = await getDocs(salesQuery);
-      results.ventes = salesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      results.ventes = salesSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     }
 
     return NextResponse.json(results);
   } catch (error: any) {
-    return NextResponse.json({ error: "Erreur technique lors de l'extraction", details: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Erreur technique lors de l'extraction", 
+      message: error.message,
+      code: error.code 
+    }, { status: 500 });
   }
 }
