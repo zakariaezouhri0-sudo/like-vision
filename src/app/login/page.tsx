@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp } from "lucide-react";
+import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp, RefreshCw } from "lucide-react";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc, terminate, clearIndexedDbPersistence } from "firebase/firestore";
 import { signInAnonymously, updateProfile, signOut } from "firebase/auth";
@@ -21,6 +21,19 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const handleResetStorage = async () => {
+    try {
+      setLoading(true);
+      await signOut(auth);
+      await terminate(db);
+      await clearIndexedDbPersistence(db);
+      localStorage.clear();
+      window.location.reload();
+    } catch (e) {
+      window.location.reload();
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -28,11 +41,7 @@ export default function LoginPage() {
         const currentProjectId = db.app.options.projectId;
         
         if (lastProjectId && lastProjectId !== currentProjectId) {
-          await signOut(auth);
-          await terminate(db);
-          await clearIndexedDbPersistence(db);
-          localStorage.setItem('last_project_id', currentProjectId || "");
-          window.location.reload();
+          await handleResetStorage();
         } else if (!lastProjectId) {
           localStorage.setItem('last_project_id', currentProjectId || "");
         }
@@ -48,7 +57,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    if (username.toLowerCase() === "admin" && password === "admin123") {
+    const cleanUsername = username.toLowerCase().trim();
+
+    if (cleanUsername === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
@@ -65,7 +76,7 @@ export default function LoginPage() {
       return;
     }
 
-    if (username.toLowerCase() === "prepa" && password === "prepa123") {
+    if (cleanUsername === "prepa" && password === "prepa123") {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
@@ -84,11 +95,14 @@ export default function LoginPage() {
 
     try {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username.toLowerCase().trim()));
+      const q = query(usersRef, where("username", "==", cleanUsername));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("Utilisateur non trouvé.");
+        // En cas d'échec, on tente de vider le cache car le projet a peut-être changé
+        await terminate(db);
+        await clearIndexedDbPersistence(db);
+        throw new Error("Utilisateur non trouvé. Vérifiez votre identifiant ou le projet actif.");
       }
 
       const userData = querySnapshot.docs[0].data();
@@ -103,6 +117,7 @@ export default function LoginPage() {
           await updateProfile(userCredential.user, { displayName: userData.name });
           const role = (userData.role || 'OPTICIENNE').toUpperCase();
           localStorage.setItem('user_role', role);
+          localStorage.setItem('last_project_id', db.app.options.projectId || "");
           
           toast({ variant: "success", title: "Bienvenue", description: `Ravi de vous revoir, ${userData.name}.` });
           router.push(role === "OPTICIENNE" ? "/caisse" : "/dashboard");
@@ -137,7 +152,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
-              <h1 className="text-3xl md:text-5xl font-black text-[#D4AF37] uppercase tracking-tighter leading-none">
+              <h1 className="text-3xl md:text-5xl font-black text-[#D4AF37] uppercase tracking-tighter leading-none text-center">
                 {settings?.name || "LIKE VISION OPTIQUE"}
               </h1>
               <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] text-[#D4AF37] whitespace-nowrap opacity-80 mt-2">
@@ -159,7 +174,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D1B2A] z-10" />
                   <Input 
-                    placeholder="ex: admin" 
+                    placeholder="ex: ZAKARIAE" 
                     className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-[#D4AF37] text-[#0D1B2A] placeholder:text-[#0D1B2A]/40 focus:ring-2 focus:ring-white/20 transition-all shadow-inner" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -182,13 +197,26 @@ export default function LoginPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pb-16 pt-8 px-10">
+            <CardFooter className="flex flex-col gap-4 pb-16 pt-8 px-10">
               <Button className="w-full h-16 text-base font-black shadow-xl rounded-full bg-white text-[#0D1B2A] hover:bg-[#D4AF37] hover:text-[#0D1B2A] transition-all transform active:scale-95 uppercase tracking-widest" disabled={loading}>
                 {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCÉDER AU SYSTÈME"}
+              </Button>
+              
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={handleResetStorage}
+                className="text-[9px] font-black text-[#D4AF37]/40 hover:text-[#D4AF37] uppercase tracking-widest"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" /> Synchronisation forcée (Vider cache)
               </Button>
             </CardFooter>
           </form>
         </Card>
+        
+        <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
+          ID Projet : {db.app.options.projectId}
+        </p>
       </div>
     </div>
   );
