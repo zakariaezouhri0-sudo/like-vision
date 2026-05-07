@@ -11,7 +11,6 @@ import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc, terminate, clearIndexedDbPersistence } from "firebase/firestore";
 import { signInAnonymously, updateProfile, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,16 +21,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  // Nettoyage automatique des sessions fantômes au chargement
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Si on change de projet, il vaut mieux vider le cache local au moins une fois
         const lastProjectId = localStorage.getItem('last_project_id');
         const currentProjectId = db.app.options.projectId;
         
         if (lastProjectId && lastProjectId !== currentProjectId) {
-          console.log("Nouveau projet détecté, nettoyage du cache...");
           await signOut(auth);
           await terminate(db);
           await clearIndexedDbPersistence(db);
@@ -52,7 +48,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // LOGIQUE BYPASS ADMIN (Pour première installation)
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -70,7 +65,6 @@ export default function LoginPage() {
       return;
     }
 
-    // LOGIQUE BYPASS PREPA
     if (username.toLowerCase() === "prepa" && password === "prepa123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -94,7 +88,7 @@ export default function LoginPage() {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("Utilisateur non trouvé. Utilisez admin/admin123 pour la première connexion.");
+        throw new Error("Utilisateur non trouvé.");
       }
 
       const userData = querySnapshot.docs[0].data();
@@ -110,27 +104,14 @@ export default function LoginPage() {
           const role = (userData.role || 'OPTICIENNE').toUpperCase();
           localStorage.setItem('user_role', role);
           
-          toast({
-            variant: "success",
-            title: "Bienvenue",
-            description: `Ravi de vous revoir, ${userData.name}.`,
-          });
-
-          if (role === "OPTICIENNE") {
-            router.push("/caisse");
-          } else {
-            router.push("/dashboard");
-          }
+          toast({ variant: "success", title: "Bienvenue", description: `Ravi de vous revoir, ${userData.name}.` });
+          router.push(role === "OPTICIENNE" ? "/caisse" : "/dashboard");
         }
       } else {
         throw new Error("Mot de passe incorrect.");
       }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur de connexion",
-        description: error.message || "Identifiants incorrects.",
-      });
+      toast({ variant: "destructive", title: "Erreur de connexion", description: error.message });
     } finally {
       setLoading(false);
     }
@@ -139,7 +120,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0D1B2A] px-4 py-8">
       <div className="w-full max-w-xl space-y-8 flex flex-col items-center">
-        {/* Logo Section */}
         <div className="w-full flex flex-col items-center text-center pb-2">
           {settingsLoading ? (
             <Loader2 className="h-12 w-12 animate-spin text-[#D4AF37] opacity-20" />
@@ -157,27 +137,20 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
-              
-              <div className="flex flex-col items-center space-y-2">
-                <h1 className="text-3xl md:text-5xl font-black text-[#D4AF37] uppercase tracking-tighter leading-none">
-                  {settings?.name || "LIKE VISION OPTIQUE"}
-                </h1>
-                <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] text-[#D4AF37] whitespace-nowrap opacity-80">
-                  GESTION OPTIQUE PROFESSIONNELLE
-                </p>
-              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-[#D4AF37] uppercase tracking-tighter leading-none">
+                {settings?.name || "LIKE VISION OPTIQUE"}
+              </h1>
+              <p className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] text-[#D4AF37] whitespace-nowrap opacity-80 mt-2">
+                GESTION OPTIQUE PROFESSIONNELLE
+              </p>
             </div>
           )}
         </div>
 
-        {/* Login Card */}
         <Card className="border-none shadow-2xl shadow-black/40 bg-[#0D1B2A] rounded-[60px] overflow-hidden max-w-md mx-auto w-full relative">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#D4AF37]" />
           <CardHeader className="space-y-2 pt-12 text-center border-b border-white/5 pb-8">
             <CardTitle className="text-2xl font-black text-[#D4AF37] uppercase tracking-widest">Connexion</CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase text-[#D4AF37]/60 tracking-[0.3em]">
-              Registre de Prestige
-            </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-8 pt-12 px-10">
@@ -216,10 +189,6 @@ export default function LoginPage() {
             </CardFooter>
           </form>
         </Card>
-        
-        <p className="text-[9px] font-black text-[#D4AF37]/40 uppercase tracking-[0.5em] mt-4">
-          Powered by Like Vision System
-        </p>
       </div>
     </div>
   );

@@ -17,7 +17,6 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp, clearIndexedDbPersistence, terminate } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
-import { firebaseConfig } from "@/firebase/config";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { roundAmount, cn } from "@/lib/utils";
@@ -108,19 +107,17 @@ export default function SettingsPage() {
   const handleClearCache = async () => {
     setIsClearingCache(true);
     try {
-      // Terminer l'instance Firestore et vider le cache local (IndexedDB)
       await terminate(db);
       await clearIndexedDbPersistence(db);
       toast({ 
         variant: "success", 
         title: "Cache vidé !", 
-        description: "L'application va se recharger pour synchroniser les données avec le serveur." 
+        description: "L'application va se recharger pour synchroniser les données." 
       });
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (e) {
-      console.error("Cache clear error:", e);
       toast({ variant: "destructive", title: "Erreur lors du nettoyage" });
       setIsClearingCache(false);
     }
@@ -145,7 +142,6 @@ export default function SettingsPage() {
   const handlePreviewTheme = (themeId: string) => {
     setTheme(themeId);
     setPreviewTheme(themeId);
-    toast({ title: "Mode Aperçu", description: "Cliquez sur 'Appliquer' pour rendre ce choix permanent." });
   };
 
   const handleResetToCurrent = () => {
@@ -153,43 +149,6 @@ export default function SettingsPage() {
       setTheme(settings.theme);
       setPreviewTheme(settings.theme);
     }
-  };
-
-  const handleRecalculateBCPrices = async () => {
-    setIsMigrating(true);
-    try {
-      const isDraft = role === 'PREPA';
-      const salesQuery = query(collection(db, "sales"), where("isDraft", "==", isDraft));
-      const salesSnap = await getDocs(salesQuery);
-      const resetBatch = writeBatch(db);
-      salesSnap.docs.forEach(d => resetBatch.update(d.ref, { purchasePriceFrame: 0, purchasePriceLenses: 0 }));
-      await resetBatch.commit();
-      const transQuery = query(collection(db, "transactions"), where("isDraft", "==", isDraft));
-      const transSnap = await getDocs(transQuery);
-      const pendingUpdates: Record<string, { frame: number, lenses: number }> = {};
-      transSnap.docs.forEach(tDoc => {
-        const t = tDoc.data();
-        if (t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE") {
-          const bcMatch = (t.clientName || "").match(/BC\s*[:\s-]\s*(\d+)/i);
-          if (bcMatch) {
-            const bcId = bcMatch[1].padStart(4, '0');
-            const targetIds = [`FC-2026-${bcId}`, `RC-2026-${bcId}`];
-            const saleDoc = salesSnap.docs.find(sd => targetIds.includes(sd.data().invoiceId));
-            if (saleDoc) {
-              const saleId = saleDoc.id;
-              if (!pendingUpdates[saleId]) pendingUpdates[saleId] = { frame: 0, lenses: 0 };
-              const amount = Math.abs(Number(t.montant) || 0);
-              if (t.type === "ACHAT MONTURE") pendingUpdates[saleId].frame = roundAmount(pendingUpdates[saleId].frame + amount);
-              else pendingUpdates[saleId].lenses = roundAmount(pendingUpdates[saleId].lenses + amount);
-            }
-          }
-        }
-      });
-      for (const [saleId, costs] of Object.entries(pendingUpdates)) {
-        await updateDoc(doc(db, "sales", saleId), { purchasePriceFrame: costs.frame, purchasePriceLenses: costs.lenses, updatedAt: serverTimestamp() });
-      }
-      toast({ variant: "success", title: "Recalcul Terminé" });
-    } catch (e) { toast({ variant: "destructive", title: "Erreur" }); } finally { setIsMigrating(false); }
   };
 
   const handleSyncToReal = async () => {
@@ -302,15 +261,6 @@ export default function SettingsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-3">
-                    <div className="bg-white/50 p-4 rounded-2xl mb-4 space-y-2 border border-emerald-200/50">
-                       <div className="flex items-center gap-2 mb-1">
-                          <Server className="h-3 w-3 text-emerald-600" />
-                          <span className="text-[9px] font-black text-emerald-700 uppercase">Projet Actif</span>
-                       </div>
-                       <p className="text-[11px] font-mono font-bold text-emerald-900 break-all bg-emerald-100/50 p-2 rounded-lg">
-                          {firebaseConfig.projectId}
-                       </p>
-                    </div>
                     <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Maintenance Cache</p>
                     <p className="text-[8px] font-bold text-slate-500 leading-tight">Si vous voyez des données différentes sur PC et Téléphone, ou des opérations supprimées qui reviennent.</p>
                     <Button onClick={handleClearCache} disabled={isClearingCache} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
