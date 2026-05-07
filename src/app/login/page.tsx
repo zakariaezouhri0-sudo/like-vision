@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp } from "lucide-react";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, where, getDocs, doc } from "firebase/firestore";
-import { signInAnonymously, updateProfile } from "firebase/auth";
+import { collection, query, where, getDocs, doc, terminate, clearIndexedDbPersistence } from "firebase/firestore";
+import { signInAnonymously, updateProfile, signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,29 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  // Nettoyage automatique des sessions fantômes au chargement
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // Si on change de projet, il vaut mieux vider le cache local au moins une fois
+        const lastProjectId = localStorage.getItem('last_project_id');
+        const currentProjectId = db.app.options.projectId;
+        
+        if (lastProjectId && lastProjectId !== currentProjectId) {
+          console.log("Nouveau projet détecté, nettoyage du cache...");
+          await signOut(auth);
+          await terminate(db);
+          await clearIndexedDbPersistence(db);
+          localStorage.setItem('last_project_id', currentProjectId || "");
+          window.location.reload();
+        } else if (!lastProjectId) {
+          localStorage.setItem('last_project_id', currentProjectId || "");
+        }
+      } catch (e) {}
+    };
+    checkSession();
+  }, [db, auth]);
+
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
 
@@ -29,6 +52,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
+    // LOGIQUE BYPASS ADMIN (Pour première installation)
     if (username.toLowerCase() === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -46,6 +70,7 @@ export default function LoginPage() {
       return;
     }
 
+    // LOGIQUE BYPASS PREPA
     if (username.toLowerCase() === "prepa" && password === "prepa123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -69,7 +94,7 @@ export default function LoginPage() {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("Utilisateur non trouvé.");
+        throw new Error("Utilisateur non trouvé. Utilisez admin/admin123 pour la première connexion.");
       }
 
       const userData = querySnapshot.docs[0].data();
