@@ -28,6 +28,7 @@ export default function LoginPage() {
       await terminate(db);
       await clearIndexedDbPersistence(db);
       localStorage.clear();
+      toast({ title: "Synchronisation...", description: "Nettoyage de la mémoire effectué." });
       window.location.reload();
     } catch (e) {
       window.location.reload();
@@ -40,7 +41,9 @@ export default function LoginPage() {
         const lastProjectId = localStorage.getItem('last_project_id');
         const currentProjectId = db.app.options.projectId;
         
+        // Si on détecte un changement de projet (ex: bascule studio/vercel), on nettoie tout
         if (lastProjectId && lastProjectId !== currentProjectId) {
+          console.log("Changement de projet détecté, réinitialisation du cache...");
           await handleResetStorage();
         } else if (!lastProjectId) {
           localStorage.setItem('last_project_id', currentProjectId || "");
@@ -59,12 +62,14 @@ export default function LoginPage() {
     
     const cleanUsername = username.toLowerCase().trim();
 
+    // Comptes de secours (Admin & Prepa)
     if (cleanUsername === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: "Administrateur" });
           localStorage.setItem('user_role', 'ADMIN');
+          localStorage.setItem('last_project_id', db.app.options.projectId || "");
         }
         toast({ variant: "success", title: "Connexion réussie", description: "Bienvenue (Mode Admin)." });
         router.push("/dashboard");
@@ -82,6 +87,7 @@ export default function LoginPage() {
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: "ZAKARIAE" });
           localStorage.setItem('user_role', 'PREPA');
+          localStorage.setItem('last_project_id', db.app.options.projectId || "");
         }
         toast({ variant: "success", title: "Mode Préparation Actif", description: "Vous travaillez sur un espace brouillon isolé." });
         router.push("/dashboard");
@@ -99,9 +105,6 @@ export default function LoginPage() {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // En cas d'échec, on tente de vider le cache car le projet a peut-être changé
-        await terminate(db);
-        await clearIndexedDbPersistence(db);
         throw new Error("Utilisateur non trouvé. Vérifiez votre identifiant ou le projet actif.");
       }
 
@@ -214,9 +217,14 @@ export default function LoginPage() {
           </form>
         </Card>
         
-        <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-          ID Projet : {db.app.options.projectId}
-        </p>
+        <div className="flex flex-col items-center gap-1 opacity-20">
+          <p className="text-[8px] font-bold text-white uppercase tracking-widest">
+            ID Projet : {db.app.options.projectId}
+          </p>
+          <p className="text-[7px] font-bold text-white uppercase tracking-widest">
+            {typeof window !== 'undefined' ? window.location.hostname : ""}
+          </p>
+        </div>
       </div>
     </div>
   );
