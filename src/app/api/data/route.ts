@@ -1,0 +1,81 @@
+
+import { NextResponse } from 'next/server';
+import { initializeFirebase } from '@/firebase';
+import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
+import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
+
+const API_KEY = "LV-2026-SECURE";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  
+  // Vérification de la clé de sécurité
+  const key = searchParams.get('key');
+  if (key !== API_KEY) {
+    return NextResponse.json({ error: "Non autorisé. Clé API invalide." }, { status: 401 });
+  }
+
+  const type = searchParams.get('type') || 'ALL'; // ALL, VENTES, ACHATS, DEPENSES, VERSEMENTS
+  const mode = searchParams.get('mode') === 'DRAFT' ? true : false;
+  const startDateStr = searchParams.get('startDate');
+  const endDateStr = searchParams.get('endDate');
+
+  const { firestore } = initializeFirebase();
+
+  try {
+    let results: any = {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        filters: { type, mode, startDateStr, endDateStr }
+      }
+    };
+
+    // Filtres de dates
+    let start = startDateStr ? startOfDay(parseISO(startDateStr)) : startOfDay(new Date(2026, 0, 1));
+    let end = endDateStr ? endOfDay(parseISO(endDateStr)) : endOfDay(new Date());
+
+    if (!isValid(start)) start = startOfDay(new Date(2026, 0, 1));
+    if (!isValid(end)) end = endOfDay(new Date());
+
+    // 1. Récupération des Transactions (Achats, Dépenses, Versements et Flux Ventes)
+    const transRef = collection(firestore, "transactions");
+    const transQuery = query(
+      transRef,
+      where("isDraft", "==", mode),
+      where("createdAt", ">=", Timestamp.fromDate(start)),
+      where("createdAt", "<=", Timestamp.fromDate(end)),
+      orderBy("createdAt", "desc")
+    );
+
+    const transSnap = await getDocs(transQuery);
+    const allTrans = transSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (type === 'ALL' || type === 'ACHATS') {
+      results.achats = allTrans.filter((t: any) => t.type === "ACHAT VERRES" || t.type === "ACHAT MONTURE");
+    }
+    if (type === 'ALL' || type === 'DEPENSES') {
+      results.depenses = allTrans.filter((t: any) => t.type === "DEPENSE");
+    }
+    if (type === 'ALL' || type === 'VERSEMENTS') {
+      results.versements = allTrans.filter((t: any) => t.type === "VERSEMENT");
+    }
+
+    // 2. Récupération des Ventes détaillées (si demandé)
+    if (type === 'ALL' || type === 'VENTES') {
+      const salesRef = collection(firestore, "sales");
+      const salesQuery = query(
+        salesRef,
+        where("isDraft", "==", mode),
+        where("createdAt", ">=", Timestamp.fromDate(start)),
+        where("createdAt", "<=", Timestamp.fromDate(end)),
+        orderBy("createdAt", "desc")
+      );
+      const salesSnap = await getDocs(salesQuery);
+      results.ventes = salesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    return NextResponse.json(results);
+  } catch (error: any) {
+    return NextResponse.json({ error: "Erreur technique lors de l'extraction", details: error.message }, { status: 500 });
+  }
+}
