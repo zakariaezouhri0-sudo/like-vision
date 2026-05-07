@@ -1,10 +1,9 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
 import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
 
-const API_KEY = "LV-2026-SECURE";
+const API_KEY = process.env.API_SECURE_KEY || "LV-2026-SECURE";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -68,7 +67,7 @@ export async function GET(request: Request) {
         where("isDraft", "==", mode),
         where("createdAt", ">=", Timestamp.fromDate(start)),
         where("createdAt", "<=", Timestamp.fromDate(end)),
-        orderBy("createdAt", "desc")
+      //  orderBy("createdAt", "desc")
       );
       const salesSnap = await getDocs(salesQuery);
       results.ventes = salesSnap.docs.map(d => ({ id: d.id, ...d.data() }));

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, Save, Upload, Info, Loader2, Image as ImageIcon, Trash2,
-  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor, Settings, RefreshCw
+  Database, Zap, Calculator, MessageSquare, Smartphone, Palette, CheckCircle2, Monitor, Settings, RefreshCw, Server
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -18,6 +17,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, query, where, updateDoc, serverTimestamp, clearIndexedDbPersistence, terminate } from "firebase/firestore";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/constants";
+import { firebaseConfig } from "@/firebase/config";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { roundAmount, cn } from "@/lib/utils";
@@ -302,6 +302,15 @@ export default function SettingsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-3">
+                    <div className="bg-white/50 p-4 rounded-2xl mb-4 space-y-2 border border-emerald-200/50">
+                       <div className="flex items-center gap-2 mb-1">
+                          <Server className="h-3 w-3 text-emerald-600" />
+                          <span className="text-[9px] font-black text-emerald-700 uppercase">Projet Actif</span>
+                       </div>
+                       <p className="text-[11px] font-mono font-bold text-emerald-900 break-all bg-emerald-100/50 p-2 rounded-lg">
+                          {firebaseConfig.projectId}
+                       </p>
+                    </div>
                     <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Maintenance Cache</p>
                     <p className="text-[8px] font-bold text-slate-500 leading-tight">Si vous voyez des données différentes sur PC et Téléphone, ou des opérations supprimées qui reviennent.</p>
                     <Button onClick={handleClearCache} disabled={isClearingCache} variant="outline" className="w-full h-12 rounded-xl border-emerald-200 text-emerald-700 font-black text-[10px] uppercase hover:bg-emerald-100">
