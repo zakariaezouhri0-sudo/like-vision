@@ -58,10 +58,14 @@ export async function sendWhatsApp(phone: string, message: string) {
   if (!phone || !message) return;
 
   try {
-    // Vérifie si le document a le focus pour éviter l'erreur NotAllowedError: Document is not focused
-    // Cette erreur survient souvent après une opération asynchrone (Firestore) qui dure plus de quelques secondes
+    // Vérifie si le document a le focus et si l'API Clipboard est disponible
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.clipboard && document.hasFocus()) {
-      await navigator.clipboard.writeText(message);
+      // Utilisation d'un bloc try-catch imbriqué pour ignorer les erreurs de permission/policy
+      try {
+        await navigator.clipboard.writeText(message);
+      } catch (clipErr) {
+        // Erreur de permission ou policy bloquée : on ignore silencieusement
+      }
     }
   } catch (err) {
     // On logge simplement un avertissement car l'accès au presse-papier n'est pas critique

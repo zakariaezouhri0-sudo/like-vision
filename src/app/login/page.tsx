@@ -20,6 +20,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [hostname, setHostname] = useState("");
 
   const handleResetStorage = async () => {
     try {
@@ -36,12 +38,14 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
+    setHostname(window.location.hostname);
+
     const checkSession = async () => {
       try {
         const lastProjectId = localStorage.getItem('last_project_id');
         const currentProjectId = db.app.options.projectId;
         
-        // Si on détecte un changement de projet (ex: bascule studio/vercel), on nettoie tout
         if (lastProjectId && lastProjectId !== currentProjectId) {
           console.log("Changement de projet détecté, réinitialisation du cache...");
           await handleResetStorage();
@@ -62,7 +66,6 @@ export default function LoginPage() {
     
     const cleanUsername = username.toLowerCase().trim();
 
-    // Comptes de secours (Admin & Prepa)
     if (cleanUsername === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
@@ -221,9 +224,11 @@ export default function LoginPage() {
           <p className="text-[8px] font-bold text-white uppercase tracking-widest">
             ID Projet : {db.app.options.projectId}
           </p>
-          <p className="text-[7px] font-bold text-white uppercase tracking-widest">
-            {typeof window !== 'undefined' ? window.location.hostname : ""}
-          </p>
+          {mounted && (
+            <p className="text-[7px] font-bold text-white uppercase tracking-widest">
+              {hostname}
+            </p>
+          )}
         </div>
       </div>
     </div>
