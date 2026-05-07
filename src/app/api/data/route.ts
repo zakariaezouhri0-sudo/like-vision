@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
@@ -37,7 +36,7 @@ export async function GET(request: Request) {
       }
     };
 
-    // 1. Récupération des Transactions (Optimisé sans orderBy pour éviter l'erreur d'index)
+    // 1. Récupération des Transactions
     const transRef = collection(firestore, "transactions");
     const transQuery = query(
       transRef,
@@ -47,7 +46,6 @@ export async function GET(request: Request) {
     );
 
     const transSnap = await getDocs(transQuery);
-    // Tri en mémoire pour économiser les quotas et éviter les erreurs d'index composite
     const allTrans = transSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
@@ -62,7 +60,7 @@ export async function GET(request: Request) {
       results.versements = allTrans.filter((t: any) => t.type === "VERSEMENT");
     }
 
-    // 2. Récupération des Ventes détaillées (si demandé)
+    // 2. Récupération des Ventes détaillées
     if (type === 'ALL' || type === 'VENTES') {
       const salesRef = collection(firestore, "sales");
       const salesQuery = query(
