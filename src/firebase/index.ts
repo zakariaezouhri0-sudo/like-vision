@@ -1,73 +1,22 @@
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { firebaseConfig } from "./config";
 
-'use client';
+// Initialisation de l'application Firebase (Singleton)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { 
-  initializeFirestore, 
-  persistentLocalCache, 
-  persistentMultipleTabManager,
-  getFirestore,
-  Firestore
-} from 'firebase/firestore';
+// Export des instances
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-export function initializeFirebase() {
-  let app: FirebaseApp;
-  
-  if (!getApps().length) {
-    try {
-      app = initializeApp(firebaseConfig);
-    } catch (e) {
-      app = initializeApp(firebaseConfig);
-    }
-  } else {
-    app = getApp();
-  }
+// Export de la fonction d'initialisation (pour compatibilité si nécessaire)
+export const initializeFirebase = () => ({
+  firebaseApp: app,
+  auth,
+  firestore: db,
+});
 
-  let firestore: Firestore;
-  const isServer = typeof window === 'undefined';
-
-  try {
-    if (isServer) {
-      // Version serveur simple sans cache local
-      firestore = getFirestore(app);
-    } else {
-      // Version client avec persistance offline
-      try {
-        firestore = getFirestore(app);
-      } catch (e) {
-        firestore = initializeFirestore(app, {
-          localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager()
-          })
-        });
-      }
-    }
-  } catch (e) {
-    firestore = getFirestore(app);
-  }
-
-  return {
-    firebaseApp: app,
-    auth: getAuth(app),
-    firestore: firestore
-  };
-}
-
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
-}
-
+// Ré-exportation de tout ce qui se trouve dans les providers
 export * from './provider';
 export * from './client-provider';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
-export * from './non-blocking-updates';
-export * from './non-blocking-login';
-export * from './errors';
-export * from './error-emitter';

@@ -1,6 +1,5 @@
-// Configuration Firebase ABSOLUE et HARDCODÉE
-// On ignore systématiquement les variables d'environnement Vercel pour éviter les erreurs de mismatch (auth/configuration-not-found)
-// Ce projet contient toutes les données réelles du magasin Like Vision.
+// Configuration Firebase
+// Ces valeurs sont les identifiants officiels du projet "studio-8223503245-60ae5" (Like Vision)
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDTVvD1Hr07ypQGuowJE6N5QGHDTMwR6Hg",
