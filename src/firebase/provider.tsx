@@ -55,17 +55,20 @@ export const useFirebase = () => {
   return context;
 };
 
-export const useAuth = () => useFirebase().auth;
-export const useFirestore = () => useFirebase().db;
+export const useAuth = () => auth;
+export const useFirestore = () => db;
 
 export const useUser = () => {
   const { user, isUserLoading } = useFirebase();
   return { user, isUserLoading };
 };
 
-// Hook pour mémoïser les références Firebase (évite les boucles infinies dans useEffect)
+// Hook pour mémoïser les références Firebase
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
-  return useMemo(factory, deps);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const result = useMemo(factory, deps);
+  (result as any).__memo = true;
+  return result;
 }
 
 // Hook pour s'abonner à une collection
@@ -88,7 +91,7 @@ export function useCollection<T = any>(query: Query<DocumentData> | CollectionRe
 }
 
 // Hook pour s'abonner à un document
-export function useDoc<T = any>(ref: DocumentReference<DocumentData> | null) {
+export function useDoc<T = any>(ref: DocumentReference<DocumentData> | null | undefined) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

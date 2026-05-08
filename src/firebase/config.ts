@@ -1,4 +1,4 @@
-// Configuration Firebase pour le projet "like-vision"
+// Configuration Firebase
 export const firebaseConfig = {
   apiKey: "AIzaSyDTVvD1Hr07ypQGuowJE6N5QGHDTMwR6Hg",
   authDomain: "studio-8223503245-60ae5.firebaseapp.com",
