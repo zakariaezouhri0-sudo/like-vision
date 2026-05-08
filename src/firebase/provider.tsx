@@ -57,6 +57,7 @@ export const useFirebase = () => {
 
 export const useAuth = () => useFirebase().auth;
 export const useFirestore = () => useFirebase().db;
+
 export const useUser = () => {
   const { user, isUserLoading } = useFirebase();
   return { user, isUserLoading };
@@ -64,11 +65,7 @@ export const useUser = () => {
 
 // Hook pour mémoïser les références Firebase (évite les boucles infinies dans useEffect)
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
-  const memoized = useMemo(factory, deps);
-  if (memoized && typeof memoized === 'object') {
-    (memoized as any).__memo = true;
-  }
-  return memoized;
+  return useMemo(factory, deps);
 }
 
 // Hook pour s'abonner à une collection
@@ -91,12 +88,15 @@ export function useCollection<T = any>(query: Query<DocumentData> | CollectionRe
 }
 
 // Hook pour s'abonner à un document
-export function useDoc<T = any>(ref: DocumentReference<DocumentData>) {
+export function useDoc<T = any>(ref: DocumentReference<DocumentData> | null) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!ref) return;
+    if (!ref) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const unsubscribe = onSnapshot(ref, (snapshot: DocumentSnapshot<DocumentData>) => {
       if (snapshot.exists()) {

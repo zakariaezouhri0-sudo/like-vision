@@ -4,19 +4,20 @@ import { getFirestore } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
 // Initialisation de l'application Firebase (Singleton)
+// On s'assure que l'app est initialisée avec la config complète
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Export des instances
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Export de la fonction d'initialisation (pour compatibilité si nécessaire)
+// Ré-exportation des composants et hooks
+export * from './provider';
+export * from './client-provider';
+
+// Fonction utilitaire pour récupérer les instances
 export const initializeFirebase = () => ({
   firebaseApp: app,
   auth,
   firestore: db,
 });
-
-// Ré-exportation de tout ce qui se trouve dans les providers
-export * from './provider';
-export * from './client-provider';
