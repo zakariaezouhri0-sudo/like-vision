@@ -1,11 +1,14 @@
-import { NextResponse } from 'next/server';
-import { initializeFirebase } from '@/firebase';
+import { NextResponse } from ' some next/server';
+import { db, initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
 
 const API_KEY = process.env.API_SECURE_KEY || "LV-2026-SECURE";
 
 export async function GET(request: Request) {
+  // Ensure Firebase is initialized
+  initializeFirebase();
+
   const { searchParams } = new URL(request.url);
   
   // Vérification de la clé de sécurité
@@ -14,12 +17,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Non autorisé. Clé API invalide." }, { status: 401 });
   }
 
-  const type = searchParams.get('type') || 'ALL'; // ALL, VENTES, ACHATS, DEPENSES, VERSEMENTS
+  const type = searchParams.get('type') || 'ALL'; 
   const mode = searchParams.get('mode') === 'DRAFT' ? true : false;
   const startDateStr = searchParams.get('startDate');
   const endDateStr = searchParams.get('endDate');
-
-  const { firestore } = initializeFirebase();
 
   try {
     // Filtres de dates
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     };
 
     // 1. Récupération des Transactions
-    const transRef = collection(firestore, "transactions");
+    const transRef = collection(db, "transactions");
     const transQuery = query(
       transRef,
       where("isDraft", "==", mode),
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
 
     // 2. Récupération des Ventes détaillées
     if (type === 'ALL' || type === 'VENTES') {
-      const salesRef = collection(firestore, "sales");
+      const salesRef = collection(db, "sales");
       const salesQuery = query(
         salesRef,
         where("isDraft", "==", mode),

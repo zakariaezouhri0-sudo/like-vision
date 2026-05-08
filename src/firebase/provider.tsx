@@ -1,9 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect, DependencyList, useMemo } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { 
-  Firestore, 
   onSnapshot, 
   DocumentReference, 
   Query, 
@@ -17,13 +16,11 @@ import { auth, db } from './index';
 interface FirebaseContextState {
   user: User | null;
   isUserLoading: boolean;
-  db: Firestore;
-  auth: any;
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
 
@@ -37,9 +34,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const value = {
     user,
-    isUserLoading,
-    db,
-    auth
+    isUserLoading
   };
 
   return (
@@ -49,34 +44,33 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-export const useFirebase = () => {
-  const context = useContext(FirebaseContext);
-  if (!context) throw new Error('useFirebase must be used within FirebaseProvider');
-  return context;
-};
-
 export const useAuth = () => auth;
+export const useStore = () => db; // Alias for backward compatibility if needed
 export const useFirestore = () => db;
 
 export const useUser = () => {
-  const { user, isUserLoading } = useFirebase();
-  return { user, isUserLoading };
+  const context = useContext(FirebaseContext);
+  if (!context) throw new Error('useUser must be used within FirebaseProvider');
+  return context;
 };
 
-// Hook pour mémoïser les références Firebase
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const result = useMemo(factory, deps);
-  (result as any).__memo = true;
+  if (result !== null && result !== undefined) {
+    (result as any).__memo = true;
+  }
   return result;
 }
 
-// Hook pour s'abonner à une collection
 export function useCollection<T = any>(query: (Query<DocumentData> | CollectionReference<DocumentData>) & {__memo?: boolean}) {
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const unsubscribe = onSnapshot(query, (snapshot: QuerySnapshot<DocumentData>) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
@@ -89,7 +83,6 @@ export function useCollection<T = any>(query: (Query<DocumentData> | CollectionR
   return { data, isLoading };
 }
 
-// Hook pour s'abonner à un document
 export function useDoc<T = any>(ref: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
