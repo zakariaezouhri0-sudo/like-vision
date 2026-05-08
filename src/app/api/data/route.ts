@@ -1,14 +1,11 @@
-import { NextResponse } from ' some next/server';
-import { db, initializeFirebase } from '@/firebase';
+import { NextResponse } from 'next/server';
+import { db } from '@/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
 
 const API_KEY = process.env.API_SECURE_KEY || "LV-2026-SECURE";
 
 export async function GET(request: Request) {
-  // Ensure Firebase is initialized
-  initializeFirebase();
-
   const { searchParams } = new URL(request.url);
   
   // Vérification de la clé de sécurité

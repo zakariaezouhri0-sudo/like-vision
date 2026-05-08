@@ -45,7 +45,6 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => auth;
-export const useStore = () => db; // Alias for backward compatibility if needed
 export const useFirestore = () => db;
 
 export const useUser = () => {
@@ -56,7 +55,7 @@ export const useUser = () => {
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const result = useMemo(factory, deps);
-  if (result !== null && result !== undefined) {
+  if (result) {
     (result as any).__memo = true;
   }
   return result;
