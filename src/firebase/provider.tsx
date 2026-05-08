@@ -65,14 +65,13 @@ export const useUser = () => {
 
 // Hook pour mémoïser les références Firebase
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const result = useMemo(factory, deps);
   (result as any).__memo = true;
   return result;
 }
 
 // Hook pour s'abonner à une collection
-export function useCollection<T = any>(query: Query<DocumentData> | CollectionReference<DocumentData>) {
+export function useCollection<T = any>(query: (Query<DocumentData> | CollectionReference<DocumentData>) & {__memo?: boolean}) {
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -80,7 +79,7 @@ export function useCollection<T = any>(query: Query<DocumentData> | CollectionRe
     if (!query) return;
     setIsLoading(true);
     const unsubscribe = onSnapshot(query, (snapshot: QuerySnapshot<DocumentData>) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       setData(items);
       setIsLoading(false);
     });
@@ -91,7 +90,7 @@ export function useCollection<T = any>(query: Query<DocumentData> | CollectionRe
 }
 
 // Hook pour s'abonner à un document
-export function useDoc<T = any>(ref: DocumentReference<DocumentData> | null | undefined) {
+export function useDoc<T = any>(ref: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,7 +102,7 @@ export function useDoc<T = any>(ref: DocumentReference<DocumentData> | null | un
     setIsLoading(true);
     const unsubscribe = onSnapshot(ref, (snapshot: DocumentSnapshot<DocumentData>) => {
       if (snapshot.exists()) {
-        setData({ id: snapshot.id, ...snapshot.data() } as T);
+        setData({ id: snapshot.id, ...snapshot.data() } as any);
       } else {
         setData(null);
       }

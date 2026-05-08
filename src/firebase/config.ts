@@ -1,4 +1,4 @@
-// Configuration Firebase
+// Configuration Firebase avec les valeurs réelles pour éviter les erreurs d'initialisation
 export const firebaseConfig = {
   apiKey: "AIzaSyDTVvD1Hr07ypQGuowJE6N5QGHDTMwR6Hg",
   authDomain: "studio-8223503245-60ae5.firebaseapp.com",
