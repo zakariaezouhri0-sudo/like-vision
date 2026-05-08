@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp, RefreshCw, AlertCircle } from "lucide-react";
+import { Lock, User as UserIcon, Loader2, Glasses, ThumbsUp, RefreshCw } from "lucide-react";
 import { useFirestore, useAuth, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, doc, terminate, clearIndexedDbPersistence } from "firebase/firestore";
 import { signInAnonymously, updateProfile, signOut } from "firebase/auth";
@@ -26,12 +26,21 @@ export default function LoginPage() {
   const handleResetStorage = async () => {
     try {
       setLoading(true);
-      await signOut(auth);
-      await terminate(db);
-      await clearIndexedDbPersistence(db);
+      // Nettoyage complet
       localStorage.clear();
-      toast({ title: "Synchronisation...", description: "Nettoyage de la mémoire effectué." });
-      window.location.reload();
+      sessionStorage.clear();
+      
+      if (auth) await signOut(auth);
+      if (db) {
+        await terminate(db);
+        await clearIndexedDbPersistence(db);
+      }
+      
+      toast({ title: "Synchronisation...", description: "Nettoyage complet effectué. Rechargement..." });
+      
+      setTimeout(() => {
+        window.location.href = window.location.origin + "/login";
+      }, 1000);
     } catch (e) {
       window.location.reload();
     }
@@ -43,23 +52,18 @@ export default function LoginPage() {
       setHostname(window.location.hostname);
     }
 
-    const checkAndForceProject = async () => {
-      try {
-        const expectedProjectId = "studio-8223503245-60ae5";
-        const currentProjectId = db.app.options.projectId;
-        const lastProjectId = localStorage.getItem('last_project_id');
-        
-        // Si on détecte qu'on est sur le mauvais projet ou qu'on vient de changer
-        if (currentProjectId !== expectedProjectId || (lastProjectId && lastProjectId !== currentProjectId)) {
-          console.warn("Projet incorrect détecté. Nettoyage forcé...");
-          await handleResetStorage();
-        } else {
-          localStorage.setItem('last_project_id', currentProjectId || "");
-        }
-      } catch (e) {}
+    // Vérification de sécurité du projet au chargement
+    const checkProjectIntegrity = async () => {
+      const expectedId = "studio-8223503245-60ae5";
+      const currentId = db.app.options.projectId;
+      
+      if (currentId !== expectedId) {
+        console.warn("Mismatch de projet détecté. Nettoyage forcé...");
+        await handleResetStorage();
+      }
     };
-    checkAndForceProject();
-  }, [db, auth]);
+    checkProjectIntegrity();
+  }, [db]);
 
   const settingsRef = useMemoFirebase(() => doc(db, "settings", "shop-info"), [db]);
   const { data: settings, isLoading: settingsLoading } = useDoc(settingsRef);
@@ -70,19 +74,18 @@ export default function LoginPage() {
     
     const cleanUsername = username.toLowerCase().trim();
 
-    // Comptes de secours Hardcoded (Toujours prioritaires)
+    // Comptes de secours Hardcoded
     if (cleanUsername === "admin" && password === "admin123") {
       try {
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: "Administrateur" });
           localStorage.setItem('user_role', 'ADMIN');
-          localStorage.setItem('last_project_id', db.app.options.projectId || "");
         }
         toast({ variant: "success", title: "Connexion réussie", description: "Bienvenue (Mode Admin)." });
         router.push("/dashboard");
       } catch (err) {
-        toast({ variant: "destructive", title: "Erreur Auth" });
+        toast({ variant: "destructive", title: "Erreur Auth", description: "Videz le cache si l'erreur persiste." });
       } finally {
         setLoading(false);
       }
@@ -95,9 +98,8 @@ export default function LoginPage() {
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: "ZAKARIAE" });
           localStorage.setItem('user_role', 'PREPA');
-          localStorage.setItem('last_project_id', db.app.options.projectId || "");
         }
-        toast({ variant: "success", title: "Mode Préparation Actif", description: "Vous travaillez sur un espace brouillon isolé." });
+        toast({ variant: "success", title: "Mode Préparation Actif", description: "Espace brouillon isolé." });
         router.push("/dashboard");
       } catch (err) {
         toast({ variant: "destructive", title: "Erreur Auth" });
@@ -109,29 +111,25 @@ export default function LoginPage() {
 
     try {
       const usersRef = collection(db, "users");
-      // On cherche l'utilisateur dans la base de données réelle
       const q = query(usersRef, where("username", "==", cleanUsername));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("Utilisateur non trouvé. Vérifiez votre identifiant ou videz le cache.");
+        throw new Error("Utilisateur non trouvé. Cliquez sur 'Synchronisation forcée' en bas.");
       }
 
       const userData = querySnapshot.docs[0].data();
 
       if (userData.password === password) {
-        if (userData.status === "Suspendu") {
-          throw new Error("Compte suspendu.");
-        }
+        if (userData.status === "Suspendu") throw new Error("Compte suspendu.");
         
         const userCredential = await signInAnonymously(auth);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: userData.name });
           const role = (userData.role || 'OPTICIENNE').toUpperCase();
           localStorage.setItem('user_role', role);
-          localStorage.setItem('last_project_id', db.app.options.projectId || "");
           
-          toast({ variant: "success", title: "Bienvenue", description: `Ravi de vous revoir, ${userData.name}.` });
+          toast({ variant: "success", title: "Bienvenue", description: `Bonjour, ${userData.name}.` });
           router.push(role === "OPTICIENNE" ? "/caisse" : "/dashboard");
         }
       } else {
@@ -153,7 +151,7 @@ export default function LoginPage() {
           ) : (
             <div className="flex flex-col items-center">
               {settings?.logoUrl ? (
-                <div className="w-32 h-32 mb-6 p-2 rounded-3xl bg-[#0D1B2A] shadow-2xl border border-white/5 shadow-black/40">
+                <div className="w-32 h-32 mb-6 p-2 rounded-3xl bg-[#0D1B2A] shadow-2xl border border-white/5">
                   <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               ) : (
@@ -187,7 +185,7 @@ export default function LoginPage() {
                   <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D1B2A] z-10" />
                   <Input 
                     placeholder="ex: ZAKARIAE" 
-                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-[#D4AF37] text-[#0D1B2A] placeholder:text-[#0D1B2A]/40 focus:ring-2 focus:ring-white/20 transition-all shadow-inner" 
+                    className="pl-16 h-16 text-base font-bold rounded-[24px] border-none bg-[#D4AF37] text-[#0D1B2A] placeholder:text-[#0D1B2A]/40 focus:ring-2 focus:ring-white/20 transition-all shadow-inner uppercase" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required 
@@ -228,7 +226,7 @@ export default function LoginPage() {
         
         <div className="flex flex-col items-center gap-1 opacity-20">
           <p className="text-[8px] font-bold text-white uppercase tracking-widest">
-            Base de données : {db.app.options.projectId}
+            BASE DE DONNÉES : {db.app.options.projectId}
           </p>
           {mounted && (
             <p className="text-[7px] font-bold text-white uppercase tracking-widest">
